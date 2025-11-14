@@ -1,0 +1,10 @@
+Checking for wireless devices...
+
+More than one device connected; please specify a device with the '-d <deviceId>' flag, or use '-d all' to act on all devices.
+
+macOS (desktop) • macos  • darwin-arm64   • macOS 26.1 25B78 darwin-arm64
+Chrome (web)    • chrome • web-javascript • Google Chrome 142.0.7444.162
+
+Wirelessly connected devices:
+iPhone (wireless) (mobile)             • 00008110-0010593922C2801E • ios • iOS 18.6.2 22G100
+Francine Lariviere (wireless) (mobile) • 00008120-0009341A1E12201E • ios • iOS 18.6.2 22G100
