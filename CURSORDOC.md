@@ -2,7 +2,8 @@
 
 **Application de puzzles pentominos en Flutter**
 
-**Date de création : 14 novembre 2025**
+**Date de création : 14 novembre 2025**  
+**Dernière mise à jour : 14 novembre 2025**
 
 ---
 
@@ -51,11 +52,9 @@ lib/
 │   └── point.dart              # Coordonnées 2D
 ├── services/                    # Logique métier
 │   ├── solution_matcher.dart           # Comparaison solutions BigInt
-│   ├── solution_matcher_direct.dart    # Version debug sans transformations
 │   ├── pentapol_solutions_loader.dart  # Chargement .bin → BigInt
 │   ├── plateau_solution_counter.dart   # Extension Plateau
-│   ├── pentomino_solver.dart          # Backtracking avec heuristiques
-│   └── solution_generator.dart        # Export solutions vers fichier
+│   └── pentomino_solver.dart          # Backtracking avec heuristiques
 ├── providers/                   # Gestion d'état Riverpod
 │   ├── plateau_editor_provider.dart   # Logique éditeur
 │   ├── plateau_editor_state.dart      # État éditeur
@@ -451,32 +450,6 @@ if (solution != null) {
   final next = solver.findNext();
 }
 ```
-
----
-
-### 5. `solution_matcher_direct.dart` - Version debug
-
-Version simplifiée **sans transformations** pour debugging.
-
-**Classe `SolutionMatcherDirect`** :
-```dart
-class SolutionMatcherDirect {
-  late final List<List<int>> _allSolutions; // 2339 formes
-  
-  // Comptage direct
-  int countCompatible(List<int> plateauMask);
-  
-  // Récupération
-  List<List<int>> getCompatibleSolutions(List<int> plateauMask);
-  
-  int get totalSolutions; // 2339
-}
-```
-
-**Différence avec `SolutionMatcher`** :
-- Pas de transformation (rotation, miroir)
-- Utilise `List<int>` au lieu de `BigInt`
-- Plus lent mais plus simple à debugger
 
 ---
 
@@ -936,9 +909,9 @@ assert(plateau.width == 6 && plateau.height == 10);
 
 ### Outils de debug
 
-- `solution_matcher_direct.dart` : Version simple sans transformations
-- `solution_generator.dart` : Export solutions vers fichier texte
 - Logs détaillés dans les providers
+- `print()` statements dans les services
+- Git history propre pour tracking
 
 ---
 

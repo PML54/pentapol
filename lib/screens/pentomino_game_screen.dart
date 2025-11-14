@@ -5,8 +5,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../providers/pentomino_game_provider.dart';
 import '../models/pentominos.dart';
+import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
 
@@ -52,7 +54,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         )
             : const SizedBox.shrink(),
         actions: [
-          // 🔍 Nouveau bouton "voir les solutions possibles"
+          // 👁️ Bouton "voir les solutions possibles"
           if (state.solutionsCount != null && state.solutionsCount! > 0)
             IconButton(
               icon: const Icon(Icons.visibility),
@@ -60,21 +62,31 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               onPressed: () {
                 HapticFeedback.selectionClick();
 
-                // Récupérer les solutions compatibles pour le plateau actuel
-                final plateau = state.plateau;
-                final compatible = plateau.getCompatibleSolutionsBigInt();
+                // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
+                final compatible = state.plateau.getCompatibleSolutionsBigInt();
 
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => SolutionsBrowserScreen.forSolutions(
                       solutions: compatible,
-                      title: 'Solutions possibles (${compatible.length})',
+                      title: 'Solutions possibles',
                     ),
                   ),
                 );
               },
             ),
 
+          // Bouton de rotation (visible si pièce sélectionnée)
+          if (state.selectedPiece != null)
+            IconButton(
+              icon: const Icon(Icons.rotate_right),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                notifier.cyclePosition();
+              },
+              tooltip: 'Rotation',
+              color: Colors.blue[400],
+            ),
           // Bouton de rotation (visible si pièce sélectionnée)
           if (state.selectedPiece != null)
             IconButton(
@@ -95,7 +107,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 notifier.removePlacedPiece(state.selectedPlacedPiece!);
               },
               tooltip: 'Retirer',
-              color: Colors.red[600],  // Rouge pour mieux voir la poubelle
+              color: Colors.red[600], // Rouge pour mieux voir la poubelle
             ),
           // Annuler sélection (si une pièce est sélectionnée)
           if (state.selectedPiece != null)
@@ -171,7 +183,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       builder: (context, constraints) {
         final cols = 6;
         final rows = 10;
-        final cellSize = (constraints.maxWidth / cols).clamp(0.0, constraints.maxHeight / rows).toDouble();
+        final cellSize =
+        (constraints.maxWidth / cols).clamp(0.0, constraints.maxHeight / rows).toDouble();
 
         return Center(
           child: SizedBox(
@@ -181,8 +194,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               onWillAcceptWithDetails: (details) => true,
               onMove: (details) {
                 // Mettre à jour la preview pendant le drag
-                final offset = (context.findRenderObject() as RenderBox?)
-                    ?.globalToLocal(details.offset);
+                final offset =
+                (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
 
                 if (offset != null) {
                   final gridX = (offset.dx / cellSize).round().clamp(0, cols - 1);
@@ -196,8 +209,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               },
               onAcceptWithDetails: (details) {
                 // Calculer la position sur la grille depuis le point de dépôt
-                final offset = (context.findRenderObject() as RenderBox?)
-                    ?.globalToLocal(details.offset);
+                final offset =
+                (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
 
                 if (offset != null) {
                   final gridX = (offset.dx / cellSize).round().clamp(0, cols - 1);
@@ -222,8 +235,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: cols,
                     childAspectRatio: 1.0,
-                    crossAxisSpacing: 1,
-                    mainAxisSpacing: 1,
+                    crossAxisSpacing: 0, // contours gérés manuellement
+                    mainAxisSpacing: 0,
                   ),
                   itemCount: 60,
                   itemBuilder: (context, index) {
@@ -252,7 +265,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
                     if (state.selectedPlacedPiece != null) {
                       final selectedPiece = state.selectedPlacedPiece!;
-                      final position = selectedPiece.piece.positions[state.selectedPositionIndex];
+                      final position =
+                      selectedPiece.piece.positions[state.selectedPositionIndex];
 
                       // Vérifier si (x, y) est dans la zone de la pièce sélectionnée
                       for (final cellNum in position) {
@@ -282,8 +296,10 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     }
 
                     // Vérifier si cette cellule fait partie de la preview
-                    if (!isSelected && state.selectedPiece != null &&
-                        state.previewX != null && state.previewY != null) {
+                    if (!isSelected &&
+                        state.selectedPiece != null &&
+                        state.previewX != null &&
+                        state.previewY != null) {
                       final piece = state.selectedPiece!;
                       final position = piece.positions[state.selectedPositionIndex];
 
@@ -307,28 +323,44 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       }
                     }
 
+                    // Construire la bordure en fonction du contexte
+                    Border border;
+                    if (isReferenceCell) {
+                      // Case de référence : rouge bien visible
+                      border = Border.all(color: Colors.red, width: 4);
+                    } else if (isPreview) {
+                      // Preview : tout en vert/rouge (comme avant)
+                      border = Border.all(
+                        color: state.isPreviewValid ? Colors.green : Colors.red,
+                        width: 3,
+                      );
+                    } else if (isSelected) {
+                      // Pièce sélectionnée : bordure amber
+                      border = Border.all(
+                        color: Colors.amber,
+                        width: 3,
+                      );
+                    } else {
+                      // Cas normal : utiliser les contours de pièces comme dans le browser
+                      border = _buildPieceBorderOnBoard(x, y, state.plateau);
+                    }
+
                     Widget cellWidget = Container(
                       decoration: BoxDecoration(
                         color: cellColor,
-                        border: Border.all(
-                          color: isReferenceCell
-                              ? Colors.red // Bordure rouge voyante pour la case de référence
-                              : (isPreview
-                              ? (state.isPreviewValid ? Colors.green : Colors.red)
-                              : (isSelected ? Colors.amber : Colors.grey.shade400)),
-                          width: isReferenceCell
-                              ? 4 // Bordure plus épaisse pour la case de référence
-                              : (isPreview || isSelected ? 3 : 1),
-                        ),
+                        border: border,
                       ),
                       child: Center(
                         child: Text(
                           cellText,
                           style: TextStyle(
                             color: isPreview
-                                ? (state.isPreviewValid ? Colors.green.shade900 : Colors.red.shade900)
+                                ? (state.isPreviewValid
+                                ? Colors.green.shade900
+                                : Colors.red.shade900)
                                 : Colors.white,
-                            fontWeight: (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
+                            fontWeight:
+                            (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
                             fontSize: (isSelected || isPreview) ? 16 : 14,
                           ),
                         ),
@@ -523,7 +555,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     );
   }
 
-  /// Construit le widget visuel d'une pièce
+  /// Construit le widget visuel d'une pièce (dans le slider ou en drag)
   Widget _buildPieceWidget(Pento piece, int positionIndex, bool isDragging) {
     final position = piece.positions[positionIndex];
 
@@ -557,7 +589,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       width: width * cellSize + 8,
       height: height * cellSize + 8,
       decoration: BoxDecoration(
-        // Fond transparent, juste une ombre légère pour le drag
         boxShadow: isDragging
             ? [
           BoxShadow(
@@ -582,7 +613,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   color: _getPieceColor(piece.id),
                   border: Border.all(color: Colors.white, width: 1.5),
                   borderRadius: BorderRadius.circular(3),
-                  // Petite ombre pour donner du relief
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -620,11 +650,11 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
   /// Couleurs des pièces (même palette que l'éditeur)
   Color _getPieceColor(int pieceId) {
     const colors = [
-      Colors.black,     // Pièce 1: Croix en noir (pour se distinguer de l'orange)
+      Colors.black, // Pièce 1
       Colors.blue,
       Colors.green,
       Colors.orange,
-      Colors.red,       // Pièce 5: Rouge
+      Colors.red,
       Colors.teal,
       Colors.pink,
       Colors.brown,
@@ -634,6 +664,50 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       Colors.amber,
     ];
     return colors[(pieceId - 1) % colors.length];
+  }
+
+  /// Construit un contour de pièce sur le plateau :
+  /// trait épais aux frontières entre pièces (ou bord/zone invisible).
+  Border _buildPieceBorderOnBoard(int x, int y, Plateau plateau) {
+    const width = 6;
+    const height = 10;
+
+    final int id = plateau.getCell(x, y);
+    // On considère 0 et -1 comme "pas de pièce"
+    final int baseId = id > 0 ? id : 0;
+
+    int neighborId(int nx, int ny) {
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) return 0;
+      final v = plateau.getCell(nx, ny);
+      return v > 0 ? v : 0;
+    }
+
+    final idTop = neighborId(x, y - 1);
+    final idBottom = neighborId(x, y + 1);
+    final idLeft = neighborId(x - 1, y);
+    final idRight = neighborId(x + 1, y);
+
+    const borderWidthOuter = 2.0;
+    const borderWidthInner = 0.5;
+
+    return Border(
+      top: BorderSide(
+        color: (idTop != baseId) ? Colors.black : Colors.grey.shade400,
+        width: (idTop != baseId) ? borderWidthOuter : borderWidthInner,
+      ),
+      bottom: BorderSide(
+        color: (idBottom != baseId) ? Colors.black : Colors.grey.shade400,
+        width: (idBottom != baseId) ? borderWidthOuter : borderWidthInner,
+      ),
+      left: BorderSide(
+        color: (idLeft != baseId) ? Colors.black : Colors.grey.shade400,
+        width: (idLeft != baseId) ? borderWidthOuter : borderWidthInner,
+      ),
+      right: BorderSide(
+        color: (idRight != baseId) ? Colors.black : Colors.grey.shade400,
+        width: (idRight != baseId) ? borderWidthOuter : borderWidthInner,
+      ),
+    );
   }
 }
 
@@ -683,7 +757,6 @@ class _DraggablePieceWidgetState extends State<_DraggablePieceWidget> {
     // Attendre un peu pour voir si c'est un double-tap
     _tapTimer = Timer(const Duration(milliseconds: 300), () {
       // C'était un tap simple, on l'ignore pour l'instant
-      // (on pourrait ajouter une action pour tap simple si besoin)
     });
   }
 

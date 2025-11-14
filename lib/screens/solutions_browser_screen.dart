@@ -151,8 +151,8 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 6,
                 childAspectRatio: 1.0,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
+                crossAxisSpacing: 0, // on gère les contours nous-mêmes
+                mainAxisSpacing: 0,
               ),
               itemCount: 60,
               itemBuilder: (context, index) {
@@ -161,10 +161,12 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
                 final cellIndex = y * 6 + x;
                 final pieceId = grid[cellIndex];
 
+                final border = _buildPieceBorder(x, y, grid);
+
                 return Container(
                   decoration: BoxDecoration(
                     color: _getPieceColor(pieceId),
-                    border: Border.all(color: Colors.black, width: 1),
+                    border: border,
                   ),
                   child: Center(
                     child: Text(
@@ -227,6 +229,49 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
       return colors[pieceId - 1];
     }
     return Colors.grey;
+  }
+
+  /// Construit un contour de pièce : trait épais aux frontières entre pièces.
+  Border _buildPieceBorder(int x, int y, List<int> grid) {
+    const width = 6;
+    const height = 10;
+
+    final index = y * width + x;
+    final id = grid[index];
+
+    // Fonction pour récupérer l'id voisin ou -1 si hors plateau
+    int neighborId(int nx, int ny) {
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) return -1;
+      return grid[ny * width + nx];
+    }
+
+    final idTop = neighborId(x, y - 1);
+    final idBottom = neighborId(x, y + 1);
+    final idLeft = neighborId(x - 1, y);
+    final idRight = neighborId(x + 1, y);
+
+    // Si voisin différent (ou bord du plateau), on trace un contour épais.
+    const borderWidthOuter = 2.0;
+    const borderWidthInner = 0.5;
+
+    return Border(
+      top: BorderSide(
+        color: (idTop != id) ? Colors.black : Colors.grey.shade400,
+        width: (idTop != id) ? borderWidthOuter : borderWidthInner,
+      ),
+      bottom: BorderSide(
+        color: (idBottom != id) ? Colors.black : Colors.grey.shade400,
+        width: (idBottom != id) ? borderWidthOuter : borderWidthInner,
+      ),
+      left: BorderSide(
+        color: (idLeft != id) ? Colors.black : Colors.grey.shade400,
+        width: (idLeft != id) ? borderWidthOuter : borderWidthInner,
+      ),
+      right: BorderSide(
+        color: (idRight != id) ? Colors.black : Colors.grey.shade400,
+        width: (idRight != id) ? borderWidthOuter : borderWidthInner,
+      ),
+    );
   }
 }
 
