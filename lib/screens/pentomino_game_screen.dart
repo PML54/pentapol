@@ -1,4 +1,4 @@
-// Modified: 2025-11-15 08:07:55
+// Modified: 2025-11-15 15:58:00
 // lib/screens/pentomino_game_screen.dart
 // Écran de jeu de pentominos avec drag & drop
 
@@ -797,6 +797,7 @@ class _DraggablePieceWidgetState extends State<_DraggablePieceWidget> {
     } else {
       return LongPressDraggable<Pento>(
         data: widget.piece,
+        delay: const Duration(milliseconds: 200),
         onDragStarted: () {
           widget.onSelect();
         },

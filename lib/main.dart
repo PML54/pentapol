@@ -1,4 +1,4 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2025-11-15 15:56:05
 // lib/main.dart
 // Version adaptée avec pré-chargement des solutions BigInt
 
@@ -10,6 +10,7 @@ import 'bootstrap.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/plateau_editor_screen.dart';
+import 'screens/pentomino_game_screen.dart';
 import 'services/solution_matcher.dart';
 import 'services/pentapol_solutions_loader.dart'; // <-- loader binaire -> BigInt
 
@@ -52,16 +53,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // MODE DEBUG : Lancer directement l'éditeur
-    const bool debugEditorMode = true;
+    // MODE DEBUG : Lancer directement le jeu
+    const bool debugGameMode = true;
 
     return MaterialApp(
       title: 'Pentapol',
       theme: ThemeData(useMaterial3: true),
       routes: {
         '/': (context) {
-          if (debugEditorMode) {
-            return const PlateauEditorScreen();
+          if (debugGameMode) {
+            return const PentominoGameScreen();
           }
           final client = Supabase.instance.client;
           return client.auth.currentUser == null
@@ -69,6 +70,7 @@ class MyApp extends StatelessWidget {
               : const HomeScreen();
         },
         '/editor': (context) => const PlateauEditorScreen(),
+        '/game': (context) => const PentominoGameScreen(),
       },
     );
   }
