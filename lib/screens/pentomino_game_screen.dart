@@ -1,4 +1,4 @@
-// Modified: 2025-11-15 17:18:00
+// Modified: 2025-11-15 17:35:00
 // lib/screens/pentomino_game_screen.dart
 // Écran de jeu de pentominos avec drag & drop
 
@@ -756,19 +756,19 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.amber.shade100 : Colors.white,
+          color: isSelected ? Colors.amber.shade100 : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.amber.shade700 : Colors.grey.shade300,
-            width: isSelected ? 3 : 2,
-          ),
-          boxShadow: [
+          border: isSelected ? Border.all(
+            color: Colors.amber.shade700,
+            width: 3,
+          ) : null,
+          boxShadow: isSelected ? [
             BoxShadow(
-              color: Colors.black.withOpacity(isSelected ? 0.2 : 0.1),
-              blurRadius: isSelected ? 8 : 4,
-              offset: Offset(0, isSelected ? 4 : 2),
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ],
+          ] : null,
         ),
         child: _DraggablePieceWidget(
           piece: piece,
