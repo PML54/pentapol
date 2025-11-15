@@ -1,3 +1,6 @@
+// Modified: 2025-11-15 06:45:00
+// lib/models/bigint_plateau.dart
+
 import 'package:pentapol/models/pentominos.dart';
 
 class BigIntPlateau {

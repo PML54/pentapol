@@ -1,3 +1,5 @@
+// Modified: 2025-11-15 06:45:00
+// lib/utils/plateau_compressor.dart
 /// Utilitaire pour compresser et canoniser les plateaux de pentomino.
 /// 
 /// Permet de:

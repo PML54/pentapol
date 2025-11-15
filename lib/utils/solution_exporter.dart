@@ -1,4 +1,5 @@
-// solution_exporter.dart
+// Modified: 2025-11-15 06:45:00
+// lib/utils/solution_exporter.dart
 // Module isolé pour exporter les solutions de pentominos dans un fichier
 // Indépendant du reste de l'application
 

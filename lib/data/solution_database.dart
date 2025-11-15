@@ -1,3 +1,5 @@
+// Modified: 2025-11-15 06:45:00
+// lib/data/solution_database.dart
 /// Base de données des solutions pentomino précalculées.
 /// 
 /// Charge les formes canoniques depuis assets/solutions_canonical.bin

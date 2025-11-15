@@ -1,4 +1,5 @@
-// pentomino_game_provider.dart
+// Modified: 2025-11-15 07:16:29
+// lib/providers/pentomino_game_provider.dart
 // Provider pour gérer l'état du jeu de pentominos
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -268,6 +269,51 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   /// Sélectionne une pièce déjà placée pour la déplacer
   /// [cellX] et [cellY] sont les coordonnées de la case touchée sur le plateau
   void selectPlacedPiece(PlacedPiece placedPiece, int cellX, int cellY) {
+    // Si une autre pièce du plateau est déjà sélectionnée, la replacer d'abord
+    if (state.selectedPlacedPiece != null && state.selectedPlacedPiece != placedPiece) {
+      final oldPiece = state.selectedPlacedPiece!;
+      
+      // Reconstruire le plateau avec l'ancienne pièce replacée
+      final tempPlateau = Plateau.allVisible(6, 10);
+      
+      // Replacer toutes les pièces déjà placées
+      for (final placed in state.placedPieces) {
+        final pos = placed.piece.positions[placed.positionIndex];
+        for (final cellNum in pos) {
+          final localX = (cellNum - 1) % 5;
+          final localY = (cellNum - 1) ~/ 5;
+          final x = placed.gridX + localX;
+          final y = placed.gridY + localY;
+          tempPlateau.setCell(x, y, placed.piece.id);
+        }
+      }
+      
+      // Replacer l'ancienne pièce sélectionnée
+      final oldPosition = oldPiece.piece.positions[state.selectedPositionIndex];
+      for (final cellNum in oldPosition) {
+        final localX = (cellNum - 1) % 5;
+        final localY = (cellNum - 1) ~/ 5;
+        final x = oldPiece.gridX + localX;
+        final y = oldPiece.gridY + localY;
+        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+          tempPlateau.setCell(x, y, oldPiece.piece.id);
+        }
+      }
+      
+      // Remettre l'ancienne pièce dans la liste des placées
+      final tempPlaced = List<PlacedPiece>.from(state.placedPieces)
+        ..add(oldPiece.copyWith(positionIndex: state.selectedPositionIndex));
+      
+      // Mettre à jour l'état avec le plateau et la liste mis à jour
+      state = state.copyWith(
+        plateau: tempPlateau,
+        placedPieces: tempPlaced,
+        clearSelectedPiece: true,
+        clearSelectedPlacedPiece: true,
+        clearSelectedCellInPiece: true,
+      );
+    }
+    
     // Trouver quelle case de la pièce correspond à (cellX, cellY)
     final position = placedPiece.piece.positions[placedPiece.positionIndex];
     Point? selectedCell;

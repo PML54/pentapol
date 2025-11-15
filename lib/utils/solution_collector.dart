@@ -1,4 +1,5 @@
-// solution_collector.dart
+// Modified: 2025-11-15 06:45:00
+// lib/utils/solution_collector.dart
 // Adaptateur pour collecter les solutions du solver et les exporter
 
 import 'solution_exporter.dart';

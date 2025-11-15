@@ -1,3 +1,6 @@
+// Modified: 2025-11-15 06:45:00
+// lib/models/point.dart
+
 class Point {
   final int x;
   final int y;

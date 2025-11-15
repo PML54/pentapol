@@ -1,3 +1,5 @@
+// Modified: 2025-11-15 06:45:00
+// lib/models/pentominos.dart
 // Généré automatiquement - Ne pas modifier manuellement
 // Pentominos avec numéros de cases sur grille 5×5
 // Numérotation: ligne 1 (bas) = cases 1-5, ligne 2 = cases 6-10, etc.

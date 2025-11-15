@@ -1,3 +1,6 @@
+// Modified: 2025-11-15 06:45:00
+// lib/providers/plateau_editor_provider.dart
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'plateau_editor_state.dart';
 import '../models/plateau.dart';

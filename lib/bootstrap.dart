@@ -1,3 +1,6 @@
+// Modified: 2025-11-15 06:45:00
+// lib/bootstrap.dart
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> initSupabase() async {

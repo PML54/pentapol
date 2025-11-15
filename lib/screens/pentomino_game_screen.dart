@@ -1,4 +1,5 @@
-// pentomino_game_screen.dart
+// Modified: 2025-11-15 08:07:55
+// lib/screens/pentomino_game_screen.dart
 // Écran de jeu de pentominos avec drag & drop
 
 import 'dart:async';
@@ -36,20 +37,20 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: state.solutionsCount != null
+        title: state.solutionsCount != null && state.placedPieces.isNotEmpty
             ? Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.emoji_events, size: 20),
-            const SizedBox(width: 8),
             Text(
-              '${state.solutionsCount} solution${state.solutionsCount! > 1 ? 's' : ''}',
+              '${state.solutionsCount}',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
               ),
             ),
+            const SizedBox(width: 8),
+            const Icon(Icons.emoji_events, size: 24),
           ],
         )
             : const SizedBox.shrink(),
@@ -87,17 +88,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               tooltip: 'Rotation',
               color: Colors.blue[400],
             ),
-          // Bouton de rotation (visible si pièce sélectionnée)
-          if (state.selectedPiece != null)
-            IconButton(
-              icon: const Icon(Icons.rotate_right),
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                notifier.cyclePosition();
-              },
-              tooltip: 'Rotation',
-              color: Colors.blue[400],
-            ),
           // Bouton retirer (visible si pièce placée sélectionnée)
           if (state.selectedPlacedPiece != null)
             IconButton(
@@ -109,17 +99,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               tooltip: 'Retirer',
               color: Colors.red[600], // Rouge pour mieux voir la poubelle
             ),
-          // Annuler sélection (si une pièce est sélectionnée)
-          if (state.selectedPiece != null)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                notifier.cancelSelection();
-              },
-              tooltip: 'Annuler',
-              color: Colors.red[300],
-            ),
           // Bouton Undo
           IconButton(
             icon: const Icon(Icons.undo),
@@ -130,17 +109,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             }
                 : null,
             tooltip: 'Annuler',
-          ),
-          // Bouton Reset
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: state.selectedPiece == null
-                ? () {
-              HapticFeedback.heavyImpact();
-              notifier.reset();
-            }
-                : null,
-            tooltip: 'Recommencer',
           ),
         ],
       ),
@@ -187,10 +155,33 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         (constraints.maxWidth / cols).clamp(0.0, constraints.maxHeight / rows).toDouble();
 
         return Center(
-          child: SizedBox(
+          child: Container(
             width: cellSize * cols,
             height: cellSize * rows,
-            child: DragTarget<Pento>(
+            decoration: BoxDecoration(
+              // Fond avec dégradé doux
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.grey.shade50,
+                  Colors.grey.shade100,
+                ],
+              ),
+              // Ombre douce autour du plateau
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              // Coins arrondis
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: DragTarget<Pento>(
               onWillAcceptWithDetails: (details) => true,
               onMove: (details) {
                 // Mettre à jour la preview pendant le drag
@@ -392,8 +383,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                           child: cellWidget,
                         ),
                       );
-                    } else if (isOccupied && state.selectedPiece == null && !isSelected) {
-                      // Tap simple pour sélectionner
+                    } else if (isOccupied && !isSelected) {
+                      // Tap simple pour sélectionner (désélectionne automatiquement l'ancienne)
                       cellWidget = GestureDetector(
                         onTap: () {
                           final piece = notifier.getPlacedPieceAt(x, y);
@@ -418,6 +409,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   },
                 );
               },
+              ),
             ),
           ),
         );
@@ -433,44 +425,26 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       notifier,
       ) {
     if (state.availablePieces.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.amber.shade100, Colors.orange.shade100],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.emoji_events, size: 56, color: Colors.amber),
-              const SizedBox(height: 12),
-              Text(
-                '🎉 Bravo ! 🎉',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Toutes les pièces sont placées !',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.orange.shade700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     final pieces = state.availablePieces;
     if (pieces.isEmpty) return const SizedBox.shrink();
 
-    // Approche simple : ListView avec beaucoup d'items et modulo pour créer la boucle
+    // Si moins de 4 pièces restantes, afficher simplement la liste
+    if (pieces.length < 4) {
+      return ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        itemCount: pieces.length,
+        itemBuilder: (context, index) {
+          final piece = pieces[index];
+          return _buildDraggablePiece(piece, notifier, state);
+        },
+      );
+    }
+
+    // Sinon, boucle infinie pour plus de 4 pièces
     // On crée 1000 "pages" de la même liste pour donner l'impression d'infini
     const itemsPerPage = 1000;
     final totalItems = pieces.length * itemsPerPage;
@@ -756,7 +730,10 @@ class _DraggablePieceWidgetState extends State<_DraggablePieceWidget> {
 
     // Attendre un peu pour voir si c'est un double-tap
     _tapTimer = Timer(const Duration(milliseconds: 300), () {
-      // C'était un tap simple, on l'ignore pour l'instant
+      // C'était un tap simple → sélectionner la pièce
+      if (!widget.isSelected) {
+        widget.onSelect();
+      }
     });
   }
 

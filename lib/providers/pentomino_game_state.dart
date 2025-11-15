@@ -1,4 +1,5 @@
-// pentomino_game_state.dart
+// Modified: 2025-11-15 06:45:00
+// lib/providers/pentomino_game_state.dart
 // État du jeu de pentominos (mode libre)
 
 import '../models/pentominos.dart';

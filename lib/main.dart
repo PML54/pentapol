@@ -1,4 +1,6 @@
-// main.dart - Version adaptée avec pré-chargement des solutions BigInt
+// Modified: 2025-11-15 06:45:00
+// lib/main.dart
+// Version adaptée avec pré-chargement des solutions BigInt
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

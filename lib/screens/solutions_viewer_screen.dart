@@ -1,4 +1,7 @@
-/// Écran pour visualiser toutes les solutions canoniques.
+// Modified: 2025-11-15 06:45:00
+// lib/screens/solutions_viewer_screen.dart
+// Écran pour visualiser toutes les solutions canoniques.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/solution_database.dart';

@@ -1,3 +1,6 @@
+// Modified: 2025-11-15 06:45:00
+// lib/logic/race_presence.dart
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Gestion très simple de la présence Realtime pour une course.

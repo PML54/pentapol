@@ -1,3 +1,6 @@
+// Modified: 2025-11-15 06:45:00
+// lib/models/game_piece.dart
+
 import 'pentominos.dart';
 import 'point.dart';
 
