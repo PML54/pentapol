@@ -1,4 +1,4 @@
-// Modified: 2025-11-15 15:58:00
+// Modified: 2025-11-15 17:18:00
 // lib/screens/pentomino_game_screen.dart
 // Écran de jeu de pentominos avec drag & drop
 
@@ -30,13 +30,25 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     super.dispose();
   }
 
+  /// Helper pour obtenir les solutions compatibles
+  List<BigInt> _getCompatibleSolutions(Plateau plateau) {
+    return plateau.getCompatibleSolutionsBigInt();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(pentominoGameProvider);
     final notifier = ref.read(pentominoGameProvider.notifier);
+    
+    // Détecter l'orientation pour adapter l'AppBar
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(
+      // AppBar uniquement en mode portrait
+      appBar: isLandscape ? null : PreferredSize(
+        preferredSize: const Size.fromHeight(56.0),
+        child: AppBar(
+        toolbarHeight: 56.0,
         title: state.solutionsCount != null && state.placedPieces.isNotEmpty
             ? Row(
           mainAxisSize: MainAxisSize.min,
@@ -58,7 +70,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           // 👁️ Bouton "voir les solutions possibles"
           if (state.solutionsCount != null && state.solutionsCount! > 0)
             IconButton(
-              icon: const Icon(Icons.visibility),
+                icon: const Icon(Icons.visibility, size: 24),
               tooltip: 'Voir les solutions possibles',
               onPressed: () {
                 HapticFeedback.selectionClick();
@@ -80,7 +92,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           // Bouton de rotation (visible si pièce sélectionnée)
           if (state.selectedPiece != null)
             IconButton(
-              icon: const Icon(Icons.rotate_right),
+                icon: const Icon(Icons.rotate_right, size: 24),
               onPressed: () {
                 HapticFeedback.selectionClick();
                 notifier.cyclePosition();
@@ -91,7 +103,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           // Bouton retirer (visible si pièce placée sélectionnée)
           if (state.selectedPlacedPiece != null)
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+                icon: const Icon(Icons.delete_outline, size: 24),
               onPressed: () {
                 HapticFeedback.mediumImpact();
                 notifier.removePlacedPiece(state.selectedPlacedPiece!);
@@ -101,7 +113,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             ),
           // Bouton Undo
           IconButton(
-            icon: const Icon(Icons.undo),
+              icon: const Icon(Icons.undo, size: 24),
             onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
                 ? () {
               HapticFeedback.mediumImpact();
@@ -111,16 +123,38 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             tooltip: 'Annuler',
           ),
         ],
+        ),
       ),
-      body: Column(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isLandscape = constraints.maxWidth > constraints.maxHeight;
+          
+          if (isLandscape) {
+            return _buildLandscapeLayout(context, ref, state, notifier);
+          } else {
+            return _buildPortraitLayout(context, ref, state, notifier);
+          }
+        },
+      ),
+    );
+  }
+
+  /// Layout portrait (classique) : plateau en haut, slider en bas
+  Widget _buildPortraitLayout(
+      BuildContext context,
+      WidgetRef ref,
+      state,
+      notifier,
+      ) {
+    return Column(
         children: [
           // Plateau de jeu
           Expanded(
             flex: 3,
-            child: _buildGameBoard(context, ref, state, notifier),
+          child: _buildGameBoard(context, ref, state, notifier, isLandscape: false),
           ),
 
-          // Slider de pièces
+        // Slider de pièces horizontal
           Container(
             height: 140,
             decoration: BoxDecoration(
@@ -133,31 +167,214 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 ),
               ],
             ),
-            child: _buildPieceSlider(context, ref, state, notifier),
-          ),
-        ],
-      ),
+          child: _buildPieceSlider(context, ref, state, notifier, isLandscape: false),
+        ),
+      ],
     );
   }
 
-  /// Construit le plateau de jeu (6×10)
-  Widget _buildGameBoard(
+  /// Layout paysage : plateau à gauche, actions + slider vertical à droite
+  Widget _buildLandscapeLayout(
       BuildContext context,
       WidgetRef ref,
       state,
       notifier,
       ) {
+    return Row(
+      children: [
+        // Plateau de jeu (10×6 visuel)
+        Expanded(
+          child: _buildGameBoard(context, ref, state, notifier, isLandscape: true),
+        ),
+
+        // Colonne de droite : actions + slider
+        Row(
+          children: [
+            // Slider d'actions verticales
+            Container(
+              width: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 2,
+                    offset: const Offset(-1, 0),
+                  ),
+                ],
+              ),
+              child: _buildActionSlider(context, ref, state, notifier),
+            ),
+            
+            // Slider de pièces vertical
+            Container(
+              width: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(-2, 0),
+                  ),
+                ],
+              ),
+              child: _buildPieceSlider(context, ref, state, notifier, isLandscape: true),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Construit le slider d'actions vertical (mode paysage uniquement)
+  Widget _buildActionSlider(
+      BuildContext context,
+      WidgetRef ref,
+      state,
+      notifier,
+      ) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Compteur de solutions
+        if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              children: [
+                Text(
+                  '${state.solutionsCount}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+                  ),
+                ),
+                Icon(
+                  Icons.emoji_events,
+                  size: 20,
+                  color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+                ),
+              ],
+            ),
+          ),
+        
+        const SizedBox(height: 8),
+        
+        // Bouton "voir les solutions possibles"
+        if (state.solutionsCount != null && state.solutionsCount! > 0)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                print('🔍 Bouton œil cliqué - Solutions: ${state.solutionsCount}');
+                HapticFeedback.selectionClick();
+                try {
+                  // Utiliser la méthode helper
+                  final compatible = _getCompatibleSolutions(state.plateau);
+                  print('🔍 Solutions compatibles: ${compatible.length}');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SolutionsBrowserScreen.forSolutions(
+                        solutions: compatible,
+                        title: 'Solutions possibles',
+                      ),
+                    ),
+                  );
+                } catch (e, stackTrace) {
+                  print('❌ Erreur: $e');
+                  print('❌ Stack: $stackTrace');
+                }
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.visibility, size: 22, color: Colors.blue),
+              ),
+            ),
+          ),
+
+        const SizedBox(height: 8),
+
+        // Bouton de rotation (visible si pièce sélectionnée)
+        if (state.selectedPiece != null)
+          IconButton(
+            icon: const Icon(Icons.rotate_right, size: 22),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              notifier.cyclePosition();
+            },
+            tooltip: 'Rotation',
+            color: Colors.blue[400],
+          ),
+
+        // Bouton retirer (visible si pièce placée sélectionnée)
+        if (state.selectedPlacedPiece != null)
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 22),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              notifier.removePlacedPiece(state.selectedPlacedPiece!);
+            },
+            tooltip: 'Retirer',
+            color: Colors.red[600],
+          ),
+
+        const SizedBox(height: 8),
+
+        // Bouton Undo
+        IconButton(
+          icon: const Icon(Icons.undo, size: 22),
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
+              ? () {
+            HapticFeedback.mediumImpact();
+            notifier.undoLastPlacement();
+          }
+              : null,
+          tooltip: 'Annuler',
+        ),
+      ],
+    );
+  }
+
+  /// Construit le plateau de jeu
+  /// Portrait: 6×10 (logique et visuel)
+  /// Paysage: 10×6 (visuel), mais logique reste 6×10
+  Widget _buildGameBoard(
+      BuildContext context,
+      WidgetRef ref,
+      state,
+      notifier,
+      {required bool isLandscape}
+      ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cols = 6;
-        final rows = 10;
+        // Dimensions visuelles
+        final visualCols = isLandscape ? 10 : 6;
+        final visualRows = isLandscape ? 6 : 10;
+        
+        // Note: Les dimensions logiques restent toujours 6×10 (gérées dans le provider)
+        
         final cellSize =
-        (constraints.maxWidth / cols).clamp(0.0, constraints.maxHeight / rows).toDouble();
+        (constraints.maxWidth / visualCols).clamp(0.0, constraints.maxHeight / visualRows).toDouble();
 
         return Center(
           child: Container(
-            width: cellSize * cols,
-            height: cellSize * rows,
+            width: cellSize * visualCols,
+            height: cellSize * visualRows,
             decoration: BoxDecoration(
               // Fond avec dégradé doux
               gradient: LinearGradient(
@@ -181,7 +398,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: DragTarget<Pento>(
+            child: DragTarget<Pento>(
               onWillAcceptWithDetails: (details) => true,
               onMove: (details) {
                 // Mettre à jour la preview pendant le drag
@@ -189,9 +406,23 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
 
                 if (offset != null) {
-                  final gridX = (offset.dx / cellSize).round().clamp(0, cols - 1);
-                  final gridY = (offset.dy / cellSize).round().clamp(0, rows - 1);
-                  notifier.updatePreview(gridX, gridY);
+                  // Calculer les coordonnées visuelles
+                  final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                  final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+                  
+                  // Transformer en coordonnées logiques (6×10)
+                  int logicalX, logicalY;
+                  if (isLandscape) {
+                    // Paysage: rotation 90° anti-horaire
+                    logicalX = (visualRows - 1) - visualY;
+                    logicalY = visualX;
+                  } else {
+                    // Portrait: pas de transformation
+                    logicalX = visualX;
+                    logicalY = visualY;
+                  }
+                  
+                  notifier.updatePreview(logicalX, logicalY);
                 }
               },
               onLeave: (data) {
@@ -204,10 +435,23 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
 
                 if (offset != null) {
-                  final gridX = (offset.dx / cellSize).round().clamp(0, cols - 1);
-                  final gridY = (offset.dy / cellSize).round().clamp(0, rows - 1);
+                  // Calculer les coordonnées visuelles
+                  final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                  final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+                  
+                  // Transformer en coordonnées logiques (6×10)
+                  int logicalX, logicalY;
+                  if (isLandscape) {
+                    // Paysage: rotation 90° anti-horaire
+                    logicalX = (visualRows - 1) - visualY;
+                    logicalY = visualX;
+                  } else {
+                    // Portrait: pas de transformation
+                    logicalX = visualX;
+                    logicalY = visualY;
+                  }
 
-                  final success = notifier.tryPlacePiece(gridX, gridY);
+                  final success = notifier.tryPlacePiece(logicalX, logicalY);
 
                   // Haptic feedback selon le résultat
                   if (success) {
@@ -224,16 +468,32 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 return GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: cols,
+                    crossAxisCount: visualCols,
                     childAspectRatio: 1.0,
                     crossAxisSpacing: 0, // contours gérés manuellement
                     mainAxisSpacing: 0,
                   ),
                   itemCount: 60,
                   itemBuilder: (context, index) {
-                    final x = index % cols;
-                    final y = index ~/ cols;
-                    final cellValue = state.plateau.getCell(x, y);
+                    // Calculer les coordonnées visuelles
+                    final visualX = index % visualCols;
+                    final visualY = index ~/ visualCols;
+                    
+                    // Transformer en coordonnées logiques (6×10)
+                    int logicalX, logicalY;
+                    if (isLandscape) {
+                      // Paysage: rotation 90° anti-horaire
+                      // visualX (0-9) → logicalY (0-9)
+                      // visualY (0-5) → logicalX (5-0)
+                      logicalX = (visualRows - 1) - visualY;
+                      logicalY = visualX;
+                    } else {
+                      // Portrait: pas de transformation
+                      logicalX = visualX;
+                      logicalY = visualY;
+                    }
+                    
+                    final cellValue = state.plateau.getCell(logicalX, logicalY);
 
                     Color cellColor;
                     String cellText = '';
@@ -259,14 +519,14 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       final position =
                       selectedPiece.piece.positions[state.selectedPositionIndex];
 
-                      // Vérifier si (x, y) est dans la zone de la pièce sélectionnée
+                      // Vérifier si (logicalX, logicalY) est dans la zone de la pièce sélectionnée
                       for (final cellNum in position) {
                         final localX = (cellNum - 1) % 5;
                         final localY = (cellNum - 1) ~/ 5;
                         final pieceX = selectedPiece.gridX + localX;
                         final pieceY = selectedPiece.gridY + localY;
 
-                        if (pieceX == x && pieceY == y) {
+                        if (pieceX == logicalX && pieceY == logicalY) {
                           isSelected = true;
 
                           // Vérifier si c'est la case de référence
@@ -300,7 +560,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                         final pieceX = state.previewX! + localX;
                         final pieceY = state.previewY! + localY;
 
-                        if (pieceX == x && pieceY == y) {
+                        if (pieceX == logicalX && pieceY == logicalY) {
                           isPreview = true;
                           // Couleur selon validité
                           if (state.isPreviewValid) {
@@ -333,7 +593,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       );
                     } else {
                       // Cas normal : utiliser les contours de pièces comme dans le browser
-                      border = _buildPieceBorderOnBoard(x, y, state.plateau);
+                      border = _buildPieceBorderOnBoard(logicalX, logicalY, state.plateau, isLandscape);
                     }
 
                     Widget cellWidget = Container(
@@ -387,10 +647,10 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       // Tap simple pour sélectionner (désélectionne automatiquement l'ancienne)
                       cellWidget = GestureDetector(
                         onTap: () {
-                          final piece = notifier.getPlacedPieceAt(x, y);
+                          final piece = notifier.getPlacedPieceAt(logicalX, logicalY);
                           if (piece != null) {
                             HapticFeedback.selectionClick();
-                            notifier.selectPlacedPiece(piece, x, y);
+                            notifier.selectPlacedPiece(piece, logicalX, logicalY);
                           }
                         },
                         child: cellWidget,
@@ -417,12 +677,15 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     );
   }
 
-  /// Construit le slider de pièces en bas (boucle infinie)
+  /// Construit le slider de pièces
+  /// Portrait: horizontal en bas
+  /// Paysage: vertical à droite
   Widget _buildPieceSlider(
       BuildContext context,
       WidgetRef ref,
       state,
       notifier,
+      {required bool isLandscape}
       ) {
     if (state.availablePieces.isEmpty) {
       return const SizedBox.shrink();
@@ -431,11 +694,16 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     final pieces = state.availablePieces;
     if (pieces.isEmpty) return const SizedBox.shrink();
 
+    final scrollDirection = isLandscape ? Axis.vertical : Axis.horizontal;
+    final padding = isLandscape 
+        ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8)
+        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+
     // Si moins de 4 pièces restantes, afficher simplement la liste
     if (pieces.length < 4) {
       return ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        scrollDirection: scrollDirection,
+        padding: padding,
         itemCount: pieces.length,
         itemBuilder: (context, index) {
           final piece = pieces[index];
@@ -452,16 +720,16 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     // Initialiser le scroll au milieu une seule fois
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_sliderController.hasClients && _sliderController.offset == 0) {
-        const itemWidth = 92.0; // padding horizontal (12) + width approximative de la pièce
-        final middleOffset = (totalItems / 2) * itemWidth;
+        const itemSize = 92.0; // padding + width/height approximative de la pièce
+        final middleOffset = (totalItems / 2) * itemSize;
         _sliderController.jumpTo(middleOffset);
       }
     });
 
     return ListView.builder(
       controller: _sliderController,
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      scrollDirection: scrollDirection,
+      padding: padding,
       itemCount: totalItems,
       itemBuilder: (context, index) {
         // Utiliser modulo pour boucler sur les pièces
@@ -642,7 +910,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
   /// Construit un contour de pièce sur le plateau :
   /// trait épais aux frontières entre pièces (ou bord/zone invisible).
-  Border _buildPieceBorderOnBoard(int x, int y, Plateau plateau) {
+  /// En paysage, les bordures sont adaptées à la rotation visuelle.
+  Border _buildPieceBorderOnBoard(int x, int y, Plateau plateau, bool isLandscape) {
     const width = 6;
     const height = 10;
 
@@ -656,32 +925,60 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       return v > 0 ? v : 0;
     }
 
-    final idTop = neighborId(x, y - 1);
-    final idBottom = neighborId(x, y + 1);
-    final idLeft = neighborId(x - 1, y);
-    final idRight = neighborId(x + 1, y);
+    // Récupérer les IDs des voisins en coordonnées logiques
+    final idLogicalTop = neighborId(x, y - 1);
+    final idLogicalBottom = neighborId(x, y + 1);
+    final idLogicalLeft = neighborId(x - 1, y);
+    final idLogicalRight = neighborId(x + 1, y);
 
     const borderWidthOuter = 2.0;
     const borderWidthInner = 0.5;
 
+    // En paysage, rotation 90° anti-horaire :
+    // - top visuel → right logique
+    // - right visuel → bottom logique
+    // - bottom visuel → left logique
+    // - left visuel → top logique
+    if (isLandscape) {
     return Border(
       top: BorderSide(
-        color: (idTop != baseId) ? Colors.black : Colors.grey.shade400,
-        width: (idTop != baseId) ? borderWidthOuter : borderWidthInner,
+          color: (idLogicalRight != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalRight != baseId) ? borderWidthOuter : borderWidthInner,
       ),
       bottom: BorderSide(
-        color: (idBottom != baseId) ? Colors.black : Colors.grey.shade400,
-        width: (idBottom != baseId) ? borderWidthOuter : borderWidthInner,
+          color: (idLogicalLeft != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalLeft != baseId) ? borderWidthOuter : borderWidthInner,
       ),
       left: BorderSide(
-        color: (idLeft != baseId) ? Colors.black : Colors.grey.shade400,
-        width: (idLeft != baseId) ? borderWidthOuter : borderWidthInner,
+          color: (idLogicalTop != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalTop != baseId) ? borderWidthOuter : borderWidthInner,
       ),
       right: BorderSide(
-        color: (idRight != baseId) ? Colors.black : Colors.grey.shade400,
-        width: (idRight != baseId) ? borderWidthOuter : borderWidthInner,
-      ),
-    );
+          color: (idLogicalBottom != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalBottom != baseId) ? borderWidthOuter : borderWidthInner,
+        ),
+      );
+    } else {
+      // Portrait : bordures normales
+      return Border(
+        top: BorderSide(
+          color: (idLogicalTop != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalTop != baseId) ? borderWidthOuter : borderWidthInner,
+        ),
+        bottom: BorderSide(
+          color: (idLogicalBottom != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalBottom != baseId) ? borderWidthOuter : borderWidthInner,
+        ),
+        left: BorderSide(
+          color: (idLogicalLeft != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalLeft != baseId) ? borderWidthOuter : borderWidthInner,
+        ),
+        right: BorderSide(
+          color: (idLogicalRight != baseId) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalRight != baseId) ? borderWidthOuter : borderWidthInner,
+        ),
+      );
+    }
   }
 }
 

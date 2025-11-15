@@ -1,4 +1,4 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2025-11-15 17:05:00
 // lib/screens/solutions_browser_screen.dart
 // Navigateur pour parcourir des solutions de pentominos stockées en BigInt (360 bits)
 
@@ -102,6 +102,12 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
 
     final BigInt solutionBigInt = _allSolutions[_currentIndex];
     final grid = _decodeSolutionToIds(solutionBigInt); // 60 ids de pièces
+    
+    // Détecter l'orientation
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final visualCols = isLandscape ? 10 : 6;
+    final visualRows = isLandscape ? 6 : 10;
+    final aspectRatio = isLandscape ? 10 / 6 : 6 / 10;
 
     return Scaffold(
       appBar: AppBar(
@@ -144,25 +150,39 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
       ),
       body: Center(
         child: AspectRatio(
-          aspectRatio: 6 / 10,
+          aspectRatio: aspectRatio,
           child: Container(
             padding: const EdgeInsets.all(16),
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 6,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: visualCols,
                 childAspectRatio: 1.0,
                 crossAxisSpacing: 0, // on gère les contours nous-mêmes
                 mainAxisSpacing: 0,
               ),
               itemCount: 60,
               itemBuilder: (context, index) {
-                final x = index % 6;
-                final y = index ~/ 6;
-                final cellIndex = y * 6 + x;
+                // Calculer les coordonnées visuelles
+                final visualX = index % visualCols;
+                final visualY = index ~/ visualCols;
+                
+                // Transformer en coordonnées logiques (6×10)
+                int logicalX, logicalY;
+                if (isLandscape) {
+                  // Paysage: rotation 90° anti-horaire
+                  logicalX = (visualRows - 1) - visualY;
+                  logicalY = visualX;
+                } else {
+                  // Portrait: pas de transformation
+                  logicalX = visualX;
+                  logicalY = visualY;
+                }
+                
+                final cellIndex = logicalY * 6 + logicalX;
                 final pieceId = grid[cellIndex];
 
-                final border = _buildPieceBorder(x, y, grid);
+                final border = _buildPieceBorder(logicalX, logicalY, grid, isLandscape);
 
                 return Container(
                   decoration: BoxDecoration(
@@ -233,7 +253,8 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
   }
 
   /// Construit un contour de pièce : trait épais aux frontières entre pièces.
-  Border _buildPieceBorder(int x, int y, List<int> grid) {
+  /// En paysage, les bordures sont adaptées à la rotation visuelle.
+  Border _buildPieceBorder(int x, int y, List<int> grid, bool isLandscape) {
     const width = 6;
     const height = 10;
 
@@ -246,33 +267,56 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
       return grid[ny * width + nx];
     }
 
-    final idTop = neighborId(x, y - 1);
-    final idBottom = neighborId(x, y + 1);
-    final idLeft = neighborId(x - 1, y);
-    final idRight = neighborId(x + 1, y);
+    final idLogicalTop = neighborId(x, y - 1);
+    final idLogicalBottom = neighborId(x, y + 1);
+    final idLogicalLeft = neighborId(x - 1, y);
+    final idLogicalRight = neighborId(x + 1, y);
 
     // Si voisin différent (ou bord du plateau), on trace un contour épais.
     const borderWidthOuter = 2.0;
     const borderWidthInner = 0.5;
 
-    return Border(
-      top: BorderSide(
-        color: (idTop != id) ? Colors.black : Colors.grey.shade400,
-        width: (idTop != id) ? borderWidthOuter : borderWidthInner,
-      ),
-      bottom: BorderSide(
-        color: (idBottom != id) ? Colors.black : Colors.grey.shade400,
-        width: (idBottom != id) ? borderWidthOuter : borderWidthInner,
-      ),
-      left: BorderSide(
-        color: (idLeft != id) ? Colors.black : Colors.grey.shade400,
-        width: (idLeft != id) ? borderWidthOuter : borderWidthInner,
-      ),
-      right: BorderSide(
-        color: (idRight != id) ? Colors.black : Colors.grey.shade400,
-        width: (idRight != id) ? borderWidthOuter : borderWidthInner,
-      ),
-    );
+    // En paysage, rotation 90° anti-horaire des bordures
+    if (isLandscape) {
+      return Border(
+        top: BorderSide(
+          color: (idLogicalRight != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalRight != id) ? borderWidthOuter : borderWidthInner,
+        ),
+        bottom: BorderSide(
+          color: (idLogicalLeft != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalLeft != id) ? borderWidthOuter : borderWidthInner,
+        ),
+        left: BorderSide(
+          color: (idLogicalTop != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalTop != id) ? borderWidthOuter : borderWidthInner,
+        ),
+        right: BorderSide(
+          color: (idLogicalBottom != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalBottom != id) ? borderWidthOuter : borderWidthInner,
+        ),
+      );
+    } else {
+      // Portrait : bordures normales
+      return Border(
+        top: BorderSide(
+          color: (idLogicalTop != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalTop != id) ? borderWidthOuter : borderWidthInner,
+        ),
+        bottom: BorderSide(
+          color: (idLogicalBottom != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalBottom != id) ? borderWidthOuter : borderWidthInner,
+        ),
+        left: BorderSide(
+          color: (idLogicalLeft != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalLeft != id) ? borderWidthOuter : borderWidthInner,
+        ),
+        right: BorderSide(
+          color: (idLogicalRight != id) ? Colors.black : Colors.grey.shade400,
+          width: (idLogicalRight != id) ? borderWidthOuter : borderWidthInner,
+        ),
+      );
+    }
   }
 }
 

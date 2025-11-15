@@ -1,3 +1,4 @@
+<!-- Modified: 2025-11-15 17:30:00 -->
 # 🧩 Pentapol
 
 > **Jeu collaboratif de pentominos en temps réel — Flutter + Supabase + IA bienveillante**
@@ -8,6 +9,37 @@
 
 Pentapol est une application **multijoueur iOS/Android** où les joueurs résolvent ensemble des **puzzles de type pentomino**.  
 Chaque partie est collaborative, animée par un **coach IA bienveillant** qui encourage, modère et accompagne la progression.
+
+---
+
+## 🎮 Mode Jeu Solo
+
+### Interface adaptative
+- **Mode Portrait** : Plateau 6×10 vertical, slider horizontal en bas
+- **Mode Paysage** : Plateau 10×6 horizontal, sliders verticaux à droite
+  - Slider d'actions (compteur de solutions, visibilité, rotation, annuler)
+  - Slider de pièces disponibles
+  - Pas d'AppBar (plein écran)
+
+### Interactions
+- **Tap simple** sur pièce du slider : sélectionner
+- **Double-tap** sur pièce : rotation
+- **Long press** (200ms) sur pièce : démarrer le drag & drop
+- **Tap sur plateau** : sélectionner/désélectionner une pièce placée
+- **Drag & drop** : placer une pièce sur le plateau
+
+### Compteur de solutions
+- Affiche le nombre de solutions possibles en temps réel
+- Masqué quand le plateau est vide
+- Bouton 👁️ pour visualiser les solutions compatibles
+
+### Fonctionnalités
+- ✅ Démarrage direct sur le jeu
+- ✅ Adaptation automatique portrait/paysage
+- ✅ Pré-chargement de 9356 solutions (BigInt)
+- ✅ Calcul temps réel des solutions possibles
+- ✅ Undo/Redo des placements
+- ✅ Feedback haptique sur les actions
 
 ---
 
