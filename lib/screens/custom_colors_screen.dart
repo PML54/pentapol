@@ -1,10 +1,27 @@
-// Modified: 2025-11-16 10:30:00
+// Modified: 2025-11-16 10:45:00
 // lib/screens/custom_colors_screen.dart
 // Écran pour personnaliser les couleurs des pièces
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
+import '../models/pentominos.dart';
+
+/// Noms des pièces selon leur ID
+const Map<int, String> pieceNames = {
+  1: 'X',  // Pièce 1 - Croix
+  2: 'I',  // Pièce 2 - Barre
+  3: 'Z',  // Pièce 3
+  4: 'V',  // Pièce 4
+  5: 'T',  // Pièce 5
+  6: 'W',  // Pièce 6
+  7: 'U',  // Pièce 7
+  8: 'F',  // Pièce 8
+  9: 'P',  // Pièce 9
+  10: 'N', // Pièce 10
+  11: 'Y', // Pièce 11
+  12: 'L', // Pièce 12
+};
 
 class CustomColorsScreen extends ConsumerStatefulWidget {
   const CustomColorsScreen({super.key});
@@ -64,33 +81,45 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
         padding: const EdgeInsets.all(16),
         itemCount: 12,
         itemBuilder: (context, index) {
+          final pieceId = index + 1;
+          final pieceName = pieceNames[pieceId] ?? '?';
+          final piece = pentominos.firstWhere((p) => p.id == pieceId);
+          
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             child: ListTile(
               leading: Container(
-                width: 40,
-                height: 40,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   color: _colors[index],
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.shade400, width: 2),
                 ),
                 child: Center(
                   child: Text(
-                    '${index + 1}',
+                    pieceName,
                     style: TextStyle(
                       color: _colors[index].computeLuminance() > 0.5
                           ? Colors.black
                           : Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: 24,
                     ),
                   ),
                 ),
               ),
-              title: Text('Pièce ${index + 1}'),
-              subtitle: Text(_getColorName(_colors[index])),
+              title: Text('Pièce $pieceName (#$pieceId)'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_getColorName(_colors[index])),
+                  const SizedBox(height: 4),
+                  _buildPiecePreview(piece, _colors[index]),
+                ],
+              ),
               trailing: const Icon(Icons.edit),
-              onTap: () => _showColorPicker(index),
+              onTap: () => _showColorPicker(index, pieceName),
             ),
           );
         },
@@ -103,11 +132,55 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
     );
   }
 
-  void _showColorPicker(int index) {
+  Widget _buildPiecePreview(Pento piece, Color color) {
+    // Afficher la forme de base de la pièce
+    final baseShape = piece.baseShape;
+    
+    // Calculer les coordonnées min/max
+    int minX = 4, maxX = 0, minY = 4, maxY = 0;
+    for (final cellNum in baseShape) {
+      final x = (cellNum - 1) % 5;
+      final y = (cellNum - 1) ~/ 5;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    
+    final width = maxX - minX + 1;
+    final height = maxY - minY + 1;
+    const cellSize = 12.0;
+    
+    return SizedBox(
+      width: width * cellSize,
+      height: height * cellSize,
+      child: Stack(
+        children: baseShape.map((cellNum) {
+          final x = (cellNum - 1) % 5;
+          final y = (cellNum - 1) ~/ 5;
+          return Positioned(
+            left: (x - minX) * cellSize,
+            top: (y - minY) * cellSize,
+            child: Container(
+              width: cellSize,
+              height: cellSize,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.7),
+                border: Border.all(color: Colors.white, width: 1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showColorPicker(int index, String pieceName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Couleur de la pièce ${index + 1}'),
+        title: Text('Couleur de la pièce $pieceName'),
         content: SingleChildScrollView(
           child: Wrap(
             spacing: 8,
@@ -241,4 +314,5 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
     });
   }
 }
+
 
