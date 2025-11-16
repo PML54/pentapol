@@ -1,4 +1,4 @@
-// Modified: 2025-11-16 09:15:00
+// Modified: 2025-11-16 10:00:00
 // lib/screens/pentomino_game_screen.dart
 // Écran de jeu de pentominos avec drag & drop
 
@@ -8,9 +8,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/pentomino_game_provider.dart';
+import '../providers/settings_provider.dart';
 import '../models/pentominos.dart';
 import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
+import '../screens/settings_screen.dart';
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
 
 
@@ -39,6 +41,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(pentominoGameProvider);
     final notifier = ref.read(pentominoGameProvider.notifier);
+    final settings = ref.watch(settingsProvider);
     
     // Détecter l'orientation pour adapter l'AppBar
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
@@ -49,7 +52,16 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
         toolbarHeight: 56.0,
-        title: state.solutionsCount != null && state.placedPieces.isNotEmpty
+        leading: IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
+        title: settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
             ? Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -773,17 +785,26 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           positionIndex: positionIndex,
           isSelected: isSelected,
           selectedPositionIndex: state.selectedPositionIndex,
-          longPressDuration: const Duration(milliseconds: 200),
+          longPressDuration: Duration(milliseconds: ref.read(settingsProvider).game.longPressDuration),
           onSelect: () {
-            HapticFeedback.selectionClick();
+            final settings = ref.read(settingsProvider);
+            if (settings.game.enableHaptics) {
+              HapticFeedback.selectionClick();
+            }
             notifier.selectPiece(piece);
           },
           onCycle: () {
-            HapticFeedback.selectionClick();
+            final settings = ref.read(settingsProvider);
+            if (settings.game.enableHaptics) {
+              HapticFeedback.selectionClick();
+            }
             notifier.cyclePosition();
           },
           onCancel: () {
-            HapticFeedback.lightImpact();
+            final settings = ref.read(settingsProvider);
+            if (settings.game.enableHaptics) {
+              HapticFeedback.lightImpact();
+            }
             notifier.cancelSelection();
           },
           childBuilder: (isDragging) => _buildPieceWidget(
@@ -888,23 +909,10 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     );
   }
 
-  /// Couleurs des pièces (même palette que l'éditeur)
+  /// Couleurs des pièces selon les paramètres
   Color _getPieceColor(int pieceId) {
-    const colors = [
-      Colors.black, // Pièce 1
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-      Colors.teal,
-      Colors.pink,
-      Colors.brown,
-      Colors.indigo,
-      Colors.lime,
-      Colors.cyan,
-      Colors.amber,
-    ];
-    return colors[(pieceId - 1) % colors.length];
+    final settings = ref.read(settingsProvider);
+    return settings.ui.getPieceColor(pieceId);
   }
 
   /// Construit un contour de pièce sur le plateau :
