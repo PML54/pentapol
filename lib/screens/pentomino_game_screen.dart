@@ -1,6 +1,6 @@
-// Modified: 2025-11-15 17:35:00
+// Modified: 2025-11-16 08:45:00
 // lib/screens/pentomino_game_screen.dart
-// Écran de jeu de pentominos avec drag & drop
+// Écran de jeu de pentominos avec drag & drop et coach IA
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -8,10 +8,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/pentomino_game_provider.dart';
+import '../providers/game_config_provider.dart';
 import '../models/pentominos.dart';
 import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
+import '../services/ai_coach.dart';
+import '../widgets/coach_message_widget.dart';
+import '../config/game_config.dart';
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -23,10 +27,53 @@ class PentominoGameScreen extends ConsumerStatefulWidget {
 
 class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
   final ScrollController _sliderController = ScrollController();
+  AICoach? _coach;
+  Timer? _stuckTimer;
+  DateTime? _gameStartTime;
+  int _previousPiecesPlaced = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Le coach sera initialisé dans didChangeDependencies quand le config sera disponible
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Initialiser le coach si pas encore fait
+    if (_coach == null) {
+      final config = ref.read(gameConfigProvider);
+      _coach = AICoach(config: config);
+      _coach!.onGameStart();
+      _gameStartTime = DateTime.now();
+      
+      // Démarrer le timer pour détecter si le joueur est bloqué
+      _startStuckTimer();
+    }
+  }
+
+  void _startStuckTimer() {
+    _stuckTimer?.cancel();
+    _stuckTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      final state = ref.read(pentominoGameProvider);
+      if (state.availablePieces.isNotEmpty && state.solutionsCount != null) {
+        _coach?.onPlayerStuck(state.solutionsCount!);
+      }
+    });
+  }
+
+  void _resetStuckTimer() {
+    _stuckTimer?.cancel();
+    _startStuckTimer();
+  }
 
   @override
   void dispose() {
     _sliderController.dispose();
+    _coach?.dispose();
+    _stuckTimer?.cancel();
     super.dispose();
   }
 
@@ -39,17 +86,45 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(pentominoGameProvider);
     final notifier = ref.read(pentominoGameProvider.notifier);
+    final config = ref.watch(gameConfigProvider);
     
     // Détecter l'orientation pour adapter l'AppBar
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
-    return Scaffold(
+    // Détecter si une pièce a été placée (pour notifier le coach)
+    if (state.placedPieces.length > _previousPiecesPlaced) {
+      _previousPiecesPlaced = state.placedPieces.length;
+      if (state.placedPieces.isNotEmpty) {
+        final lastPlaced = state.placedPieces.last;
+        _coach?.onPiecePlaced(lastPlaced.piece, lastPlaced.gridX, lastPlaced.gridY, state.plateau);
+        _resetStuckTimer();
+      }
+    }
+
+    // Détecter si le puzzle est complété
+    if (state.availablePieces.isEmpty && state.placedPieces.length == 12) {
+      final elapsed = DateTime.now().difference(_gameStartTime ?? DateTime.now());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _coach?.onPuzzleCompleted(elapsed);
+        
+        // Mettre à jour les stats
+        ref.read(playerStatsProvider.notifier).incrementPuzzlesCompleted(elapsed);
+        
+        // Vérifier si le joueur peut monter de niveau
+        final stats = ref.read(playerStatsProvider);
+        ref.read(gameConfigProvider.notifier).checkLevelUp(stats);
+      });
+    }
+
+    return CoachOverlay(
+      messageStream: _coach?.messages ?? const Stream.empty(),
+      child: Scaffold(
       // AppBar uniquement en mode portrait
       appBar: isLandscape ? null : PreferredSize(
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
         toolbarHeight: 56.0,
-        title: state.solutionsCount != null && state.placedPieces.isNotEmpty
+        title: config.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
             ? Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -67,8 +142,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         )
             : const SizedBox.shrink(),
         actions: [
-          // 👁️ Bouton "voir les solutions possibles"
-          if (state.solutionsCount != null && state.solutionsCount! > 0)
+          // 👁️ Bouton "voir les solutions possibles" (masqué pour débutants)
+          if (config.showViewSolutionsButton && state.solutionsCount != null && state.solutionsCount! > 0)
             IconButton(
                 icon: const Icon(Icons.visibility, size: 24),
               tooltip: 'Voir les solutions possibles',
@@ -89,13 +164,15 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               },
             ),
 
-          // Bouton de rotation (visible si pièce sélectionnée)
-          if (state.selectedPiece != null)
+          // Bouton de rotation (visible si pièce sélectionnée ET si config l'autorise)
+          if (config.showRotationButton && state.selectedPiece != null)
             IconButton(
                 icon: const Icon(Icons.rotate_right, size: 24),
               onPressed: () {
                 HapticFeedback.selectionClick();
                 notifier.cyclePosition();
+                _coach?.onRotationUsed();
+                ref.read(playerStatsProvider.notifier).incrementRotations();
               },
               tooltip: 'Rotation',
               color: Colors.blue[400],
@@ -130,11 +207,12 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           final isLandscape = constraints.maxWidth > constraints.maxHeight;
           
           if (isLandscape) {
-            return _buildLandscapeLayout(context, ref, state, notifier);
+            return _buildLandscapeLayout(context, ref, state, notifier, config);
           } else {
-            return _buildPortraitLayout(context, ref, state, notifier);
+            return _buildPortraitLayout(context, ref, state, notifier, config);
           }
         },
+      ),
       ),
     );
   }
@@ -145,6 +223,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       WidgetRef ref,
       state,
       notifier,
+      GameConfig config,
       ) {
     return Column(
         children: [
@@ -179,6 +258,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       WidgetRef ref,
       state,
       notifier,
+      GameConfig config,
       ) {
     return Row(
       children: [
@@ -234,11 +314,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       state,
       notifier,
       ) {
+    final config = ref.watch(gameConfigProvider);
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Compteur de solutions
-        if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
+        // Compteur de solutions (masqué pour débutants)
+        if (config.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
@@ -262,18 +344,16 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         
         const SizedBox(height: 8),
         
-        // Bouton "voir les solutions possibles"
-        if (state.solutionsCount != null && state.solutionsCount! > 0)
+        // Bouton "voir les solutions possibles" (masqué pour débutants)
+        if (config.showViewSolutionsButton && state.solutionsCount != null && state.solutionsCount! > 0)
           Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                print('🔍 Bouton œil cliqué - Solutions: ${state.solutionsCount}');
                 HapticFeedback.selectionClick();
                 try {
                   // Utiliser la méthode helper
                   final compatible = _getCompatibleSolutions(state.plateau);
-                  print('🔍 Solutions compatibles: ${compatible.length}');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -303,8 +383,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
         const SizedBox(height: 8),
 
-        // Bouton de rotation (visible si pièce sélectionnée)
-        if (state.selectedPiece != null)
+        // Bouton de rotation (visible si pièce sélectionnée ET si config l'autorise)
+        if (config.showRotationButton && state.selectedPiece != null)
           IconButton(
             icon: const Icon(Icons.rotate_right, size: 22),
             padding: const EdgeInsets.all(8),
@@ -312,6 +392,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             onPressed: () {
               HapticFeedback.selectionClick();
               notifier.cyclePosition();
+              _coach?.onRotationUsed();
+              ref.read(playerStatsProvider.notifier).incrementRotations();
             },
             tooltip: 'Rotation',
             color: Colors.blue[400],
@@ -699,6 +781,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8)
         : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
+    final config = ref.watch(gameConfigProvider);
+    
     // Si moins de 4 pièces restantes, afficher simplement la liste
     if (pieces.length < 4) {
       return ListView.builder(
@@ -707,7 +791,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         itemCount: pieces.length,
         itemBuilder: (context, index) {
           final piece = pieces[index];
-          return _buildDraggablePiece(piece, notifier, state);
+          return _buildDraggablePiece(piece, notifier, state, config);
         },
       );
     }
@@ -736,13 +820,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         final pieceIndex = index % pieces.length;
         final piece = pieces[pieceIndex];
 
-        return _buildDraggablePiece(piece, notifier, state);
+        return _buildDraggablePiece(piece, notifier, state, config);
       },
     );
   }
 
   /// Construit une pièce draggable
-  Widget _buildDraggablePiece(Pento piece, notifier, state) {
+  Widget _buildDraggablePiece(Pento piece, notifier, state, GameConfig config) {
     // Trouver l'index de position actuel pour cette pièce
     // Si sélectionnée, utiliser selectedPositionIndex, sinon l'index sauvegardé
     int positionIndex = state.selectedPiece?.id == piece.id
@@ -775,6 +859,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           positionIndex: positionIndex,
           isSelected: isSelected,
           selectedPositionIndex: state.selectedPositionIndex,
+          longPressDuration: config.longPressDuration,
           onSelect: () {
             HapticFeedback.selectionClick();
             notifier.selectPiece(piece);
@@ -782,6 +867,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           onCycle: () {
             HapticFeedback.selectionClick();
             notifier.cyclePosition();
+            _coach?.onRotationUsed();
+            ref.read(playerStatsProvider.notifier).incrementRotations();
           },
           onCancel: () {
             HapticFeedback.lightImpact();
@@ -988,6 +1075,7 @@ class _DraggablePieceWidget extends StatefulWidget {
   final int positionIndex;
   final bool isSelected;
   final int selectedPositionIndex;
+  final Duration longPressDuration;
   final VoidCallback onSelect;
   final VoidCallback onCycle;
   final VoidCallback onCancel;
@@ -998,6 +1086,7 @@ class _DraggablePieceWidget extends StatefulWidget {
     required this.positionIndex,
     required this.isSelected,
     required this.selectedPositionIndex,
+    required this.longPressDuration,
     required this.onSelect,
     required this.onCycle,
     required this.onCancel,
@@ -1094,7 +1183,7 @@ class _DraggablePieceWidgetState extends State<_DraggablePieceWidget> {
     } else {
       return LongPressDraggable<Pento>(
         data: widget.piece,
-        delay: const Duration(milliseconds: 200),
+        delay: widget.longPressDuration,
         onDragStarted: () {
           widget.onSelect();
         },
