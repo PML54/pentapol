@@ -1,12 +1,14 @@
-// Modified: 2025-11-15 17:05:00
+// Modified: 2025-11-16 11:15:00
 // lib/screens/solutions_browser_screen.dart
 // Navigateur pour parcourir des solutions de pentominos stockées en BigInt (360 bits)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/solution_matcher.dart';
 import '../models/pentominos.dart';
+import '../providers/settings_provider.dart';
 
-class SolutionsBrowserScreen extends StatefulWidget {
+class SolutionsBrowserScreen extends ConsumerStatefulWidget {
   /// Liste de solutions à afficher (BigInt).
   /// Si null → on affiche toutes les solutions de solutionMatcher.
   final List<BigInt>? initialSolutions;
@@ -28,10 +30,10 @@ class SolutionsBrowserScreen extends StatefulWidget {
         title = title;
 
   @override
-  State<SolutionsBrowserScreen> createState() => _SolutionsBrowserScreenState();
+  ConsumerState<SolutionsBrowserScreen> createState() => _SolutionsBrowserScreenState();
 }
 
-class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
+class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen> {
   final SolutionMatcher _matcher = solutionMatcher; // singleton
   late final Map<int, int> _idByBit6;
   late List<BigInt> _allSolutions;
@@ -230,26 +232,10 @@ class _SolutionsBrowserScreenState extends State<SolutionsBrowserScreen> {
     return board;
   }
 
-  /// Palette de couleurs identique à celle du game
+  /// Couleur d'une pièce selon les paramètres de l'utilisateur
   Color _getPieceColor(int pieceId) {
-    const colors = [
-      Colors.black,     // 1
-      Colors.blue,      // 2
-      Colors.green,     // 3
-      Colors.orange,    // 4
-      Colors.red,       // 5
-      Colors.teal,      // 6
-      Colors.pink,      // 7
-      Colors.brown,     // 8
-      Colors.indigo,    // 9
-      Colors.lime,      // 10
-      Colors.cyan,      // 11
-      Colors.amber,     // 12
-    ];
-    if (pieceId >= 1 && pieceId <= 12) {
-      return colors[pieceId - 1];
-    }
-    return Colors.grey;
+    final settings = ref.read(settingsProvider);
+    return settings.ui.getPieceColor(pieceId);
   }
 
   /// Construit un contour de pièce : trait épais aux frontières entre pièces.

@@ -1,4 +1,4 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2025-11-16 11:15:00
 // lib/screens/solutions_viewer_screen.dart
 // Écran pour visualiser toutes les solutions canoniques.
 
@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/solution_database.dart';
 import '../utils/plateau_compressor.dart';
 import '../models/plateau.dart';
+import '../providers/settings_provider.dart';
 
 class SolutionsViewerScreen extends ConsumerStatefulWidget {
   const SolutionsViewerScreen({super.key});
@@ -167,22 +168,10 @@ class _SolutionsViewerScreenState extends ConsumerState<SolutionsViewerScreen> {
     );
   }
 
+  /// Couleur d'une pièce selon les paramètres de l'utilisateur
   Color _getPieceColor(int pieceId) {
-    const colors = [
-      Colors.black,     // Pièce 1: Croix en noir (pour se distinguer de l'orange)
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,       // Pièce 5: Rouge
-      Colors.teal,
-      Colors.pink,
-      Colors.brown,
-      Colors.indigo,
-      Colors.lime,
-      Colors.cyan,
-      Colors.amber,
-    ];
-    return colors[(pieceId - 1) % colors.length];
+    final settings = ref.read(settingsProvider);
+    return settings.ui.getPieceColor(pieceId);
   }
 
   void _showStats(BuildContext context, List<List<int>> solutions) {

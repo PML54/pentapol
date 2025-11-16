@@ -1,10 +1,11 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2025-11-16 11:15:00
 // lib/screens/plateau_editor_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/plateau_editor_provider.dart';
 import '../providers/plateau_editor_state.dart';
+import '../providers/settings_provider.dart';
 import 'pentomino_game_screen.dart';
 
 class PlateauEditorScreen extends ConsumerWidget {
@@ -706,25 +707,10 @@ class _CellWidget extends ConsumerWidget {
 
   const _CellWidget({required this.x, required this.y});
 
-  // Palette identique au game / browser
-  static const List<Color> pieceColors = [
-    Colors.black, // 1
-    Colors.blue, // 2
-    Colors.green, // 3
-    Colors.orange, // 4
-    Colors.red, // 5
-    Colors.teal, // 6
-    Colors.pink, // 7
-    Colors.brown, // 8
-    Colors.indigo, // 9
-    Colors.lime, // 10
-    Colors.cyan, // 11
-    Colors.amber, // 12
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(plateauEditorProvider);
+    final settings = ref.watch(settingsProvider);
     final plateau = state.plateau;
     final cellStatus = plateau.getCell(x, y);
     final isVisible = cellStatus >= 0; // 0 = libre, >=1 = occupé
@@ -753,7 +739,7 @@ class _CellWidget extends ConsumerWidget {
     if (!isVisible) {
       backgroundColor = Colors.grey[800]!;
     } else if (pieceNumber != null) {
-      backgroundColor = pieceColors[pieceNumber - 1];
+      backgroundColor = settings.ui.getPieceColor(pieceNumber);
     } else {
       backgroundColor = Colors.white;
     }
