@@ -11,6 +11,7 @@ enum PieceColorScheme {
   neon,       // Couleurs néon éclatantes
   monochrome, // Nuances de gris
   rainbow,    // Arc-en-ciel
+  custom,     // Couleurs personnalisées
 }
 
 /// Niveau de difficulté du jeu
@@ -24,6 +25,7 @@ enum GameDifficulty {
 /// Paramètres UI
 class UISettings {
   final PieceColorScheme colorScheme;
+  final List<Color> customColors;   // Couleurs personnalisées (12 pièces)
   final bool showPieceNumbers;      // Afficher les numéros sur les pièces
   final bool showGridLines;         // Afficher les lignes de grille
   final bool enableAnimations;      // Activer les animations
@@ -31,6 +33,7 @@ class UISettings {
   
   const UISettings({
     this.colorScheme = PieceColorScheme.classic,
+    this.customColors = const [],
     this.showPieceNumbers = true,
     this.showGridLines = false,
     this.enableAnimations = true,
@@ -39,6 +42,7 @@ class UISettings {
   
   UISettings copyWith({
     PieceColorScheme? colorScheme,
+    List<Color>? customColors,
     bool? showPieceNumbers,
     bool? showGridLines,
     bool? enableAnimations,
@@ -46,6 +50,7 @@ class UISettings {
   }) {
     return UISettings(
       colorScheme: colorScheme ?? this.colorScheme,
+      customColors: customColors ?? this.customColors,
       showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
       showGridLines: showGridLines ?? this.showGridLines,
       enableAnimations: enableAnimations ?? this.enableAnimations,
@@ -66,7 +71,17 @@ class UISettings {
         return _getMonochromeColor(pieceId);
       case PieceColorScheme.rainbow:
         return _getRainbowColor(pieceId);
+      case PieceColorScheme.custom:
+        return _getCustomColor(pieceId);
     }
+  }
+  
+  Color _getCustomColor(int pieceId) {
+    if (customColors.isEmpty) {
+      // Si pas de couleurs personnalisées, utiliser classique par défaut
+      return _getClassicColor(pieceId);
+    }
+    return customColors[(pieceId - 1) % customColors.length];
   }
   
   Color _getClassicColor(int pieceId) {
@@ -163,6 +178,7 @@ class UISettings {
   Map<String, dynamic> toJson() {
     return {
       'colorScheme': colorScheme.index,
+      'customColors': customColors.map((c) => c.value).toList(),
       'showPieceNumbers': showPieceNumbers,
       'showGridLines': showGridLines,
       'enableAnimations': enableAnimations,
@@ -171,8 +187,12 @@ class UISettings {
   }
   
   factory UISettings.fromJson(Map<String, dynamic> json) {
+    final customColorValues = json['customColors'] as List<dynamic>?;
+    final customColors = customColorValues?.map((v) => Color(v as int)).toList() ?? [];
+    
     return UISettings(
       colorScheme: PieceColorScheme.values[json['colorScheme'] ?? 0],
+      customColors: customColors,
       showPieceNumbers: json['showPieceNumbers'] ?? true,
       showGridLines: json['showGridLines'] ?? false,
       enableAnimations: json['enableAnimations'] ?? true,

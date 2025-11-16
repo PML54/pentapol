@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_settings.dart';
 import '../providers/settings_provider.dart';
+import 'custom_colors_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -62,6 +63,21 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(_getColorSchemeName(settings.ui.colorScheme)),
             onTap: () => _showColorSchemeDialog(context, notifier, settings.ui.colorScheme),
           ),
+          
+          // Personnaliser les couleurs (visible si schéma custom)
+          if (settings.ui.colorScheme == PieceColorScheme.custom)
+            ListTile(
+              leading: const Icon(Icons.color_lens),
+              title: const Text('Personnaliser les couleurs'),
+              subtitle: const Text('Définir les 12 couleurs des pièces'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CustomColorsScreen()),
+                );
+              },
+            ),
           
           // Afficher numéros
           SwitchListTile(
@@ -209,6 +225,8 @@ class SettingsScreen extends ConsumerWidget {
         return 'Monochrome';
       case PieceColorScheme.rainbow:
         return 'Arc-en-ciel';
+      case PieceColorScheme.custom:
+        return 'Personnalisé';
     }
   }
   

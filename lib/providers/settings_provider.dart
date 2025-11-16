@@ -1,8 +1,9 @@
-// Modified: 2025-11-16 10:15:00
+// Modified: 2025-11-16 10:30:00
 // lib/providers/settings_provider.dart
 // Provider pour gérer les paramètres de l'application avec SQLite
 
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_settings.dart';
 import '../database/settings_database.dart';
@@ -90,6 +91,17 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setPieceOpacity(double opacity) async {
     state = state.copyWith(
       ui: state.ui.copyWith(pieceOpacity: opacity),
+    );
+    await _saveSettings();
+  }
+  
+  /// Définit les couleurs personnalisées
+  Future<void> setCustomColors(List<Color> colors) async {
+    state = state.copyWith(
+      ui: state.ui.copyWith(
+        customColors: colors,
+        colorScheme: PieceColorScheme.custom,
+      ),
     );
     await _saveSettings();
   }
