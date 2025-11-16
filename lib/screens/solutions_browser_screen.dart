@@ -1,4 +1,4 @@
-// Modified: 2025-11-16 11:30:00
+// Modified: 2025-11-16 11:35:00
 // lib/screens/solutions_browser_screen.dart
 // Navigateur pour parcourir des solutions de pentominos stockées en BigInt (360 bits)
 
@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/solution_matcher.dart';
 import '../models/pentominos.dart';
 import '../providers/settings_provider.dart';
-import '../utils/piece_utils.dart';
 
 class SolutionsBrowserScreen extends ConsumerStatefulWidget {
   /// Liste de solutions à afficher (BigInt).
@@ -146,33 +145,35 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue[700],
+        iconTheme: IconThemeData(color: Colors.red.shade300),
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (widget.title != null)
               Text(
                 widget.title!,
-                style: const TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: 12, color: Colors.red.shade100),
               ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back),
+                  icon: Icon(Icons.arrow_back, color: Colors.red.shade300),
                   tooltip: 'Précédente',
                   onPressed: _previousSolution,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '${_currentIndex + 1} / ${_allSolutions.length}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Colors.red.shade100,
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.arrow_forward),
+                  icon: Icon(Icons.arrow_forward, color: Colors.red.shade300),
                   tooltip: 'Suivante',
                   onPressed: _nextSolution,
                 ),
@@ -235,7 +236,7 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
                   ),
                   child: Center(
                     child: Text(
-                      getPieceName(pieceId),
+                      pieceId.toString(),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
