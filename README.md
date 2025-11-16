@@ -1,4 +1,4 @@
-<!-- Modified: 2025-11-16 09:00:00 -->
+<!-- Modified: 2025-11-16 09:30:00 -->
 # 🧩 Pentapol
 
 > **Jeu collaboratif de pentominos en temps réel — Flutter + Supabase + IA bienveillante**
@@ -14,33 +14,6 @@ Chaque partie est collaborative, animée par un **coach IA bienveillant** qui en
 
 ## 🎮 Mode Jeu Solo
 
-### 🎓 Progression Pédagogique
-
-Pentapol **évolue avec le joueur** grâce à un système de progression en 4 niveaux :
-
-#### 🌱 Niveau 1 : Débutant
-- **Interface simplifiée** : Drag & drop uniquement, pas de compteur de solutions
-- **Coach très encourageant** : Messages de bienvenue, leçons de géométrie (aire, périmètre)
-- **Long press** : 400ms (plus lent pour faciliter l'apprentissage)
-- **Progression** : 3 puzzles complétés → Niveau 2
-
-#### 🌿 Niveau 2 : Intermédiaire
-- **Nouvelles fonctions** : Compteur de solutions, bouton rotation, visualisation des solutions
-- **Coach stratégique** : Conseils sur rotations et symétries
-- **Long press** : 300ms
-- **Progression** : 15 puzzles + 20 rotations → Niveau 3
-
-#### 🌳 Niveau 3 : Avancé
-- **Toutes les fonctions** : Bouton miroir, rotation in-situ, chronomètre
-- **Coach challengeant** : Défis de temps, exploration des 9356 solutions
-- **Long press** : 200ms (rapide)
-- **Progression** : 50 puzzles + temps moyen < 5min → Niveau 4
-
-#### 🏆 Niveau 4 : Expert
-- **Mode compétition** : Classements mondiaux, défis quotidiens, multijoueur
-- **Coach compétitif** : Comparaison avec top joueurs, stratégies optimales
-- **Long press** : 200ms
-
 ### Interface adaptative
 - **Mode Portrait** : Plateau 6×10 vertical, slider horizontal en bas
 - **Mode Paysage** : Plateau 10×6 horizontal, sliders verticaux à droite
@@ -51,27 +24,22 @@ Pentapol **évolue avec le joueur** grâce à un système de progression en 4 ni
 ### Interactions
 - **Tap simple** sur pièce du slider : sélectionner
 - **Double-tap** sur pièce : rotation
-- **Long press** (200-400ms selon niveau) sur pièce : démarrer le drag & drop
+- **Long press** (200ms) sur pièce : démarrer le drag & drop
 - **Tap sur plateau** : sélectionner/désélectionner une pièce placée
 - **Drag & drop** : placer une pièce sur le plateau
 
 ### Compteur de solutions
 - Affiche le nombre de solutions possibles en temps réel
-- Masqué quand le plateau est vide (et pour les débutants)
-- Bouton 👁️ pour visualiser les solutions compatibles (niveau 2+)
+- Masqué quand le plateau est vide
+- Bouton 👁️ pour visualiser les solutions compatibles
 
 ### Fonctionnalités
 - ✅ Démarrage direct sur le jeu
-- ✅ Progression pédagogique en 4 niveaux
-- ✅ Coach IA "Penta" avec messages contextuels
-- ✅ Leçons de géométrie intégrées
 - ✅ Adaptation automatique portrait/paysage
 - ✅ Pré-chargement de 9356 solutions (BigInt)
 - ✅ Calcul temps réel des solutions possibles
 - ✅ Undo/Redo des placements
 - ✅ Feedback haptique sur les actions
-- ✅ Sauvegarde automatique de la progression
-- ✅ Statistiques détaillées (puzzles, temps, rotations)
 
 ---
 
