@@ -1,12 +1,14 @@
-// Modified: 2025-11-16 11:15:00
+// Modified: 2025-11-16 11:30:00
 // lib/screens/solutions_browser_screen.dart
 // Navigateur pour parcourir des solutions de pentominos stockées en BigInt (360 bits)
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/solution_matcher.dart';
 import '../models/pentominos.dart';
 import '../providers/settings_provider.dart';
+import '../utils/piece_utils.dart';
 
 class SolutionsBrowserScreen extends ConsumerStatefulWidget {
   /// Liste de solutions à afficher (BigInt).
@@ -111,6 +113,36 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
     final visualRows = isLandscape ? 6 : 10;
     final aspectRatio = isLandscape ? 10 / 6 : 6 / 10;
 
+    // En mode paysage, pas d'AppBar
+    if (isLandscape) {
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          body: SafeArea(
+            child: Row(
+              children: [
+                // Plateau (prend tout l'espace disponible)
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: aspectRatio,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildGrid(grid, visualCols, visualRows, isLandscape),
+                      ),
+                    ),
+                  ),
+                ),
+                // Slider vertical à droite
+                _buildVerticalSlider(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Mode portrait : AppBar classique
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue[700],
@@ -155,7 +187,15 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
           aspectRatio: aspectRatio,
           child: Container(
             padding: const EdgeInsets.all(16),
-            child: GridView.builder(
+            child: _buildGrid(grid, visualCols, visualRows, isLandscape),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGrid(List<int> grid, int visualCols, int visualRows, bool isLandscape) {
+    return GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: visualCols,
@@ -186,26 +226,113 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
 
                 final border = _buildPieceBorder(logicalX, logicalY, grid, isLandscape);
 
+                final backgroundColor = _getPieceColor(pieceId);
+                
                 return Container(
                   decoration: BoxDecoration(
-                    color: _getPieceColor(pieceId),
+                    color: backgroundColor,
                     border: border,
                   ),
                   child: Center(
                     child: Text(
-                      pieceId.toString(),
-                      style: const TextStyle(
+                      getPieceName(pieceId),
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: backgroundColor.computeLuminance() > 0.5
+                            ? Colors.red.shade900
+                            : Colors.red.shade100,
                       ),
                     ),
                   ),
                 );
               },
+            );
+  }
+
+  /// Slider vertical pour le mode paysage
+  Widget _buildVerticalSlider() {
+    return Container(
+      width: 80,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        border: Border(
+          left: BorderSide(color: Colors.grey.shade300, width: 1),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Bouton retour
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Icon(Icons.close, color: Colors.grey.shade700),
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 20),
+          // Bouton précédent
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _previousSolution,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Icon(Icons.arrow_upward, color: Colors.blue.shade700, size: 32),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Compteur
+          Text(
+            '${_currentIndex + 1}',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade700,
+            ),
+          ),
+          const Divider(height: 8),
+          Text(
+            '${_allSolutions.length}',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Bouton suivant
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _nextSolution,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Icon(Icons.arrow_downward, color: Colors.blue.shade700, size: 32),
+              ),
+            ),
+          ),
+          if (widget.title != null) ...[
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                widget.title!,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
