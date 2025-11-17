@@ -381,34 +381,34 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     );
   }
 
-  // Layout paysage : plateau au centre, slider en bas
+  // Layout paysage : plateau à gauche, slider à droite
   Widget _buildLandscapeLayout(
     BuildContext context,
     IsometriesDemoState state,
     IsometriesDemoNotifier notifier,
     settings,
   ) {
-    return Column(
+    return Row(
       children: [
         // Plateau
         Expanded(
           child: _buildPlateau(context, state, notifier, settings, isLandscape: true),
         ),
 
-        // Slider de pièces
+        // Slider de pièces vertical à droite
         Container(
-          height: 90,
+          width: 90,
           decoration: BoxDecoration(
             color: Colors.grey.shade100,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
-                offset: const Offset(0, -2),
+                offset: const Offset(-2, 0),
               ),
             ],
           ),
-          child: _buildPieceSlider(state, notifier, settings, isVertical: false),
+          child: _buildPieceSlider(state, notifier, settings, isVertical: true),
         ),
       ],
     );
