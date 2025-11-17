@@ -115,7 +115,7 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       bottomPieces: newBottomPieces,
       clearPreview: true,
       clearSelection: true,
-      selectedSliderPieceId: pieceId, // Sélectionner dans le slider
+      clearSliderSelection: true, // Désélectionner du slider après placement
     );
   }
 
@@ -634,6 +634,38 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     );
   }
 
+  // Transforme coordonnées visuelles → logiques
+  Map<String, int> _visualToLogical(int visualX, int visualY, bool isLandscape, int visualRows) {
+    if (isLandscape) {
+      // Paysage 10x6 → Logique 6x10
+      // logicalX = (visualRows - 1) - visualY = 5 - visualY
+      // logicalY = visualX
+      return {
+        'x': (visualRows - 1) - visualY,
+        'y': visualX,
+      };
+    } else {
+      // Portrait: pas de transformation
+      return {'x': visualX, 'y': visualY};
+    }
+  }
+
+  // Transforme coordonnées logiques → visuelles
+  Map<String, double> _logicalToVisual(int logicalX, int logicalY, bool isLandscape, int visualRows) {
+    if (isLandscape) {
+      // Logique 6x10 → Paysage 10x6
+      // visualX = logicalY
+      // visualY = (visualRows - 1) - logicalX = 5 - logicalX
+      return {
+        'x': logicalY.toDouble(),
+        'y': (visualRows - 1) - logicalX.toDouble(),
+      };
+    } else {
+      // Portrait: pas de transformation
+      return {'x': logicalX.toDouble(), 'y': logicalY.toDouble()};
+    }
+  }
+
   Widget _buildPlateau(
     BuildContext context,
     IsometriesDemoState state,
@@ -688,6 +720,8 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                 cellHeight,
                 settings,
                 notifier,
+                isLandscape,
+                visualRows,
                 isBottom: true,
               );
             }),
@@ -700,6 +734,8 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                 cellHeight,
                 settings,
                 notifier,
+                isLandscape,
+                visualRows,
                 isBottom: false,
               );
             }),
@@ -717,18 +753,31 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                 cellWidth,
                 cellHeight,
                 settings,
+                isLandscape,
+                visualRows,
               ),
 
             // Zones de drop (grille invisible pour drag & drop)
-            ...List.generate(6, (col) {
-              return List.generate(5, (row) {
-                // Zone basse visuelle = lignes logiques 0-4
-                final logicalY = row;
-                // Conversion visuelle : y inversé (ligne 4 devient 5, ligne 0 devient 9)
-                final visualY = 9 - logicalY;
+            // Générer les zones pour la moitié basse du plateau
+            ...List.generate(visualCols, (visualX) {
+              return List.generate(visualRows ~/ 2, (visualYIndex) {
+                // En paysage: moitié gauche (visualX 0-4), en portrait: moitié basse (visualY 5-9)
+                final int visualY;
+                if (isLandscape) {
+                  // Paysage: colonne de gauche (0-4)
+                  visualY = visualYIndex;
+                } else {
+                  // Portrait: lignes du bas (5-9)
+                  visualY = visualRows ~/ 2 + visualYIndex;
+                }
+                
+                // Convertir en coordonnées logiques
+                final logical = _visualToLogical(visualX, visualY, isLandscape, visualRows);
+                final logicalX = logical['x']!;
+                final logicalY = logical['y']!;
                 
                 return Positioned(
-                  left: col * cellWidth,
+                  left: visualX * cellWidth,
                   top: visualY * cellHeight,
                   width: cellWidth,
                   height: cellHeight,
@@ -738,7 +787,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                       notifier.updatePreview(
                         data['pieceId'],
                         data['position'],
-                        col,
+                        logicalX,
                         logicalY,
                       );
                       return true;
@@ -751,7 +800,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                       notifier.placePieceInBottom(
                         data['pieceId'],
                         data['position'],
-                        col,
+                        logicalX,
                         logicalY,
                       );
                     },
@@ -786,6 +835,8 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     double cellHeight,
     settings,
     IsometriesDemoNotifier notifier,
+    bool isLandscape,
+    int visualRows,
     {required bool isBottom}
   ) {
     final piece = pentominos.firstWhere((p) => p.id == placed.pieceId);
@@ -796,14 +847,16 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
       children: shape.map((cellNumber) {
         final localX = (cellNumber - 1) % 5;
         final localY = (cellNumber - 1) ~/ 5;
-        final x = placed.x + localX;
-        final y = placed.y + localY;
+        final logicalX = placed.x + localX;
+        final logicalY = placed.y + localY;
 
-        // Conversion visuelle (y inversé)
-        final visualY = 9 - y;
+        // Conversion logique → visuelle
+        final visual = _logicalToVisual(logicalX, logicalY, isLandscape, visualRows);
+        final visualX = visual['x']!;
+        final visualY = visual['y']!;
 
         return Positioned(
-          left: x * cellWidth,
+          left: visualX * cellWidth,
           top: visualY * cellHeight,
           width: cellWidth,
           height: cellHeight,
@@ -855,6 +908,8 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     double cellWidth,
     double cellHeight,
     settings,
+    bool isLandscape,
+    int visualRows,
   ) {
     final piece = pentominos.firstWhere((p) => p.id == pieceId);
     final shape = piece.positions[position];
@@ -864,13 +919,16 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
       children: shape.map((cellNumber) {
         final localX = (cellNumber - 1) % 5;
         final localY = (cellNumber - 1) ~/ 5;
-        final cellX = x + localX;
-        final cellY = y + localY;
+        final logicalX = x + localX;
+        final logicalY = y + localY;
 
-        final visualY = 9 - cellY;
+        // Conversion logique → visuelle
+        final visual = _logicalToVisual(logicalX, logicalY, isLandscape, visualRows);
+        final visualX = visual['x']!;
+        final visualY = visual['y']!;
 
         return Positioned(
-          left: cellX * cellWidth,
+          left: visualX * cellWidth,
           top: visualY * cellHeight,
           width: cellWidth,
           height: cellHeight,
