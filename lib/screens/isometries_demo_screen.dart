@@ -255,6 +255,9 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     final notifier = ref.read(isometriesDemoProvider.notifier);
     final settings = ref.watch(settingsProvider);
 
+    // Détecter l'orientation
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Démonstration des Isométries'),
@@ -277,33 +280,87 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          // Plateau
-          Expanded(
-            child: _buildPlateau(context, state, notifier, settings),
-          ),
+      body: isLandscape
+          ? _buildLandscapeLayout(context, state, notifier, settings)
+          : _buildPortraitLayout(context, state, notifier, settings),
+    );
+  }
 
-          // Boutons de transformation
-          _buildTransformationButtons(notifier, state),
+  // Layout portrait : boutons en haut, plateau au milieu, slider en bas
+  Widget _buildPortraitLayout(
+    BuildContext context,
+    IsometriesDemoState state,
+    IsometriesDemoNotifier notifier,
+    settings,
+  ) {
+    return Column(
+      children: [
+        // Boutons de transformation en haut
+        _buildTransformationButtons(notifier, state, isVertical: false),
 
-          // Slider de pièces
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: _buildPieceSlider(state, notifier, settings),
+        // Plateau
+        Expanded(
+          child: _buildPlateau(context, state, notifier, settings, isLandscape: false),
+        ),
+
+        // Slider de pièces
+        Container(
+          height: 90, // Réduit de 120 à 90
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-        ],
-      ),
+          child: _buildPieceSlider(state, notifier, settings, isVertical: false),
+        ),
+      ],
+    );
+  }
+
+  // Layout paysage : boutons à droite, plateau au centre, slider en bas
+  Widget _buildLandscapeLayout(
+    BuildContext context,
+    IsometriesDemoState state,
+    IsometriesDemoNotifier notifier,
+    settings,
+  ) {
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              // Plateau
+              Expanded(
+                child: _buildPlateau(context, state, notifier, settings, isLandscape: true),
+              ),
+
+              // Boutons de transformation à droite
+              _buildTransformationButtons(notifier, state, isVertical: true),
+            ],
+          ),
+        ),
+
+        // Slider de pièces
+        Container(
+          height: 90, // Réduit de 120 à 90
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: _buildPieceSlider(state, notifier, settings, isVertical: false),
+        ),
+      ],
     );
   }
 
@@ -311,8 +368,9 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     BuildContext context,
     IsometriesDemoState state,
     IsometriesDemoNotifier notifier,
-    settings,
-  ) {
+    settings, {
+    required bool isLandscape,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final plateauWidth = constraints.maxWidth;
@@ -333,46 +391,6 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
               child: Container(
                 height: 3,
                 color: Colors.red[700],
-              ),
-            ),
-
-            // Labels des zones
-            Positioned(
-              left: 10,
-              top: plateauHeight * 0.25 - 15,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.indigo.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'TRANSFORMÉE',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 10,
-              top: plateauHeight * 0.75 - 15,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'ORIGINALE',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
               ),
             ),
 
@@ -578,59 +596,70 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     );
   }
 
-  Widget _buildTransformationButtons(IsometriesDemoNotifier notifier, IsometriesDemoState state) {
+  Widget _buildTransformationButtons(
+    IsometriesDemoNotifier notifier,
+    IsometriesDemoState state, {
+    required bool isVertical,
+  }) {
     final hasBottomPieces = state.bottomPieces.isNotEmpty;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildTransformButton(
-            icon: Icons.rotate_right,
-            label: 'Rotation',
-            color: Colors.blue,
-            onPressed: hasBottomPieces
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applyRotation();
-                  }
-                : null,
-          ),
-          _buildTransformButton(
-            icon: Icons.swap_horiz,
-            label: 'Sym H',
-            color: Colors.green,
-            onPressed: hasBottomPieces
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applySymmetryH();
-                  }
-                : null,
-          ),
-          _buildTransformButton(
-            icon: Icons.swap_vert,
-            label: 'Sym V',
-            color: Colors.orange,
-            onPressed: hasBottomPieces
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applySymmetryV();
-                  }
-                : null,
-          ),
-          _buildTransformButton(
-            icon: Icons.refresh,
-            label: 'Reset',
-            color: Colors.red,
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              notifier.reset();
-            },
-          ),
-        ],
+    final buttons = [
+      _buildTransformButton(
+        icon: Icons.rotate_right,
+        label: 'Rotation',
+        color: Colors.blue,
+        onPressed: hasBottomPieces
+            ? () {
+                HapticFeedback.selectionClick();
+                notifier.applyRotation();
+              }
+            : null,
       ),
+      _buildTransformButton(
+        icon: Icons.swap_horiz,
+        label: 'Sym H',
+        color: Colors.green,
+        onPressed: hasBottomPieces
+            ? () {
+                HapticFeedback.selectionClick();
+                notifier.applySymmetryH();
+              }
+            : null,
+      ),
+      _buildTransformButton(
+        icon: Icons.swap_vert,
+        label: 'Sym V',
+        color: Colors.orange,
+        onPressed: hasBottomPieces
+            ? () {
+                HapticFeedback.selectionClick();
+                notifier.applySymmetryV();
+              }
+            : null,
+      ),
+      _buildTransformButton(
+        icon: Icons.refresh,
+        label: 'Reset',
+        color: Colors.red,
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          notifier.reset();
+        },
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      color: Colors.white,
+      child: isVertical
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: buttons,
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: buttons,
+            ),
     );
   }
 
@@ -670,11 +699,12 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
   Widget _buildPieceSlider(
     IsometriesDemoState state,
     IsometriesDemoNotifier notifier,
-    settings,
-  ) {
+    settings, {
+    required bool isVertical,
+  }) {
     return ListView.builder(
       controller: _sliderController,
-      scrollDirection: Axis.horizontal,
+      scrollDirection: isVertical ? Axis.vertical : Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       itemCount: pentominos.length,
       itemBuilder: (context, index) {
@@ -705,7 +735,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
 
   Widget _buildPieceWidget(Pento piece, Color pieceColor, {bool isDragging = false}) {
     return Container(
-      width: 80,
+      width: 70, // Réduit de 80 à 70
       decoration: BoxDecoration(
         color: isDragging ? Colors.grey[300] : Colors.white,
         border: Border.all(color: Colors.grey),
@@ -718,10 +748,10 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
             piece.id.toString(),
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 14, // Réduit de 16 à 14
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2), // Réduit de 4 à 2
           Expanded(
             child: _buildMiniPiecePreview(piece, pieceColor),
           ),
