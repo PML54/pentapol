@@ -78,55 +78,107 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             ],
           )
               : const SizedBox.shrink(),
-          actions: [
-            // 👁️ Bouton "voir les solutions possibles"
-            if (state.solutionsCount != null && state.solutionsCount! > 0)
-              IconButton(
-                icon: const Icon(Icons.visibility, size: 24),
-                tooltip: 'Voir les solutions possibles',
-                onPressed: () {
-                  HapticFeedback.selectionClick();
+          actions: state.isIsometriesMode
+              ? [
+                  // MODE ISOMÉTRIES : Boutons de transformation
+                  IconButton(
+                    icon: const Icon(Icons.rotate_right, size: 24),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      // TODO: Appliquer rotation en mode isométries
+                    },
+                    tooltip: 'Rotation 90°',
+                    color: Colors.orange[400],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.swap_horiz, size: 24),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      // TODO: Appliquer symétrie horizontale
+                    },
+                    tooltip: 'Symétrie Horizontale',
+                    color: Colors.blue[400],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.swap_vert, size: 24),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      // TODO: Appliquer symétrie verticale
+                    },
+                    tooltip: 'Symétrie Verticale',
+                    color: Colors.green[400],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.school, size: 24),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      notifier.exitIsometriesMode();
+                    },
+                    tooltip: 'Sortir du mode Isométries',
+                    color: Colors.purple[400],
+                  ),
+                ]
+              : [
+                  // MODE JEU NORMAL : Boutons normaux
+                  // 🎓 Bouton "Mode Isométries"
+                  IconButton(
+                    icon: const Icon(Icons.school, size: 24),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      notifier.enterIsometriesMode();
+                    },
+                    tooltip: 'Mode Isométries',
+                    color: Colors.purple[400],
+                  ),
 
-                  // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
-                  final compatible = state.plateau.getCompatibleSolutionsBigInt();
+                  // 👁️ Bouton "voir les solutions possibles"
+                  if (state.solutionsCount != null && state.solutionsCount! > 0)
+                    IconButton(
+                      icon: const Icon(Icons.visibility, size: 24),
+                      tooltip: 'Voir les solutions possibles',
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
 
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => SolutionsBrowserScreen.forSolutions(
-                        solutions: compatible,
-                        title: 'Solutions possibles',
-                      ),
+                        // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
+                        final compatible = state.plateau.getCompatibleSolutionsBigInt();
+
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => SolutionsBrowserScreen.forSolutions(
+                              solutions: compatible,
+                              title: 'Solutions possibles',
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
 
-            // Bouton de rotation (visible si pièce sélectionnée)
-            if (state.selectedPiece != null)
-              IconButton(
-                icon: const Icon(Icons.rotate_right, size: 24),
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  notifier.cyclePosition();
-                },
-                tooltip: 'Rotation',
-                color: Colors.blue[400],
-              ),
-            // Bouton retirer (visible si pièce placée sélectionnée)
-            if (state.selectedPlacedPiece != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, size: 24),
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  notifier.removePlacedPiece(state.selectedPlacedPiece!);
-                },
-                tooltip: 'Retirer',
-                color: Colors.red[600], // Rouge pour mieux voir la poubelle
-              ),
-            // Bouton Undo
-            IconButton(
-              icon: const Icon(Icons.undo, size: 24),
-              onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
+                  // Bouton de rotation (visible si pièce sélectionnée)
+                  if (state.selectedPiece != null)
+                    IconButton(
+                      icon: const Icon(Icons.rotate_right, size: 24),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        notifier.cyclePosition();
+                      },
+                      tooltip: 'Rotation',
+                      color: Colors.blue[400],
+                    ),
+                  // Bouton retirer (visible si pièce placée sélectionnée)
+                  if (state.selectedPlacedPiece != null)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 24),
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        notifier.removePlacedPiece(state.selectedPlacedPiece!);
+                      },
+                      tooltip: 'Retirer',
+                      color: Colors.red[600], // Rouge pour mieux voir la poubelle
+                    ),
+                  // Bouton Undo
+                  IconButton(
+                    icon: const Icon(Icons.undo, size: 24),
+                    onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
                   ? () {
                 HapticFeedback.mediumImpact();
                 notifier.undoLastPlacement();
@@ -246,118 +298,213 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       state,
       notifier,
       ) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Compteur de solutions
-        if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  '${state.solutionsCount}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
-                  ),
-                ),
-                Icon(
-                  Icons.emoji_events,
-                  size: 20,
-                  color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
-                ),
-              ],
-            ),
-          ),
-
-        const SizedBox(height: 8),
-
-        // Bouton "voir les solutions possibles"
-        if (state.solutionsCount != null && state.solutionsCount! > 0)
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                try {
-                  // Utiliser la méthode helper
-                  final compatible = _getCompatibleSolutions(state.plateau);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SolutionsBrowserScreen.forSolutions(
-                        solutions: compatible,
-                        title: 'Solutions possibles',
-                      ),
-                    ),
-                  );
-                } catch (e, stackTrace) {
-                  print('❌ Erreur: $e');
-                  print('❌ Stack: $stackTrace');
-                }
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.visibility, size: 22, color: Colors.blue),
-              ),
-            ),
-          ),
-
-        const SizedBox(height: 8),
-
-        // Bouton de rotation (visible si pièce sélectionnée)
-        if (state.selectedPiece != null)
+    if (state.isIsometriesMode) {
+      // MODE ISOMÉTRIES : Boutons de transformation
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Bouton Rotation
           IconButton(
             icon: const Icon(Icons.rotate_right, size: 22),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               HapticFeedback.selectionClick();
-              notifier.cyclePosition();
+              // TODO: Appliquer rotation en mode isométries
             },
-            tooltip: 'Rotation',
-            color: Colors.blue[400],
+            tooltip: 'Rotation 90°',
+            color: Colors.orange[400],
           ),
+          const SizedBox(height: 8),
 
-        // Bouton retirer (visible si pièce placée sélectionnée)
-        if (state.selectedPlacedPiece != null)
+          // Bouton Symétrie Horizontale
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 22),
+            icon: const Icon(Icons.swap_horiz, size: 22),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
-              HapticFeedback.mediumImpact();
-              notifier.removePlacedPiece(state.selectedPlacedPiece!);
+              HapticFeedback.selectionClick();
+              // TODO: Appliquer symétrie horizontale
             },
-            tooltip: 'Retirer',
-            color: Colors.red[600],
+            tooltip: 'Symétrie Horizontale',
+            color: Colors.blue[400],
+          ),
+          const SizedBox(height: 8),
+
+          // Bouton Symétrie Verticale
+          IconButton(
+            icon: const Icon(Icons.swap_vert, size: 22),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              // TODO: Appliquer symétrie verticale
+            },
+            tooltip: 'Symétrie Verticale',
+            color: Colors.green[400],
+          ),
+          const SizedBox(height: 8),
+
+          // Bouton Sortir
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                notifier.exitIsometriesMode();
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.school, size: 22, color: Colors.purple),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // MODE JEU NORMAL : Boutons normaux
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Bouton Mode Isométries
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                notifier.enterIsometriesMode();
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.school, size: 22, color: Colors.purple),
+              ),
+            ),
           ),
 
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-        // Bouton Undo
-        IconButton(
-          icon: const Icon(Icons.undo, size: 22),
-          padding: const EdgeInsets.all(8),
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-          onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
-              ? () {
-            HapticFeedback.mediumImpact();
-            notifier.undoLastPlacement();
-          }
-              : null,
-          tooltip: 'Annuler',
-        ),
-      ],
-    );
+          // Compteur de solutions
+          if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: [
+                  Text(
+                    '${state.solutionsCount}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+                    ),
+                  ),
+                  Icon(
+                    Icons.emoji_events,
+                    size: 20,
+                    color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 8),
+
+          // Bouton "voir les solutions possibles"
+          if (state.solutionsCount != null && state.solutionsCount! > 0)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  try {
+                    // Utiliser la méthode helper
+                    final compatible = _getCompatibleSolutions(state.plateau);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SolutionsBrowserScreen.forSolutions(
+                          solutions: compatible,
+                          title: 'Solutions possibles',
+                        ),
+                      ),
+                    );
+                  } catch (e, stackTrace) {
+                    print('❌ Erreur: $e');
+                    print('❌ Stack: $stackTrace');
+                  }
+                },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.visibility, size: 22, color: Colors.blue),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 8),
+
+          // Bouton de rotation (visible si pièce sélectionnée)
+          if (state.selectedPiece != null)
+            IconButton(
+              icon: const Icon(Icons.rotate_right, size: 22),
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                notifier.cyclePosition();
+              },
+              tooltip: 'Rotation',
+              color: Colors.blue[400],
+            ),
+
+          // Bouton retirer (visible si pièce placée sélectionnée)
+          if (state.selectedPlacedPiece != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 22),
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                notifier.removePlacedPiece(state.selectedPlacedPiece!);
+              },
+              tooltip: 'Retirer',
+              color: Colors.red[600],
+            ),
+
+          const SizedBox(height: 8),
+
+          // Bouton Undo
+          IconButton(
+            icon: const Icon(Icons.undo, size: 22),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
+                ? () {
+              HapticFeedback.mediumImpact();
+              notifier.undoLastPlacement();
+            }
+                : null,
+            tooltip: 'Annuler',
+          ),
+        ],
+      );
+    }
   }
 
   /// Construit le plateau de jeu

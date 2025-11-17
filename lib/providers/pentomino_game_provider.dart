@@ -534,6 +534,49 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       print('[GAME] 🎯 Solutions possibles: $solutionsCount');
     }
   }
+
+  /// Entre en mode isométries (sauvegarde l'état actuel)
+  void enterIsometriesMode() {
+    if (state.isIsometriesMode) return; // Déjà en mode isométries
+
+    print('[GAME] 🎓 Entrée en mode isométries');
+    
+    // Sauvegarder l'état actuel (sans le savedGameState pour éviter la récursion)
+    final savedState = PentominoGameState(
+      plateau: state.plateau,
+      availablePieces: List.from(state.availablePieces),
+      placedPieces: List.from(state.placedPieces),
+      selectedPiece: state.selectedPiece,
+      selectedPositionIndex: state.selectedPositionIndex,
+      selectedPlacedPiece: state.selectedPlacedPiece,
+      piecePositionIndices: Map.from(state.piecePositionIndices),
+      selectedCellInPiece: state.selectedCellInPiece,
+      previewX: state.previewX,
+      previewY: state.previewY,
+      isPreviewValid: state.isPreviewValid,
+      solutionsCount: state.solutionsCount,
+    );
+
+    // Passer en mode isométries
+    state = state.copyWith(
+      isIsometriesMode: true,
+      savedGameState: savedState,
+    );
+  }
+
+  /// Sort du mode isométries (restaure l'état sauvegardé)
+  void exitIsometriesMode() {
+    if (!state.isIsometriesMode) return; // Pas en mode isométries
+    if (state.savedGameState == null) {
+      print('[GAME] ⚠️ Impossible de sortir du mode isométries : pas d\'état sauvegardé');
+      return;
+    }
+
+    print('[GAME] 🎓 Sortie du mode isométries');
+    
+    // Restaurer l'état sauvegardé
+    state = state.savedGameState!;
+  }
 }
 
 final pentominoGameProvider = NotifierProvider<PentominoGameNotifier, PentominoGameState>(

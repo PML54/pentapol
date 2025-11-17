@@ -77,6 +77,10 @@ class PentominoGameState {
   // Nombre de solutions possibles
   final int? solutionsCount; // Nombre de solutions possibles avec l'état actuel
 
+  // Mode isométries
+  final bool isIsometriesMode; // true = mode isométries, false = mode jeu normal
+  final PentominoGameState? savedGameState; // État du jeu sauvegardé avant d'entrer en mode isométries
+
   PentominoGameState({
     required this.plateau,
     required this.availablePieces,
@@ -90,6 +94,8 @@ class PentominoGameState {
     this.previewY,
     this.isPreviewValid = false,
     this.solutionsCount,
+    this.isIsometriesMode = false,
+    this.savedGameState,
   }) : piecePositionIndices = piecePositionIndices ?? {};
 
   /// État initial du jeu
@@ -154,6 +160,9 @@ class PentominoGameState {
     bool? isPreviewValid,
     bool clearPreview = false,
     int? solutionsCount,
+    bool? isIsometriesMode,
+    PentominoGameState? savedGameState,
+    bool clearSavedGameState = false,
   }) {
     return PentominoGameState(
       plateau: plateau ?? this.plateau,
@@ -168,6 +177,8 @@ class PentominoGameState {
       previewY: clearPreview ? null : (previewY ?? this.previewY),
       isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid),
       solutionsCount: solutionsCount ?? this.solutionsCount,
+      isIsometriesMode: isIsometriesMode ?? this.isIsometriesMode,
+      savedGameState: clearSavedGameState ? null : (savedGameState ?? this.savedGameState),
     );
   }
 }
