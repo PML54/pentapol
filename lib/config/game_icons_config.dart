@@ -136,6 +136,15 @@ class GameIcons {
     description: 'Applique une symétrie selon l\'axe vertical',
   );
 
+  /// Retirer une pièce (en mode isométries)
+  static const isometryDelete = GameIconConfig(
+    icon: Icons.delete_outline,
+    tooltip: 'Retirer',
+    color: Color(0xFFE53935), // Colors.red[600]
+    visibleInModes: [GameMode.isometries],
+    description: 'Retire la pièce sélectionnée du plateau',
+  );
+
   // ==================== HELPERS ====================
 
   /// Retourne toutes les icônes pour un mode donné
@@ -152,6 +161,7 @@ class GameIcons {
       isometryRotation,
       isometrySymmetryH,
       isometrySymmetryV,
+      isometryDelete,
     ].where((icon) => icon.isVisibleIn(mode)).toList();
   }
 

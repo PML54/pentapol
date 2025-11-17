@@ -578,27 +578,35 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     state = state.savedGameState!;
   }
 
-  /// Applique une rotation 90° anti-horaire à toutes les pièces (mode isométries uniquement)
+  /// Applique une rotation 90° anti-horaire à la pièce sélectionnée (mode isométries uniquement)
   void applyIsometryRotation() {
     if (!state.isIsometriesMode) return;
+    if (state.selectedPlacedPiece == null) {
+      print('[GAME] ⚠️ Aucune pièce sélectionnée pour la rotation');
+      return;
+    }
     
-    print('[GAME] 🔄 Rotation 90° anti-horaire');
+    print('[GAME] 🔄 Rotation 90° anti-horaire de la pièce sélectionnée');
     
-    // Pour chaque pièce placée, faire une rotation
-    final rotatedPieces = state.placedPieces.map((placed) {
-      final piece = placed.piece;
-      final currentIndex = placed.positionIndex;
-      
-      // Passer à la position suivante (rotation)
-      final nextIndex = (currentIndex + 1) % piece.numPositions;
-      
-      return placed.copyWith(positionIndex: nextIndex);
+    final selectedPiece = state.selectedPlacedPiece!;
+    final piece = selectedPiece.piece;
+    final currentIndex = selectedPiece.positionIndex;
+    
+    // Passer à la position suivante (rotation)
+    final nextIndex = (currentIndex + 1) % piece.numPositions;
+    
+    // Créer la pièce tournée
+    final rotatedPiece = selectedPiece.copyWith(positionIndex: nextIndex);
+    
+    // Mettre à jour la liste des pièces placées
+    final updatedPieces = state.placedPieces.map((placed) {
+      return placed == selectedPiece ? rotatedPiece : placed;
     }).toList();
     
-    // Reconstruire le plateau avec les pièces tournées
+    // Reconstruire le plateau
     final newPlateau = Plateau.allVisible(6, 10);
     
-    for (final placed in rotatedPieces) {
+    for (final placed in updatedPieces) {
       final position = placed.piece.positions[placed.positionIndex];
       
       for (final cellNum in position) {
@@ -613,11 +621,46 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       }
     }
     
-    // Mettre à jour l'état
+    // Mettre à jour l'état (la pièce reste sélectionnée avec sa nouvelle orientation)
     state = state.copyWith(
-      placedPieces: rotatedPieces,
+      placedPieces: updatedPieces,
       plateau: newPlateau,
+      selectedPlacedPiece: rotatedPiece,
+      selectedPositionIndex: nextIndex,
     );
+  }
+
+  /// Applique une symétrie horizontale à la pièce sélectionnée (mode isométries uniquement)
+  void applyIsometrySymmetryH() {
+    if (!state.isIsometriesMode) return;
+    if (state.selectedPlacedPiece == null) {
+      print('[GAME] ⚠️ Aucune pièce sélectionnée pour la symétrie');
+      return;
+    }
+    
+    print('[GAME] ↔️ Symétrie horizontale de la pièce sélectionnée');
+    
+    // TODO: Implémenter la symétrie horizontale
+    // Cela nécessite de trouver la bonne transformation dans les positions disponibles
+    // Pour l'instant, on fait une rotation de 180° (2 rotations)
+    applyIsometryRotation();
+    applyIsometryRotation();
+  }
+
+  /// Applique une symétrie verticale à la pièce sélectionnée (mode isométries uniquement)
+  void applyIsometrySymmetryV() {
+    if (!state.isIsometriesMode) return;
+    if (state.selectedPlacedPiece == null) {
+      print('[GAME] ⚠️ Aucune pièce sélectionnée pour la symétrie');
+      return;
+    }
+    
+    print('[GAME] ↕️ Symétrie verticale de la pièce sélectionnée');
+    
+    // TODO: Implémenter la symétrie verticale
+    // Pour l'instant, on fait une rotation de 180° (2 rotations)
+    applyIsometryRotation();
+    applyIsometryRotation();
   }
 }
 
