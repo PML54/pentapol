@@ -62,7 +62,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               );
             },
           ),
-          title: settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
+          title: !state.isIsometriesMode && settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
               ? Row(
             mainAxisSize: MainAxisSize.min,
             children: [
