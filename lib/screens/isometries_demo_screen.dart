@@ -92,12 +92,18 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
     // Vérifier que c'est bien dans la zone basse (y >= 5)
     if (y < 5) return;
 
+    final piece = pentominos.firstWhere((p) => p.id == pieceId);
+    final shape = piece.positions[position];
+    
+    // Ajuster la position pour qu'elle reste dans la zone basse (5-9)
+    final adjusted = _adjustToBottomZone(x, y, shape);
+
     final newBottomPieces = Map<int, PlacedPieceDemo>.from(state.bottomPieces);
     newBottomPieces[pieceId] = PlacedPieceDemo(
       pieceId: pieceId,
       position: position,
-      x: x,
-      y: y,
+      x: adjusted['x']!,
+      y: adjusted['y']!,
     );
 
     state = state.copyWith(
@@ -278,6 +284,42 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       adjustedY -= minY; // Décaler vers le bas
     } else if (maxY >= 5) {
       adjustedY -= (maxY - 4); // Décaler vers le haut
+    }
+
+    return {'x': adjustedX, 'y': adjustedY};
+  }
+
+  // Ajuster une pièce pour qu'elle reste dans la zone basse (5-9)
+  Map<String, int> _adjustToBottomZone(int x, int y, List<int> shape) {
+    // Calculer les limites de la pièce
+    int minX = 5, maxX = 0, minY = 10, maxY = 0;
+    
+    for (final cellNumber in shape) {
+      final localX = (cellNumber - 1) % 5;
+      final localY = (cellNumber - 1) ~/ 5;
+      final cellX = x + localX;
+      final cellY = y + localY;
+      
+      if (cellX < minX) minX = cellX;
+      if (cellX > maxX) maxX = cellX;
+      if (cellY < minY) minY = cellY;
+      if (cellY > maxY) maxY = cellY;
+    }
+
+    // Ajuster X pour rester dans [0, 5]
+    int adjustedX = x;
+    if (minX < 0) {
+      adjustedX -= minX; // Décaler à droite
+    } else if (maxX >= 6) {
+      adjustedX -= (maxX - 5); // Décaler à gauche
+    }
+
+    // Ajuster Y pour rester dans [5, 9]
+    int adjustedY = y;
+    if (minY < 5) {
+      adjustedY += (5 - minY); // Décaler vers le bas
+    } else if (maxY >= 10) {
+      adjustedY -= (maxY - 9); // Décaler vers le haut
     }
 
     return {'x': adjustedX, 'y': adjustedY};
@@ -537,11 +579,14 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
             // Zones de drop (grille invisible pour drag & drop)
             ...List.generate(6, (col) {
               return List.generate(5, (row) {
-                // Seulement zone basse (lignes 5-9)
-                final y = row + 5;
+                // Seulement zone basse (lignes logiques 5-9)
+                final logicalY = row + 5;
+                // Conversion visuelle : y inversé (ligne 9 devient 0, ligne 5 devient 4)
+                final visualY = 9 - logicalY;
+                
                 return Positioned(
                   left: col * cellWidth,
-                  top: y * cellHeight,
+                  top: visualY * cellHeight,
                   width: cellWidth,
                   height: cellHeight,
                   child: DragTarget<Map<String, dynamic>>(
@@ -551,7 +596,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                         data['pieceId'],
                         data['position'],
                         col,
-                        y,
+                        logicalY,
                       );
                       return true;
                     },
@@ -564,7 +609,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                         data['pieceId'],
                         data['position'],
                         col,
-                        y,
+                        logicalY,
                       );
                     },
                     builder: (context, candidateData, rejectedData) {
