@@ -270,69 +270,68 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Isométries'),
-            if (state.lastTransformation != null) ...[
-              const SizedBox(width: 8),
-              Text(
-                '• ${state.lastTransformation}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
+      appBar: isLandscape ? null : PreferredSize(
+        preferredSize: const Size.fromHeight(56.0),
+        child: AppBar(
+          toolbarHeight: 56.0,
+          title: state.lastTransformation != null
+              ? Text(
+                  state.lastTransformation!,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : const SizedBox.shrink(),
+          backgroundColor: Colors.indigo,
+          actions: [
+            // Bouton Rotation
+            IconButton(
+              icon: const Icon(Icons.rotate_right, size: 24),
+              tooltip: 'Rotation 90°',
+              onPressed: state.bottomPieces.isNotEmpty
+                  ? () {
+                      HapticFeedback.selectionClick();
+                      notifier.applyRotation();
+                    }
+                  : null,
+              color: state.bottomPieces.isNotEmpty ? Colors.blue[400] : null,
+            ),
+            // Bouton Symétrie H
+            IconButton(
+              icon: const Icon(Icons.swap_horiz, size: 24),
+              tooltip: 'Symétrie Horizontale',
+              onPressed: state.bottomPieces.isNotEmpty
+                  ? () {
+                      HapticFeedback.selectionClick();
+                      notifier.applySymmetryH();
+                    }
+                  : null,
+              color: state.bottomPieces.isNotEmpty ? Colors.green[400] : null,
+            ),
+            // Bouton Symétrie V
+            IconButton(
+              icon: const Icon(Icons.swap_vert, size: 24),
+              tooltip: 'Symétrie Verticale',
+              onPressed: state.bottomPieces.isNotEmpty
+                  ? () {
+                      HapticFeedback.selectionClick();
+                      notifier.applySymmetryV();
+                    }
+                  : null,
+              color: state.bottomPieces.isNotEmpty ? Colors.orange[400] : null,
+            ),
+            // Bouton Reset
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 24),
+              tooltip: 'Reset',
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                notifier.reset();
+              },
+            ),
           ],
         ),
-        backgroundColor: Colors.indigo,
-        actions: [
-          // Bouton Rotation
-          IconButton(
-            icon: const Icon(Icons.rotate_right),
-            tooltip: 'Rotation 90°',
-            onPressed: state.bottomPieces.isNotEmpty
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applyRotation();
-                  }
-                : null,
-          ),
-          // Bouton Symétrie H
-          IconButton(
-            icon: const Icon(Icons.swap_horiz),
-            tooltip: 'Symétrie Horizontale',
-            onPressed: state.bottomPieces.isNotEmpty
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applySymmetryH();
-                  }
-                : null,
-          ),
-          // Bouton Symétrie V
-          IconButton(
-            icon: const Icon(Icons.swap_vert),
-            tooltip: 'Symétrie Verticale',
-            onPressed: state.bottomPieces.isNotEmpty
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applySymmetryV();
-                  }
-                : null,
-          ),
-          // Bouton Reset
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Reset',
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              notifier.reset();
-            },
-          ),
-        ],
       ),
       body: isLandscape
           ? _buildLandscapeLayout(context, state, notifier, settings)
@@ -655,7 +654,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: LongPressDraggable<Map<String, dynamic>>(
+          child: Draggable<Map<String, dynamic>>(
             data: {
               'pieceId': piece.id,
               'position': 0,
