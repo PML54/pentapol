@@ -14,6 +14,7 @@ import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
 import '../screens/settings_screen.dart';
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
+import '../config/game_icons_config.dart'; // Configuration centralisée des icônes
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -82,60 +83,60 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               ? [
                   // MODE ISOMÉTRIES : Boutons de transformation
                   IconButton(
-                    icon: const Icon(Icons.rotate_right, size: 24),
+                    icon: Icon(GameIcons.isometryRotation.icon, size: 24),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       // TODO: Appliquer rotation en mode isométries
                     },
-                    tooltip: 'Rotation 90°',
-                    color: Colors.orange[400],
+                    tooltip: GameIcons.isometryRotation.tooltip,
+                    color: GameIcons.isometryRotation.color,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.swap_horiz, size: 24),
+                    icon: Icon(GameIcons.isometrySymmetryH.icon, size: 24),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       // TODO: Appliquer symétrie horizontale
                     },
-                    tooltip: 'Symétrie Horizontale',
-                    color: Colors.blue[400],
+                    tooltip: GameIcons.isometrySymmetryH.tooltip,
+                    color: GameIcons.isometrySymmetryH.color,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.swap_vert, size: 24),
+                    icon: Icon(GameIcons.isometrySymmetryV.icon, size: 24),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       // TODO: Appliquer symétrie verticale
                     },
-                    tooltip: 'Symétrie Verticale',
-                    color: Colors.green[400],
+                    tooltip: GameIcons.isometrySymmetryV.tooltip,
+                    color: GameIcons.isometrySymmetryV.color,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.school, size: 24),
+                    icon: Icon(GameIcons.exitIsometries.icon, size: 24),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       notifier.exitIsometriesMode();
                     },
-                    tooltip: 'Sortir du mode Isométries',
-                    color: Colors.purple[400],
+                    tooltip: GameIcons.exitIsometries.tooltip,
+                    color: GameIcons.exitIsometries.color,
                   ),
                 ]
               : [
                   // MODE JEU NORMAL : Boutons normaux
                   // 🎓 Bouton "Mode Isométries"
                   IconButton(
-                    icon: const Icon(Icons.school, size: 24),
+                    icon: Icon(GameIcons.enterIsometries.icon, size: 24),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       notifier.enterIsometriesMode();
                     },
-                    tooltip: 'Mode Isométries',
-                    color: Colors.purple[400],
+                    tooltip: GameIcons.enterIsometries.tooltip,
+                    color: GameIcons.enterIsometries.color,
                   ),
 
                   // 👁️ Bouton "voir les solutions possibles"
                   if (state.solutionsCount != null && state.solutionsCount! > 0)
                     IconButton(
-                      icon: const Icon(Icons.visibility, size: 24),
-                      tooltip: 'Voir les solutions possibles',
+                      icon: Icon(GameIcons.viewSolutions.icon, size: 24),
+                      tooltip: GameIcons.viewSolutions.tooltip,
                       onPressed: () {
                         HapticFeedback.selectionClick();
 
@@ -156,28 +157,28 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   // Bouton de rotation (visible si pièce sélectionnée)
                   if (state.selectedPiece != null)
                     IconButton(
-                      icon: const Icon(Icons.rotate_right, size: 24),
+                      icon: Icon(GameIcons.rotatePiece.icon, size: 24),
                       onPressed: () {
                         HapticFeedback.selectionClick();
                         notifier.cyclePosition();
                       },
-                      tooltip: 'Rotation',
-                      color: Colors.blue[400],
+                      tooltip: GameIcons.rotatePiece.tooltip,
+                      color: GameIcons.rotatePiece.color,
                     ),
                   // Bouton retirer (visible si pièce placée sélectionnée)
                   if (state.selectedPlacedPiece != null)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 24),
+                      icon: Icon(GameIcons.removePiece.icon, size: 24),
                       onPressed: () {
                         HapticFeedback.mediumImpact();
                         notifier.removePlacedPiece(state.selectedPlacedPiece!);
                       },
-                      tooltip: 'Retirer',
-                      color: Colors.red[600], // Rouge pour mieux voir la poubelle
+                      tooltip: GameIcons.removePiece.tooltip,
+                      color: GameIcons.removePiece.color,
                     ),
                   // Bouton Undo
                   IconButton(
-                    icon: const Icon(Icons.undo, size: 24),
+                    icon: Icon(GameIcons.undo.icon, size: 24),
                     onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
                   ? () {
                 HapticFeedback.mediumImpact();
@@ -305,47 +306,47 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         children: [
           // Bouton Rotation
           IconButton(
-            icon: const Icon(Icons.rotate_right, size: 22),
+            icon: Icon(GameIcons.isometryRotation.icon, size: 22),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               HapticFeedback.selectionClick();
               // TODO: Appliquer rotation en mode isométries
             },
-            tooltip: 'Rotation 90°',
-            color: Colors.orange[400],
+            tooltip: GameIcons.isometryRotation.tooltip,
+            color: GameIcons.isometryRotation.color,
           ),
           const SizedBox(height: 8),
 
           // Bouton Symétrie Horizontale
           IconButton(
-            icon: const Icon(Icons.swap_horiz, size: 22),
+            icon: Icon(GameIcons.isometrySymmetryH.icon, size: 22),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               HapticFeedback.selectionClick();
               // TODO: Appliquer symétrie horizontale
             },
-            tooltip: 'Symétrie Horizontale',
-            color: Colors.blue[400],
+            tooltip: GameIcons.isometrySymmetryH.tooltip,
+            color: GameIcons.isometrySymmetryH.color,
           ),
           const SizedBox(height: 8),
 
           // Bouton Symétrie Verticale
           IconButton(
-            icon: const Icon(Icons.swap_vert, size: 22),
+            icon: Icon(GameIcons.isometrySymmetryV.icon, size: 22),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               HapticFeedback.selectionClick();
               // TODO: Appliquer symétrie verticale
             },
-            tooltip: 'Symétrie Verticale',
-            color: Colors.green[400],
+            tooltip: GameIcons.isometrySymmetryV.tooltip,
+            color: GameIcons.isometrySymmetryV.color,
           ),
           const SizedBox(height: 8),
 
-          // Bouton Sortir
+          // Bouton Retour au Jeu
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -357,11 +358,15 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1),
+                  color: GameIcons.exitIsometries.color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(Icons.school, size: 22, color: Colors.purple),
+                child: Icon(
+                  GameIcons.exitIsometries.icon,
+                  size: 22,
+                  color: GameIcons.exitIsometries.color,
+                ),
               ),
             ),
           ),
@@ -384,18 +389,22 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1),
+                  color: GameIcons.enterIsometries.color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(Icons.school, size: 22, color: Colors.purple),
+                child: Icon(
+                  GameIcons.enterIsometries.icon,
+                  size: 22,
+                  color: GameIcons.enterIsometries.color,
+                ),
               ),
             ),
           ),
 
           const SizedBox(height: 8),
 
-          // Compteur de solutions
+          // Compteur de solutions (coupe)
           if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -410,7 +419,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     ),
                   ),
                   Icon(
-                    Icons.emoji_events,
+                    GameIcons.solutionsCounter.icon,
                     size: 20,
                     color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
                   ),
@@ -448,11 +457,15 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: GameIcons.viewSolutions.color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.visibility, size: 22, color: Colors.blue),
+                  child: Icon(
+                    GameIcons.viewSolutions.icon,
+                    size: 22,
+                    color: GameIcons.viewSolutions.color,
+                  ),
                 ),
               ),
             ),
@@ -462,36 +475,36 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           // Bouton de rotation (visible si pièce sélectionnée)
           if (state.selectedPiece != null)
             IconButton(
-              icon: const Icon(Icons.rotate_right, size: 22),
+              icon: Icon(GameIcons.rotatePiece.icon, size: 22),
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               onPressed: () {
                 HapticFeedback.selectionClick();
                 notifier.cyclePosition();
               },
-              tooltip: 'Rotation',
-              color: Colors.blue[400],
+              tooltip: GameIcons.rotatePiece.tooltip,
+              color: GameIcons.rotatePiece.color,
             ),
 
           // Bouton retirer (visible si pièce placée sélectionnée)
           if (state.selectedPlacedPiece != null)
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 22),
+              icon: Icon(GameIcons.removePiece.icon, size: 22),
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               onPressed: () {
                 HapticFeedback.mediumImpact();
                 notifier.removePlacedPiece(state.selectedPlacedPiece!);
               },
-              tooltip: 'Retirer',
-              color: Colors.red[600],
+              tooltip: GameIcons.removePiece.tooltip,
+              color: GameIcons.removePiece.color,
             ),
 
           const SizedBox(height: 8),
 
           // Bouton Undo
           IconButton(
-            icon: const Icon(Icons.undo, size: 22),
+            icon: Icon(GameIcons.undo.icon, size: 22),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
@@ -500,7 +513,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               notifier.undoLastPlacement();
             }
                 : null,
-            tooltip: 'Annuler',
+            tooltip: GameIcons.undo.tooltip,
           ),
         ],
       );
