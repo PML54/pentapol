@@ -13,6 +13,7 @@ import '../models/pentominos.dart';
 import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/isometries_demo_screen.dart'; // ← NOUVEAU : Démonstration des isométries
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
 
 
@@ -42,7 +43,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     final state = ref.watch(pentominoGameProvider);
     final notifier = ref.read(pentominoGameProvider.notifier);
     final settings = ref.watch(settingsProvider);
-    
+
     // Détecter l'orientation pour adapter l'AppBar
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
@@ -51,96 +52,110 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       appBar: isLandscape ? null : PreferredSize(
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
-        toolbarHeight: 56.0,
-        leading: IconButton(
-          icon: const Icon(Icons.settings),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            );
-          },
-        ),
-        title: settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
-            ? Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${state.solutionsCount}',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+          toolbarHeight: 56.0,
+          leading: IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+          title: settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
+              ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${state.solutionsCount}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.emoji_events, size: 24),
-          ],
-        )
-            : const SizedBox.shrink(),
-        actions: [
-          // 👁️ Bouton "voir les solutions possibles"
-          if (state.solutionsCount != null && state.solutionsCount! > 0)
+              const SizedBox(width: 8),
+              const Icon(Icons.emoji_events, size: 24),
+            ],
+          )
+              : const SizedBox.shrink(),
+          actions: [
+            // 📐 Bouton "Isométries" (NOUVEAU)
             IconButton(
-                icon: const Icon(Icons.visibility, size: 24),
-              tooltip: 'Voir les solutions possibles',
+              icon: const Icon(Icons.school, size: 24),
+              tooltip: 'Démonstration Isométries',
               onPressed: () {
                 HapticFeedback.selectionClick();
-
-                // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
-                final compatible = state.plateau.getCompatibleSolutionsBigInt();
-
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => SolutionsBrowserScreen.forSolutions(
-                      solutions: compatible,
-                      title: 'Solutions possibles',
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const IsometriesDemoScreen()),
                 );
               },
+              color: Colors.purple[300],
             ),
 
-          // Bouton de rotation (visible si pièce sélectionnée)
-          if (state.selectedPiece != null)
-            IconButton(
+            // 👁️ Bouton "voir les solutions possibles"
+            if (state.solutionsCount != null && state.solutionsCount! > 0)
+              IconButton(
+                icon: const Icon(Icons.visibility, size: 24),
+                tooltip: 'Voir les solutions possibles',
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+
+                  // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
+                  final compatible = state.plateau.getCompatibleSolutionsBigInt();
+
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => SolutionsBrowserScreen.forSolutions(
+                        solutions: compatible,
+                        title: 'Solutions possibles',
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+            // Bouton de rotation (visible si pièce sélectionnée)
+            if (state.selectedPiece != null)
+              IconButton(
                 icon: const Icon(Icons.rotate_right, size: 24),
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                notifier.cyclePosition();
-              },
-              tooltip: 'Rotation',
-              color: Colors.blue[400],
-            ),
-          // Bouton retirer (visible si pièce placée sélectionnée)
-          if (state.selectedPlacedPiece != null)
-            IconButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  notifier.cyclePosition();
+                },
+                tooltip: 'Rotation',
+                color: Colors.blue[400],
+              ),
+            // Bouton retirer (visible si pièce placée sélectionnée)
+            if (state.selectedPlacedPiece != null)
+              IconButton(
                 icon: const Icon(Icons.delete_outline, size: 24),
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                notifier.removePlacedPiece(state.selectedPlacedPiece!);
-              },
-              tooltip: 'Retirer',
-              color: Colors.red[600], // Rouge pour mieux voir la poubelle
-            ),
-          // Bouton Undo
-          IconButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  notifier.removePlacedPiece(state.selectedPlacedPiece!);
+                },
+                tooltip: 'Retirer',
+                color: Colors.red[600], // Rouge pour mieux voir la poubelle
+              ),
+            // Bouton Undo
+            IconButton(
               icon: const Icon(Icons.undo, size: 24),
-            onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
-                ? () {
-              HapticFeedback.mediumImpact();
-              notifier.undoLastPlacement();
-            }
-                : null,
-            tooltip: 'Annuler',
-          ),
-        ],
+              onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
+                  ? () {
+                HapticFeedback.mediumImpact();
+                notifier.undoLastPlacement();
+              }
+                  : null,
+              tooltip: 'Annuler',
+            ),
+          ],
         ),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isLandscape = constraints.maxWidth > constraints.maxHeight;
-          
+
           if (isLandscape) {
             return _buildLandscapeLayout(context, ref, state, notifier);
           } else {
@@ -159,26 +174,26 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       notifier,
       ) {
     return Column(
-        children: [
-          // Plateau de jeu
-          Expanded(
-            flex: 3,
+      children: [
+        // Plateau de jeu
+        Expanded(
+          flex: 3,
           child: _buildGameBoard(context, ref, state, notifier, isLandscape: false),
-          ),
+        ),
 
         // Slider de pièces horizontal
-          Container(
-            height: 140,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
+        Container(
+          height: 140,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: _buildPieceSlider(context, ref, state, notifier, isLandscape: false),
         ),
       ],
@@ -217,7 +232,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               ),
               child: _buildActionSlider(context, ref, state, notifier),
             ),
-            
+
             // Slider de pièces vertical
             Container(
               width: 120,
@@ -271,9 +286,37 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               ],
             ),
           ),
-        
+
         const SizedBox(height: 8),
-        
+
+        // Bouton Isométries (NOUVEAU)
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const IsometriesDemoScreen(),
+                ),
+              );
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(Icons.school, size: 22, color: Colors.purple),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
         // Bouton "voir les solutions possibles"
         if (state.solutionsCount != null && state.solutionsCount! > 0)
           Material(
@@ -375,9 +418,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         // Dimensions visuelles
         final visualCols = isLandscape ? 10 : 6;
         final visualRows = isLandscape ? 6 : 10;
-        
+
         // Note: Les dimensions logiques restent toujours 6×10 (gérées dans le provider)
-        
+
         final cellSize =
         (constraints.maxWidth / visualCols).clamp(0.0, constraints.maxHeight / visualRows).toDouble();
 
@@ -408,93 +451,22 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-            child: DragTarget<Pento>(
-              onWillAcceptWithDetails: (details) => true,
-              onMove: (details) {
-                // Mettre à jour la preview pendant le drag
-                final offset =
-                (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
+              child: DragTarget<Pento>(
+                onWillAcceptWithDetails: (details) => true,
+                onMove: (details) {
+                  // Mettre à jour la preview pendant le drag
+                  final offset =
+                  (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
 
-                if (offset != null) {
-                  // Calculer les coordonnées visuelles
-                  final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
-                  final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
-                  
-                  // Transformer en coordonnées logiques (6×10)
-                  int logicalX, logicalY;
-                  if (isLandscape) {
-                    // Paysage: rotation 90° anti-horaire
-                    logicalX = (visualRows - 1) - visualY;
-                    logicalY = visualX;
-                  } else {
-                    // Portrait: pas de transformation
-                    logicalX = visualX;
-                    logicalY = visualY;
-                  }
-                  
-                  notifier.updatePreview(logicalX, logicalY);
-                }
-              },
-              onLeave: (data) {
-                // Effacer la preview quand on quitte le plateau
-                notifier.clearPreview();
-              },
-              onAcceptWithDetails: (details) {
-                // Calculer la position sur la grille depuis le point de dépôt
-                final offset =
-                (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
-
-                if (offset != null) {
-                  // Calculer les coordonnées visuelles
-                  final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
-                  final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
-                  
-                  // Transformer en coordonnées logiques (6×10)
-                  int logicalX, logicalY;
-                  if (isLandscape) {
-                    // Paysage: rotation 90° anti-horaire
-                    logicalX = (visualRows - 1) - visualY;
-                    logicalY = visualX;
-                  } else {
-                    // Portrait: pas de transformation
-                    logicalX = visualX;
-                    logicalY = visualY;
-                  }
-
-                  final success = notifier.tryPlacePiece(logicalX, logicalY);
-
-                  // Haptic feedback selon le résultat
-                  if (success) {
-                    HapticFeedback.mediumImpact();
-                  } else {
-                    HapticFeedback.heavyImpact();
-                  }
-                }
-
-                // Effacer la preview
-                notifier.clearPreview();
-              },
-              builder: (context, candidateData, rejectedData) {
-                return GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: visualCols,
-                    childAspectRatio: 1.0,
-                    crossAxisSpacing: 0, // contours gérés manuellement
-                    mainAxisSpacing: 0,
-                  ),
-                  itemCount: 60,
-                  itemBuilder: (context, index) {
+                  if (offset != null) {
                     // Calculer les coordonnées visuelles
-                    final visualX = index % visualCols;
-                    final visualY = index ~/ visualCols;
-                    
+                    final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                    final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+
                     // Transformer en coordonnées logiques (6×10)
                     int logicalX, logicalY;
                     if (isLandscape) {
                       // Paysage: rotation 90° anti-horaire
-                      // visualX (0-9) → logicalY (0-9)
-                      // visualY (0-5) → logicalX (5-0)
                       logicalX = (visualRows - 1) - visualY;
                       logicalY = visualX;
                     } else {
@@ -502,183 +474,254 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       logicalX = visualX;
                       logicalY = visualY;
                     }
-                    
-                    final cellValue = state.plateau.getCell(logicalX, logicalY);
 
-                    Color cellColor;
-                    String cellText = '';
-                    bool isOccupied = false;
+                    notifier.updatePreview(logicalX, logicalY);
+                  }
+                },
+                onLeave: (data) {
+                  // Effacer la preview quand on quitte le plateau
+                  notifier.clearPreview();
+                },
+                onAcceptWithDetails: (details) {
+                  // Calculer la position sur la grille depuis le point de dépôt
+                  final offset =
+                  (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
 
-                    if (cellValue == -1) {
-                      cellColor = Colors.grey.shade800;
-                    } else if (cellValue == 0) {
-                      cellColor = Colors.grey.shade300;
+                  if (offset != null) {
+                    // Calculer les coordonnées visuelles
+                    final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                    final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+
+                    // Transformer en coordonnées logiques (6×10)
+                    int logicalX, logicalY;
+                    if (isLandscape) {
+                      // Paysage: rotation 90° anti-horaire
+                      logicalX = (visualRows - 1) - visualY;
+                      logicalY = visualX;
                     } else {
-                      cellColor = _getPieceColor(cellValue);
-                      cellText = cellValue.toString();
-                      isOccupied = true;
+                      // Portrait: pas de transformation
+                      logicalX = visualX;
+                      logicalY = visualY;
                     }
 
-                    // Vérifier si cette cellule fait partie de la pièce sélectionnée
-                    bool isSelected = false;
-                    bool isReferenceCell = false; // Case de référence (point d'ancrage)
-                    bool isPreview = false; // Fait partie de la preview
+                    final success = notifier.tryPlacePiece(logicalX, logicalY);
 
-                    if (state.selectedPlacedPiece != null) {
-                      final selectedPiece = state.selectedPlacedPiece!;
-                      final position =
-                      selectedPiece.piece.positions[state.selectedPositionIndex];
+                    // Haptic feedback selon le résultat
+                    if (success) {
+                      HapticFeedback.mediumImpact();
+                    } else {
+                      HapticFeedback.heavyImpact();
+                    }
+                  }
 
-                      // Vérifier si (logicalX, logicalY) est dans la zone de la pièce sélectionnée
-                      for (final cellNum in position) {
-                        final localX = (cellNum - 1) % 5;
-                        final localY = (cellNum - 1) ~/ 5;
-                        final pieceX = selectedPiece.gridX + localX;
-                        final pieceY = selectedPiece.gridY + localY;
+                  // Effacer la preview
+                  notifier.clearPreview();
+                },
+                builder: (context, candidateData, rejectedData) {
+                  return GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: visualCols,
+                      childAspectRatio: 1.0,
+                      crossAxisSpacing: 0, // contours gérés manuellement
+                      mainAxisSpacing: 0,
+                    ),
+                    itemCount: 60,
+                    itemBuilder: (context, index) {
+                      // Calculer les coordonnées visuelles
+                      final visualX = index % visualCols;
+                      final visualY = index ~/ visualCols;
 
-                        if (pieceX == logicalX && pieceY == logicalY) {
-                          isSelected = true;
+                      // Transformer en coordonnées logiques (6×10)
+                      int logicalX, logicalY;
+                      if (isLandscape) {
+                        // Paysage: rotation 90° anti-horaire
+                        // visualX (0-9) → logicalY (0-9)
+                        // visualY (0-5) → logicalX (5-0)
+                        logicalX = (visualRows - 1) - visualY;
+                        logicalY = visualX;
+                      } else {
+                        // Portrait: pas de transformation
+                        logicalX = visualX;
+                        logicalY = visualY;
+                      }
 
-                          // Vérifier si c'est la case de référence
-                          if (state.selectedCellInPiece != null) {
-                            isReferenceCell = (localX == state.selectedCellInPiece!.x &&
-                                localY == state.selectedCellInPiece!.y);
+                      final cellValue = state.plateau.getCell(logicalX, logicalY);
+
+                      Color cellColor;
+                      String cellText = '';
+                      bool isOccupied = false;
+
+                      if (cellValue == -1) {
+                        cellColor = Colors.grey.shade800;
+                      } else if (cellValue == 0) {
+                        cellColor = Colors.grey.shade300;
+                      } else {
+                        cellColor = _getPieceColor(cellValue);
+                        cellText = cellValue.toString();
+                        isOccupied = true;
+                      }
+
+                      // Vérifier si cette cellule fait partie de la pièce sélectionnée
+                      bool isSelected = false;
+                      bool isReferenceCell = false; // Case de référence (point d'ancrage)
+                      bool isPreview = false; // Fait partie de la preview
+
+                      if (state.selectedPlacedPiece != null) {
+                        final selectedPiece = state.selectedPlacedPiece!;
+                        final position =
+                        selectedPiece.piece.positions[state.selectedPositionIndex];
+
+                        // Vérifier si (logicalX, logicalY) est dans la zone de la pièce sélectionnée
+                        for (final cellNum in position) {
+                          final localX = (cellNum - 1) % 5;
+                          final localY = (cellNum - 1) ~/ 5;
+                          final pieceX = selectedPiece.gridX + localX;
+                          final pieceY = selectedPiece.gridY + localY;
+
+                          if (pieceX == logicalX && pieceY == logicalY) {
+                            isSelected = true;
+
+                            // Vérifier si c'est la case de référence
+                            if (state.selectedCellInPiece != null) {
+                              isReferenceCell = (localX == state.selectedCellInPiece!.x &&
+                                  localY == state.selectedCellInPiece!.y);
+                            }
+
+                            // Afficher la pièce sélectionnée même si retirée du plateau
+                            if (cellValue == 0) {
+                              cellColor = _getPieceColor(selectedPiece.piece.id);
+                              cellText = selectedPiece.piece.id.toString();
+                              isOccupied = true;
+                            }
+                            break;
                           }
-
-                          // Afficher la pièce sélectionnée même si retirée du plateau
-                          if (cellValue == 0) {
-                            cellColor = _getPieceColor(selectedPiece.piece.id);
-                            cellText = selectedPiece.piece.id.toString();
-                            isOccupied = true;
-                          }
-                          break;
                         }
                       }
-                    }
 
-                    // Vérifier si cette cellule fait partie de la preview
-                    if (!isSelected &&
-                        state.selectedPiece != null &&
-                        state.previewX != null &&
-                        state.previewY != null) {
-                      final piece = state.selectedPiece!;
-                      final position = piece.positions[state.selectedPositionIndex];
+                      // Vérifier si cette cellule fait partie de la preview
+                      if (!isSelected &&
+                          state.selectedPiece != null &&
+                          state.previewX != null &&
+                          state.previewY != null) {
+                        final piece = state.selectedPiece!;
+                        final position = piece.positions[state.selectedPositionIndex];
 
-                      for (final cellNum in position) {
-                        final localX = (cellNum - 1) % 5;
-                        final localY = (cellNum - 1) ~/ 5;
-                        final pieceX = state.previewX! + localX;
-                        final pieceY = state.previewY! + localY;
+                        for (final cellNum in position) {
+                          final localX = (cellNum - 1) % 5;
+                          final localY = (cellNum - 1) ~/ 5;
+                          final pieceX = state.previewX! + localX;
+                          final pieceY = state.previewY! + localY;
 
-                        if (pieceX == logicalX && pieceY == logicalY) {
-                          isPreview = true;
-                          // Couleur selon validité
-                          if (state.isPreviewValid) {
-                            cellColor = _getPieceColor(piece.id).withOpacity(0.4);
-                          } else {
-                            cellColor = Colors.red.withOpacity(0.3);
+                          if (pieceX == logicalX && pieceY == logicalY) {
+                            isPreview = true;
+                            // Couleur selon validité
+                            if (state.isPreviewValid) {
+                              cellColor = _getPieceColor(piece.id).withOpacity(0.4);
+                            } else {
+                              cellColor = Colors.red.withOpacity(0.3);
+                            }
+                            cellText = piece.id.toString();
+                            break;
                           }
-                          cellText = piece.id.toString();
-                          break;
                         }
                       }
-                    }
 
-                    // Construire la bordure en fonction du contexte
-                    Border border;
-                    if (isReferenceCell) {
-                      // Case de référence : rouge bien visible
-                      border = Border.all(color: Colors.red, width: 4);
-                    } else if (isPreview) {
-                      // Preview : tout en vert/rouge (comme avant)
-                      border = Border.all(
-                        color: state.isPreviewValid ? Colors.green : Colors.red,
-                        width: 3,
-                      );
-                    } else if (isSelected) {
-                      // Pièce sélectionnée : bordure amber
-                      border = Border.all(
-                        color: Colors.amber,
-                        width: 3,
-                      );
-                    } else {
-                      // Cas normal : utiliser les contours de pièces comme dans le browser
-                      border = _buildPieceBorderOnBoard(logicalX, logicalY, state.plateau, isLandscape);
-                    }
+                      // Construire la bordure en fonction du contexte
+                      Border border;
+                      if (isReferenceCell) {
+                        // Case de référence : rouge bien visible
+                        border = Border.all(color: Colors.red, width: 4);
+                      } else if (isPreview) {
+                        // Preview : tout en vert/rouge (comme avant)
+                        border = Border.all(
+                          color: state.isPreviewValid ? Colors.green : Colors.red,
+                          width: 3,
+                        );
+                      } else if (isSelected) {
+                        // Pièce sélectionnée : bordure amber
+                        border = Border.all(
+                          color: Colors.amber,
+                          width: 3,
+                        );
+                      } else {
+                        // Cas normal : utiliser les contours de pièces comme dans le browser
+                        border = _buildPieceBorderOnBoard(logicalX, logicalY, state.plateau, isLandscape);
+                      }
 
-                    Widget cellWidget = Container(
-                      decoration: BoxDecoration(
-                        color: cellColor,
-                        border: border,
-                      ),
-                      child: Center(
-                        child: Text(
-                          cellText,
-                          style: TextStyle(
-                            color: isPreview
-                                ? (state.isPreviewValid
-                                ? Colors.green.shade900
-                                : Colors.red.shade900)
-                                : Colors.white,
-                            fontWeight:
-                            (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
-                            fontSize: (isSelected || isPreview) ? 16 : 14,
+                      Widget cellWidget = Container(
+                        decoration: BoxDecoration(
+                          color: cellColor,
+                          border: border,
+                        ),
+                        child: Center(
+                          child: Text(
+                            cellText,
+                            style: TextStyle(
+                              color: isPreview
+                                  ? (state.isPreviewValid
+                                  ? Colors.green.shade900
+                                  : Colors.red.shade900)
+                                  : Colors.white,
+                              fontWeight:
+                              (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
+                              fontSize: (isSelected || isPreview) ? 16 : 14,
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
 
-                    // Si une pièce est sélectionnée, on peut la déplacer depuis le plateau
-                    if (isSelected && state.selectedPiece != null) {
-                      cellWidget = Draggable<Pento>(
-                        data: state.selectedPiece!,
-                        feedback: Material(
-                          color: Colors.transparent,
-                          child: _buildPieceWidget(
-                            state.selectedPiece!,
-                            state.selectedPositionIndex,
-                            true,
+                      // Si une pièce est sélectionnée, on peut la déplacer depuis le plateau
+                      if (isSelected && state.selectedPiece != null) {
+                        cellWidget = Draggable<Pento>(
+                          data: state.selectedPiece!,
+                          feedback: Material(
+                            color: Colors.transparent,
+                            child: _buildPieceWidget(
+                              state.selectedPiece!,
+                              state.selectedPositionIndex,
+                              true,
+                            ),
                           ),
-                        ),
-                        childWhenDragging: Opacity(
-                          opacity: 0.3,
-                          child: cellWidget,
-                        ),
-                        child: GestureDetector(
-                          onDoubleTap: () {
-                            // Double-tap → changer de position
-                            HapticFeedback.selectionClick();
-                            notifier.cyclePosition();
+                          childWhenDragging: Opacity(
+                            opacity: 0.3,
+                            child: cellWidget,
+                          ),
+                          child: GestureDetector(
+                            onDoubleTap: () {
+                              // Double-tap → changer de position
+                              HapticFeedback.selectionClick();
+                              notifier.cyclePosition();
+                            },
+                            child: cellWidget,
+                          ),
+                        );
+                      } else if (isOccupied && !isSelected) {
+                        // Tap simple pour sélectionner (désélectionne automatiquement l'ancienne)
+                        cellWidget = GestureDetector(
+                          onTap: () {
+                            final piece = notifier.getPlacedPieceAt(logicalX, logicalY);
+                            if (piece != null) {
+                              HapticFeedback.selectionClick();
+                              notifier.selectPlacedPiece(piece, logicalX, logicalY);
+                            }
                           },
                           child: cellWidget,
-                        ),
-                      );
-                    } else if (isOccupied && !isSelected) {
-                      // Tap simple pour sélectionner (désélectionne automatiquement l'ancienne)
-                      cellWidget = GestureDetector(
-                        onTap: () {
-                          final piece = notifier.getPlacedPieceAt(logicalX, logicalY);
-                          if (piece != null) {
-                            HapticFeedback.selectionClick();
-                            notifier.selectPlacedPiece(piece, logicalX, logicalY);
-                          }
-                        },
-                        child: cellWidget,
-                      );
-                    } else if (!isOccupied && state.selectedPiece != null && cellValue == 0) {
-                      // Tap sur case vide → désélectionner
-                      cellWidget = GestureDetector(
-                        onTap: () {
-                          notifier.cancelSelection();
-                        },
-                        child: cellWidget,
-                      );
-                    }
+                        );
+                      } else if (!isOccupied && state.selectedPiece != null && cellValue == 0) {
+                        // Tap sur case vide → désélectionner
+                        cellWidget = GestureDetector(
+                          onTap: () {
+                            notifier.cancelSelection();
+                          },
+                          child: cellWidget,
+                        );
+                      }
 
-                    return cellWidget;
-                  },
-                );
-              },
+                      return cellWidget;
+                    },
+                  );
+                },
               ),
             ),
           ),
@@ -705,7 +748,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     if (pieces.isEmpty) return const SizedBox.shrink();
 
     final scrollDirection = isLandscape ? Axis.vertical : Axis.horizontal;
-    final padding = isLandscape 
+    final padding = isLandscape
         ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8)
         : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
@@ -947,20 +990,20 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     // - bottom visuel → left logique
     // - left visuel → top logique
     if (isLandscape) {
-    return Border(
-      top: BorderSide(
+      return Border(
+        top: BorderSide(
           color: (idLogicalRight != baseId) ? Colors.black : Colors.grey.shade400,
           width: (idLogicalRight != baseId) ? borderWidthOuter : borderWidthInner,
-      ),
-      bottom: BorderSide(
+        ),
+        bottom: BorderSide(
           color: (idLogicalLeft != baseId) ? Colors.black : Colors.grey.shade400,
           width: (idLogicalLeft != baseId) ? borderWidthOuter : borderWidthInner,
-      ),
-      left: BorderSide(
+        ),
+        left: BorderSide(
           color: (idLogicalTop != baseId) ? Colors.black : Colors.grey.shade400,
           width: (idLogicalTop != baseId) ? borderWidthOuter : borderWidthInner,
-      ),
-      right: BorderSide(
+        ),
+        right: BorderSide(
           color: (idLogicalBottom != baseId) ? Colors.black : Colors.grey.shade400,
           width: (idLogicalBottom != baseId) ? borderWidthOuter : borderWidthInner,
         ),

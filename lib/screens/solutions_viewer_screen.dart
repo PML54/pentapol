@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/solution_database.dart';
 import '../utils/plateau_compressor.dart';
-import '../models/plateau.dart';
 import '../providers/settings_provider.dart';
 
 class SolutionsViewerScreen extends ConsumerStatefulWidget {
