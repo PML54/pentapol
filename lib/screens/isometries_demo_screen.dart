@@ -155,13 +155,18 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       final newPosition = (entry.value.position + 1) % piece.numPositions;
 
       // Si on duplique depuis le bas, ajuster y
-      final targetY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseX = entry.value.x;
+
+      // Ajuster la position pour qu'elle reste dans la zone haute (0-4)
+      final shape = piece.positions[newPosition];
+      final adjusted = _adjustToTopZone(baseX, baseY, shape);
 
       newTopPieces[entry.key] = PlacedPieceDemo(
         pieceId: entry.value.pieceId,
         position: newPosition,
-        x: entry.value.x,
-        y: targetY,
+        x: adjusted['x']!,
+        y: adjusted['y']!,
       );
     }
 
@@ -183,13 +188,18 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       final numPositions = piece.numPositions;
       final newPosition = (entry.value.position + numPositions ~/ 2) % numPositions;
 
-      final targetY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseX = entry.value.x;
+
+      // Ajuster la position pour qu'elle reste dans la zone haute (0-4)
+      final shape = piece.positions[newPosition];
+      final adjusted = _adjustToTopZone(baseX, baseY, shape);
 
       newTopPieces[entry.key] = PlacedPieceDemo(
         pieceId: entry.value.pieceId,
         position: newPosition,
-        x: entry.value.x,
-        y: targetY,
+        x: adjusted['x']!,
+        y: adjusted['y']!,
       );
     }
 
@@ -216,13 +226,18 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
         newPosition = (entry.value.position + 1) % numPositions;
       }
 
-      final targetY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseX = entry.value.x;
+
+      // Ajuster la position pour qu'elle reste dans la zone haute (0-4)
+      final shape = piece.positions[newPosition];
+      final adjusted = _adjustToTopZone(baseX, baseY, shape);
 
       newTopPieces[entry.key] = PlacedPieceDemo(
         pieceId: entry.value.pieceId,
         position: newPosition,
-        x: entry.value.x,
-        y: targetY,
+        x: adjusted['x']!,
+        y: adjusted['y']!,
       );
     }
 
@@ -230,6 +245,42 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       topPieces: newTopPieces,
       lastTransformation: 'Symétrie V',
     );
+  }
+
+  // Ajuster une pièce pour qu'elle reste dans la zone haute (0-4)
+  Map<String, int> _adjustToTopZone(int x, int y, List<int> shape) {
+    // Calculer les limites de la pièce
+    int minX = 5, maxX = 0, minY = 5, maxY = 0;
+    
+    for (final cellNumber in shape) {
+      final localX = (cellNumber - 1) % 5;
+      final localY = (cellNumber - 1) ~/ 5;
+      final cellX = x + localX;
+      final cellY = y + localY;
+      
+      if (cellX < minX) minX = cellX;
+      if (cellX > maxX) maxX = cellX;
+      if (cellY < minY) minY = cellY;
+      if (cellY > maxY) maxY = cellY;
+    }
+
+    // Ajuster X pour rester dans [0, 5]
+    int adjustedX = x;
+    if (minX < 0) {
+      adjustedX -= minX; // Décaler à droite
+    } else if (maxX >= 6) {
+      adjustedX -= (maxX - 5); // Décaler à gauche
+    }
+
+    // Ajuster Y pour rester dans [0, 4]
+    int adjustedY = y;
+    if (minY < 0) {
+      adjustedY -= minY; // Décaler vers le bas
+    } else if (maxY >= 5) {
+      adjustedY -= (maxY - 4); // Décaler vers le haut
+    }
+
+    return {'x': adjustedX, 'y': adjustedY};
   }
 
   // Reset complet
