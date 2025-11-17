@@ -480,34 +480,182 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     );
   }
 
-  // Layout paysage : plateau en haut, slider en bas (comme le jeu)
+  // Layout paysage : plateau à gauche, actions + slider à droite (comme le jeu)
   Widget _buildLandscapeLayout(
     BuildContext context,
     IsometriesDemoState state,
     IsometriesDemoNotifier notifier,
     settings,
   ) {
-    return Column(
+    return Row(
       children: [
-        // Plateau
+        // Plateau (10x6)
         Expanded(
           child: _buildPlateau(context, state, notifier, settings, isLandscape: true),
         ),
 
-        // Slider de pièces horizontal en bas
-        Container(
-          height: 90,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
+        // Colonne de droite : actions + slider
+        Row(
+          children: [
+            // Slider d'actions vertical
+            Container(
+              width: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 2,
+                    offset: const Offset(-1, 0),
+                  ),
+                ],
               ),
-            ],
+              child: _buildActionSlider(context, state, notifier),
+            ),
+
+            // Slider de pièces vertical
+            Container(
+              width: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(-2, 0),
+                  ),
+                ],
+              ),
+              child: _buildPieceSlider(state, notifier, settings, isLandscape: true),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Slider d'actions vertical (mode paysage uniquement)
+  Widget _buildActionSlider(
+    BuildContext context,
+    IsometriesDemoState state,
+    IsometriesDemoNotifier notifier,
+  ) {
+    final hasBottomPieces = state.bottomPieces.isNotEmpty;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Transformation affichée
+        if (state.lastTransformation != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Transform.rotate(
+              angle: -1.5708, // Texte tourné
+              child: Text(
+                state.lastTransformation!,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
-          child: _buildPieceSlider(state, notifier, settings, isLandscape: true),
+
+        const SizedBox(height: 16),
+
+        // Bouton Rotation
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: hasBottomPieces
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.applyRotation();
+                  }
+                : null,
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.rotate_right,
+                size: 24,
+                color: hasBottomPieces ? Colors.blue[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Bouton Symétrie H
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: hasBottomPieces
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.applySymmetryH();
+                  }
+                : null,
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.swap_horiz,
+                size: 24,
+                color: hasBottomPieces ? Colors.green[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Bouton Symétrie V
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: hasBottomPieces
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.applySymmetryV();
+                  }
+                : null,
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.swap_vert,
+                size: 24,
+                color: hasBottomPieces ? Colors.orange[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Bouton Reset
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              notifier.reset();
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.refresh,
+                size: 24,
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -777,7 +925,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
   }) {
     return ListView.builder(
       controller: _sliderController,
-      scrollDirection: Axis.horizontal,
+      scrollDirection: isLandscape ? Axis.vertical : Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       itemCount: pentominos.length,
       itemBuilder: (context, index) {
@@ -786,7 +934,10 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
         final isSelected = state.selectedSliderPieceId == piece.id;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 0 : 4,
+            vertical: isLandscape ? 4 : 0,
+          ),
           child: Draggable<Map<String, dynamic>>(
             data: {
               'pieceId': piece.id,
