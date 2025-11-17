@@ -474,40 +474,40 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
               ),
             ],
           ),
-          child: _buildPieceSlider(state, notifier, settings, isVertical: false),
+          child: _buildPieceSlider(state, notifier, settings, isLandscape: false),
         ),
       ],
     );
   }
 
-  // Layout paysage : plateau à gauche, slider à droite
+  // Layout paysage : plateau en haut, slider en bas (comme le jeu)
   Widget _buildLandscapeLayout(
     BuildContext context,
     IsometriesDemoState state,
     IsometriesDemoNotifier notifier,
     settings,
   ) {
-    return Row(
+    return Column(
       children: [
         // Plateau
         Expanded(
           child: _buildPlateau(context, state, notifier, settings, isLandscape: true),
         ),
 
-        // Slider de pièces vertical à droite
+        // Slider de pièces horizontal en bas
         Container(
-          width: 90,
+          height: 90,
           decoration: BoxDecoration(
             color: Colors.grey.shade100,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
-                offset: const Offset(-2, 0),
+                offset: const Offset(0, -2),
               ),
             ],
           ),
-          child: _buildPieceSlider(state, notifier, settings, isVertical: true),
+          child: _buildPieceSlider(state, notifier, settings, isLandscape: true),
         ),
       ],
     );
@@ -524,24 +524,40 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
       builder: (context, constraints) {
         final plateauWidth = constraints.maxWidth;
         final plateauHeight = constraints.maxHeight;
-        final cellWidth = plateauWidth / 6;
-        final cellHeight = plateauHeight / 10;
+        
+        // En paysage : 10x6, en portrait : 6x10
+        final int visualCols = isLandscape ? 10 : 6;
+        final int visualRows = isLandscape ? 6 : 10;
+        
+        final cellWidth = plateauWidth / visualCols;
+        final cellHeight = plateauHeight / visualRows;
 
         return Stack(
           children: [
             // Grille de fond
-            _buildGrid(plateauWidth, plateauHeight, cellWidth, cellHeight),
+            _buildGrid(plateauWidth, plateauHeight, cellWidth, cellHeight, visualCols, visualRows),
 
-            // Ligne de séparation
-            Positioned(
-              left: 0,
-              right: 0,
-              top: plateauHeight / 2,
-              child: Container(
-                height: 3,
-                color: Colors.red[700],
+            // Ligne de séparation (horizontale en portrait, verticale en paysage)
+            if (isLandscape)
+              Positioned(
+                left: plateauWidth / 2,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 3,
+                  color: Colors.red[700],
+                ),
+              )
+            else
+              Positioned(
+                left: 0,
+                right: 0,
+                top: plateauHeight / 2,
+                child: Container(
+                  height: 3,
+                  color: Colors.red[700],
+                ),
               ),
-            ),
 
             // Pièces de la zone basse
             ...state.bottomPieces.values.map((placed) {
@@ -631,10 +647,15 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     );
   }
 
-  Widget _buildGrid(double width, double height, double cellWidth, double cellHeight) {
+  Widget _buildGrid(double width, double height, double cellWidth, double cellHeight, int cols, int rows) {
     return CustomPaint(
       size: Size(width, height),
-      painter: _GridPainter(cellWidth: cellWidth, cellHeight: cellHeight),
+      painter: _GridPainter(
+        cellWidth: cellWidth,
+        cellHeight: cellHeight,
+        cols: cols,
+        rows: rows,
+      ),
     );
   }
 
@@ -752,11 +773,11 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     IsometriesDemoState state,
     IsometriesDemoNotifier notifier,
     settings, {
-    required bool isVertical,
+    required bool isLandscape,
   }) {
     return ListView.builder(
       controller: _sliderController,
-      scrollDirection: isVertical ? Axis.vertical : Axis.horizontal,
+      scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       itemCount: pentominos.length,
       itemBuilder: (context, index) {
@@ -771,27 +792,44 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
               'pieceId': piece.id,
               'position': 0,
             },
-            feedback: _buildDraggableFeedback(piece, pieceColor),
-            childWhenDragging: _buildPieceWidget(piece, pieceColor, isDragging: true, isSelected: false),
+            feedback: _buildDraggableFeedback(piece, pieceColor, isLandscape: isLandscape),
+            childWhenDragging: _buildPieceWidget(
+              piece,
+              pieceColor,
+              isDragging: true,
+              isSelected: false,
+              isLandscape: isLandscape,
+            ),
             onDragStarted: () {
               HapticFeedback.mediumImpact();
             },
             onDragEnd: (details) {
               notifier.clearPreview();
             },
-            child: _buildPieceWidget(piece, pieceColor, isSelected: isSelected),
+            child: _buildPieceWidget(
+              piece,
+              pieceColor,
+              isSelected: isSelected,
+              isLandscape: isLandscape,
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildPieceWidget(Pento piece, Color pieceColor, {bool isDragging = false, bool isSelected = false}) {
-    return Container(
-      width: 70, // Réduit de 80 à 70
+  Widget _buildPieceWidget(
+    Pento piece,
+    Color pieceColor, {
+    bool isDragging = false,
+    bool isSelected = false,
+    required bool isLandscape,
+  }) {
+    Widget content = Container(
+      width: 70,
       decoration: BoxDecoration(
-        color: isDragging 
-            ? Colors.grey[300] 
+        color: isDragging
+            ? Colors.grey[300]
             : (isSelected ? pieceColor.withValues(alpha: 0.2) : Colors.white),
         border: Border.all(
           color: isSelected ? pieceColor : Colors.grey,
@@ -806,21 +844,30 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
             piece.id.toString(),
             style: TextStyle(
               fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-              fontSize: 14, // Réduit de 16 à 14
+              fontSize: 14,
               color: isSelected ? pieceColor : Colors.black,
             ),
           ),
-          const SizedBox(height: 2), // Réduit de 4 à 2
+          const SizedBox(height: 2),
           Expanded(
             child: _buildMiniPiecePreview(piece, pieceColor),
           ),
         ],
       ),
     );
+
+    // En paysage, rotation de 90° anti-horaire
+    if (isLandscape) {
+      return Transform.rotate(
+        angle: -1.5708, // -90° en radians
+        child: content,
+      );
+    }
+    return content;
   }
 
-  Widget _buildDraggableFeedback(Pento piece, Color pieceColor) {
-    return Material(
+  Widget _buildDraggableFeedback(Pento piece, Color pieceColor, {required bool isLandscape}) {
+    Widget content = Material(
       color: Colors.transparent,
       child: Container(
         width: 80,
@@ -848,6 +895,15 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
         ),
       ),
     );
+
+    // En paysage, rotation de 90° anti-horaire
+    if (isLandscape) {
+      return Transform.rotate(
+        angle: -1.5708,
+        child: content,
+      );
+    }
+    return content;
   }
 
   Widget _buildMiniPiecePreview(Pento piece, Color pieceColor) {
@@ -886,8 +942,15 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
 class _GridPainter extends CustomPainter {
   final double cellWidth;
   final double cellHeight;
+  final int cols;
+  final int rows;
 
-  _GridPainter({required this.cellWidth, required this.cellHeight});
+  _GridPainter({
+    required this.cellWidth,
+    required this.cellHeight,
+    required this.cols,
+    required this.rows,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -896,7 +959,7 @@ class _GridPainter extends CustomPainter {
       ..strokeWidth = 1;
 
     // Lignes verticales
-    for (int i = 0; i <= 6; i++) {
+    for (int i = 0; i <= cols; i++) {
       final x = i * cellWidth;
       canvas.drawLine(
         Offset(x, 0),
@@ -906,7 +969,7 @@ class _GridPainter extends CustomPainter {
     }
 
     // Lignes horizontales
-    for (int i = 0; i <= 10; i++) {
+    for (int i = 0; i <= rows; i++) {
       final y = i * cellHeight;
       canvas.drawLine(
         Offset(0, y),
@@ -917,5 +980,6 @@ class _GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GridPainter oldDelegate) => false;
+  bool shouldRepaint(_GridPainter oldDelegate) =>
+      oldDelegate.cols != cols || oldDelegate.rows != rows;
 }
