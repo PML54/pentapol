@@ -577,6 +577,48 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     // Restaurer l'état sauvegardé
     state = state.savedGameState!;
   }
+
+  /// Applique une rotation 90° anti-horaire à toutes les pièces (mode isométries uniquement)
+  void applyIsometryRotation() {
+    if (!state.isIsometriesMode) return;
+    
+    print('[GAME] 🔄 Rotation 90° anti-horaire');
+    
+    // Pour chaque pièce placée, faire une rotation
+    final rotatedPieces = state.placedPieces.map((placed) {
+      final piece = placed.piece;
+      final currentIndex = placed.positionIndex;
+      
+      // Passer à la position suivante (rotation)
+      final nextIndex = (currentIndex + 1) % piece.numPositions;
+      
+      return placed.copyWith(positionIndex: nextIndex);
+    }).toList();
+    
+    // Reconstruire le plateau avec les pièces tournées
+    final newPlateau = Plateau.allVisible(6, 10);
+    
+    for (final placed in rotatedPieces) {
+      final position = placed.piece.positions[placed.positionIndex];
+      
+      for (final cellNum in position) {
+        final localX = (cellNum - 1) % 5;
+        final localY = (cellNum - 1) ~/ 5;
+        final x = placed.gridX + localX;
+        final y = placed.gridY + localY;
+        
+        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+          newPlateau.setCell(x, y, placed.piece.id);
+        }
+      }
+    }
+    
+    // Mettre à jour l'état
+    state = state.copyWith(
+      placedPieces: rotatedPieces,
+      plateau: newPlateau,
+    );
+  }
 }
 
 final pentominoGameProvider = NotifierProvider<PentominoGameNotifier, PentominoGameState>(

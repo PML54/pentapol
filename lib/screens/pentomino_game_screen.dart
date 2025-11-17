@@ -91,7 +91,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     icon: Icon(GameIcons.isometryRotation.icon, size: 32),
                     onPressed: () {
                       HapticFeedback.selectionClick();
-                      // TODO: Appliquer rotation en mode isométries
+                      notifier.applyIsometryRotation();
                     },
                     tooltip: GameIcons.isometryRotation.tooltip,
                     color: GameIcons.isometryRotation.color,
@@ -318,7 +318,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               HapticFeedback.selectionClick();
-              // TODO: Appliquer rotation en mode isométries
+              notifier.applyIsometryRotation();
             },
             tooltip: GameIcons.isometryRotation.tooltip,
             color: GameIcons.isometryRotation.color,
