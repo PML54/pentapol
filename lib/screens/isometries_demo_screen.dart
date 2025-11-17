@@ -287,7 +287,11 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
           actions: [
             // Bouton Rotation
             IconButton(
-              icon: const Icon(Icons.rotate_right, size: 24),
+              icon: Icon(
+                Icons.rotate_right,
+                size: 24,
+                color: state.bottomPieces.isNotEmpty ? Colors.blue[400] : Colors.grey[600],
+              ),
               tooltip: 'Rotation 90°',
               onPressed: state.bottomPieces.isNotEmpty
                   ? () {
@@ -295,11 +299,14 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                       notifier.applyRotation();
                     }
                   : null,
-              color: state.bottomPieces.isNotEmpty ? Colors.blue[400] : null,
             ),
             // Bouton Symétrie H
             IconButton(
-              icon: const Icon(Icons.swap_horiz, size: 24),
+              icon: Icon(
+                Icons.swap_horiz,
+                size: 24,
+                color: state.bottomPieces.isNotEmpty ? Colors.green[400] : Colors.grey[600],
+              ),
               tooltip: 'Symétrie Horizontale',
               onPressed: state.bottomPieces.isNotEmpty
                   ? () {
@@ -307,11 +314,14 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                       notifier.applySymmetryH();
                     }
                   : null,
-              color: state.bottomPieces.isNotEmpty ? Colors.green[400] : null,
             ),
             // Bouton Symétrie V
             IconButton(
-              icon: const Icon(Icons.swap_vert, size: 24),
+              icon: Icon(
+                Icons.swap_vert,
+                size: 24,
+                color: state.bottomPieces.isNotEmpty ? Colors.orange[400] : Colors.grey[600],
+              ),
               tooltip: 'Symétrie Verticale',
               onPressed: state.bottomPieces.isNotEmpty
                   ? () {
@@ -319,7 +329,6 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
                       notifier.applySymmetryV();
                     }
                   : null,
-              color: state.bottomPieces.isNotEmpty ? Colors.orange[400] : null,
             ),
             // Bouton Reset
             IconButton(
