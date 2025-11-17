@@ -1,134 +1,229 @@
-// lib/screens/isometries_demo_screen_v2.dart
+// lib/screens/isometries_demo_screen.dart
 // Démonstration pédagogique des isométries avec les pentominos
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math' as math;
 
 import '../models/pentominos.dart';
 import '../providers/settings_provider.dart';
 
 // État pour la démonstration des isométries
 class IsometriesDemoState {
-  final Pento? selectedPiece;
-  final int selectedPositionIndex;
-  final int? transformedPositionIndex;
-  final List<String> appliedTransformations;
-  final Offset translationOffset;
+  final Map<int, PlacedPieceDemo> bottomPieces; // Pièces dans zone basse (lignes 5-9)
+  final Map<int, PlacedPieceDemo> topPieces; // Pièces transformées dans zone haute (lignes 0-4)
+  final int? selectedPieceId; // Pièce sélectionnée sur le plateau
+  final int? previewPieceId; // Pièce en preview depuis le slider
+  final int? previewPosition;
+  final int? previewX;
+  final int? previewY;
+  final String? lastTransformation; // Dernière transformation appliquée
 
   const IsometriesDemoState({
-    this.selectedPiece,
-    this.selectedPositionIndex = 0,
-    this.transformedPositionIndex,
-    this.appliedTransformations = const [],
-    this.translationOffset = Offset.zero,
+    this.bottomPieces = const {},
+    this.topPieces = const {},
+    this.selectedPieceId,
+    this.previewPieceId,
+    this.previewPosition,
+    this.previewX,
+    this.previewY,
+    this.lastTransformation,
   });
 
   IsometriesDemoState copyWith({
-    Pento? selectedPiece,
-    int? selectedPositionIndex,
-    int? transformedPositionIndex,
-    List<String>? appliedTransformations,
-    Offset? translationOffset,
-    bool clearTransformedPosition = false,
+    Map<int, PlacedPieceDemo>? bottomPieces,
+    Map<int, PlacedPieceDemo>? topPieces,
+    int? selectedPieceId,
+    int? previewPieceId,
+    int? previewPosition,
+    int? previewX,
+    int? previewY,
+    String? lastTransformation,
+    bool clearSelection = false,
+    bool clearPreview = false,
+    bool clearTransformation = false,
   }) {
     return IsometriesDemoState(
-      selectedPiece: selectedPiece ?? this.selectedPiece,
-      selectedPositionIndex: selectedPositionIndex ?? this.selectedPositionIndex,
-      transformedPositionIndex: clearTransformedPosition ? null : (transformedPositionIndex ?? this.transformedPositionIndex),
-      appliedTransformations: appliedTransformations ?? this.appliedTransformations,
-      translationOffset: translationOffset ?? this.translationOffset,
+      bottomPieces: bottomPieces ?? this.bottomPieces,
+      topPieces: topPieces ?? this.topPieces,
+      selectedPieceId: clearSelection ? null : (selectedPieceId ?? this.selectedPieceId),
+      previewPieceId: clearPreview ? null : (previewPieceId ?? this.previewPieceId),
+      previewPosition: clearPreview ? null : (previewPosition ?? this.previewPosition),
+      previewX: clearPreview ? null : (previewX ?? this.previewX),
+      previewY: clearPreview ? null : (previewY ?? this.previewY),
+      lastTransformation: clearTransformation ? null : (lastTransformation ?? this.lastTransformation),
     );
   }
 }
 
-// Notifier pour l'état des isométries
+// Classe pour représenter une pièce placée
+class PlacedPieceDemo {
+  final int pieceId;
+  final int position;
+  final int x;
+  final int y;
+
+  const PlacedPieceDemo({
+    required this.pieceId,
+    required this.position,
+    required this.x,
+    required this.y,
+  });
+
+  PlacedPieceDemo copyWith({int? position, int? x, int? y}) {
+    return PlacedPieceDemo(
+      pieceId: pieceId,
+      position: position ?? this.position,
+      x: x ?? this.x,
+      y: y ?? this.y,
+    );
+  }
+}
+
+// Notifier pour gérer l'état
 class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
   @override
   IsometriesDemoState build() {
     return const IsometriesDemoState();
   }
 
-  void selectPiece(Pento piece) {
-    state = IsometriesDemoState(
-      selectedPiece: piece,
-      selectedPositionIndex: 0,
-      transformedPositionIndex: null,
-      appliedTransformations: [],
-      translationOffset: Offset.zero,
+  // Placer une pièce dans la zone basse (lignes 5-9)
+  void placePieceInBottom(int pieceId, int position, int x, int y) {
+    // Vérifier que c'est bien dans la zone basse (y >= 5)
+    if (y < 5) return;
+
+    final newBottomPieces = Map<int, PlacedPieceDemo>.from(state.bottomPieces);
+    newBottomPieces[pieceId] = PlacedPieceDemo(
+      pieceId: pieceId,
+      position: position,
+      x: x,
+      y: y,
+    );
+
+    state = state.copyWith(
+      bottomPieces: newBottomPieces,
+      clearPreview: true,
+      clearSelection: true,
     );
   }
 
+  // Retirer une pièce de la zone basse
+  void removePieceFromBottom(int pieceId) {
+    final newBottomPieces = Map<int, PlacedPieceDemo>.from(state.bottomPieces);
+    newBottomPieces.remove(pieceId);
+
+    state = state.copyWith(
+      bottomPieces: newBottomPieces,
+      clearSelection: true,
+    );
+  }
+
+  // Sélectionner une pièce
+  void selectPiece(int? pieceId) {
+    state = state.copyWith(
+      selectedPieceId: pieceId,
+      clearSelection: pieceId == null,
+    );
+  }
+
+  // Mettre à jour le preview
+  void updatePreview(int pieceId, int position, int x, int y) {
+    state = state.copyWith(
+      previewPieceId: pieceId,
+      previewPosition: position,
+      previewX: x,
+      previewY: y,
+    );
+  }
+
+  // Effacer le preview
+  void clearPreview() {
+    state = state.copyWith(clearPreview: true);
+  }
+
+  // Appliquer une rotation
   void applyRotation() {
-    if (state.selectedPiece == null) return;
+    if (state.bottomPieces.isEmpty) return;
 
-    final numPositions = state.selectedPiece!.numPositions;
-    int nextIndex;
+    final newTopPieces = <int, PlacedPieceDemo>{};
 
-    if (state.transformedPositionIndex == null) {
-      nextIndex = (state.selectedPositionIndex + 1) % numPositions;
-    } else {
-      nextIndex = (state.transformedPositionIndex! + 1) % numPositions;
+    for (final entry in state.bottomPieces.entries) {
+      final piece = pentominos.firstWhere((p) => p.id == entry.value.pieceId);
+      final newPosition = (entry.value.position + 1) % piece.numPositions;
+
+      // Placer dans la zone haute (même x, mais y - 5 pour mapper vers 0-4)
+      newTopPieces[entry.key] = PlacedPieceDemo(
+        pieceId: entry.value.pieceId,
+        position: newPosition,
+        x: entry.value.x,
+        y: entry.value.y - 5, // Décaler vers la zone haute
+      );
     }
 
     state = state.copyWith(
-      transformedPositionIndex: nextIndex,
-      appliedTransformations: [...state.appliedTransformations, 'Rotation 90°'],
+      topPieces: newTopPieces,
+      lastTransformation: 'Rotation 90°',
     );
   }
 
+  // Appliquer une symétrie horizontale
   void applySymmetryH() {
-    if (state.selectedPiece == null) return;
+    if (state.bottomPieces.isEmpty) return;
 
-    final numPositions = state.selectedPiece!.numPositions;
-    final baseIndex = state.transformedPositionIndex ?? state.selectedPositionIndex;
+    final newTopPieces = <int, PlacedPieceDemo>{};
 
-    int nextIndex = (baseIndex + numPositions ~/ 2) % numPositions;
+    for (final entry in state.bottomPieces.entries) {
+      final piece = pentominos.firstWhere((p) => p.id == entry.value.pieceId);
+      final numPositions = piece.numPositions;
+      final newPosition = (entry.value.position + numPositions ~/ 2) % numPositions;
 
-    state = state.copyWith(
-      transformedPositionIndex: nextIndex,
-      appliedTransformations: [...state.appliedTransformations, 'Symétrie H'],
-    );
-  }
-
-  void applySymmetryV() {
-    if (state.selectedPiece == null) return;
-
-    final numPositions = state.selectedPiece!.numPositions;
-    final baseIndex = state.transformedPositionIndex ?? state.selectedPositionIndex;
-
-    int nextIndex;
-    if (numPositions >= 4) {
-      nextIndex = (baseIndex + 2) % numPositions;
-    } else {
-      nextIndex = (baseIndex + 1) % numPositions;
+      newTopPieces[entry.key] = PlacedPieceDemo(
+        pieceId: entry.value.pieceId,
+        position: newPosition,
+        x: entry.value.x,
+        y: entry.value.y - 5,
+      );
     }
 
     state = state.copyWith(
-      transformedPositionIndex: nextIndex,
-      appliedTransformations: [...state.appliedTransformations, 'Symétrie V'],
+      topPieces: newTopPieces,
+      lastTransformation: 'Symétrie Horizontale',
     );
   }
 
-  void applyTranslation() {
+  // Appliquer une symétrie verticale
+  void applySymmetryV() {
+    if (state.bottomPieces.isEmpty) return;
+
+    final newTopPieces = <int, PlacedPieceDemo>{};
+
+    for (final entry in state.bottomPieces.entries) {
+      final piece = pentominos.firstWhere((p) => p.id == entry.value.pieceId);
+      final numPositions = piece.numPositions;
+      int newPosition;
+      if (numPositions >= 4) {
+        newPosition = (entry.value.position + 2) % numPositions;
+      } else {
+        newPosition = (entry.value.position + 1) % numPositions;
+      }
+
+      newTopPieces[entry.key] = PlacedPieceDemo(
+        pieceId: entry.value.pieceId,
+        position: newPosition,
+        x: entry.value.x,
+        y: entry.value.y - 5,
+      );
+    }
+
     state = state.copyWith(
-      translationOffset: Offset(
-        (state.translationOffset.dx + 1) % 3,
-        (state.translationOffset.dy + 1) % 2,
-      ),
-      appliedTransformations: [...state.appliedTransformations, 'Translation'],
+      topPieces: newTopPieces,
+      lastTransformation: 'Symétrie Verticale',
     );
   }
 
+  // Reset complet
   void reset() {
-    if (state.selectedPiece == null) return;
-
-    state = state.copyWith(
-      clearTransformedPosition: true,
-      appliedTransformations: [],
-      translationOffset: Offset.zero,
-    );
+    state = const IsometriesDemoState();
   }
 }
 
@@ -137,85 +232,91 @@ final isometriesDemoProvider = NotifierProvider<IsometriesDemoNotifier, Isometri
   return IsometriesDemoNotifier();
 });
 
-class IsometriesDemoScreen extends ConsumerWidget {
+// Widget principal
+class IsometriesDemoScreen extends ConsumerStatefulWidget {
   const IsometriesDemoScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<IsometriesDemoScreen> createState() => _IsometriesDemoScreenState();
+}
+
+class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
+  final ScrollController _sliderController = ScrollController();
+
+  @override
+  void dispose() {
+    _sliderController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(isometriesDemoProvider);
+    final notifier = ref.read(isometriesDemoProvider.notifier);
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Démonstration des Isométries'),
         backgroundColor: Colors.indigo,
+        actions: [
+          // Afficher la dernière transformation
+          if (state.lastTransformation != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Text(
+                  state.lastTransformation!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
-          // Info sur la pièce sélectionnée
-          if (state.selectedPiece != null)
-            _buildPieceInfo(state.selectedPiece!),
-
-          // Plateau divisé
+          // Plateau
           Expanded(
-            flex: 3,
-            child: _buildDividedPlateau(context, ref, state, settings),
+            child: _buildPlateau(context, state, notifier, settings),
           ),
 
           // Boutons de transformation
-          if (state.selectedPiece != null)
-            _buildTransformationButtons(context, ref),
+          _buildTransformationButtons(notifier, state),
 
           // Slider de pièces
           Container(
-            height: 140,
+            height: 120,
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
               ],
             ),
-            child: _buildPieceSlider(context, ref, state, settings),
+            child: _buildPieceSlider(state, notifier, settings),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPieceInfo(Pento piece) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      color: Colors.indigo[50],
-      child: Column(
-        children: [
-          Text(
-            'Pièce ${piece.id}',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            '${piece.numPositions} position(s) distincte(s)',
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDividedPlateau(
-      BuildContext context,
-      WidgetRef ref,
-      IsometriesDemoState state,
-      settings,
-      ) {
+  Widget _buildPlateau(
+    BuildContext context,
+    IsometriesDemoState state,
+    IsometriesDemoNotifier notifier,
+    settings,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final plateauWidth = constraints.maxWidth;
         final plateauHeight = constraints.maxHeight;
-
         final cellWidth = plateauWidth / 6;
         final cellHeight = plateauHeight / 10;
 
@@ -224,13 +325,13 @@ class IsometriesDemoScreen extends ConsumerWidget {
             // Grille de fond
             _buildGrid(plateauWidth, plateauHeight, cellWidth, cellHeight),
 
-            // Ligne de séparation au milieu
+            // Ligne de séparation
             Positioned(
               left: 0,
               right: 0,
               top: plateauHeight / 2,
               child: Container(
-                height: 2,
+                height: 3,
                 color: Colors.red[700],
               ),
             ),
@@ -242,7 +343,7 @@ class IsometriesDemoScreen extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.indigo.withOpacity(0.8),
+                  color: Colors.indigo.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
@@ -261,11 +362,11 @@ class IsometriesDemoScreen extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.8),
+                  color: Colors.green.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
-                  'RÉFÉRENCE',
+                  'ORIGINALE',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -275,32 +376,85 @@ class IsometriesDemoScreen extends ConsumerWidget {
               ),
             ),
 
-            // Pièce d'origine (bas)
-            if (state.selectedPiece != null)
-              ..._buildPieceOnPlateau(
-                state.selectedPiece!,
-                state.selectedPositionIndex,
+            // Pièces de la zone basse
+            ...state.bottomPieces.values.map((placed) {
+              return _buildPlacedPiece(
+                placed,
                 cellWidth,
                 cellHeight,
-                plateauHeight,
                 settings,
-                offsetY: 5,
-                offsetX: 0,
+                notifier,
+                isBottom: true,
+              );
+            }),
+
+            // Pièces de la zone haute (transformées)
+            ...state.topPieces.values.map((placed) {
+              return _buildPlacedPiece(
+                placed,
+                cellWidth,
+                cellHeight,
+                settings,
+                notifier,
+                isBottom: false,
+              );
+            }),
+
+            // Preview
+            if (state.previewPieceId != null &&
+                state.previewPosition != null &&
+                state.previewX != null &&
+                state.previewY != null)
+              _buildPreview(
+                state.previewPieceId!,
+                state.previewPosition!,
+                state.previewX!,
+                state.previewY!,
+                cellWidth,
+                cellHeight,
+                settings,
               ),
 
-            // Pièce transformée (haut)
-            if (state.selectedPiece != null && state.transformedPositionIndex != null)
-              ..._buildPieceOnPlateau(
-                state.selectedPiece!,
-                state.transformedPositionIndex!,
-                cellWidth,
-                cellHeight,
-                plateauHeight,
-                settings,
-                offsetY: 0,
-                offsetX: state.translationOffset.dx.toInt(),
-                highlightColor: Colors.indigo[300],
-              ),
+            // Zones de drop (grille invisible pour drag & drop)
+            ...List.generate(6, (col) {
+              return List.generate(5, (row) {
+                // Seulement zone basse (lignes 5-9)
+                final y = row + 5;
+                return Positioned(
+                  left: col * cellWidth,
+                  top: y * cellHeight,
+                  width: cellWidth,
+                  height: cellHeight,
+                  child: DragTarget<Map<String, dynamic>>(
+                    onWillAcceptWithDetails: (details) {
+                      final data = details.data;
+                      notifier.updatePreview(
+                        data['pieceId'],
+                        data['position'],
+                        col,
+                        y,
+                      );
+                      return true;
+                    },
+                    onLeave: (_) {
+                      notifier.clearPreview();
+                    },
+                    onAcceptWithDetails: (details) {
+                      final data = details.data;
+                      notifier.placePieceInBottom(
+                        data['pieceId'],
+                        data['position'],
+                        col,
+                        y,
+                      );
+                    },
+                    builder: (context, candidateData, rejectedData) {
+                      return Container(); // Invisible
+                    },
+                  ),
+                );
+              });
+            }).expand((list) => list),
           ],
         );
       },
@@ -314,172 +468,166 @@ class IsometriesDemoScreen extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildPieceOnPlateau(
-      Pento piece,
-      int positionIndex,
-      double cellWidth,
-      double cellHeight,
-      double plateauHeight,
-      settings,
-      {required int offsetY, required int offsetX, Color? highlightColor}
-      ) {
-    final shape = piece.positions[positionIndex];
-    final pieceColor = highlightColor ?? settings.ui.getPieceColor(piece.id);
+  Widget _buildPlacedPiece(
+    PlacedPieceDemo placed,
+    double cellWidth,
+    double cellHeight,
+    settings,
+    IsometriesDemoNotifier notifier,
+    {required bool isBottom}
+  ) {
+    final piece = pentominos.firstWhere((p) => p.id == placed.pieceId);
+    final shape = piece.positions[placed.position];
+    final pieceColor = settings.ui.getPieceColor(placed.pieceId);
 
-    return shape.map((cellNumber) {
-      final localX = (cellNumber - 1) % 5;
-      final localY = (cellNumber - 1) ~/ 5;
+    return Stack(
+      children: shape.map((cellNumber) {
+        final localX = (cellNumber - 1) % 5;
+        final localY = (cellNumber - 1) ~/ 5;
+        final x = placed.x + localX;
+        final y = placed.y + localY;
 
-      final x = localX + offsetX;
-      final y = offsetY + localY;
+        // Conversion visuelle (y inversé)
+        final visualY = 9 - y;
 
-      final visualY = 9 - y;
-
-      return Positioned(
-        left: x * cellWidth,
-        top: visualY * cellHeight,
-        width: cellWidth,
-        height: cellHeight,
-        child: Container(
-          margin: const EdgeInsets.all(1),
-          decoration: BoxDecoration(
-            color: pieceColor,
-            border: Border.all(color: Colors.black, width: 2),
-            borderRadius: BorderRadius.circular(2),
-            boxShadow: highlightColor != null ? [
-              BoxShadow(
-                color: Colors.indigo.withOpacity(0.5),
-                blurRadius: 8,
-                spreadRadius: 2,
+        return Positioned(
+          left: x * cellWidth,
+          top: visualY * cellHeight,
+          width: cellWidth,
+          height: cellHeight,
+          child: GestureDetector(
+            onTap: isBottom
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.selectPiece(placed.pieceId);
+                  }
+                : null,
+            child: Container(
+              margin: const EdgeInsets.all(1),
+              decoration: BoxDecoration(
+                color: isBottom ? pieceColor : pieceColor.withValues(alpha: 0.7),
+                border: Border.all(
+                  color: Colors.black,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(2),
               ),
-            ] : null,
-          ),
-          child: Center(
-            child: Text(
-              piece.id.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                shadows: [
-                  Shadow(
-                    color: Colors.black54,
-                    blurRadius: 2,
+              child: Center(
+                child: Text(
+                  placed.pieceId.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 2,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      );
-    }).toList();
+        );
+      }).toList(),
+    );
   }
 
-  Widget _buildTransformationButtons(
-      BuildContext context,
-      WidgetRef ref,
-      ) {
-    final state = ref.watch(isometriesDemoProvider);
-    final notifier = ref.read(isometriesDemoProvider.notifier);
-    
-    final hasSymH = state.appliedTransformations.contains('Symétrie H');
-    final hasSymV = state.appliedTransformations.contains('Symétrie V');
-    final isRotation180 = hasSymH && hasSymV;
+  Widget _buildPreview(
+    int pieceId,
+    int position,
+    int x,
+    int y,
+    double cellWidth,
+    double cellHeight,
+    settings,
+  ) {
+    final piece = pentominos.firstWhere((p) => p.id == pieceId);
+    final shape = piece.positions[position];
+    final pieceColor = settings.ui.getPieceColor(pieceId);
+
+    return Stack(
+      children: shape.map((cellNumber) {
+        final localX = (cellNumber - 1) % 5;
+        final localY = (cellNumber - 1) ~/ 5;
+        final cellX = x + localX;
+        final cellY = y + localY;
+
+        final visualY = 9 - cellY;
+
+        return Positioned(
+          left: cellX * cellWidth,
+          top: visualY * cellHeight,
+          width: cellWidth,
+          height: cellHeight,
+          child: Container(
+            margin: const EdgeInsets.all(1),
+            decoration: BoxDecoration(
+              color: pieceColor.withValues(alpha: 0.3),
+              border: Border.all(
+                color: Colors.blue,
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTransformationButtons(IsometriesDemoNotifier notifier, IsometriesDemoState state) {
+    final hasBottomPieces = state.bottomPieces.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
       color: Colors.white,
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Affichage des transformations appliquées
-          if (state.appliedTransformations.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Transformations : ${state.appliedTransformations.join(' → ')}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                  if (isRotation180)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.lightbulb, color: Colors.orange[700], size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Sym H ∘ Sym V = Rotation 180° !',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange[900],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-          // Boutons de transformation
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildTransformButton(
-                icon: Icons.rotate_right,
-                label: 'Rotation',
-                color: Colors.blue,
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  notifier.applyRotation();
-                },
-              ),
-              _buildTransformButton(
-                icon: Icons.swap_horiz,
-                label: 'Sym H',
-                color: Colors.green,
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  notifier.applySymmetryH();
-                },
-              ),
-              _buildTransformButton(
-                icon: Icons.swap_vert,
-                label: 'Sym V',
-                color: Colors.orange,
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  notifier.applySymmetryV();
-                },
-              ),
-              _buildTransformButton(
-                icon: Icons.open_with,
-                label: 'Translation',
-                color: Colors.purple,
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  notifier.applyTranslation();
-                },
-              ),
-              _buildTransformButton(
-                icon: Icons.refresh,
-                label: 'Reset',
-                color: Colors.red,
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  notifier.reset();
-                },
-              ),
-            ],
+          _buildTransformButton(
+            icon: Icons.rotate_right,
+            label: 'Rotation',
+            color: Colors.blue,
+            onPressed: hasBottomPieces
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.applyRotation();
+                  }
+                : null,
+          ),
+          _buildTransformButton(
+            icon: Icons.swap_horiz,
+            label: 'Sym H',
+            color: Colors.green,
+            onPressed: hasBottomPieces
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.applySymmetryH();
+                  }
+                : null,
+          ),
+          _buildTransformButton(
+            icon: Icons.swap_vert,
+            label: 'Sym V',
+            color: Colors.orange,
+            onPressed: hasBottomPieces
+                ? () {
+                    HapticFeedback.selectionClick();
+                    notifier.applySymmetryV();
+                  }
+                : null,
+          ),
+          _buildTransformButton(
+            icon: Icons.refresh,
+            label: 'Reset',
+            color: Colors.red,
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              notifier.reset();
+            },
           ),
         ],
       ),
@@ -490,7 +638,7 @@ class IsometriesDemoScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -502,86 +650,123 @@ class IsometriesDemoScreen extends ConsumerWidget {
             foregroundColor: Colors.white,
             padding: const EdgeInsets.all(12),
             shape: const CircleBorder(),
+            disabledBackgroundColor: Colors.grey[300],
           ),
           child: Icon(icon, size: 24),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: onPressed != null ? Colors.black87 : Colors.grey,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildPieceSlider(
-      BuildContext context,
-      WidgetRef ref,
-      IsometriesDemoState state,
-      settings,
-      ) {
-    final notifier = ref.read(isometriesDemoProvider.notifier);
-    
+    IsometriesDemoState state,
+    IsometriesDemoNotifier notifier,
+    settings,
+  ) {
     return ListView.builder(
+      controller: _sliderController,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       itemCount: pentominos.length,
       itemBuilder: (context, index) {
         final piece = pentominos[index];
-        final isSelected = state.selectedPiece?.id == piece.id;
+        final pieceColor = settings.ui.getPieceColor(piece.id);
 
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            notifier.selectPiece(piece);
-          },
-          child: Container(
-            width: 100,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.indigo[100] : Colors.white,
-              border: Border.all(
-                color: isSelected ? Colors.indigo : Colors.grey,
-                width: isSelected ? 3 : 1,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Pièce ${piece.id}',
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${piece.numPositions} pos.',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: _buildMiniPiecePreview(piece, settings),
-                ),
-              ],
-            ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: LongPressDraggable<Map<String, dynamic>>(
+            data: {
+              'pieceId': piece.id,
+              'position': 0,
+            },
+            feedback: _buildDraggableFeedback(piece, pieceColor),
+            childWhenDragging: _buildPieceWidget(piece, pieceColor, isDragging: true),
+            onDragStarted: () {
+              HapticFeedback.mediumImpact();
+            },
+            onDragEnd: (details) {
+              notifier.clearPreview();
+            },
+            child: _buildPieceWidget(piece, pieceColor),
           ),
         );
       },
     );
   }
 
-  Widget _buildMiniPiecePreview(Pento piece, settings) {
-    final pieceColor = settings.ui.getPieceColor(piece.id);
+  Widget _buildPieceWidget(Pento piece, Color pieceColor, {bool isDragging = false}) {
+    return Container(
+      width: 80,
+      decoration: BoxDecoration(
+        color: isDragging ? Colors.grey[300] : Colors.white,
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            piece.id.toString(),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: _buildMiniPiecePreview(piece, pieceColor),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildDraggableFeedback(Pento piece, Color pieceColor) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: pieceColor.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            piece.id.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPiecePreview(Pento piece, Color pieceColor) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = math.min(constraints.maxWidth, constraints.maxHeight);
+        final size = constraints.maxWidth < constraints.maxHeight
+            ? constraints.maxWidth
+            : constraints.maxHeight;
         final cellSize = size / 5;
 
         return Stack(
@@ -621,6 +806,7 @@ class _GridPainter extends CustomPainter {
       ..color = Colors.grey[300]!
       ..strokeWidth = 1;
 
+    // Lignes verticales
     for (int i = 0; i <= 6; i++) {
       final x = i * cellWidth;
       canvas.drawLine(
@@ -630,6 +816,7 @@ class _GridPainter extends CustomPainter {
       );
     }
 
+    // Lignes horizontales
     for (int i = 0; i <= 10; i++) {
       final y = i * cellHeight;
       canvas.drawLine(
