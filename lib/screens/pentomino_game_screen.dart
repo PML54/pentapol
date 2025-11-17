@@ -13,7 +13,6 @@ import '../models/pentominos.dart';
 import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
 import '../screens/settings_screen.dart';
-import '../screens/isometries_demo_screen.dart'; // ← NOUVEAU : Démonstration des isométries
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
 
 
@@ -80,20 +79,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           )
               : const SizedBox.shrink(),
           actions: [
-            // 📐 Bouton "Isométries" (NOUVEAU)
-            IconButton(
-              icon: const Icon(Icons.school, size: 24),
-              tooltip: 'Démonstration Isométries',
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const IsometriesDemoScreen()),
-                );
-              },
-              color: Colors.purple[300],
-            ),
-
             // 👁️ Bouton "voir les solutions possibles"
             if (state.solutionsCount != null && state.solutionsCount! > 0)
               IconButton(
@@ -286,34 +271,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               ],
             ),
           ),
-
-        const SizedBox(height: 8),
-
-        // Bouton Isométries (NOUVEAU)
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const IsometriesDemoScreen(),
-                ),
-              );
-            },
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.school, size: 22, color: Colors.purple),
-            ),
-          ),
-        ),
 
         const SizedBox(height: 8),
 
