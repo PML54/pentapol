@@ -373,15 +373,6 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
           toolbarHeight: 56.0,
-          title: state.lastTransformation != null
-              ? Text(
-                  state.lastTransformation!,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : const SizedBox.shrink(),
           backgroundColor: Colors.indigo,
           actions: [
             // Bouton Rotation
@@ -545,24 +536,6 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Transformation affichée
-        if (state.lastTransformation != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Transform.rotate(
-              angle: -1.5708, // Texte tourné
-              child: Text(
-                state.lastTransformation!,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-        const SizedBox(height: 16),
-
         // Bouton Rotation
         Material(
           color: Colors.transparent,
@@ -976,8 +949,9 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
     bool isSelected = false,
     required bool isLandscape,
   }) {
-    Widget content = Container(
+    return Container(
       width: 70,
+      height: 70, // Hauteur fixe pour paysage
       decoration: BoxDecoration(
         color: isDragging
             ? Colors.grey[300]
@@ -1006,19 +980,10 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
         ],
       ),
     );
-
-    // En paysage, rotation de 90° anti-horaire
-    if (isLandscape) {
-      return Transform.rotate(
-        angle: -1.5708, // -90° en radians
-        child: content,
-      );
-    }
-    return content;
   }
 
   Widget _buildDraggableFeedback(Pento piece, Color pieceColor, {required bool isLandscape}) {
-    Widget content = Material(
+    return Material(
       color: Colors.transparent,
       child: Container(
         width: 80,
@@ -1046,15 +1011,6 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
         ),
       ),
     );
-
-    // En paysage, rotation de 90° anti-horaire
-    if (isLandscape) {
-      return Transform.rotate(
-        angle: -1.5708,
-        child: content,
-      );
-    }
-    return content;
   }
 
   Widget _buildMiniPiecePreview(Pento piece, Color pieceColor) {
