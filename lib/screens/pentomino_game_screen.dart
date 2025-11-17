@@ -53,15 +53,20 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
           toolbarHeight: 56.0,
-          leading: IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
+          backgroundColor: state.isIsometriesMode 
+              ? Colors.deepPurple[700]  // Fond violet en mode isométries
+              : null,  // Fond par défaut (indigo) en mode normal
+          leading: state.isIsometriesMode
+              ? null  // Pas de bouton paramètres en mode isométries
+              : IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                    );
+                  },
+                ),
           title: !state.isIsometriesMode && settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
               ? Row(
             mainAxisSize: MainAxisSize.min,
@@ -81,9 +86,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               : const SizedBox.shrink(),
           actions: state.isIsometriesMode
               ? [
-                  // MODE ISOMÉTRIES : Boutons de transformation
+                  // MODE ISOMÉTRIES : Boutons de transformation (icônes plus grandes)
                   IconButton(
-                    icon: Icon(GameIcons.isometryRotation.icon, size: 24),
+                    icon: Icon(GameIcons.isometryRotation.icon, size: 32),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       // TODO: Appliquer rotation en mode isométries
@@ -92,7 +97,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     color: GameIcons.isometryRotation.color,
                   ),
                   IconButton(
-                    icon: Icon(GameIcons.isometrySymmetryH.icon, size: 24),
+                    icon: Icon(GameIcons.isometrySymmetryH.icon, size: 32),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       // TODO: Appliquer symétrie horizontale
@@ -101,7 +106,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     color: GameIcons.isometrySymmetryH.color,
                   ),
                   IconButton(
-                    icon: Icon(GameIcons.isometrySymmetryV.icon, size: 24),
+                    icon: Icon(GameIcons.isometrySymmetryV.icon, size: 32),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       // TODO: Appliquer symétrie verticale
@@ -110,7 +115,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     color: GameIcons.isometrySymmetryV.color,
                   ),
                   IconButton(
-                    icon: Icon(GameIcons.exitIsometries.icon, size: 24),
+                    icon: Icon(GameIcons.exitIsometries.icon, size: 32),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       notifier.exitIsometriesMode();
@@ -259,7 +264,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             Container(
               width: 44,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: state.isIsometriesMode 
+                    ? Colors.deepPurple[100]  // Fond violet clair en mode isométries
+                    : Colors.grey.shade200,   // Fond gris en mode normal
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -300,13 +307,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       notifier,
       ) {
     if (state.isIsometriesMode) {
-      // MODE ISOMÉTRIES : Boutons de transformation
+      // MODE ISOMÉTRIES : Boutons de transformation (icônes plus grandes)
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Bouton Rotation
           IconButton(
-            icon: Icon(GameIcons.isometryRotation.icon, size: 22),
+            icon: Icon(GameIcons.isometryRotation.icon, size: 28),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
@@ -320,7 +327,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
           // Bouton Symétrie Horizontale
           IconButton(
-            icon: Icon(GameIcons.isometrySymmetryH.icon, size: 22),
+            icon: Icon(GameIcons.isometrySymmetryH.icon, size: 28),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
@@ -334,7 +341,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
           // Bouton Symétrie Verticale
           IconButton(
-            icon: Icon(GameIcons.isometrySymmetryV.icon, size: 22),
+            icon: Icon(GameIcons.isometrySymmetryV.icon, size: 28),
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
@@ -364,7 +371,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 alignment: Alignment.center,
                 child: Icon(
                   GameIcons.exitIsometries.icon,
-                  size: 22,
+                  size: 28,
                   color: GameIcons.exitIsometries.color,
                 ),
               ),
