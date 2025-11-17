@@ -10,9 +10,10 @@ import '../providers/settings_provider.dart';
 
 // État pour la démonstration des isométries
 class IsometriesDemoState {
-  final Map<int, PlacedPieceDemo> bottomPieces; // Pièces dans zone basse (lignes 5-9)
-  final Map<int, PlacedPieceDemo> topPieces; // Pièces transformées dans zone haute (lignes 0-4)
+  final Map<int, PlacedPieceDemo> bottomPieces; // Pièces ORIGINALES en BAS visuel (lignes 0-4 logiques)
+  final Map<int, PlacedPieceDemo> topPieces; // Pièces TRANSFORMÉES en HAUT visuel (lignes 5-9 logiques)
   final int? selectedPieceId; // Pièce sélectionnée sur le plateau
+  final int? selectedSliderPieceId; // Pièce sélectionnée dans le slider
   final int? previewPieceId; // Pièce en preview depuis le slider
   final int? previewPosition;
   final int? previewX;
@@ -23,6 +24,7 @@ class IsometriesDemoState {
     this.bottomPieces = const {},
     this.topPieces = const {},
     this.selectedPieceId,
+    this.selectedSliderPieceId,
     this.previewPieceId,
     this.previewPosition,
     this.previewX,
@@ -34,12 +36,14 @@ class IsometriesDemoState {
     Map<int, PlacedPieceDemo>? bottomPieces,
     Map<int, PlacedPieceDemo>? topPieces,
     int? selectedPieceId,
+    int? selectedSliderPieceId,
     int? previewPieceId,
     int? previewPosition,
     int? previewX,
     int? previewY,
     String? lastTransformation,
     bool clearSelection = false,
+    bool clearSliderSelection = false,
     bool clearPreview = false,
     bool clearTransformation = false,
   }) {
@@ -47,6 +51,7 @@ class IsometriesDemoState {
       bottomPieces: bottomPieces ?? this.bottomPieces,
       topPieces: topPieces ?? this.topPieces,
       selectedPieceId: clearSelection ? null : (selectedPieceId ?? this.selectedPieceId),
+      selectedSliderPieceId: clearSliderSelection ? null : (selectedSliderPieceId ?? this.selectedSliderPieceId),
       previewPieceId: clearPreview ? null : (previewPieceId ?? this.previewPieceId),
       previewPosition: clearPreview ? null : (previewPosition ?? this.previewPosition),
       previewX: clearPreview ? null : (previewX ?? this.previewX),
@@ -87,15 +92,15 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
     return const IsometriesDemoState();
   }
 
-  // Placer une pièce dans la zone basse (lignes 5-9)
+  // Placer une pièce dans la zone ORIGINALE (BAS visuel = lignes 0-4 logiques)
   void placePieceInBottom(int pieceId, int position, int x, int y) {
-    // Vérifier que c'est bien dans la zone basse (y >= 5)
-    if (y < 5) return;
+    // Vérifier que c'est bien dans la zone basse visuelle (logique 0-4)
+    if (y >= 5) return;
 
     final piece = pentominos.firstWhere((p) => p.id == pieceId);
     final shape = piece.positions[position];
     
-    // Ajuster la position pour qu'elle reste dans la zone basse (5-9)
+    // Ajuster la position pour qu'elle reste dans [0-4]
     final adjusted = _adjustToBottomZone(x, y, shape);
 
     final newBottomPieces = Map<int, PlacedPieceDemo>.from(state.bottomPieces);
@@ -110,6 +115,7 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       bottomPieces: newBottomPieces,
       clearPreview: true,
       clearSelection: true,
+      selectedSliderPieceId: pieceId, // Sélectionner dans le slider
     );
   }
 
@@ -160,11 +166,11 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       final piece = pentominos.firstWhere((p) => p.id == entry.value.pieceId);
       final newPosition = (entry.value.position + 1) % piece.numPositions;
 
-      // Si on duplique depuis le bas, ajuster y
-      int baseY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      // Si on duplique depuis le bas, ajuster y: bas (0-4) → haut (5-9)
+      int baseY = state.topPieces.isEmpty ? entry.value.y + 5 : entry.value.y;
       int baseX = entry.value.x;
 
-      // Ajuster la position pour qu'elle reste dans la zone haute (0-4)
+      // Ajuster la position pour qu'elle reste dans la zone haute (5-9)
       final shape = piece.positions[newPosition];
       final adjusted = _adjustToTopZone(baseX, baseY, shape);
 
@@ -194,10 +200,10 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       final numPositions = piece.numPositions;
       final newPosition = (entry.value.position + numPositions ~/ 2) % numPositions;
 
-      int baseY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseY = state.topPieces.isEmpty ? entry.value.y + 5 : entry.value.y;
       int baseX = entry.value.x;
 
-      // Ajuster la position pour qu'elle reste dans la zone haute (0-4)
+      // Ajuster la position pour qu'elle reste dans la zone haute (5-9)
       final shape = piece.positions[newPosition];
       final adjusted = _adjustToTopZone(baseX, baseY, shape);
 
@@ -232,10 +238,10 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
         newPosition = (entry.value.position + 1) % numPositions;
       }
 
-      int baseY = state.topPieces.isEmpty ? entry.value.y - 5 : entry.value.y;
+      int baseY = state.topPieces.isEmpty ? entry.value.y + 5 : entry.value.y;
       int baseX = entry.value.x;
 
-      // Ajuster la position pour qu'elle reste dans la zone haute (0-4)
+      // Ajuster la position pour qu'elle reste dans la zone haute (5-9)
       final shape = piece.positions[newPosition];
       final adjusted = _adjustToTopZone(baseX, baseY, shape);
 
@@ -253,44 +259,8 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
     );
   }
 
-  // Ajuster une pièce pour qu'elle reste dans la zone haute (0-4)
+  // Ajuster une pièce pour qu'elle reste dans la zone haute (HAUT visuel = 5-9 logiques)
   Map<String, int> _adjustToTopZone(int x, int y, List<int> shape) {
-    // Calculer les limites de la pièce
-    int minX = 5, maxX = 0, minY = 5, maxY = 0;
-    
-    for (final cellNumber in shape) {
-      final localX = (cellNumber - 1) % 5;
-      final localY = (cellNumber - 1) ~/ 5;
-      final cellX = x + localX;
-      final cellY = y + localY;
-      
-      if (cellX < minX) minX = cellX;
-      if (cellX > maxX) maxX = cellX;
-      if (cellY < minY) minY = cellY;
-      if (cellY > maxY) maxY = cellY;
-    }
-
-    // Ajuster X pour rester dans [0, 5]
-    int adjustedX = x;
-    if (minX < 0) {
-      adjustedX -= minX; // Décaler à droite
-    } else if (maxX >= 6) {
-      adjustedX -= (maxX - 5); // Décaler à gauche
-    }
-
-    // Ajuster Y pour rester dans [0, 4]
-    int adjustedY = y;
-    if (minY < 0) {
-      adjustedY -= minY; // Décaler vers le bas
-    } else if (maxY >= 5) {
-      adjustedY -= (maxY - 4); // Décaler vers le haut
-    }
-
-    return {'x': adjustedX, 'y': adjustedY};
-  }
-
-  // Ajuster une pièce pour qu'elle reste dans la zone basse (5-9)
-  Map<String, int> _adjustToBottomZone(int x, int y, List<int> shape) {
     // Calculer les limites de la pièce
     int minX = 5, maxX = 0, minY = 10, maxY = 0;
     
@@ -320,6 +290,42 @@ class IsometriesDemoNotifier extends Notifier<IsometriesDemoState> {
       adjustedY += (5 - minY); // Décaler vers le bas
     } else if (maxY >= 10) {
       adjustedY -= (maxY - 9); // Décaler vers le haut
+    }
+
+    return {'x': adjustedX, 'y': adjustedY};
+  }
+
+  // Ajuster une pièce pour qu'elle reste dans la zone basse (BAS visuel = 0-4 logiques)
+  Map<String, int> _adjustToBottomZone(int x, int y, List<int> shape) {
+    // Calculer les limites de la pièce
+    int minX = 5, maxX = 0, minY = 5, maxY = 0;
+    
+    for (final cellNumber in shape) {
+      final localX = (cellNumber - 1) % 5;
+      final localY = (cellNumber - 1) ~/ 5;
+      final cellX = x + localX;
+      final cellY = y + localY;
+      
+      if (cellX < minX) minX = cellX;
+      if (cellX > maxX) maxX = cellX;
+      if (cellY < minY) minY = cellY;
+      if (cellY > maxY) maxY = cellY;
+    }
+
+    // Ajuster X pour rester dans [0, 5]
+    int adjustedX = x;
+    if (minX < 0) {
+      adjustedX -= minX; // Décaler à droite
+    } else if (maxX >= 6) {
+      adjustedX -= (maxX - 5); // Décaler à gauche
+    }
+
+    // Ajuster Y pour rester dans [0, 4]
+    int adjustedY = y;
+    if (minY < 0) {
+      adjustedY -= minY; // Décaler vers le bas
+    } else if (maxY >= 5) {
+      adjustedY -= (maxY - 4); // Décaler vers le haut
     }
 
     return {'x': adjustedX, 'y': adjustedY};
@@ -579,9 +585,9 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
             // Zones de drop (grille invisible pour drag & drop)
             ...List.generate(6, (col) {
               return List.generate(5, (row) {
-                // Seulement zone basse (lignes logiques 5-9)
-                final logicalY = row + 5;
-                // Conversion visuelle : y inversé (ligne 9 devient 0, ligne 5 devient 4)
+                // Zone basse visuelle = lignes logiques 0-4
+                final logicalY = row;
+                // Conversion visuelle : y inversé (ligne 4 devient 5, ligne 0 devient 9)
                 final visualY = 9 - logicalY;
                 
                 return Positioned(
@@ -756,6 +762,7 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
       itemBuilder: (context, index) {
         final piece = pentominos[index];
         final pieceColor = settings.ui.getPieceColor(piece.id);
+        final isSelected = state.selectedSliderPieceId == piece.id;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -765,26 +772,31 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
               'position': 0,
             },
             feedback: _buildDraggableFeedback(piece, pieceColor),
-            childWhenDragging: _buildPieceWidget(piece, pieceColor, isDragging: true),
+            childWhenDragging: _buildPieceWidget(piece, pieceColor, isDragging: true, isSelected: false),
             onDragStarted: () {
               HapticFeedback.mediumImpact();
             },
             onDragEnd: (details) {
               notifier.clearPreview();
             },
-            child: _buildPieceWidget(piece, pieceColor),
+            child: _buildPieceWidget(piece, pieceColor, isSelected: isSelected),
           ),
         );
       },
     );
   }
 
-  Widget _buildPieceWidget(Pento piece, Color pieceColor, {bool isDragging = false}) {
+  Widget _buildPieceWidget(Pento piece, Color pieceColor, {bool isDragging = false, bool isSelected = false}) {
     return Container(
       width: 70, // Réduit de 80 à 70
       decoration: BoxDecoration(
-        color: isDragging ? Colors.grey[300] : Colors.white,
-        border: Border.all(color: Colors.grey),
+        color: isDragging 
+            ? Colors.grey[300] 
+            : (isSelected ? pieceColor.withValues(alpha: 0.2) : Colors.white),
+        border: Border.all(
+          color: isSelected ? pieceColor : Colors.grey,
+          width: isSelected ? 3 : 1,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -792,9 +804,10 @@ class _IsometriesDemoScreenState extends ConsumerState<IsometriesDemoScreen> {
         children: [
           Text(
             piece.id.toString(),
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
               fontSize: 14, // Réduit de 16 à 14
+              color: isSelected ? pieceColor : Colors.black,
             ),
           ),
           const SizedBox(height: 2), // Réduit de 4 à 2
