@@ -26,7 +26,31 @@ class PentominoGameScreen extends ConsumerStatefulWidget {
   ConsumerState<PentominoGameScreen> createState() => _PentominoGameScreenState();
 }
 
-class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
+class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Animation de pulsation pour l'icône œil
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,21 +82,14 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   },
                 ),
           title: !state.isIsometriesMode && settings.game.showSolutionCounter && state.solutionsCount != null && state.placedPieces.isNotEmpty
-              ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${state.solutionsCount}',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.emoji_events, size: 24),
-            ],
-          )
+              ? Text(
+                  '${state.solutionsCount}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
+                  ),
+                )
               : const SizedBox.shrink(),
           actions: state.isIsometriesMode
               ? [
@@ -150,26 +167,29 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     color: GameIcons.enterIsometries.color,
                   ),
 
-                  // 👁️ Bouton "voir les solutions possibles"
+                  // 👁️ Bouton "voir les solutions possibles" avec animation
                   if (state.solutionsCount != null && state.solutionsCount! > 0)
-                    IconButton(
-                      icon: Icon(GameIcons.viewSolutions.icon, size: 24),
-                      tooltip: GameIcons.viewSolutions.tooltip,
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: IconButton(
+                        icon: Icon(GameIcons.viewSolutions.icon, size: 24),
+                        tooltip: GameIcons.viewSolutions.tooltip,
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
 
-                        // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
-                        final compatible = state.plateau.getCompatibleSolutionsBigInt();
+                          // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
+                          final compatible = state.plateau.getCompatibleSolutionsBigInt();
 
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => SolutionsBrowserScreen.forSolutions(
-                              solutions: compatible,
-                              title: 'Solutions possibles',
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => SolutionsBrowserScreen.forSolutions(
+                                solutions: compatible,
+                                title: 'Solutions possibles',
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
 
                   // Boutons de transformation (visibles si pièce sélectionnée)
