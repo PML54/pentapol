@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../config/game_icons_config.dart';
-import '../../../../providers/pentomino_game_provider.dart';
-import '../../../../providers/pentomino_game_state.dart';
-import '../../../../screens/solutions_browser_screen.dart';
-import '../../../../services/plateau_solution_counter.dart';
+import 'package:pentapol/config/game_icons_config.dart';
+import 'package:pentapol/providers/pentomino_game_provider.dart';
+import 'package:pentapol/providers/pentomino_game_state.dart';
+import 'package:pentapol/screens/solutions_browser_screen.dart';
+import 'package:pentapol/services/plateau_solution_counter.dart';
 
 /// Slider vertical d'actions en mode paysage
 /// 

@@ -6,19 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/pentomino_game_provider.dart';
-import '../providers/settings_provider.dart';
-import '../models/pentominos.dart';
-import '../screens/solutions_browser_screen.dart';
-import '../screens/settings_screen.dart';
-import '../services/plateau_solution_counter.dart'; // Extension getCompatibleSolutionsBigInt
-import '../config/game_icons_config.dart'; // Configuration centralisée des icônes
+import 'package:pentapol/providers/pentomino_game_provider.dart';
+import 'package:pentapol/providers/settings_provider.dart';
+import 'package:pentapol/models/pentominos.dart';
+import 'package:pentapol/screens/solutions_browser_screen.dart';
+import 'package:pentapol/screens/settings_screen.dart';
+import 'package:pentapol/services/plateau_solution_counter.dart';
+import 'package:pentapol/config/game_icons_config.dart';
 
 // Widgets extraits
-import 'pentomino_game/widgets/shared/piece_renderer.dart';
-import 'pentomino_game/widgets/shared/piece_border_calculator.dart';
-import 'pentomino_game/widgets/shared/action_slider.dart';
-import 'pentomino_game/widgets/game_mode/piece_slider.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calculator.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {

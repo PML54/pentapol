@@ -2,8 +2,8 @@
 // Widget pour afficher visuellement une pièce de pentomino
 
 import 'package:flutter/material.dart';
-import '../../../../models/pentominos.dart';
-import '../../utils/game_colors.dart';
+import 'package:pentapol/models/pentominos.dart';
+import 'package:pentapol/screens/pentomino_game/utils/game_colors.dart';
 
 /// Widget qui affiche une pièce de pentomino
 /// 

@@ -2,9 +2,9 @@
 // Calcul des bordures de pièces sur le plateau
 
 import 'package:flutter/material.dart';
-import '../../../../models/plateau.dart';
-import '../../utils/game_colors.dart';
-import '../../utils/game_constants.dart';
+import 'package:pentapol/models/plateau.dart';
+import 'package:pentapol/screens/pentomino_game/utils/game_colors.dart';
+import 'package:pentapol/screens/pentomino_game/utils/game_constants.dart';
 
 /// Calcule les bordures d'une cellule sur le plateau
 /// 

@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../models/pentominos.dart';
-import '../../../../providers/pentomino_game_provider.dart';
-import '../../../../providers/pentomino_game_state.dart';
-import '../../../../providers/settings_provider.dart';
-import '../../utils/game_constants.dart';
-import '../shared/draggable_piece_widget.dart';
-import '../shared/piece_renderer.dart';
+import 'package:pentapol/models/pentominos.dart';
+import 'package:pentapol/providers/pentomino_game_provider.dart';
+import 'package:pentapol/providers/pentomino_game_state.dart';
+import 'package:pentapol/providers/settings_provider.dart';
+import 'package:pentapol/screens/pentomino_game/utils/game_constants.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/draggable_piece_widget.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
 
 /// Slider de pièces disponibles
 /// 
