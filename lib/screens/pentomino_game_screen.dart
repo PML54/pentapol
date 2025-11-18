@@ -87,7 +87,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                   child: IconButton(
                     icon: Icon(GameIcons.viewSolutions.icon, size: 32),
                     tooltip: GameIcons.viewSolutions.tooltip,
-                    color: Colors.white,
+                    color: Colors.lightBlueAccent,
                     onPressed: () {
                       HapticFeedback.selectionClick();
 
