@@ -2,7 +2,6 @@
 // lib/screens/pentomino_game_screen.dart
 // Écran de jeu de pentominos avec drag & drop
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,11 @@ import '../screens/solutions_browser_screen.dart';
 import '../screens/settings_screen.dart';
 import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
 import '../config/game_icons_config.dart'; // Configuration centralisée des icônes
+
+// Widgets extraits
+import 'pentomino_game/widgets/shared/piece_renderer.dart';
+import 'pentomino_game/widgets/shared/draggable_piece_widget.dart';
+import 'pentomino_game/widgets/shared/piece_border_calculator.dart';
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -254,7 +258,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             color: Colors.grey.shade100,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, -2),
               ),
@@ -292,7 +296,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                     : Colors.grey.shade200,   // Fond gris en mode normal
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 2,
                     offset: const Offset(-1, 0),
                   ),
@@ -308,7 +312,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 color: Colors.grey.shade100,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(-2, 0),
                   ),
@@ -416,7 +420,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: GameIcons.exitIsometries.color.withOpacity(0.1),
+                  color: GameIcons.exitIsometries.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
@@ -447,7 +451,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: GameIcons.enterIsometries.color.withOpacity(0.1),
+                  color: GameIcons.enterIsometries.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
@@ -507,15 +511,15 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       ),
                     );
                   } catch (e, stackTrace) {
-                    print('❌ Erreur: $e');
-                    print('❌ Stack: $stackTrace');
+                    debugPrint('❌ Erreur: $e');
+                    debugPrint('❌ Stack: $stackTrace');
                   }
                 },
                 child: Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: GameIcons.viewSolutions.color.withOpacity(0.1),
+                    color: GameIcons.viewSolutions.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
@@ -616,7 +620,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               // Ombre douce autour du plateau
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
@@ -792,9 +796,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                             isPreview = true;
                             // Couleur selon validité
                             if (state.isPreviewValid) {
-                              cellColor = _getPieceColor(piece.id).withOpacity(0.4);
+                              cellColor = _getPieceColor(piece.id).withValues(alpha: 0.4);
                             } else {
-                              cellColor = Colors.red.withOpacity(0.3);
+                              cellColor = Colors.red.withValues(alpha: 0.3);
                             }
                             cellText = piece.id.toString();
                             break;
@@ -821,7 +825,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                         );
                       } else {
                         // Cas normal : utiliser les contours de pièces comme dans le browser
-                        border = _buildPieceBorderOnBoard(logicalX, logicalY, state.plateau, isLandscape);
+                        border = PieceBorderCalculator.calculate(logicalX, logicalY, state.plateau, isLandscape);
                       }
 
                       Widget cellWidget = Container(
@@ -852,10 +856,11 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                           data: state.selectedPiece!,
                           feedback: Material(
                             color: Colors.transparent,
-                            child: _buildPieceWidget(
-                              state.selectedPiece!,
-                              state.selectedPositionIndex,
-                              true,
+                            child: PieceRenderer(
+                              piece: state.selectedPiece!,
+                              positionIndex: state.selectedPositionIndex,
+                              isDragging: true,
+                              getPieceColor: _getPieceColor,
                             ),
                           ),
                           childWhenDragging: Opacity(
@@ -992,13 +997,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           ) : null,
           boxShadow: isSelected ? [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
           ] : null,
         ),
-        child: _DraggablePieceWidget(
+        child: DraggablePieceWidget(
           piece: piece,
           positionIndex: positionIndex,
           isSelected: isSelected,
@@ -1025,107 +1030,17 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             }
             notifier.cancelSelection();
           },
-          childBuilder: (isDragging) => _buildPieceWidget(
-            piece,
-            state.selectedPiece?.id == piece.id ? state.selectedPositionIndex : positionIndex,
-            isDragging,
+          childBuilder: (isDragging) => PieceRenderer(
+            piece: piece,
+            positionIndex: state.selectedPiece?.id == piece.id ? state.selectedPositionIndex : positionIndex,
+            isDragging: isDragging,
+            getPieceColor: _getPieceColor,
           ),
         ),
       ),
     );
   }
 
-  /// Construit le widget visuel d'une pièce (dans le slider ou en drag)
-  Widget _buildPieceWidget(Pento piece, int positionIndex, bool isDragging) {
-    final position = piece.positions[positionIndex];
-
-    // Convertir les cellNum (1-25) en coordonnées (x, y)
-    final coords = position.map((cellNum) {
-      final x = (cellNum - 1) % 5;
-      final y = (cellNum - 1) ~/ 5;
-      return {'x': x, 'y': y};
-    }).toList();
-
-    // Calculer les dimensions de la pièce
-    int minX = coords[0]['x']!;
-    int maxX = coords[0]['x']!;
-    int minY = coords[0]['y']!;
-    int maxY = coords[0]['y']!;
-
-    for (final coord in coords) {
-      final x = coord['x']!;
-      final y = coord['y']!;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
-
-    final width = maxX - minX + 1;
-    final height = maxY - minY + 1;
-    final cellSize = 16.0; // Taille des petits carrés
-
-    return Container(
-      width: width * cellSize + 8,
-      height: height * cellSize + 8,
-      decoration: BoxDecoration(
-        boxShadow: isDragging
-            ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ]
-            : null,
-      ),
-      child: Stack(
-        children: [
-          // Les 5 carrés de la pièce
-          for (final coord in coords)
-            Positioned(
-              left: (coord['x']! - minX) * cellSize + 4,
-              top: (coord['y']! - minY) * cellSize + 4,
-              child: Container(
-                width: cellSize,
-                height: cellSize,
-                decoration: BoxDecoration(
-                  color: _getPieceColor(piece.id),
-                  border: Border.all(color: Colors.white, width: 1.5),
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 2,
-                      offset: const Offset(1, 1),
-                    ),
-                  ],
-                ),
-                // Numéro de la pièce sur le premier carré
-                child: coord == coords.first
-                    ? Center(
-                  child: Text(
-                    piece.id.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black54,
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-                    : null,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   /// Couleurs des pièces selon les paramètres
   Color _getPieceColor(int pieceId) {
@@ -1133,218 +1048,4 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     return settings.ui.getPieceColor(pieceId);
   }
 
-  /// Construit un contour de pièce sur le plateau :
-  /// trait épais aux frontières entre pièces (ou bord/zone invisible).
-  /// En paysage, les bordures sont adaptées à la rotation visuelle.
-  Border _buildPieceBorderOnBoard(int x, int y, Plateau plateau, bool isLandscape) {
-    const width = 6;
-    const height = 10;
-
-    final int id = plateau.getCell(x, y);
-    // On considère 0 et -1 comme "pas de pièce"
-    final int baseId = id > 0 ? id : 0;
-
-    int neighborId(int nx, int ny) {
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) return 0;
-      final v = plateau.getCell(nx, ny);
-      return v > 0 ? v : 0;
-    }
-
-    // Récupérer les IDs des voisins en coordonnées logiques
-    final idLogicalTop = neighborId(x, y - 1);
-    final idLogicalBottom = neighborId(x, y + 1);
-    final idLogicalLeft = neighborId(x - 1, y);
-    final idLogicalRight = neighborId(x + 1, y);
-
-    const borderWidthOuter = 2.0;
-    const borderWidthInner = 0.5;
-
-    // En paysage, rotation 90° anti-horaire :
-    // - top visuel → right logique
-    // - right visuel → bottom logique
-    // - bottom visuel → left logique
-    // - left visuel → top logique
-    if (isLandscape) {
-      return Border(
-        top: BorderSide(
-          color: (idLogicalRight != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalRight != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-        bottom: BorderSide(
-          color: (idLogicalLeft != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalLeft != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-        left: BorderSide(
-          color: (idLogicalTop != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalTop != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-        right: BorderSide(
-          color: (idLogicalBottom != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalBottom != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-      );
-    } else {
-      // Portrait : bordures normales
-      return Border(
-        top: BorderSide(
-          color: (idLogicalTop != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalTop != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-        bottom: BorderSide(
-          color: (idLogicalBottom != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalBottom != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-        left: BorderSide(
-          color: (idLogicalLeft != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalLeft != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-        right: BorderSide(
-          color: (idLogicalRight != baseId) ? Colors.black : Colors.grey.shade400,
-          width: (idLogicalRight != baseId) ? borderWidthOuter : borderWidthInner,
-        ),
-      );
-    }
-  }
-}
-
-/// Widget pour gérer proprement le double-tap sans propagation
-class _DraggablePieceWidget extends StatefulWidget {
-  final Pento piece;
-  final int positionIndex;
-  final bool isSelected;
-  final int selectedPositionIndex;
-  final Duration longPressDuration;
-  final VoidCallback onSelect;
-  final VoidCallback onCycle;
-  final VoidCallback onCancel;
-  final Widget Function(bool isDragging) childBuilder;
-
-  const _DraggablePieceWidget({
-    required this.piece,
-    required this.positionIndex,
-    required this.isSelected,
-    required this.selectedPositionIndex,
-    required this.longPressDuration,
-    required this.onSelect,
-    required this.onCycle,
-    required this.onCancel,
-    required this.childBuilder,
-  });
-
-  @override
-  State<_DraggablePieceWidget> createState() => _DraggablePieceWidgetState();
-}
-
-class _DraggablePieceWidgetState extends State<_DraggablePieceWidget> {
-  Timer? _tapTimer;
-  bool _isProcessing = false;
-
-  @override
-  void dispose() {
-    _tapTimer?.cancel();
-    super.dispose();
-  }
-
-  void _handleTap() {
-    // Annuler le timer précédent s'il existe
-    _tapTimer?.cancel();
-
-    // Si on est déjà en train de traiter un double-tap, ignorer
-    if (_isProcessing) return;
-
-    // Attendre un peu pour voir si c'est un double-tap
-    _tapTimer = Timer(const Duration(milliseconds: 300), () {
-      // C'était un tap simple → sélectionner la pièce
-      if (!widget.isSelected) {
-        widget.onSelect();
-      }
-    });
-  }
-
-  void _handleDoubleTap() {
-    // Annuler le timer du tap simple
-    _tapTimer?.cancel();
-
-    // Éviter les doubles exécutions
-    if (_isProcessing) return;
-    _isProcessing = true;
-
-    // Si la pièce est déjà sélectionnée dans le slider,
-    // le double-tap sert à faire pivoter
-    if (widget.isSelected) {
-      widget.onCycle();
-    } else {
-      // Sinon, sélectionner la pièce
-      widget.onSelect();
-    }
-
-    // Réinitialiser après un court délai
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Si la pièce est déjà sélectionnée, utiliser Draggable normal
-    // Sinon, utiliser LongPressDraggable
-    if (widget.isSelected) {
-      return Draggable<Pento>(
-        data: widget.piece,
-        onDragStarted: () {
-          // Déjà sélectionnée, pas besoin de rappeler onSelect
-        },
-        onDragEnd: (details) {
-          if (!details.wasAccepted) {
-            widget.onCancel();
-          }
-        },
-        feedback: Material(
-          color: Colors.transparent,
-          child: widget.childBuilder(true),
-        ),
-        childWhenDragging: Opacity(
-          opacity: 0.3,
-          child: widget.childBuilder(false),
-        ),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _handleTap,
-          onDoubleTap: _handleDoubleTap,
-          child: widget.childBuilder(false),
-        ),
-      );
-    } else {
-      return LongPressDraggable<Pento>(
-        data: widget.piece,
-        delay: widget.longPressDuration,
-        onDragStarted: () {
-          widget.onSelect();
-        },
-        onDragEnd: (details) {
-          if (!details.wasAccepted) {
-            widget.onCancel();
-          }
-        },
-        feedback: Material(
-          color: Colors.transparent,
-          child: widget.childBuilder(true),
-        ),
-        childWhenDragging: Opacity(
-          opacity: 0.3,
-          child: widget.childBuilder(false),
-        ),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _handleTap,
-          onDoubleTap: _handleDoubleTap,
-          child: widget.childBuilder(false),
-        ),
-      );
-    }
-  }
 }
