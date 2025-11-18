@@ -926,48 +926,55 @@ assert(plateau.width == 6 && plateau.height == 10);
 
 ---
 
-## 🔧 Réorganisation progressive (en cours)
+## 🔧 Réorganisation progressive (complète Phase 1-2)
 
 ### Objectif
 Découper `pentomino_game_screen.dart` (1350+ lignes) en modules réutilisables et maintenables.
 
 ### Phase 1 : Utilitaires ✅ (18 nov 2025)
 **Fichiers créés** :
-- `lib/screens/pentomino_game/utils/game_constants.dart`
-  - Dimensions du plateau (6×10)
-  - Tailles de bordures
-  - Constantes du slider
-- `lib/screens/pentomino_game/utils/game_colors.dart`
-  - Palette complète (modes, sélection, preview, ombres)
-  - Méthode `getPieceColorFallback()` pour tests
-- `lib/screens/pentomino_game/utils/game_utils.dart`
-  - Export centralisé
-- `lib/screens/pentomino_game/README.md`
-  - Documentation de la structure
+- `lib/screens/pentomino_game/utils/game_constants.dart` - Dimensions, bordures, constantes
+- `lib/screens/pentomino_game/utils/game_colors.dart` - Palette complète
+- `lib/screens/pentomino_game/utils/game_utils.dart` - Export centralisé
+
+### Phase 2 : Widgets ✅ (18 nov 2025)
+**Fichiers créés** :
+- `widgets/shared/piece_renderer.dart` - Affichage pièce (120 lignes)
+- `widgets/shared/draggable_piece_widget.dart` - Drag & drop (170 lignes)
+- `widgets/shared/piece_border_calculator.dart` - Bordures (120 lignes)
+- `widgets/shared/action_slider.dart` - Actions paysage (310 lignes)
+- `widgets/game_mode/piece_slider.dart` - Slider pièces (175 lignes)
+
+### Résultats
+- **Avant** : 1350 lignes (monolithique)
+- **Après** : 650 lignes (orchestrateur)
+- **Gain** : -700 lignes (-52%) 🎯
+- **Imports** : Tous en absolu depuis `lib/`
 
 **Usage** :
 ```dart
-import '../pentomino_game/utils/game_utils.dart';
+// Imports absolus
+import 'package:pentapol/screens/pentomino_game/utils/game_utils.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
 
+// Utilisation
 final width = GameConstants.boardWidth;
 final color = GameColors.masterCellBorderColor;
 ```
 
-### Phases futures (progressives)
-- **Phase 2** : Extraire `piece_renderer.dart` (widget simple)
-- **Phase 3** : Extraire `game_board.dart` (grille 6×10)
-- **Phase 4** : Extraire `piece_slider.dart` (slider horizontal)
-- **Phase 5** : Séparer `game_mode_view.dart` et `isometries_mode_view.dart`
-- **Phase 6** : Simplifier `pentomino_game_screen.dart` en orchestrateur (~100 lignes)
+### Phases futures (optionnelles)
+- **Phase 3** : Extraire `game_board.dart` (~400 lignes)
+- **Phase 4** : Extraire AppBars (~100 lignes)
+- **Phase 5** : Vues complètes des modes
 
-**Approche** : Extraction au fur et à mesure des modifications, sans breaking changes.
+**Approche** : Extraction progressive, sans breaking changes, tests continus.
 
 ---
 
 ## 🚀 Prochaines étapes
 
 ### Court terme
-- [ ] Continuer réorganisation progressive pentomino_game
+- [x] Réorganisation pentomino_game Phase 1-2 (-52%)
 - [ ] Optimiser validation (paralléliser avec isolates)
 - [ ] Ajouter progress bar pendant validation
 - [ ] Sauvegarder/charger plateaux
