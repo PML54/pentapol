@@ -80,13 +80,14 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                   tooltip: 'Sortir du mode isométries',
                 )
               : IconButton(
-                  icon: Icon(GameIcons.enterIsometries.icon),
+                  icon: const Icon(Icons.settings),
                   onPressed: () {
-                    HapticFeedback.selectionClick();
-                    notifier.enterIsometriesMode();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                    );
                   },
-                  tooltip: GameIcons.enterIsometries.tooltip,
-                  color: GameIcons.enterIsometries.color,
+                  tooltip: 'Paramètres',
                 ),
           title: !state.isIsometriesMode && state.solutionsCount != null && state.solutionsCount! > 0 && state.placedPieces.isNotEmpty
               ? ScaleTransition(
@@ -169,18 +170,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                 ]
               : [
                   // MODE JEU NORMAL : Boutons normaux
-                  // Bouton paramètres à droite
-                  IconButton(
-                    icon: const Icon(Icons.settings, size: 24),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                      );
-                    },
-                    tooltip: 'Paramètres',
-                  ),
-
                   // Boutons de transformation (visibles si pièce sélectionnée)
                   if (state.selectedPiece != null) ...[
                     IconButton(
@@ -222,6 +211,17 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                       tooltip: GameIcons.removePiece.tooltip,
                       color: GameIcons.removePiece.color,
                     ),
+                  
+                  // 🎓 Bouton "Mode Isométries" à droite
+                  IconButton(
+                    icon: Icon(GameIcons.enterIsometries.icon, size: 24),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      notifier.enterIsometriesMode();
+                    },
+                    tooltip: GameIcons.enterIsometries.tooltip,
+                    color: GameIcons.enterIsometries.color,
+                  ),
                 ],
         ),
       ),
