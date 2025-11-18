@@ -30,6 +30,7 @@ class UISettings {
   final bool showGridLines;         // Afficher les lignes de grille
   final bool enableAnimations;      // Activer les animations
   final double pieceOpacity;        // Opacité des pièces (0.0 - 1.0)
+  final Color isometriesAppBarColor; // Couleur de fond AppBar en mode isométries
   
   const UISettings({
     this.colorScheme = PieceColorScheme.classic,
@@ -38,6 +39,7 @@ class UISettings {
     this.showGridLines = false,
     this.enableAnimations = true,
     this.pieceOpacity = 1.0,
+    this.isometriesAppBarColor = const Color(0xFF9575CD), // Violet clair par défaut
   });
   
   UISettings copyWith({
@@ -47,6 +49,7 @@ class UISettings {
     bool? showGridLines,
     bool? enableAnimations,
     double? pieceOpacity,
+    Color? isometriesAppBarColor,
   }) {
     return UISettings(
       colorScheme: colorScheme ?? this.colorScheme,
@@ -55,6 +58,7 @@ class UISettings {
       showGridLines: showGridLines ?? this.showGridLines,
       enableAnimations: enableAnimations ?? this.enableAnimations,
       pieceOpacity: pieceOpacity ?? this.pieceOpacity,
+      isometriesAppBarColor: isometriesAppBarColor ?? this.isometriesAppBarColor,
     );
   }
   
@@ -178,11 +182,12 @@ class UISettings {
   Map<String, dynamic> toJson() {
     return {
       'colorScheme': colorScheme.index,
-      'customColors': customColors.map((c) => c.value).toList(),
+      'customColors': customColors.map((c) => c.value).toList(), // ignore: deprecated_member_use
       'showPieceNumbers': showPieceNumbers,
       'showGridLines': showGridLines,
       'enableAnimations': enableAnimations,
       'pieceOpacity': pieceOpacity,
+      'isometriesAppBarColor': isometriesAppBarColor.value, // ignore: deprecated_member_use
     };
   }
   
@@ -197,6 +202,7 @@ class UISettings {
       showGridLines: json['showGridLines'] ?? false,
       enableAnimations: json['enableAnimations'] ?? true,
       pieceOpacity: json['pieceOpacity'] ?? 1.0,
+      isometriesAppBarColor: Color(json['isometriesAppBarColor'] ?? 0xFF9575CD),
     );
   }
 }

@@ -120,6 +120,23 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           
+          // Couleur AppBar mode isométries
+          ListTile(
+            leading: const Icon(Icons.format_paint),
+            title: const Text('Couleur mode isométries'),
+            subtitle: const Text('Couleur de fond de l\'AppBar en mode apprentissage'),
+            trailing: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: settings.ui.isometriesAppBarColor,
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onTap: () => _showIsometriesColorPicker(context, notifier, settings.ui.isometriesAppBarColor),
+          ),
+          
           const Divider(),
           
           // === SECTION JEU ===
@@ -297,6 +314,77 @@ class SettingsScreen extends ConsumerWidget {
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+  
+  void _showIsometriesColorPicker(
+    BuildContext context,
+    SettingsNotifier notifier,
+    Color current,
+  ) {
+    // Couleurs prédéfinies pour le mode isométries (claires pour bien voir les icônes)
+    final predefinedColors = [
+      const Color(0xFF9575CD), // Violet clair (défaut)
+      const Color(0xFF7986CB), // Indigo clair
+      const Color(0xFF64B5F6), // Bleu clair
+      const Color(0xFF4DD0E1), // Cyan clair
+      const Color(0xFF4DB6AC), // Teal clair
+      const Color(0xFF81C784), // Vert clair
+      const Color(0xFFAED581), // Vert lime clair
+      const Color(0xFFFFD54F), // Ambre clair
+      const Color(0xFFFFB74D), // Orange clair
+      const Color(0xFFFF8A65), // Orange profond clair
+      const Color(0xFFA1887F), // Marron clair
+      const Color(0xFF90A4AE), // Gris bleu clair
+    ];
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Couleur mode isométries'),
+        content: SizedBox(
+          width: 300,
+          child: GridView.builder(
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: predefinedColors.length,
+            itemBuilder: (context, index) {
+              final color = predefinedColors[index];
+              final isSelected = color == current;
+              
+              return GestureDetector(
+                onTap: () {
+                  notifier.setIsometriesAppBarColor(color);
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    border: Border.all(
+                      color: isSelected ? Colors.black : Colors.grey,
+                      width: isSelected ? 3 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 32)
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+        ],
       ),
     );
   }

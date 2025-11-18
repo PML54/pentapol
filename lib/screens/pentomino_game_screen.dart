@@ -44,7 +44,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         child: AppBar(
           toolbarHeight: 56.0,
           backgroundColor: state.isIsometriesMode 
-              ? Colors.deepPurple[700]  // Fond violet en mode isométries
+              ? settings.ui.isometriesAppBarColor  // Couleur paramétrable en mode isométries
               : null,  // Fond par défaut (indigo) en mode normal
           leading: state.isIsometriesMode
               ? null  // Pas de bouton paramètres en mode isométries
@@ -282,6 +282,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       state,
       notifier,
       ) {
+    final settings = ref.watch(settingsProvider);
+    
     return Row(
       children: [
         // Plateau de jeu (10×6 visuel)
@@ -297,7 +299,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               width: 44,
               decoration: BoxDecoration(
                 color: state.isIsometriesMode 
-                    ? Colors.deepPurple[100]  // Fond violet clair en mode isométries
+                    ? settings.ui.isometriesAppBarColor.withValues(alpha: 0.3)  // Couleur paramétrable atténuée
                     : Colors.grey.shade200,   // Fond gris en mode normal
                 boxShadow: [
                   BoxShadow(

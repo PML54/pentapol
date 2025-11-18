@@ -106,6 +106,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
   
+  /// Change la couleur de fond de l'AppBar en mode isométries
+  Future<void> setIsometriesAppBarColor(Color color) async {
+    state = state.copyWith(
+      ui: state.ui.copyWith(isometriesAppBarColor: color),
+    );
+    await _saveSettings();
+  }
+  
   // === Paramètres de jeu ===
   
   /// Change le niveau de difficulté
