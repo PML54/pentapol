@@ -159,15 +159,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                       tooltip: GameIcons.isometryDelete.tooltip,
                       color: GameIcons.isometryDelete.color,
                     ),
-                  IconButton(
-                    icon: Icon(GameIcons.exitIsometries.icon, size: 32),
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      notifier.exitIsometriesMode();
-                    },
-                    tooltip: GameIcons.exitIsometries.tooltip,
-                    color: GameIcons.exitIsometries.color,
-                  ),
                 ]
               : [
                   // MODE JEU NORMAL : Boutons normaux
