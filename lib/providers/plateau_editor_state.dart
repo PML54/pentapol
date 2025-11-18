@@ -1,3 +1,6 @@
+// DEPRECATED - 2025-11-18
+// State désactivé temporairement - Associé à plateau_editor_screen.dart
+// 
 // Modified: 2025-11-15 06:45:00
 // lib/providers/plateau_editor_state.dart
 

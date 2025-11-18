@@ -82,35 +82,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     );
   }
 
-  /// Change la position de la pièce sélectionnée (tap pour rotation)
-  void cyclePosition() {
-    if (state.selectedPiece == null) return;
-
-    final piece = state.selectedPiece!;
-    final numPositions = piece.positions.length;
-    final nextIndex = (state.selectedPositionIndex + 1) % numPositions;
-
-    // Sauvegarder le nouvel index dans le Map
-    final newIndices = Map<int, int>.from(state.piecePositionIndices);
-    newIndices[piece.id] = nextIndex;
-
-    // Si c'est une pièce placée, mettre à jour sa référence aussi
-    PlacedPiece? updatedPlacedPiece;
-    if (state.selectedPlacedPiece != null) {
-      updatedPlacedPiece = state.selectedPlacedPiece!.copyWith(
-        positionIndex: nextIndex,
-      );
-    }
-
-    state = state.copyWith(
-      selectedPositionIndex: nextIndex,
-      selectedPlacedPiece: updatedPlacedPiece,
-      piecePositionIndices: newIndices,
-    );
-
-    print('[GAME] Position changée: $nextIndex / $numPositions (sauvegardé pour pièce ${piece.id})');
-  }
-
   /// Tente de placer la pièce sélectionnée sur le plateau
   /// [gridX] et [gridY] sont les coordonnées où on lâche la pièce (position du doigt)
   bool tryPlacePiece(int gridX, int gridY) {
@@ -578,29 +549,180 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     state = state.savedGameState!;
   }
 
-  /// Applique une rotation 90° anti-horaire à la pièce sélectionnée (mode isométries uniquement)
+  /// Applique une rotation 90° anti-horaire à la pièce sélectionnée
+  /// Fonctionne en mode jeu normal ET en mode isométries
   void applyIsometryRotation() {
-    if (!state.isIsometriesMode) return;
-    if (state.selectedPlacedPiece == null) {
-      print('[GAME] ⚠️ Aucune pièce sélectionnée pour la rotation');
+    // En mode isométries : transformer une pièce placée
+    if (state.isIsometriesMode && state.selectedPlacedPiece != null) {
+      final selectedPiece = state.selectedPlacedPiece!;
+      final piece = selectedPiece.piece;
+      final currentIndex = selectedPiece.positionIndex;
+      
+      // Trouver la position correspondant à une rotation de 90°
+      final nextIndex = piece.findRotation90(currentIndex);
+      
+      // Si aucune rotation trouvée (pièce symétrique), ne rien faire
+      if (nextIndex == -1) {
+        print('[GAME] ⚠️ Aucune rotation disponible pour cette pièce (symétrique)');
+        return;
+      }
+      
+      print('[GAME] 🔄 Rotation 90° anti-horaire de la pièce placée');
+      _applyTransformation(nextIndex);
       return;
     }
     
-    print('[GAME] 🔄 Rotation 90° anti-horaire de la pièce sélectionnée');
+    // En mode jeu normal : transformer la pièce sélectionnée (pas encore placée)
+    if (state.selectedPiece != null) {
+      final piece = state.selectedPiece!;
+      final currentIndex = state.selectedPositionIndex;
+      
+      // Trouver la position correspondant à une rotation de 90°
+      final nextIndex = piece.findRotation90(currentIndex);
+      
+      // Si aucune rotation trouvée (pièce symétrique), ne rien faire
+      if (nextIndex == -1) {
+        print('[GAME] ⚠️ Aucune rotation disponible pour cette pièce (symétrique)');
+        return;
+      }
+      
+      print('[GAME] 🔄 Rotation 90° anti-horaire de la pièce sélectionnée');
+      
+      // Sauvegarder le nouvel index dans le Map
+      final newIndices = Map<int, int>.from(state.piecePositionIndices);
+      newIndices[piece.id] = nextIndex;
+      
+      // Mettre à jour l'état
+      state = state.copyWith(
+        selectedPositionIndex: nextIndex,
+        piecePositionIndices: newIndices,
+      );
+      return;
+    }
+    
+    print('[GAME] ⚠️ Aucune pièce sélectionnée pour la rotation');
+  }
+
+  /// Applique une symétrie horizontale à la pièce sélectionnée
+  /// Fonctionne en mode jeu normal ET en mode isométries
+  void applyIsometrySymmetryH() {
+    // En mode isométries : transformer une pièce placée
+    if (state.isIsometriesMode && state.selectedPlacedPiece != null) {
+      final selectedPiece = state.selectedPlacedPiece!;
+      final piece = selectedPiece.piece;
+      final currentIndex = selectedPiece.positionIndex;
+      
+      // Trouver la position correspondant à une symétrie horizontale
+      final nextIndex = piece.findSymmetryH(currentIndex);
+      
+      // Si aucune symétrie trouvée, ne rien faire
+      if (nextIndex == -1) {
+        print('[GAME] ⚠️ Aucune symétrie horizontale disponible pour cette pièce');
+        return;
+      }
+      
+      print('[GAME] ↔️ Symétrie horizontale de la pièce placée');
+      _applyTransformation(nextIndex);
+      return;
+    }
+    
+    // En mode jeu normal : transformer la pièce sélectionnée (pas encore placée)
+    if (state.selectedPiece != null) {
+      final piece = state.selectedPiece!;
+      final currentIndex = state.selectedPositionIndex;
+      
+      // Trouver la position correspondant à une symétrie horizontale
+      final nextIndex = piece.findSymmetryH(currentIndex);
+      
+      // Si aucune symétrie trouvée, ne rien faire
+      if (nextIndex == -1) {
+        print('[GAME] ⚠️ Aucune symétrie horizontale disponible pour cette pièce');
+        return;
+      }
+      
+      print('[GAME] ↔️ Symétrie horizontale de la pièce sélectionnée');
+      
+      // Sauvegarder le nouvel index dans le Map
+      final newIndices = Map<int, int>.from(state.piecePositionIndices);
+      newIndices[piece.id] = nextIndex;
+      
+      // Mettre à jour l'état
+      state = state.copyWith(
+        selectedPositionIndex: nextIndex,
+        piecePositionIndices: newIndices,
+      );
+      return;
+    }
+    
+    print('[GAME] ⚠️ Aucune pièce sélectionnée pour la symétrie');
+  }
+
+  /// Applique une symétrie verticale à la pièce sélectionnée
+  /// Fonctionne en mode jeu normal ET en mode isométries
+  void applyIsometrySymmetryV() {
+    // En mode isométries : transformer une pièce placée
+    if (state.isIsometriesMode && state.selectedPlacedPiece != null) {
+      final selectedPiece = state.selectedPlacedPiece!;
+      final piece = selectedPiece.piece;
+      final currentIndex = selectedPiece.positionIndex;
+      
+      // Trouver la position correspondant à une symétrie verticale
+      final nextIndex = piece.findSymmetryV(currentIndex);
+      
+      // Si aucune symétrie trouvée, ne rien faire
+      if (nextIndex == -1) {
+        print('[GAME] ⚠️ Aucune symétrie verticale disponible pour cette pièce');
+        return;
+      }
+      
+      print('[GAME] ↕️ Symétrie verticale de la pièce placée');
+      _applyTransformation(nextIndex);
+      return;
+    }
+    
+    // En mode jeu normal : transformer la pièce sélectionnée (pas encore placée)
+    if (state.selectedPiece != null) {
+      final piece = state.selectedPiece!;
+      final currentIndex = state.selectedPositionIndex;
+      
+      // Trouver la position correspondant à une symétrie verticale
+      final nextIndex = piece.findSymmetryV(currentIndex);
+      
+      // Si aucune symétrie trouvée, ne rien faire
+      if (nextIndex == -1) {
+        print('[GAME] ⚠️ Aucune symétrie verticale disponible pour cette pièce');
+        return;
+      }
+      
+      print('[GAME] ↕️ Symétrie verticale de la pièce sélectionnée');
+      
+      // Sauvegarder le nouvel index dans le Map
+      final newIndices = Map<int, int>.from(state.piecePositionIndices);
+      newIndices[piece.id] = nextIndex;
+      
+      // Mettre à jour l'état
+      state = state.copyWith(
+        selectedPositionIndex: nextIndex,
+        piecePositionIndices: newIndices,
+      );
+      return;
+    }
+    
+    print('[GAME] ⚠️ Aucune pièce sélectionnée pour la symétrie');
+  }
+
+  /// Méthode helper pour appliquer une transformation (utilisée par rotation et symétries)
+  void _applyTransformation(int nextIndex) {
+    if (state.selectedPlacedPiece == null) return;
     
     final selectedPiece = state.selectedPlacedPiece!;
-    final piece = selectedPiece.piece;
-    final currentIndex = selectedPiece.positionIndex;
     
-    // Passer à la position suivante (rotation)
-    final nextIndex = (currentIndex + 1) % piece.numPositions;
-    
-    // Créer la pièce tournée
-    final rotatedPiece = selectedPiece.copyWith(positionIndex: nextIndex);
+    // Créer la pièce transformée
+    final transformedPiece = selectedPiece.copyWith(positionIndex: nextIndex);
     
     // Mettre à jour la liste des pièces placées
     final updatedPieces = state.placedPieces.map((placed) {
-      return placed == selectedPiece ? rotatedPiece : placed;
+      return placed == selectedPiece ? transformedPiece : placed;
     }).toList();
     
     // Reconstruire le plateau
@@ -625,42 +747,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     state = state.copyWith(
       placedPieces: updatedPieces,
       plateau: newPlateau,
-      selectedPlacedPiece: rotatedPiece,
+      selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: nextIndex,
     );
-  }
-
-  /// Applique une symétrie horizontale à la pièce sélectionnée (mode isométries uniquement)
-  void applyIsometrySymmetryH() {
-    if (!state.isIsometriesMode) return;
-    if (state.selectedPlacedPiece == null) {
-      print('[GAME] ⚠️ Aucune pièce sélectionnée pour la symétrie');
-      return;
-    }
-    
-    print('[GAME] ↔️ Symétrie horizontale de la pièce sélectionnée');
-    
-    // TODO: Implémenter la symétrie horizontale
-    // Cela nécessite de trouver la bonne transformation dans les positions disponibles
-    // Pour l'instant, on fait une rotation de 180° (2 rotations)
-    applyIsometryRotation();
-    applyIsometryRotation();
-  }
-
-  /// Applique une symétrie verticale à la pièce sélectionnée (mode isométries uniquement)
-  void applyIsometrySymmetryV() {
-    if (!state.isIsometriesMode) return;
-    if (state.selectedPlacedPiece == null) {
-      print('[GAME] ⚠️ Aucune pièce sélectionnée pour la symétrie');
-      return;
-    }
-    
-    print('[GAME] ↕️ Symétrie verticale de la pièce sélectionnée');
-    
-    // TODO: Implémenter la symétrie verticale
-    // Pour l'instant, on fait une rotation de 180° (2 rotations)
-    applyIsometryRotation();
-    applyIsometryRotation();
   }
 }
 

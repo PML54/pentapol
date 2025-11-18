@@ -146,7 +146,7 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
             if (settings.game.enableHaptics) {
               HapticFeedback.selectionClick();
             }
-            notifier.cyclePosition();
+            notifier.applyIsometryRotation();
           },
           onCancel: () {
             if (settings.game.enableHaptics) {

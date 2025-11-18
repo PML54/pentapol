@@ -8,16 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/providers/pentomino_game_provider.dart';
 import 'package:pentapol/providers/settings_provider.dart';
-import 'package:pentapol/models/pentominos.dart';
 import 'package:pentapol/screens/solutions_browser_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/services/plateau_solution_counter.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 
 // Widgets extraits
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calculator.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
 
 
@@ -174,17 +172,36 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                       },
                     ),
 
-                  // Bouton de rotation (visible si pièce sélectionnée)
-                  if (state.selectedPiece != null)
+                  // Boutons de transformation (visibles si pièce sélectionnée)
+                  if (state.selectedPiece != null) ...[
                     IconButton(
-                      icon: Icon(GameIcons.rotatePiece.icon, size: 24),
+                      icon: Icon(GameIcons.isometryRotation.icon, size: 24),
                       onPressed: () {
                         HapticFeedback.selectionClick();
-                        notifier.cyclePosition();
+                        notifier.applyIsometryRotation();
                       },
-                      tooltip: GameIcons.rotatePiece.tooltip,
-                      color: GameIcons.rotatePiece.color,
+                      tooltip: GameIcons.isometryRotation.tooltip,
+                      color: GameIcons.isometryRotation.color,
                     ),
+                    IconButton(
+                      icon: Icon(GameIcons.isometrySymmetryH.icon, size: 24),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        notifier.applyIsometrySymmetryH();
+                      },
+                      tooltip: GameIcons.isometrySymmetryH.tooltip,
+                      color: GameIcons.isometrySymmetryH.color,
+                    ),
+                    IconButton(
+                      icon: Icon(GameIcons.isometrySymmetryV.icon, size: 24),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        notifier.applyIsometrySymmetryV();
+                      },
+                      tooltip: GameIcons.isometrySymmetryV.tooltip,
+                      color: GameIcons.isometrySymmetryV.color,
+                    ),
+                  ],
                   // Bouton retirer (visible si pièce placée sélectionnée)
                   if (state.selectedPlacedPiece != null)
                     IconButton(
@@ -236,7 +253,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         // Plateau de jeu
         Expanded(
           flex: 3,
-          child: _buildGameBoard(context, ref, state, notifier, isLandscape: false),
+          child: GameBoard(isLandscape: false),
         ),
 
         // Slider de pièces horizontal
@@ -269,7 +286,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       children: [
         // Plateau de jeu (10×6 visuel)
         Expanded(
-          child: _buildGameBoard(context, ref, state, notifier, isLandscape: true),
+          child: GameBoard(isLandscape: true),
         ),
 
         // Colonne de droite : actions + slider
@@ -312,340 +329,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         ),
       ],
     );
-  }
-
-  /// Construit le plateau de jeu
-  /// Portrait: 6×10 (logique et visuel)
-  /// Paysage: 10×6 (visuel), mais logique reste 6×10
-  Widget _buildGameBoard(
-      BuildContext context,
-      WidgetRef ref,
-      state,
-      notifier,
-      {required bool isLandscape}
-      ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Dimensions visuelles
-        final visualCols = isLandscape ? 10 : 6;
-        final visualRows = isLandscape ? 6 : 10;
-
-        // Note: Les dimensions logiques restent toujours 6×10 (gérées dans le provider)
-
-        final cellSize =
-        (constraints.maxWidth / visualCols).clamp(0.0, constraints.maxHeight / visualRows).toDouble();
-
-        return Center(
-          child: Container(
-            width: cellSize * visualCols,
-            height: cellSize * visualRows,
-            decoration: BoxDecoration(
-              // Fond avec dégradé doux
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.grey.shade50,
-                  Colors.grey.shade100,
-                ],
-              ),
-              // Ombre douce autour du plateau
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              // Coins arrondis
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: DragTarget<Pento>(
-                onWillAcceptWithDetails: (details) => true,
-                onMove: (details) {
-                  // Mettre à jour la preview pendant le drag
-                  final offset =
-                  (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
-
-                  if (offset != null) {
-                    // Calculer les coordonnées visuelles
-                    final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
-                    final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
-
-                    // Transformer en coordonnées logiques (6×10)
-                    int logicalX, logicalY;
-                    if (isLandscape) {
-                      // Paysage: rotation 90° anti-horaire
-                      logicalX = (visualRows - 1) - visualY;
-                      logicalY = visualX;
-                    } else {
-                      // Portrait: pas de transformation
-                      logicalX = visualX;
-                      logicalY = visualY;
-                    }
-
-                    notifier.updatePreview(logicalX, logicalY);
-                  }
-                },
-                onLeave: (data) {
-                  // Effacer la preview quand on quitte le plateau
-                  notifier.clearPreview();
-                },
-                onAcceptWithDetails: (details) {
-                  // Calculer la position sur la grille depuis le point de dépôt
-                  final offset =
-                  (context.findRenderObject() as RenderBox?)?.globalToLocal(details.offset);
-
-                  if (offset != null) {
-                    // Calculer les coordonnées visuelles
-                    final visualX = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
-                    final visualY = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
-
-                    // Transformer en coordonnées logiques (6×10)
-                    int logicalX, logicalY;
-                    if (isLandscape) {
-                      // Paysage: rotation 90° anti-horaire
-                      logicalX = (visualRows - 1) - visualY;
-                      logicalY = visualX;
-                    } else {
-                      // Portrait: pas de transformation
-                      logicalX = visualX;
-                      logicalY = visualY;
-                    }
-
-                    final success = notifier.tryPlacePiece(logicalX, logicalY);
-
-                    // Haptic feedback selon le résultat
-                    if (success) {
-                      HapticFeedback.mediumImpact();
-                    } else {
-                      HapticFeedback.heavyImpact();
-                    }
-                  }
-
-                  // Effacer la preview
-                  notifier.clearPreview();
-                },
-                builder: (context, candidateData, rejectedData) {
-                  return GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: visualCols,
-                      childAspectRatio: 1.0,
-                      crossAxisSpacing: 0, // contours gérés manuellement
-                      mainAxisSpacing: 0,
-                    ),
-                    itemCount: 60,
-                    itemBuilder: (context, index) {
-                      // Calculer les coordonnées visuelles
-                      final visualX = index % visualCols;
-                      final visualY = index ~/ visualCols;
-
-                      // Transformer en coordonnées logiques (6×10)
-                      int logicalX, logicalY;
-                      if (isLandscape) {
-                        // Paysage: rotation 90° anti-horaire
-                        // visualX (0-9) → logicalY (0-9)
-                        // visualY (0-5) → logicalX (5-0)
-                        logicalX = (visualRows - 1) - visualY;
-                        logicalY = visualX;
-                      } else {
-                        // Portrait: pas de transformation
-                        logicalX = visualX;
-                        logicalY = visualY;
-                      }
-
-                      final cellValue = state.plateau.getCell(logicalX, logicalY);
-
-                      Color cellColor;
-                      String cellText = '';
-                      bool isOccupied = false;
-
-                      if (cellValue == -1) {
-                        cellColor = Colors.grey.shade800;
-                      } else if (cellValue == 0) {
-                        cellColor = Colors.grey.shade300;
-                      } else {
-                        cellColor = _getPieceColor(cellValue);
-                        cellText = cellValue.toString();
-                        isOccupied = true;
-                      }
-
-                      // Vérifier si cette cellule fait partie de la pièce sélectionnée
-                      bool isSelected = false;
-                      bool isReferenceCell = false; // Case de référence (point d'ancrage)
-                      bool isPreview = false; // Fait partie de la preview
-
-                      if (state.selectedPlacedPiece != null) {
-                        final selectedPiece = state.selectedPlacedPiece!;
-                        final position =
-                        selectedPiece.piece.positions[state.selectedPositionIndex];
-
-                        // Vérifier si (logicalX, logicalY) est dans la zone de la pièce sélectionnée
-                        for (final cellNum in position) {
-                          final localX = (cellNum - 1) % 5;
-                          final localY = (cellNum - 1) ~/ 5;
-                          final pieceX = selectedPiece.gridX + localX;
-                          final pieceY = selectedPiece.gridY + localY;
-
-                          if (pieceX == logicalX && pieceY == logicalY) {
-                            isSelected = true;
-
-                            // Vérifier si c'est la case de référence
-                            if (state.selectedCellInPiece != null) {
-                              isReferenceCell = (localX == state.selectedCellInPiece!.x &&
-                                  localY == state.selectedCellInPiece!.y);
-                            }
-
-                            // Afficher la pièce sélectionnée même si retirée du plateau
-                            if (cellValue == 0) {
-                              cellColor = _getPieceColor(selectedPiece.piece.id);
-                              cellText = selectedPiece.piece.id.toString();
-                              isOccupied = true;
-                            }
-                            break;
-                          }
-                        }
-                      }
-
-                      // Vérifier si cette cellule fait partie de la preview
-                      if (!isSelected &&
-                          state.selectedPiece != null &&
-                          state.previewX != null &&
-                          state.previewY != null) {
-                        final piece = state.selectedPiece!;
-                        final position = piece.positions[state.selectedPositionIndex];
-
-                        for (final cellNum in position) {
-                          final localX = (cellNum - 1) % 5;
-                          final localY = (cellNum - 1) ~/ 5;
-                          final pieceX = state.previewX! + localX;
-                          final pieceY = state.previewY! + localY;
-
-                          if (pieceX == logicalX && pieceY == logicalY) {
-                            isPreview = true;
-                            // Couleur selon validité
-                            if (state.isPreviewValid) {
-                              cellColor = _getPieceColor(piece.id).withValues(alpha: 0.4);
-                            } else {
-                              cellColor = Colors.red.withValues(alpha: 0.3);
-                            }
-                            cellText = piece.id.toString();
-                            break;
-                          }
-                        }
-                      }
-
-                      // Construire la bordure en fonction du contexte
-                      Border border;
-                      if (isReferenceCell) {
-                        // Case de référence : rouge bien visible
-                        border = Border.all(color: Colors.red, width: 4);
-                      } else if (isPreview) {
-                        // Preview : tout en vert/rouge (comme avant)
-                        border = Border.all(
-                          color: state.isPreviewValid ? Colors.green : Colors.red,
-                          width: 3,
-                        );
-                      } else if (isSelected) {
-                        // Pièce sélectionnée : bordure amber
-                        border = Border.all(
-                          color: Colors.amber,
-                          width: 3,
-                        );
-                      } else {
-                        // Cas normal : utiliser les contours de pièces comme dans le browser
-                        border = PieceBorderCalculator.calculate(logicalX, logicalY, state.plateau, isLandscape);
-                      }
-
-                      Widget cellWidget = Container(
-                        decoration: BoxDecoration(
-                          color: cellColor,
-                          border: border,
-                        ),
-                        child: Center(
-                          child: Text(
-                            cellText,
-                            style: TextStyle(
-                              color: isPreview
-                                  ? (state.isPreviewValid
-                                  ? Colors.green.shade900
-                                  : Colors.red.shade900)
-                                  : Colors.white,
-                              fontWeight:
-                              (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
-                              fontSize: (isSelected || isPreview) ? 16 : 14,
-                            ),
-                          ),
-                        ),
-                      );
-
-                      // Si une pièce est sélectionnée, on peut la déplacer depuis le plateau
-                      if (isSelected && state.selectedPiece != null) {
-                        cellWidget = Draggable<Pento>(
-                          data: state.selectedPiece!,
-                          feedback: Material(
-                            color: Colors.transparent,
-                            child: PieceRenderer(
-                              piece: state.selectedPiece!,
-                              positionIndex: state.selectedPositionIndex,
-                              isDragging: true,
-                              getPieceColor: _getPieceColor,
-                            ),
-                          ),
-                          childWhenDragging: Opacity(
-                            opacity: 0.3,
-                            child: cellWidget,
-                          ),
-                          child: GestureDetector(
-                            onDoubleTap: () {
-                              // Double-tap → changer de position
-                              HapticFeedback.selectionClick();
-                              notifier.cyclePosition();
-                            },
-                            child: cellWidget,
-                          ),
-                        );
-                      } else if (isOccupied && !isSelected) {
-                        // Tap simple pour sélectionner (désélectionne automatiquement l'ancienne)
-                        cellWidget = GestureDetector(
-                          onTap: () {
-                            final piece = notifier.getPlacedPieceAt(logicalX, logicalY);
-                            if (piece != null) {
-                              HapticFeedback.selectionClick();
-                              notifier.selectPlacedPiece(piece, logicalX, logicalY);
-                            }
-                          },
-                          child: cellWidget,
-                        );
-                      } else if (!isOccupied && state.selectedPiece != null && cellValue == 0) {
-                        // Tap sur case vide → désélectionner
-                        cellWidget = GestureDetector(
-                          onTap: () {
-                            notifier.cancelSelection();
-                          },
-                          child: cellWidget,
-                        );
-                      }
-
-                      return cellWidget;
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Couleurs des pièces selon les paramètres
-  Color _getPieceColor(int pieceId) {
-    final settings = ref.read(settingsProvider);
-    return settings.ui.getPieceColor(pieceId);
   }
 
 }

@@ -252,7 +252,7 @@ class ActionSlider extends ConsumerWidget {
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               HapticFeedback.selectionClick();
-              notifier.cyclePosition();
+              notifier.applyIsometryRotation();
             },
             tooltip: GameIcons.rotatePiece.tooltip,
             color: GameIcons.rotatePiece.color,

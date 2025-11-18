@@ -11,11 +11,15 @@ import json
 class Piece:
     """Représente une pièce composée de carrés"""
 
-    def __init__(self, squares: List[Tuple[int, int]]):
+    def __init__(self, squares: List[Tuple[int, int]], track_indices: bool = False):
         """
         squares: liste des coordonnées (x, y) des coins inf-gauche des carrés
+        track_indices: si True, conserver l'ordre original sans trier
         """
-        self.squares = sorted(squares)
+        if track_indices:
+            self.squares = list(squares)
+        else:
+            self.squares = sorted(squares)
 
     def __repr__(self):
         return f"Piece({self.squares})"
@@ -26,55 +30,74 @@ class Piece:
     def __hash__(self):
         return hash(tuple(self.squares))
 
-    def normalize(self):
+    def normalize(self, track_indices: bool = False):
         """Normalise la pièce: translation pour que min(x)=0 et min(y)=0"""
         if not self.squares:
-            return Piece([])
+            return Piece([], track_indices=track_indices)
 
         min_x = min(x for x, y in self.squares)
         min_y = min(y for x, y in self.squares)
 
         normalized = [(x - min_x, y - min_y) for x, y in self.squares]
-        return Piece(sorted(normalized))
+        if track_indices:
+            # Préserver l'ordre original
+            return Piece(normalized, track_indices=True)
+        else:
+            return Piece(sorted(normalized))
 
-    def rotate_90(self):
+    def rotate_90(self, track_indices: bool = False):
         """Rotation de 90° dans le sens antihoraire: (x,y) -> (-y, x)"""
         rotated = [(-y, x) for x, y in self.squares]
-        return Piece(rotated).normalize()
+        return Piece(rotated, track_indices=track_indices).normalize(track_indices=track_indices)
 
-    def flip_horizontal(self):
+    def flip_horizontal(self, track_indices: bool = False):
         """Symétrie horizontale: (x,y) -> (-x, y)"""
         flipped = [(-x, y) for x, y in self.squares]
-        return Piece(flipped).normalize()
+        return Piece(flipped, track_indices=track_indices).normalize(track_indices=track_indices)
 
-    def get_ordered_transformations(self):
+    def get_ordered_transformations(self, track_indices: bool = False):
         """
         Retourne les transformations dans l'ordre spécifique:
         4 rotations, puis symétrie + 4 rotations
         En éliminant les doublons (garder la première occurrence)
+        
+        Args:
+            track_indices: si True, préserve l'ordre des cellules pour tracker la correspondance
         """
         transformations = []
         seen = set()
 
         # 4 rotations
-        current = self.normalize()
+        current = self.normalize(track_indices=track_indices)
         for _ in range(4):
-            normalized = current.normalize()
-            form_tuple = tuple(normalized.squares)
+            normalized = current.normalize(track_indices=track_indices)
+            # Pour la détection de doublons, utiliser la forme canonique
+            if track_indices:
+                canonical_form = Piece(sorted(normalized.squares))
+                form_tuple = tuple(canonical_form.squares)
+            else:
+                form_tuple = tuple(normalized.squares)
+                
             if form_tuple not in seen:
                 transformations.append(normalized)
                 seen.add(form_tuple)
-            current = current.rotate_90()
+            current = current.rotate_90(track_indices=track_indices)
 
         # Symétrie puis 4 rotations
-        current = self.normalize().flip_horizontal()
+        current = self.normalize(track_indices=track_indices).flip_horizontal(track_indices=track_indices)
         for _ in range(4):
-            normalized = current.normalize()
-            form_tuple = tuple(normalized.squares)
+            normalized = current.normalize(track_indices=track_indices)
+            # Pour la détection de doublons, utiliser la forme canonique
+            if track_indices:
+                canonical_form = Piece(sorted(normalized.squares))
+                form_tuple = tuple(canonical_form.squares)
+            else:
+                form_tuple = tuple(normalized.squares)
+                
             if form_tuple not in seen:
                 transformations.append(normalized)
                 seen.add(form_tuple)
-            current = current.rotate_90()
+            current = current.rotate_90(track_indices=track_indices)
 
         return transformations
 
@@ -185,19 +208,20 @@ def coords_to_cell_number(x: int, y: int, grid_width: int = 5) -> int:
     return y * grid_width + x + 1
 
 
-def piece_to_cell_numbers(piece: Piece, grid_width: int = 5) -> List[int]:
+def piece_to_cell_numbers(piece: Piece, grid_width: int = 5, sort_result: bool = True) -> List[int]:
     """
     Convertit une pièce en liste de numéros de cases
 
     Args:
         piece: la pièce à convertir
         grid_width: largeur de la grille
+        sort_result: si True, trier les cellules (défaut True pour compatibilité)
 
     Returns:
-        Liste triée des numéros de cases
+        Liste des numéros de cases (triée si sort_result=True)
     """
     cells = [coords_to_cell_number(x, y, grid_width) for x, y in piece.squares]
-    return sorted(cells)
+    return sorted(cells) if sort_result else cells
 
 
 def export_to_dart(pieces: List[Piece], filename: str = "pentominos.dart", grid_width: int = 5):
@@ -236,8 +260,9 @@ def export_to_dart(pieces: List[Piece], filename: str = "pentominos.dart", grid_
         f.write("final List<Pento> pentominos = [\n")
 
         for idx, piece in enumerate(pieces, 1):
-            transformations = piece.get_ordered_transformations()
-            base_shape = transformations[0] if transformations else piece.normalize()
+            # Obtenir les transformations avec tracking des indices
+            transformations = piece.get_ordered_transformations(track_indices=True)
+            base_shape = transformations[0] if transformations else piece.normalize(track_indices=True)
 
             f.write(f"  // Pièce {idx}\n")
             f.write("  Pento(\n")
@@ -245,14 +270,16 @@ def export_to_dart(pieces: List[Piece], filename: str = "pentominos.dart", grid_
             f.write(f"    size: {len(piece.squares)},\n")
             f.write(f"    numPositions: {len(transformations)},\n")
 
-            # Base shape en numéros de cases
-            base_cells = piece_to_cell_numbers(base_shape, grid_width)
-            f.write(f"    baseShape: {base_cells},\n")
+            # Base shape en numéros de cases (triée pour compatibilité)
+            base_cells_sorted = sorted([coords_to_cell_number(x, y, grid_width) for x, y in base_shape.squares])
+            f.write(f"    baseShape: {base_cells_sorted},\n")
 
             # Toutes les positions en numéros de cases
+            # IMPORTANT : ne PAS trier pour préserver la correspondance géométrique !
             f.write("    positions: [\n")
             for transform in transformations:
-                cells = piece_to_cell_numbers(transform, grid_width)
+                # Ne PAS trier : l'ordre des cellules correspond à l'ordre géométrique
+                cells = [coords_to_cell_number(x, y, grid_width) for x, y in transform.squares]
                 f.write(f"      {cells},\n")
             f.write("    ],\n")
 

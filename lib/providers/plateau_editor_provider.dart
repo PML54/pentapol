@@ -1,3 +1,7 @@
+// DEPRECATED - 2025-11-18
+// Provider désactivé temporairement - Associé à plateau_editor_screen.dart
+// Utilise PentominoSolver (lib/services/pentomino_solver.dart)
+// 
 // Modified: 2025-11-15 06:45:00
 // lib/providers/plateau_editor_provider.dart
 

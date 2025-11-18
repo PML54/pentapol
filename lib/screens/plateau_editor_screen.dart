@@ -1,3 +1,15 @@
+// DEPRECATED - 2025-11-18
+// Écran désactivé temporairement - À refactoriser pour usage futur
+// 
+// Contient un solveur de pentominos réutilisable (PentominoSolver)
+// disponible dans lib/services/pentomino_solver.dart
+// 
+// Le solveur offre :
+// - solve() : trouve une solution
+// - findNext() : trouve la solution suivante
+// - countAllSolutions() : compte toutes les solutions
+// - findAllSolutions() : retourne toutes les solutions
+// 
 // Modified: 2025-11-16 11:15:00
 // lib/screens/plateau_editor_screen.dart
 
