@@ -9,15 +9,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/pentomino_game_provider.dart';
 import '../providers/settings_provider.dart';
 import '../models/pentominos.dart';
-import '../models/plateau.dart';
 import '../screens/solutions_browser_screen.dart';
 import '../screens/settings_screen.dart';
-import '../services/plateau_solution_counter.dart'; // pour getCompatibleSolutionsBigInt()
+import '../services/plateau_solution_counter.dart'; // Extension getCompatibleSolutionsBigInt
 import '../config/game_icons_config.dart'; // Configuration centralisée des icônes
 
 // Widgets extraits
 import 'pentomino_game/widgets/shared/piece_renderer.dart';
 import 'pentomino_game/widgets/shared/piece_border_calculator.dart';
+import 'pentomino_game/widgets/shared/action_slider.dart';
 import 'pentomino_game/widgets/game_mode/piece_slider.dart';
 
 
@@ -29,11 +29,6 @@ class PentominoGameScreen extends ConsumerStatefulWidget {
 }
 
 class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
-
-  /// Helper pour obtenir les solutions compatibles
-  List<BigInt> _getCompatibleSolutions(Plateau plateau) {
-    return plateau.getCompatibleSolutionsBigInt();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -295,7 +290,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   ),
                 ],
               ),
-              child: _buildActionSlider(context, ref, state, notifier),
+              child: const ActionSlider(),
             ),
 
             // Slider de pièces vertical
@@ -317,262 +312,6 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         ),
       ],
     );
-  }
-
-  /// Construit le slider d'actions vertical (mode paysage uniquement)
-  Widget _buildActionSlider(
-      BuildContext context,
-      WidgetRef ref,
-      state,
-      notifier,
-      ) {
-    if (state.isIsometriesMode) {
-      // MODE ISOMÉTRIES : Boutons de transformation (icônes plus grandes)
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Bouton Rotation
-          IconButton(
-            icon: Icon(GameIcons.isometryRotation.icon, size: 28),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            onPressed: state.selectedPlacedPiece != null
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applyIsometryRotation();
-                  }
-                : null,
-            tooltip: GameIcons.isometryRotation.tooltip,
-            color: state.selectedPlacedPiece != null 
-                ? GameIcons.isometryRotation.color 
-                : Colors.grey,
-          ),
-          const SizedBox(height: 8),
-
-          // Bouton Symétrie Horizontale
-          IconButton(
-            icon: Icon(GameIcons.isometrySymmetryH.icon, size: 28),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            onPressed: state.selectedPlacedPiece != null
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applyIsometrySymmetryH();
-                  }
-                : null,
-            tooltip: GameIcons.isometrySymmetryH.tooltip,
-            color: state.selectedPlacedPiece != null 
-                ? GameIcons.isometrySymmetryH.color 
-                : Colors.grey,
-          ),
-          const SizedBox(height: 8),
-
-          // Bouton Symétrie Verticale
-          IconButton(
-            icon: Icon(GameIcons.isometrySymmetryV.icon, size: 28),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            onPressed: state.selectedPlacedPiece != null
-                ? () {
-                    HapticFeedback.selectionClick();
-                    notifier.applyIsometrySymmetryV();
-                  }
-                : null,
-            tooltip: GameIcons.isometrySymmetryV.tooltip,
-            color: state.selectedPlacedPiece != null 
-                ? GameIcons.isometrySymmetryV.color 
-                : Colors.grey,
-          ),
-          const SizedBox(height: 8),
-
-          // Bouton Delete (visible si une pièce placée est sélectionnée)
-          if (state.selectedPlacedPiece != null)
-            IconButton(
-              icon: Icon(GameIcons.isometryDelete.icon, size: 28),
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                notifier.removePlacedPiece(state.selectedPlacedPiece!);
-              },
-              tooltip: GameIcons.isometryDelete.tooltip,
-              color: GameIcons.isometryDelete.color,
-            ),
-          if (state.selectedPlacedPiece != null)
-            const SizedBox(height: 8),
-
-          // Bouton Retour au Jeu
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                notifier.exitIsometriesMode();
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: GameIcons.exitIsometries.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  GameIcons.exitIsometries.icon,
-                  size: 28,
-                  color: GameIcons.exitIsometries.color,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    } else {
-      // MODE JEU NORMAL : Boutons normaux
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Bouton Mode Isométries
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                notifier.enterIsometriesMode();
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: GameIcons.enterIsometries.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  GameIcons.enterIsometries.icon,
-                  size: 22,
-                  color: GameIcons.enterIsometries.color,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Compteur de solutions (coupe)
-          if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                children: [
-                  Text(
-                    '${state.solutionsCount}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
-                    ),
-                  ),
-                  Icon(
-                    GameIcons.solutionsCounter.icon,
-                    size: 20,
-                    color: state.solutionsCount! > 0 ? Colors.green[700] : Colors.red[700],
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 8),
-
-          // Bouton "voir les solutions possibles"
-          if (state.solutionsCount != null && state.solutionsCount! > 0)
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  try {
-                    // Utiliser la méthode helper
-                    final compatible = _getCompatibleSolutions(state.plateau);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SolutionsBrowserScreen.forSolutions(
-                          solutions: compatible,
-                          title: 'Solutions possibles',
-                        ),
-                      ),
-                    );
-                  } catch (e, stackTrace) {
-                    debugPrint('❌ Erreur: $e');
-                    debugPrint('❌ Stack: $stackTrace');
-                  }
-                },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: GameIcons.viewSolutions.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    GameIcons.viewSolutions.icon,
-                    size: 22,
-                    color: GameIcons.viewSolutions.color,
-                  ),
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 8),
-
-          // Bouton de rotation (visible si pièce sélectionnée)
-          if (state.selectedPiece != null)
-            IconButton(
-              icon: Icon(GameIcons.rotatePiece.icon, size: 22),
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                notifier.cyclePosition();
-              },
-              tooltip: GameIcons.rotatePiece.tooltip,
-              color: GameIcons.rotatePiece.color,
-            ),
-
-          // Bouton retirer (visible si pièce placée sélectionnée)
-          if (state.selectedPlacedPiece != null)
-            IconButton(
-              icon: Icon(GameIcons.removePiece.icon, size: 22),
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                notifier.removePlacedPiece(state.selectedPlacedPiece!);
-              },
-              tooltip: GameIcons.removePiece.tooltip,
-              color: GameIcons.removePiece.color,
-            ),
-
-          const SizedBox(height: 8),
-
-          // Bouton Undo
-          IconButton(
-            icon: Icon(GameIcons.undo.icon, size: 22),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            onPressed: state.placedPieces.isNotEmpty && state.selectedPiece == null
-                ? () {
-              HapticFeedback.mediumImpact();
-              notifier.undoLastPlacement();
-            }
-                : null,
-            tooltip: GameIcons.undo.tooltip,
-          ),
-        ],
-      );
-    }
   }
 
   /// Construit le plateau de jeu
