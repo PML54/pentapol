@@ -3,7 +3,7 @@
 **Application de puzzles pentominos en Flutter**
 
 **Date de création : 14 novembre 2025**  
-**Dernière mise à jour : 14 novembre 2025**
+**Dernière mise à jour : 18 novembre 2025**
 
 ---
 
@@ -62,7 +62,18 @@ lib/
 │   └── pentomino_game_state.dart      # État jeu
 ├── screens/                     # Interfaces utilisateur
 │   ├── plateau_editor_screen.dart     # Éditeur de plateau
-│   ├── pentomino_game_screen.dart     # Jeu interactif
+│   ├── pentomino_game_screen.dart     # Jeu interactif (1350+ lignes)
+│   ├── pentomino_game/                # Structure modulaire (en cours)
+│   │   ├── utils/                     # Utilitaires extraits ✅
+│   │   │   ├── game_constants.dart    # Constantes du jeu
+│   │   │   ├── game_colors.dart       # Palette de couleurs
+│   │   │   └── game_utils.dart        # Export centralisé
+│   │   ├── widgets/                   # Widgets (à extraire)
+│   │   │   ├── shared/                # Partagés entre modes
+│   │   │   ├── game_mode/             # Mode jeu normal
+│   │   │   └── isometries_mode/       # Mode isométries
+│   │   ├── modes/                     # Vues des modes (à extraire)
+│   │   └── README.md                  # Documentation structure
 │   ├── solutions_browser_screen.dart  # Navigateur solutions
 │   ├── home_screen.dart               # Écran principal
 │   └── auth_screen.dart               # Connexion
@@ -915,9 +926,48 @@ assert(plateau.width == 6 && plateau.height == 10);
 
 ---
 
+## 🔧 Réorganisation progressive (en cours)
+
+### Objectif
+Découper `pentomino_game_screen.dart` (1350+ lignes) en modules réutilisables et maintenables.
+
+### Phase 1 : Utilitaires ✅ (18 nov 2025)
+**Fichiers créés** :
+- `lib/screens/pentomino_game/utils/game_constants.dart`
+  - Dimensions du plateau (6×10)
+  - Tailles de bordures
+  - Constantes du slider
+- `lib/screens/pentomino_game/utils/game_colors.dart`
+  - Palette complète (modes, sélection, preview, ombres)
+  - Méthode `getPieceColorFallback()` pour tests
+- `lib/screens/pentomino_game/utils/game_utils.dart`
+  - Export centralisé
+- `lib/screens/pentomino_game/README.md`
+  - Documentation de la structure
+
+**Usage** :
+```dart
+import '../pentomino_game/utils/game_utils.dart';
+
+final width = GameConstants.boardWidth;
+final color = GameColors.masterCellBorderColor;
+```
+
+### Phases futures (progressives)
+- **Phase 2** : Extraire `piece_renderer.dart` (widget simple)
+- **Phase 3** : Extraire `game_board.dart` (grille 6×10)
+- **Phase 4** : Extraire `piece_slider.dart` (slider horizontal)
+- **Phase 5** : Séparer `game_mode_view.dart` et `isometries_mode_view.dart`
+- **Phase 6** : Simplifier `pentomino_game_screen.dart` en orchestrateur (~100 lignes)
+
+**Approche** : Extraction au fur et à mesure des modifications, sans breaking changes.
+
+---
+
 ## 🚀 Prochaines étapes
 
 ### Court terme
+- [ ] Continuer réorganisation progressive pentomino_game
 - [ ] Optimiser validation (paralléliser avec isolates)
 - [ ] Ajouter progress bar pendant validation
 - [ ] Sauvegarder/charger plateaux
