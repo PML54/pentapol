@@ -12,7 +12,7 @@ import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calc
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
 
 /// Plateau de jeu 6×10
-/// 
+///
 /// Gère :
 /// - Affichage grille avec pièces
 /// - Drag & drop des pièces
@@ -75,9 +75,9 @@ class GameBoard extends ConsumerWidget {
 
                   if (offset != null) {
                     final visualX =
-                        (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                    (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
                     final visualY =
-                        (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+                    (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
 
                     int logicalX, logicalY;
                     if (isLandscape) {
@@ -100,9 +100,9 @@ class GameBoard extends ConsumerWidget {
 
                   if (offset != null) {
                     final visualX =
-                        (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                    (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
                     final visualY =
-                        (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+                    (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
 
                     int logicalX, logicalY;
                     if (isLandscape) {
@@ -179,7 +179,7 @@ class GameBoard extends ConsumerWidget {
           final localY = (cellNum - 1) ~/ 5;
           final pieceX = placedPiece.gridX + localX;
           final pieceY = placedPiece.gridY + localY;
-          
+
           if (pieceX == logicalX && pieceY == logicalY) {
             return placedPiece.piece.getLetterForPosition(placedPiece.positionIndex, cellNum);
           }
@@ -190,15 +190,15 @@ class GameBoard extends ConsumerWidget {
   }
 
   Widget _buildCell(
-    BuildContext context,
-    WidgetRef ref,
-    state,
-    notifier,
-    settings,
-    int logicalX,
-    int logicalY,
-    bool isLandscape,
-  ) {
+      BuildContext context,
+      WidgetRef ref,
+      state,
+      notifier,
+      settings,
+      int logicalX,
+      int logicalY,
+      bool isLandscape,
+      ) {
     final cellValue = state.plateau.getCell(logicalX, logicalY);
     final isIsometriesMode = state.isIsometriesMode;
 
@@ -213,7 +213,7 @@ class GameBoard extends ConsumerWidget {
     } else {
       cellColor = settings.ui.getPieceColor(cellValue);
       cellText = cellValue.toString();
-      
+
       // Ajouter la lettre en mode isométries
       if (isIsometriesMode) {
         final letter = _findLetterForCell(state, cellValue, logicalX, logicalY);
@@ -221,7 +221,7 @@ class GameBoard extends ConsumerWidget {
           cellText += letter;
         }
       }
-      
+
       isOccupied = true;
     }
 
@@ -232,7 +232,7 @@ class GameBoard extends ConsumerWidget {
     if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
       final position =
-          selectedPiece.piece.positions[state.selectedPositionIndex];
+      selectedPiece.piece.positions[state.selectedPositionIndex];
 
       for (final cellNum in position) {
         final localX = (cellNum - 1) % 5;
@@ -251,13 +251,20 @@ class GameBoard extends ConsumerWidget {
           if (cellValue == 0) {
             cellColor = settings.ui.getPieceColor(selectedPiece.piece.id);
             cellText = selectedPiece.piece.id.toString();
-            
+
             // Ajouter la lettre en mode isométries
             if (isIsometriesMode) {
               cellText += selectedPiece.piece.getLetterForPosition(state.selectedPositionIndex, cellNum);
             }
-            
+
             isOccupied = true;
+          } else if (cellValue == selectedPiece.piece.id) {
+            // La cellule est occupée par la pièce sélectionnée
+            // On met à jour le texte pour afficher les lettres en mode isométries
+            if (isIsometriesMode) {
+              cellText = selectedPiece.piece.id.toString();
+              cellText += selectedPiece.piece.getLetterForPosition(state.selectedPositionIndex, cellNum);
+            }
           }
           break;
         }
@@ -286,12 +293,12 @@ class GameBoard extends ConsumerWidget {
             cellColor = Colors.red.withValues(alpha: 0.3);
           }
           cellText = piece.id.toString();
-          
+
           // Ajouter la lettre en mode isométries
           if (isIsometriesMode) {
             cellText += piece.getLetterForPosition(state.selectedPositionIndex, cellNum);
           }
-          
+
           break;
         }
       }
@@ -326,8 +333,8 @@ class GameBoard extends ConsumerWidget {
           style: TextStyle(
             color: isPreview
                 ? (state.isPreviewValid
-                    ? Colors.green.shade900
-                    : Colors.red.shade900)
+                ? Colors.green.shade900
+                : Colors.red.shade900)
                 : Colors.white,
             fontWeight: (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
             fontSize: (isSelected || isPreview) ? 16 : 14,
@@ -383,4 +390,3 @@ class GameBoard extends ConsumerWidget {
     return cellWidget;
   }
 }
-

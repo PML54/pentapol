@@ -619,6 +619,15 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     }
   }
 
+  /// Calcule la nouvelle position locale de la master case après une transformation
+  /// [centerX], [centerY] : coordonnées absolues de la master case (fixe)
+  /// [newGridX], [newGridY] : nouvelle ancre de la pièce transformée
+  Point _calculateNewMasterCell(int centerX, int centerY, int newGridX, int newGridY) {
+    final newLocalX = centerX - newGridX;
+    final newLocalY = centerY - newGridY;
+    return Point(newLocalX, newLocalY);
+  }
+
   /// Applique une rotation 90° anti-horaire à la pièce sélectionnée
   /// Fonctionne en mode jeu normal ET en mode isométries
   /// En mode isométries : rotation géométrique autour du point de référence (cellule rouge)
@@ -633,8 +642,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       // 2. Déterminer le centre de rotation P0
       // Si une cellule de référence est définie, utiliser celle-ci
       // Sinon, utiliser le coin bas-gauche de la pièce (0,0) local
-      final refX = state.selectedCellInPiece?.x ?? 0;
-      final refY = state.selectedCellInPiece?.y ?? 0;
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
 
       final centerX = selectedPiece.gridX + refX;
       final centerY = selectedPiece.gridY + refY;
@@ -712,17 +721,22 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         gridY: match.gridY,
       );
 
-      // 10. Mettre à jour la liste des pièces placées
+      // 10. Calculer la nouvelle position locale de la master case
+      final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
+      print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
+
+      // 11. Mettre à jour la liste des pièces placées
       final updatedPieces = state.placedPieces.map((placed) {
         return placed == selectedPiece ? transformedPiece : placed;
       }).toList();
 
-      // 11. Mettre à jour l'état
+      // 12. Mettre à jour l'état avec la nouvelle master case
       state = state.copyWith(
         placedPieces: updatedPieces,
         plateau: newPlateau,
         selectedPlacedPiece: transformedPiece,
         selectedPositionIndex: match.positionIndex,
+        selectedCellInPiece: newSelectedCell,
       );
 
       return;
@@ -773,7 +787,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       // 2. Déterminer l'axe de symétrie y = y0
       // Si une cellule de référence est définie, utiliser celle-ci
       // Sinon, utiliser le coin bas-gauche de la pièce (0,0) local
-      final refY = state.selectedCellInPiece?.y ?? 0;
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
       final axisY = selectedPiece.gridY + refY;
 
       print('[GAME] ↔️ Symétrie horizontale par rapport à y = $axisY');
@@ -832,17 +847,25 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         gridY: match.gridY,
       );
 
-      // 10. Mettre à jour la liste des pièces placées
+      // 10. Calculer la nouvelle position locale de la master case
+      // Pour la symétrie horizontale, centerX reste fixe, centerY = axisY
+      final centerX = selectedPiece.gridX + refX;
+      final centerY = axisY;
+      final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
+      print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
+
+      // 11. Mettre à jour la liste des pièces placées
       final updatedPieces = state.placedPieces.map((placed) {
         return placed == selectedPiece ? transformedPiece : placed;
       }).toList();
 
-      // 11. Mettre à jour l'état
+      // 12. Mettre à jour l'état avec la nouvelle master case
       state = state.copyWith(
         placedPieces: updatedPieces,
         plateau: newPlateau,
         selectedPlacedPiece: transformedPiece,
         selectedPositionIndex: match.positionIndex,
+        selectedCellInPiece: newSelectedCell,
       );
 
       return;
@@ -893,7 +916,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       // 2. Déterminer l'axe de symétrie x = x0
       // Si une cellule de référence est définie, utiliser celle-ci
       // Sinon, utiliser le coin bas-gauche de la pièce (0,0) local
-      final refX = state.selectedCellInPiece?.x ?? 0;
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
       final axisX = selectedPiece.gridX + refX;
 
       print('[GAME] ↕️ Symétrie verticale par rapport à x = $axisX');
@@ -952,17 +976,25 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         gridY: match.gridY,
       );
 
-      // 10. Mettre à jour la liste des pièces placées
+      // 10. Calculer la nouvelle position locale de la master case
+      // Pour la symétrie verticale, centerX = axisX, centerY reste fixe
+      final centerX = axisX;
+      final centerY = selectedPiece.gridY + refY;
+      final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
+      print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
+
+      // 11. Mettre à jour la liste des pièces placées
       final updatedPieces = state.placedPieces.map((placed) {
         return placed == selectedPiece ? transformedPiece : placed;
       }).toList();
 
-      // 11. Mettre à jour l'état
+      // 12. Mettre à jour l'état avec la nouvelle master case
       state = state.copyWith(
         placedPieces: updatedPieces,
         plateau: newPlateau,
         selectedPlacedPiece: transformedPiece,
         selectedPositionIndex: match.positionIndex,
+        selectedCellInPiece: newSelectedCell,
       );
 
       return;
