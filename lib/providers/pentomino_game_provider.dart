@@ -630,10 +630,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
   /// Applique une rotation 90° anti-horaire à la pièce sélectionnée
   /// Fonctionne en mode jeu normal ET en mode isométries
-  /// En mode isométries : rotation géométrique autour du point de référence (cellule rouge)
+  /// Rotation géométrique autour du point de référence (cellule rouge / mastercase)
   void applyIsometryRotation() {
-    // En mode isométries : transformer une pièce placée avec rotation géométrique
-    if (state.isIsometriesMode && state.selectedPlacedPiece != null) {
+    // Transformer une pièce placée avec rotation géométrique (mode game ET isométries)
+    if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
 
       // 1. Extraire les coordonnées absolues actuelles
@@ -747,24 +747,34 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       final piece = state.selectedPiece!;
       final currentIndex = state.selectedPositionIndex;
 
-      // Trouver la position correspondant à une rotation de 90°
-      final nextIndex = piece.findRotation90(currentIndex);
+      // Utiliser les transformations géométriques comme en mode isométries
+      // 1. Extraire les coordonnées de la position actuelle (normalisées)
+      final currentCoords = piece.cartesianCoords[currentIndex];
 
-      // Si aucune rotation trouvée (pièce symétrique), ne rien faire
-      if (nextIndex == -1) {
+      // 2. Déterminer le centre de rotation (centre de la pièce locale)
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
+
+      // 3. Appliquer la rotation autour du centre local
+      final rotatedCoords = rotateAroundPoint(currentCoords, refX, refY, 1);
+
+      // 4. Reconnaître la nouvelle forme
+      final match = recognizeShape(rotatedCoords);
+
+      if (match == null || match.piece.id != piece.id) {
         print('[GAME] ⚠️ Aucune rotation disponible pour cette pièce (symétrique)');
         return;
       }
 
-      print('[GAME] 🔄 Rotation 90° anti-horaire de la pièce sélectionnée');
+      print('[GAME] 🔄 Rotation 90° anti-horaire de la pièce sélectionnée (position $currentIndex → ${match.positionIndex})');
 
-      // Sauvegarder le nouvel index dans le Map
+      // 5. Sauvegarder le nouvel index dans le Map
       final newIndices = Map<int, int>.from(state.piecePositionIndices);
-      newIndices[piece.id] = nextIndex;
+      newIndices[piece.id] = match.positionIndex;
 
-      // Mettre à jour l'état
+      // 6. Mettre à jour l'état
       state = state.copyWith(
-        selectedPositionIndex: nextIndex,
+        selectedPositionIndex: match.positionIndex,
         piecePositionIndices: newIndices,
       );
       return;
@@ -775,26 +785,27 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
   /// Applique une symétrie horizontale à la pièce sélectionnée
   /// Fonctionne en mode jeu normal ET en mode isométries
-  /// En mode isométries : symétrie géométrique par rapport à y = y0
+  /// Symétrie géométrique par rapport à x = x0 (axe vertical à travers la mastercase)
   void applyIsometrySymmetryH() {
-    // En mode isométries : transformer une pièce placée avec symétrie géométrique
-    if (state.isIsometriesMode && state.selectedPlacedPiece != null) {
+    // Transformer une pièce placée avec symétrie géométrique (mode game ET isométries)
+    if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
 
       // 1. Extraire les coordonnées absolues actuelles
       final currentCoords = _extractAbsoluteCoords(selectedPiece);
 
-      // 2. Déterminer l'axe de symétrie y = y0
+      // 2. Déterminer l'axe de symétrie x = x0 (pour inverser gauche/droite)
       // Si une cellule de référence est définie, utiliser celle-ci
       // Sinon, utiliser le coin bas-gauche de la pièce (0,0) local
       final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
       final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
-      final axisY = selectedPiece.gridY + refY;
+      final axisX = selectedPiece.gridX + refX;
 
-      print('[GAME] ↔️ Symétrie horizontale par rapport à y = $axisY');
+      print('[GAME] ↔️ Symétrie horizontale par rapport à x = $axisX');
 
-      // 3. Appliquer la symétrie horizontale
-      final flippedCoords = flipHorizontal(currentCoords, axisY);
+      // 3. Appliquer la symétrie horizontale (flip vertical pour être plus intuitif)
+      // En termes visuels, une "symétrie horizontale" inverse gauche/droite
+      final flippedCoords = flipVertical(currentCoords, selectedPiece.gridX + refX);
 
       // 4. Reconnaître la nouvelle forme
       final match = recognizeShape(flippedCoords);
@@ -848,9 +859,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       );
 
       // 10. Calculer la nouvelle position locale de la master case
-      // Pour la symétrie horizontale, centerX reste fixe, centerY = axisY
-      final centerX = selectedPiece.gridX + refX;
-      final centerY = axisY;
+      // Pour la symétrie horizontale (↔️), on inverse gauche/droite autour de x = axisX
+      final centerX = axisX;
+      final centerY = selectedPiece.gridY + refY;
       final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
       print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
 
@@ -876,24 +887,33 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       final piece = state.selectedPiece!;
       final currentIndex = state.selectedPositionIndex;
 
-      // Trouver la position correspondant à une symétrie horizontale
-      final nextIndex = piece.findSymmetryH(currentIndex);
+      // Utiliser les transformations géométriques comme en mode isométries
+      // 1. Extraire les coordonnées de la position actuelle (normalisées)
+      final currentCoords = piece.cartesianCoords[currentIndex];
 
-      // Si aucune symétrie trouvée, ne rien faire
-      if (nextIndex == -1) {
+      // 2. Déterminer l'axe de symétrie (axe vertical x = refX pour inverser gauche/droite)
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+
+      // 3. Appliquer la symétrie verticale (inverse gauche/droite)
+      final flippedCoords = flipVertical(currentCoords, refX);
+
+      // 4. Reconnaître la nouvelle forme
+      final match = recognizeShape(flippedCoords);
+
+      if (match == null || match.piece.id != piece.id) {
         print('[GAME] ⚠️ Aucune symétrie horizontale disponible pour cette pièce');
         return;
       }
 
-      print('[GAME] ↔️ Symétrie horizontale de la pièce sélectionnée');
+      print('[GAME] ↔️ Symétrie horizontale de la pièce sélectionnée (position $currentIndex → ${match.positionIndex})');
 
-      // Sauvegarder le nouvel index dans le Map
+      // 5. Sauvegarder le nouvel index dans le Map
       final newIndices = Map<int, int>.from(state.piecePositionIndices);
-      newIndices[piece.id] = nextIndex;
+      newIndices[piece.id] = match.positionIndex;
 
-      // Mettre à jour l'état
+      // 6. Mettre à jour l'état
       state = state.copyWith(
-        selectedPositionIndex: nextIndex,
+        selectedPositionIndex: match.positionIndex,
         piecePositionIndices: newIndices,
       );
       return;
@@ -904,26 +924,27 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
   /// Applique une symétrie verticale à la pièce sélectionnée
   /// Fonctionne en mode jeu normal ET en mode isométries
-  /// En mode isométries : symétrie géométrique par rapport à x = x0
+  /// Symétrie géométrique par rapport à y = y0 (axe horizontal à travers la mastercase)
   void applyIsometrySymmetryV() {
-    // En mode isométries : transformer une pièce placée avec symétrie géométrique
-    if (state.isIsometriesMode && state.selectedPlacedPiece != null) {
+    // Transformer une pièce placée avec symétrie géométrique (mode game ET isométries)
+    if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
 
       // 1. Extraire les coordonnées absolues actuelles
       final currentCoords = _extractAbsoluteCoords(selectedPiece);
 
-      // 2. Déterminer l'axe de symétrie x = x0
+      // 2. Déterminer l'axe de symétrie y = y0 (pour inverser haut/bas)
       // Si une cellule de référence est définie, utiliser celle-ci
       // Sinon, utiliser le coin bas-gauche de la pièce (0,0) local
       final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
       final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
-      final axisX = selectedPiece.gridX + refX;
+      final axisY = selectedPiece.gridY + refY;
 
-      print('[GAME] ↕️ Symétrie verticale par rapport à x = $axisX');
+      print('[GAME] ↕️ Symétrie verticale par rapport à y = $axisY');
 
-      // 3. Appliquer la symétrie verticale
-      final flippedCoords = flipVertical(currentCoords, axisX);
+      // 3. Appliquer la symétrie verticale (flip horizontal pour être plus intuitif)
+      // En termes visuels, une "symétrie verticale" inverse haut/bas
+      final flippedCoords = flipHorizontal(currentCoords, selectedPiece.gridY + refY);
 
       // 4. Reconnaître la nouvelle forme
       final match = recognizeShape(flippedCoords);
@@ -977,9 +998,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       );
 
       // 10. Calculer la nouvelle position locale de la master case
-      // Pour la symétrie verticale, centerX = axisX, centerY reste fixe
-      final centerX = axisX;
-      final centerY = selectedPiece.gridY + refY;
+      // Pour la symétrie verticale (↕️), on inverse haut/bas autour de y = axisY
+      final centerX = selectedPiece.gridX + refX;
+      final centerY = axisY;
       final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
       print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
 
@@ -1005,24 +1026,33 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       final piece = state.selectedPiece!;
       final currentIndex = state.selectedPositionIndex;
 
-      // Trouver la position correspondant à une symétrie verticale
-      final nextIndex = piece.findSymmetryV(currentIndex);
+      // Utiliser les transformations géométriques comme en mode isométries
+      // 1. Extraire les coordonnées de la position actuelle (normalisées)
+      final currentCoords = piece.cartesianCoords[currentIndex];
 
-      // Si aucune symétrie trouvée, ne rien faire
-      if (nextIndex == -1) {
+      // 2. Déterminer l'axe de symétrie (axe horizontal y = refY pour inverser haut/bas)
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
+
+      // 3. Appliquer la symétrie horizontale (inverse haut/bas)
+      final flippedCoords = flipHorizontal(currentCoords, refY);
+
+      // 4. Reconnaître la nouvelle forme
+      final match = recognizeShape(flippedCoords);
+
+      if (match == null || match.piece.id != piece.id) {
         print('[GAME] ⚠️ Aucune symétrie verticale disponible pour cette pièce');
         return;
       }
 
-      print('[GAME] ↕️ Symétrie verticale de la pièce sélectionnée');
+      print('[GAME] ↕️ Symétrie verticale de la pièce sélectionnée (position $currentIndex → ${match.positionIndex})');
 
-      // Sauvegarder le nouvel index dans le Map
+      // 5. Sauvegarder le nouvel index dans le Map
       final newIndices = Map<int, int>.from(state.piecePositionIndices);
-      newIndices[piece.id] = nextIndex;
+      newIndices[piece.id] = match.positionIndex;
 
-      // Mettre à jour l'état
+      // 6. Mettre à jour l'état
       state = state.copyWith(
-        selectedPositionIndex: nextIndex,
+        selectedPositionIndex: match.positionIndex,
         piecePositionIndices: newIndices,
       );
       return;
