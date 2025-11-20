@@ -1,8 +1,6 @@
 // lib/services/isometry_transforms.dart
 // Bibliothèque de transformations isométriques pour coordonnées cartésiennes
 
-import 'dart:math' as math;
-
 /// Applique une rotation autour d'un point P0
 ///
 /// [coords] : Liste de coordonnées [[x1,y1], [x2,y2], ...]
@@ -101,4 +99,3 @@ List<List<int>> flipVertical(
     return [2 * axisX - x, y];
   }).toList();
 }
-

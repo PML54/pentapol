@@ -1,11 +1,14 @@
+// lib/services/shape_recognizer.dart
+// Service de reconnaissance de formes de pentominos
+
 import 'package:pentapol/models/pentominos.dart';
 
 /// Résultat de la reconnaissance d'une forme
 class ShapeMatch {
-  final Pento piece;           // Pièce identifiée
-  final int positionIndex;     // Index de la position (0 à numPositions-1)
-  final int gridX;             // Coordonnée X où placer l'ancre
-  final int gridY;             // Coordonnée Y où placer l'ancre
+  final Pento piece;
+  final int positionIndex;
+  final int gridX;
+  final int gridY;
 
   const ShapeMatch({
     required this.piece,
@@ -15,7 +18,8 @@ class ShapeMatch {
   });
 
   @override
-  String toString() => 'Pièce ${piece.id}, position $positionIndex, à placer en ($gridX, $gridY)';
+  String toString() =>
+      'Pièce ${piece.id}, position $positionIndex, à placer en ($gridX, $gridY)';
 }
 
 /// Reconnaît une forme à partir de 5 coordonnées cartésiennes
