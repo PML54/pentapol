@@ -131,7 +131,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                         : Colors.grey,
                   ),
                   IconButton(
-                    icon: Icon(GameIcons.isometrySymmetryH.icon, size: 32),
+                    icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
                     onPressed: state.selectedPlacedPiece != null
                         ? () {
                             HapticFeedback.selectionClick();
@@ -144,7 +144,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                         : Colors.grey,
                   ),
                   IconButton(
-                    icon: Icon(GameIcons.isometrySymmetryV.icon, size: 32),
+                    icon: Icon(GameIcons.isometrySymmetryV.icon,size: settings.ui.iconSize),
                     onPressed: state.selectedPlacedPiece != null
                         ? () {
                             HapticFeedback.selectionClick();
@@ -159,7 +159,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                   // Bouton Delete (visible si une pièce placée est sélectionnée)
                   if (state.selectedPlacedPiece != null)
                     IconButton(
-                      icon: Icon(GameIcons.isometryDelete.icon, size: 32),
+                      icon: Icon(GameIcons.isometryDelete.icon, size: settings.ui.iconSize),
                       onPressed: () {
                         HapticFeedback.mediumImpact();
                         notifier.removePlacedPiece(state.selectedPlacedPiece!);
@@ -173,7 +173,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                   // Boutons de transformation (visibles si pièce sélectionnée)
                   if (state.selectedPiece != null) ...[
                     IconButton(
-                      icon: Icon(GameIcons.isometryRotation.icon, size: 24),
+                      icon: Icon(GameIcons.isometryRotation.icon,size: settings.ui.iconSize),
                       onPressed: () {
                         HapticFeedback.selectionClick();
                         notifier.applyIsometryRotation();
@@ -182,7 +182,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                       color: GameIcons.isometryRotation.color,
                     ),
                     IconButton(
-                      icon: Icon(GameIcons.isometrySymmetryH.icon, size: 24),
+                      icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
                       onPressed: () {
                         HapticFeedback.selectionClick();
                         notifier.applyIsometrySymmetryH();
@@ -191,7 +191,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                       color: GameIcons.isometrySymmetryH.color,
                     ),
                     IconButton(
-                      icon: Icon(GameIcons.isometrySymmetryV.icon, size: 24),
+                      icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
                       onPressed: () {
                         HapticFeedback.selectionClick();
                         notifier.applyIsometrySymmetryV();
@@ -203,7 +203,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                   // Bouton retirer (visible si pièce placée sélectionnée)
                   if (state.selectedPlacedPiece != null)
                     IconButton(
-                      icon: Icon(GameIcons.removePiece.icon, size: 24),
+                      icon: Icon(GameIcons.removePiece.icon,size: settings.ui.iconSize),
                       onPressed: () {
                         HapticFeedback.mediumImpact();
                         notifier.removePlacedPiece(state.selectedPlacedPiece!);
@@ -214,7 +214,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                   
                   // 🎓 Bouton "Mode Isométries" à droite
                   IconButton(
-                    icon: Icon(GameIcons.enterIsometries.icon, size: 24),
+                    icon: Icon(GameIcons.enterIsometries.icon, size: settings.ui.iconSize),
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       notifier.enterIsometriesMode();

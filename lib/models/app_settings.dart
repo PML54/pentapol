@@ -31,7 +31,8 @@ class UISettings {
   final bool enableAnimations;      // Activer les animations
   final double pieceOpacity;        // Opacité des pièces (0.0 - 1.0)
   final Color isometriesAppBarColor; // Couleur de fond AppBar en mode isométries
-  
+  final double iconSize;            // Taille des icônes (16.0 - 48.0)
+
   const UISettings({
     this.colorScheme = PieceColorScheme.classic,
     this.customColors = const [],
@@ -40,8 +41,9 @@ class UISettings {
     this.enableAnimations = true,
     this.pieceOpacity = 1.0,
     this.isometriesAppBarColor = const Color(0xFF9575CD), // Violet clair par défaut
+    this.iconSize = 28.0, // Taille par défaut : 28px
   });
-  
+
   UISettings copyWith({
     PieceColorScheme? colorScheme,
     List<Color>? customColors,
@@ -50,6 +52,7 @@ class UISettings {
     bool? enableAnimations,
     double? pieceOpacity,
     Color? isometriesAppBarColor,
+    double? iconSize,
   }) {
     return UISettings(
       colorScheme: colorScheme ?? this.colorScheme,
@@ -59,9 +62,10 @@ class UISettings {
       enableAnimations: enableAnimations ?? this.enableAnimations,
       pieceOpacity: pieceOpacity ?? this.pieceOpacity,
       isometriesAppBarColor: isometriesAppBarColor ?? this.isometriesAppBarColor,
+      iconSize: iconSize ?? this.iconSize,
     );
   }
-  
+
   /// Obtenir la couleur d'une pièce selon le schéma actuel
   Color getPieceColor(int pieceId) {
     switch (colorScheme) {
@@ -79,7 +83,7 @@ class UISettings {
         return _getCustomColor(pieceId);
     }
   }
-  
+
   Color _getCustomColor(int pieceId) {
     if (customColors.isEmpty) {
       // Si pas de couleurs personnalisées, utiliser classique par défaut
@@ -87,7 +91,7 @@ class UISettings {
     }
     return customColors[(pieceId - 1) % customColors.length];
   }
-  
+
   Color _getClassicColor(int pieceId) {
     const colors = [
       Color(0xFFE57373), // Rouge
@@ -105,7 +109,7 @@ class UISettings {
     ];
     return colors[pieceId % colors.length];
   }
-  
+
   Color _getPastelColor(int pieceId) {
     const colors = [
       Color(0xFFFFCDD2), // Rose pastel
@@ -123,7 +127,7 @@ class UISettings {
     ];
     return colors[pieceId % colors.length];
   }
-  
+
   Color _getNeonColor(int pieceId) {
     const colors = [
       Color(0xFFFF1744), // Rouge néon
@@ -141,7 +145,7 @@ class UISettings {
     ];
     return colors[pieceId % colors.length];
   }
-  
+
   Color _getMonochromeColor(int pieceId) {
     final shades = [
       Colors.grey[900]!,
@@ -159,7 +163,7 @@ class UISettings {
     ];
     return shades[pieceId % shades.length];
   }
-  
+
   Color _getRainbowColor(int pieceId) {
     // Arc-en-ciel : Rouge -> Orange -> Jaune -> Vert -> Bleu -> Violet
     const colors = [
@@ -178,7 +182,7 @@ class UISettings {
     ];
     return colors[pieceId % colors.length];
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'colorScheme': colorScheme.index,
@@ -188,13 +192,14 @@ class UISettings {
       'enableAnimations': enableAnimations,
       'pieceOpacity': pieceOpacity,
       'isometriesAppBarColor': isometriesAppBarColor.value, // ignore: deprecated_member_use
+      'iconSize': iconSize,
     };
   }
-  
+
   factory UISettings.fromJson(Map<String, dynamic> json) {
     final customColorValues = json['customColors'] as List<dynamic>?;
     final customColors = customColorValues?.map((v) => Color(v as int)).toList() ?? [];
-    
+
     return UISettings(
       colorScheme: PieceColorScheme.values[json['colorScheme'] ?? 0],
       customColors: customColors,
@@ -203,6 +208,7 @@ class UISettings {
       enableAnimations: json['enableAnimations'] ?? true,
       pieceOpacity: json['pieceOpacity'] ?? 1.0,
       isometriesAppBarColor: Color(json['isometriesAppBarColor'] ?? 0xFF9575CD),
+      iconSize: json['iconSize'] ?? 28.0,
     );
   }
 }
@@ -215,7 +221,7 @@ class GameSettings {
   final bool enableTimer;           // Activer le chronomètre
   final bool enableHaptics;         // Activer le retour haptique
   final int longPressDuration;      // Durée du long press en ms
-  
+
   const GameSettings({
     this.difficulty = GameDifficulty.normal,
     this.showSolutionCounter = true,
@@ -224,7 +230,7 @@ class GameSettings {
     this.enableHaptics = true,
     this.longPressDuration = 200,
   });
-  
+
   GameSettings copyWith({
     GameDifficulty? difficulty,
     bool? showSolutionCounter,
@@ -242,7 +248,7 @@ class GameSettings {
       longPressDuration: longPressDuration ?? this.longPressDuration,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'difficulty': difficulty.index,
@@ -253,7 +259,7 @@ class GameSettings {
       'longPressDuration': longPressDuration,
     };
   }
-  
+
   factory GameSettings.fromJson(Map<String, dynamic> json) {
     return GameSettings(
       difficulty: GameDifficulty.values[json['difficulty'] ?? 1],
@@ -270,12 +276,12 @@ class GameSettings {
 class AppSettings {
   final UISettings ui;
   final GameSettings game;
-  
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
   });
-  
+
   AppSettings copyWith({
     UISettings? ui,
     GameSettings? game,
@@ -285,14 +291,14 @@ class AppSettings {
       game: game ?? this.game,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'ui': ui.toJson(),
       'game': game.toJson(),
     };
   }
-  
+
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     return AppSettings(
       ui: UISettings.fromJson(json['ui'] ?? {}),
@@ -300,4 +306,3 @@ class AppSettings {
     );
   }
 }
-

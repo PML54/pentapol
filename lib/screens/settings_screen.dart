@@ -43,7 +43,7 @@ class SettingsScreen extends ConsumerWidget {
                   ],
                 ),
               );
-              
+
               if (confirm == true) {
                 await notifier.resetToDefaults();
               }
@@ -55,7 +55,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           // === SECTION UI ===
           _buildSectionHeader('Interface'),
-          
+
           // Schéma de couleurs
           ListTile(
             leading: const Icon(Icons.palette),
@@ -63,7 +63,7 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(_getColorSchemeName(settings.ui.colorScheme)),
             onTap: () => _showColorSchemeDialog(context, notifier, settings.ui.colorScheme),
           ),
-          
+
           // Personnaliser les couleurs (visible si schéma custom)
           if (settings.ui.colorScheme == PieceColorScheme.custom)
             ListTile(
@@ -78,7 +78,7 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-          
+
           // Afficher numéros
           SwitchListTile(
             secondary: const Icon(Icons.numbers),
@@ -87,7 +87,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.ui.showPieceNumbers,
             onChanged: (value) => notifier.setShowPieceNumbers(value),
           ),
-          
+
           // Lignes de grille
           SwitchListTile(
             secondary: const Icon(Icons.grid_on),
@@ -96,7 +96,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.ui.showGridLines,
             onChanged: (value) => notifier.setShowGridLines(value),
           ),
-          
+
           // Animations
           SwitchListTile(
             secondary: const Icon(Icons.animation),
@@ -105,7 +105,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.ui.enableAnimations,
             onChanged: (value) => notifier.setEnableAnimations(value),
           ),
-          
+
           // Opacité des pièces
           ListTile(
             leading: const Icon(Icons.opacity),
@@ -119,7 +119,21 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) => notifier.setPieceOpacity(value),
             ),
           ),
-          
+
+          // Taille des icônes
+          ListTile(
+            leading: const Icon(Icons.format_size),
+            title: const Text('Taille des icônes'),
+            subtitle: Slider(
+              value: settings.ui.iconSize,
+              min: 16.0,
+              max: 48.0,
+              divisions: 16,
+              label: '${settings.ui.iconSize.round()}px',
+              onChanged: (value) => notifier.setIconSize(value),
+            ),
+          ),
+
           // Couleur AppBar mode isométries
           ListTile(
             leading: const Icon(Icons.format_paint),
@@ -136,12 +150,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             onTap: () => _showIsometriesColorPicker(context, notifier, settings.ui.isometriesAppBarColor),
           ),
-          
+
           const Divider(),
-          
+
           // === SECTION JEU ===
           _buildSectionHeader('Jeu'),
-          
+
           // Niveau de difficulté
           ListTile(
             leading: const Icon(Icons.speed),
@@ -149,7 +163,7 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(_getDifficultyName(settings.game.difficulty)),
             onTap: () => _showDifficultyDialog(context, notifier, settings.game.difficulty),
           ),
-          
+
           // Compteur de solutions
           SwitchListTile(
             secondary: const Icon(Icons.emoji_events),
@@ -158,7 +172,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.game.showSolutionCounter,
             onChanged: (value) => notifier.setShowSolutionCounter(value),
           ),
-          
+
           // Indices
           SwitchListTile(
             secondary: const Icon(Icons.lightbulb_outline),
@@ -167,7 +181,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.game.enableHints,
             onChanged: (value) => notifier.setEnableHints(value),
           ),
-          
+
           // Chronomètre
           SwitchListTile(
             secondary: const Icon(Icons.timer),
@@ -176,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.game.enableTimer,
             onChanged: (value) => notifier.setEnableTimer(value),
           ),
-          
+
           // Retour haptique
           SwitchListTile(
             secondary: const Icon(Icons.vibration),
@@ -185,7 +199,7 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.game.enableHaptics,
             onChanged: (value) => notifier.setEnableHaptics(value),
           ),
-          
+
           // Durée du long press
           ListTile(
             leading: const Icon(Icons.touch_app),
@@ -209,13 +223,13 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 32),
         ],
       ),
     );
   }
-  
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -229,7 +243,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   String _getColorSchemeName(PieceColorScheme scheme) {
     switch (scheme) {
       case PieceColorScheme.classic:
@@ -246,7 +260,7 @@ class SettingsScreen extends ConsumerWidget {
         return 'Personnalisé';
     }
   }
-  
+
   String _getDifficultyName(GameDifficulty difficulty) {
     switch (difficulty) {
       case GameDifficulty.easy:
@@ -259,12 +273,12 @@ class SettingsScreen extends ConsumerWidget {
         return 'Expert';
     }
   }
-  
+
   void _showColorSchemeDialog(
-    BuildContext context,
-    SettingsNotifier notifier,
-    PieceColorScheme current,
-  ) {
+      BuildContext context,
+      SettingsNotifier notifier,
+      PieceColorScheme current,
+      ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -288,12 +302,12 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   void _showDifficultyDialog(
-    BuildContext context,
-    SettingsNotifier notifier,
-    GameDifficulty current,
-  ) {
+      BuildContext context,
+      SettingsNotifier notifier,
+      GameDifficulty current,
+      ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -317,12 +331,12 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   void _showIsometriesColorPicker(
-    BuildContext context,
-    SettingsNotifier notifier,
-    Color current,
-  ) {
+      BuildContext context,
+      SettingsNotifier notifier,
+      Color current,
+      ) {
     // Couleurs prédéfinies pour le mode isométries (claires pour bien voir les icônes)
     final predefinedColors = [
       const Color(0xFF9575CD), // Violet clair (défaut)
@@ -338,7 +352,7 @@ class SettingsScreen extends ConsumerWidget {
       const Color(0xFFA1887F), // Marron clair
       const Color(0xFF90A4AE), // Gris bleu clair
     ];
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -356,7 +370,7 @@ class SettingsScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final color = predefinedColors[index];
               final isSelected = color == current;
-              
+
               return GestureDetector(
                 onTap: () {
                   notifier.setIsometriesAppBarColor(color);
@@ -389,4 +403,3 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
-
