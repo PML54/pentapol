@@ -1,4 +1,4 @@
-// Modified: 2025-11-18 (Correspondance géométrique des lettres)
+// Modified: 2025-11-20 (Ajout cartesianCoords)
 // Généré automatiquement - Ne pas modifier manuellement les données
 // Pentominos avec numéros de cases sur grille 5×5
 // Numérotation: ligne 1 (bas) = cases 1-5, ligne 2 = cases 6-10, etc.
@@ -8,14 +8,16 @@ class Pento {
   final int id;
   final int size;
   final List<List<int>> positions;
+  final List<List<List<int>>> cartesianCoords; // Coordonnées (x,y) normalisées et triées
   final int numPositions;
   final List<int> baseShape;
   final int bit6; // code binaire 6 bits unique pour la pièce (0..63)
-  
+
   const Pento({
     required this.id,
     required this.size,
     required this.positions,
+    required this.cartesianCoords,
     required this.numPositions,
     required this.baseShape,
     required this.bit6,
@@ -37,13 +39,13 @@ class Pento {
   /// [cellNum] : numéro de cellule dans cette position
   String getLetterForPosition(int positionIndex, int cellNum) {
     const letters = ['A', 'B', 'C', 'D', 'E'];
-    
+
     // Trouver l'index de cellNum dans la position actuelle
     final position = positions[positionIndex];
     final indexInPosition = position.indexOf(cellNum);
-    
+
     if (indexInPosition == -1) return '?';
-    
+
     // L'index dans la position correspond à la même cellule géométrique
     // donc à la même lettre que dans baseShape
     return letters[indexInPosition];
@@ -72,15 +74,15 @@ class Pento {
 
   /// Méthode générique pour trouver une position transformée
   int _findTransformedPosition(
-    int currentPositionIndex,
-    List<List<int>> Function(List<List<int>>) transform,
-  ) {
+      int currentPositionIndex,
+      List<List<int>> Function(List<List<int>>) transform,
+      ) {
     // Convertir la position actuelle en coordonnées
     final currentCoords = _positionToCoordsNormalized(currentPositionIndex);
-    
+
     // Appliquer la transformation
     final transformedCoords = transform(currentCoords);
-    
+
     // Chercher dans toutes les positions celle qui correspond
     for (int i = 0; i < positions.length; i++) {
       final candidateCoords = _positionToCoordsNormalized(i);
@@ -88,7 +90,7 @@ class Pento {
         return i;
       }
     }
-    
+
     return -1; // Transformation non trouvée
   }
 
@@ -100,78 +102,78 @@ class Pento {
       final y = (cellNum - 1) ~/ 5;
       return [x, y];
     }).toList();
-    
+
     // Normaliser : décaler pour que min(x)=0 et min(y)=0
     if (coords.isEmpty) return [];
-    
+
     final minX = coords.map((c) => c[0]).reduce((a, b) => a < b ? a : b);
     final minY = coords.map((c) => c[1]).reduce((a, b) => a < b ? a : b);
-    
+
     final normalized = coords.map((c) => [c[0] - minX, c[1] - minY]).toList();
     // Trier pour comparaison
     normalized.sort((a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
-    
+
     return normalized;
   }
 
   /// Rotation de 90° anti-horaire : (x,y) -> (-y, x)
   List<List<int>> _rotate90Coords(List<List<int>> coords) {
     final rotated = coords.map((c) => [-c[1], c[0]]).toList();
-    
+
     // Normaliser
     if (rotated.isEmpty) return [];
-    
+
     final minX = rotated.map((c) => c[0]).reduce((a, b) => a < b ? a : b);
     final minY = rotated.map((c) => c[1]).reduce((a, b) => a < b ? a : b);
-    
+
     final normalized = rotated.map((c) => [c[0] - minX, c[1] - minY]).toList();
     normalized.sort((a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
-    
+
     return normalized;
   }
 
   /// Symétrie horizontale : (x,y) -> (-x, y)
   List<List<int>> _flipHCoords(List<List<int>> coords) {
     final flipped = coords.map((c) => [-c[0], c[1]]).toList();
-    
+
     // Normaliser
     if (flipped.isEmpty) return [];
-    
+
     final minX = flipped.map((c) => c[0]).reduce((a, b) => a < b ? a : b);
     final minY = flipped.map((c) => c[1]).reduce((a, b) => a < b ? a : b);
-    
+
     final normalized = flipped.map((c) => [c[0] - minX, c[1] - minY]).toList();
     normalized.sort((a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
-    
+
     return normalized;
   }
 
   /// Symétrie verticale : (x,y) -> (x, -y)
   List<List<int>> _flipVCoords(List<List<int>> coords) {
     final flipped = coords.map((c) => [c[0], -c[1]]).toList();
-    
+
     // Normaliser
     if (flipped.isEmpty) return [];
-    
+
     final minX = flipped.map((c) => c[0]).reduce((a, b) => a < b ? a : b);
     final minY = flipped.map((c) => c[1]).reduce((a, b) => a < b ? a : b);
-    
+
     final normalized = flipped.map((c) => [c[0] - minX, c[1] - minY]).toList();
     normalized.sort((a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
-    
+
     return normalized;
   }
 
   /// Compare deux listes de coordonnées
   bool _coordsEqual(List<List<int>> coords1, List<List<int>> coords2) {
     if (coords1.length != coords2.length) return false;
-    
+
     for (int i = 0; i < coords1.length; i++) {
       if (coords1[i][0] != coords2[i][0] || coords1[i][1] != coords2[i][1]) {
         return false;
       }
     }
-    
+
     return true;
   }
 }
@@ -186,6 +188,9 @@ final List<Pento> pentominos = [
     bit6: 7, // 0b000111
     positions: [
       [6, 2, 7, 12, 8],
+    ],
+    cartesianCoords: [
+      [[0, 1], [1, 0], [1, 1], [1, 2], [2, 1]],
     ],
   ),
 
@@ -206,6 +211,16 @@ final List<Pento> pentominos = [
       [11, 6, 12, 7, 2],
       [1, 2, 6, 7, 8],
     ],
+    cartesianCoords: [
+      [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2]],
+      [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1]],
+      [[0, 0], [0, 1], [0, 2], [1, 1], [1, 2]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2]],
+      [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1]],
+      [[0, 0], [0, 1], [0, 2], [1, 1], [1, 2]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0]],
+    ],
   ),
 
   // Pièce 3
@@ -220,6 +235,12 @@ final List<Pento> pentominos = [
       [2, 7, 13, 12, 11],
       [8, 7, 11, 6, 1],
       [12, 7, 1, 2, 3],
+    ],
+    cartesianCoords: [
+      [[0, 1], [1, 1], [1, 2], [2, 0], [2, 1]],
+      [[0, 2], [1, 0], [1, 1], [1, 2], [2, 2]],
+      [[0, 0], [0, 1], [1, 1], [2, 0], [2, 1]],
+      [[0, 0], [1, 0], [1, 1], [1, 2], [2, 0]],
     ],
   ),
 
@@ -240,6 +261,16 @@ final List<Pento> pentominos = [
       [6, 12, 7, 2, 13],
       [2, 6, 7, 8, 11],
     ],
+    cartesianCoords: [
+      [[0, 1], [1, 0], [1, 1], [1, 2], [2, 0]],
+      [[0, 1], [1, 0], [1, 1], [1, 2], [2, 1]],
+      [[0, 0], [1, 1], [1, 2], [2, 0], [2, 1]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [2, 1]],
+      [[0, 0], [1, 0], [1, 1], [1, 2], [2, 0]],
+      [[0, 1], [1, 0], [1, 1], [1, 2], [2, 0]],
+      [[0, 0], [1, 1], [1, 2], [2, 0], [2, 1]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [2, 1]],
+    ],
   ),
 
   // Pièce 5
@@ -259,6 +290,16 @@ final List<Pento> pentominos = [
       [6, 17, 12, 7, 2],
       [3, 6, 7, 8, 9],
     ],
+    cartesianCoords: [
+      [[0, 3], [1, 0], [1, 1], [1, 2], [1, 3]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [2, 1]],
+      [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
+      [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1]],
+      [[0, 0], [0, 1], [0, 2], [0, 3], [1, 3]],
+      [[0, 1], [1, 0], [2, 0], [3, 0], [3, 1]],
+      [[0, 0], [1, 0], [1, 1], [1, 2], [1, 3]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0]],
+    ],
   ),
 
   // Pièce 6
@@ -274,6 +315,12 @@ final List<Pento> pentominos = [
       [3, 2, 11, 6, 1],
       [13, 8, 1, 2, 3],
     ],
+    cartesianCoords: [
+      [[0, 2], [0, 3], [1, 2], [2, 0], [2, 2]],
+      [[0, 0], [0, 2], [0, 3], [1, 2], [2, 2]],
+      [[0, 0], [0, 2], [1, 0], [2, 0], [2, 1]],
+      [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]],
+    ],
   ),
 
   // Pièce 7
@@ -288,6 +335,12 @@ final List<Pento> pentominos = [
       [2, 1, 6, 12, 11],
       [8, 3, 2, 6, 1],
       [11, 12, 7, 1, 2],
+    ],
+    cartesianCoords: [
+      [[0, 0], [0, 1], [1, 1], [2, 0], [2, 1]],
+      [[0, 0], [0, 2], [1, 0], [1, 1], [2, 2]],
+      [[0, 0], [0, 1], [1, 0], [2, 0], [2, 1]],
+      [[0, 0], [1, 0], [1, 1], [1, 2], [2, 0]],
     ],
   ),
 
@@ -308,6 +361,16 @@ final List<Pento> pentominos = [
       [1, 2, 3, 9, 4],
       [2, 7, 12, 16, 17],
     ],
+    cartesianCoords: [
+      [[0, 1], [1, 0], [1, 1], [2, 1], [3, 1]],
+      [[0, 0], [0, 1], [0, 2], [0, 3], [1, 3]],
+      [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1]],
+      [[0, 1], [1, 0], [1, 1], [1, 2], [1, 3]],
+      [[0, 0], [0, 1], [1, 0], [2, 0], [3, 1]],
+      [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2]],
+      [[0, 0], [1, 1], [2, 1], [3, 0], [3, 1]],
+      [[0, 0], [1, 0], [1, 1], [1, 2], [1, 3]],
+    ],
   ),
 
   // Pièce 9
@@ -327,6 +390,16 @@ final List<Pento> pentominos = [
       [1, 2, 8, 3, 9],
       [2, 7, 11, 12, 16],
     ],
+    cartesianCoords: [
+      [[0, 1], [1, 1], [2, 0], [2, 1], [3, 0]],
+      [[0, 0], [0, 1], [0, 2], [1, 2], [1, 3]],
+      [[0, 0], [1, 0], [1, 1], [2, 0], [3, 1]],
+      [[0, 1], [0, 2], [1, 0], [1, 1], [1, 2]],
+      [[0, 0], [1, 0], [1, 1], [2, 1], [3, 0]],
+      [[0, 0], [0, 1], [1, 1], [1, 2], [1, 3]],
+      [[0, 1], [1, 0], [2, 0], [2, 1], [3, 0]],
+      [[0, 0], [1, 0], [1, 1], [1, 2], [1, 3]],
+    ],
   ),
 
   // Pièce 10
@@ -341,6 +414,12 @@ final List<Pento> pentominos = [
       [2, 1, 7, 13, 12],
       [8, 13, 7, 1, 6],
       [12, 11, 7, 3, 2],
+    ],
+    cartesianCoords: [
+      [[0, 1], [0, 2], [1, 1], [2, 0], [2, 1]],
+      [[0, 0], [0, 2], [1, 0], [1, 1], [2, 2]],
+      [[0, 0], [0, 1], [1, 1], [2, 0], [2, 2]],
+      [[0, 0], [1, 0], [1, 1], [2, 0], [2, 2]],
     ],
   ),
 
@@ -357,6 +436,12 @@ final List<Pento> pentominos = [
       [3, 7, 2, 11, 6],
       [13, 7, 8, 1, 2],
     ],
+    cartesianCoords: [
+      [[0, 2], [1, 1], [1, 2], [2, 0], [2, 1]],
+      [[0, 0], [0, 2], [1, 0], [1, 1], [2, 2]],
+      [[0, 0], [0, 1], [1, 1], [2, 0], [2, 2]],
+      [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2]],
+    ],
   ),
 
   // Pièce 12
@@ -369,6 +454,10 @@ final List<Pento> pentominos = [
     positions: [
       [1, 6, 11, 16, 21],
       [5, 4, 3, 2, 1],
+    ],
+    cartesianCoords: [
+      [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
+      [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]],
     ],
   ),
 ];
