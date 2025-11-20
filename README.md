@@ -1,128 +1,100 @@
-<!-- Modified: 2025-11-16 09:30:00 -->
-# 🧩 Pentapol
+# 📁 Pentomino Game - Structure
 
-> **Jeu collaboratif de pentominos en temps réel — Flutter + Supabase + IA bienveillante**
+Réorganisation progressive de `pentomino_game_screen.dart` en modules réutilisables.
 
----
+## 🎯 Objectif
 
-## 🎯 Vision
+Découper le fichier monolithique (1350+ lignes) en composants plus petits et maintenables.
 
-Pentapol est une application **multijoueur iOS/Android** où les joueurs résolvent ensemble des **puzzles de type pentomino**.  
-Chaque partie est collaborative, animée par un **coach IA bienveillant** qui encourage, modère et accompagne la progression.
+## 📊 État actuel (18 novembre 2025)
 
----
+### ✅ Phase 1 : Utilitaires (Complète)
+- `utils/game_constants.dart` - Dimensions, bordures, slider
+- `utils/game_colors.dart` - Palette de couleurs complète
+- `utils/game_utils.dart` - Export centralisé
 
-## 🎮 Mode Jeu Solo
+### ✅ Phase 2 : Widgets (Complète)
+- `widgets/shared/piece_renderer.dart` - Affichage d'une pièce (120 lignes)
+- `widgets/shared/draggable_piece_widget.dart` - Drag & drop + double-tap (170 lignes)
+- `widgets/shared/piece_border_calculator.dart` - Bordures de pièces (120 lignes)
+- `widgets/shared/action_slider.dart` - Actions mode paysage (310 lignes)
+- `widgets/game_mode/piece_slider.dart` - Slider de pièces (175 lignes)
 
-### Interface adaptative
-- **Mode Portrait** : Plateau 6×10 vertical, slider horizontal en bas
-- **Mode Paysage** : Plateau 10×6 horizontal, sliders verticaux à droite
-  - Slider d'actions (compteur de solutions, visibilité, rotation, annuler)
-  - Slider de pièces disponibles
-  - Pas d'AppBar (plein écran)
+### 📈 Résultats
+- **Avant** : 1350 lignes (monolithique)
+- **Après** : 650 lignes (orchestrateur)
+- **Gain** : -700 lignes (-52%) 🎯
+- **Widgets extraits** : 5 fichiers (~895 lignes)
 
-### Interactions
-- **Tap simple** sur pièce du slider : sélectionner
-- **Double-tap** sur pièce : rotation
-- **Long press** (200ms) sur pièce : démarrer le drag & drop
-- **Tap sur plateau** : sélectionner/désélectionner une pièce placée
-- **Drag & drop** : placer une pièce sur le plateau
+### 📋 À faire (futur)
+- `widgets/shared/game_board.dart` - Grille 6×10 (~400 lignes)
+- AppBars des 2 modes (~100 lignes)
+- Vues complètes des modes
 
-### Compteur de solutions
-- Affiche le nombre de solutions possibles en temps réel
-- Masqué quand le plateau est vide
-- Bouton 👁️ pour visualiser les solutions compatibles
+## 📖 Usage
 
-### Fonctionnalités
-- ✅ Démarrage direct sur le jeu
-- ✅ Adaptation automatique portrait/paysage
-- ✅ Pré-chargement de 9356 solutions (BigInt)
-- ✅ Calcul temps réel des solutions possibles
-- ✅ Undo/Redo des placements
-- ✅ Feedback haptique sur les actions
+### Importer les utilitaires
 
----
+```dart
+// Imports absolus depuis lib/
+import 'package:pentapol/screens/pentomino_game/utils/game_utils.dart';
 
-## 🏗️ Stack technique
+// Utilisation
+final width = GameConstants.boardWidth;
+final color = GameColors.masterCellBorderColor;
+```
 
-| Côté | Technologie | Rôle |
-|------|--------------|------|
-| **Client** | Flutter / Dart | Interface & logique locale |
-| **État** | Riverpod | Gestion réactive des états |
-| **Modèles** | Freezed | Données immuables, unions |
-| **Local** | SQLite | Cache, pseudo, messages |
-| **Backend** | Supabase (Postgres + Realtime + RLS) | Rooms, progression, chat |
-| **Edge** | Cloudflare Workers / Durable Objects | WebSocket, quotas, upload |
-| **IA** | API IA + Edge Function | Coach, modération, résumé |
-| **Langues** | FR/EN (intl, .arb) | Interface multilingue |
+### Importer les widgets
 
----
+```dart
+// Widgets partagés
+import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart';
 
-## 🔄 Fonctionnement du jeu
+// Widgets mode jeu
+import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
+```
 
-1. Un joueur crée une **room** (figure à 3–12 pièces).
-2. D’autres joueurs rejoignent via lien ou QR code.
-3. Tous placent les pièces ensemble, le compteur `X / total` est partagé.
-4. Le **coach IA “Penta”** commente et encourage.
-5. À la fin, l’IA résume la partie (durée, coopération, rythme).
+## 🎨 Architecture actuelle
 
----
+```
+pentomino_game/
+├── pentomino_game_screen.dart    # Orchestrateur (650 lignes)
+├── widgets/                       # Composants UI
+│   ├── shared/                   # Partagés ✅
+│   │   ├── piece_renderer.dart
+│   │   ├── draggable_piece_widget.dart
+│   │   ├── piece_border_calculator.dart
+│   │   └── action_slider.dart
+│   ├── game_mode/                # Mode jeu ✅
+│   │   └── piece_slider.dart
+│   └── isometries_mode/          # Mode isométries (futur)
+└── utils/                         # Utilitaires ✅
+    ├── game_constants.dart
+    ├── game_colors.dart
+    └── game_utils.dart
+```
 
-## 🤖 IA : Coach & Modération
+## 🔧 Principes de conception
 
-### Rôles
-| Type | Description |
-|------|--------------|
-| 🛡️ **Gardienne** | Modère le chat (`OK / WARN / BLOCK`) |
-| 💬 **Coach** | Encourage et anime la partie |
-| 📊 **Analyste** | Génère un débrief anonyme post-partie |
+### 1. Imports absolus
+Tous les imports utilisent `package:pentapol/` pour une meilleure lisibilité.
 
-### Personnalité
-- Bienveillante, jamais intrusive
-- Langage simple, positif, multilingue
-- Intervient à des moments-clés (début, milestones, fin)
+### 2. Widgets réutilisables
+Chaque widget extrait est autonome et réutilisable.
 
-### Exemples
-> “Super esprit d’équipe ! 🧩”  
-> “Essaie une pièce droite ici 👀”  
-> “Encore une et la figure sera complète !”
+### 3. Séparation des responsabilités
+- **Utils** : Constantes et couleurs
+- **Shared** : Widgets partagés entre modes
+- **Game mode** : Widgets spécifiques au jeu
+- **Orchestrateur** : Coordination et layouts
 
----
+### 4. Migration progressive
+Extraction au fur et à mesure, sans breaking changes.
 
-## 🌐 Internationalisation
+## 📝 Notes
 
-- Langues : **français / anglais**
-- Détection : locale système → fallback `en`
-- Fichiers : `lib/l10n/app_fr.arb`, `lib/l10n/app_en.arb`
-- Provider Riverpod : `localeProvider`
-- Coach et IA répondent dans la langue de la room (`room.lang`)
-
----
-
-## 🧱 Données (Supabase)
-
-### Tables principales
-- `rooms(id, pieces_total, image_url, lang, created_at)`
-- `room_members(room_id, player_id, display_name, joined_at)`
-- `progress(room_id, placed, updated_at)`
-- `messages(id, room_id, player_id, text, status, created_at)`
-- `scores(room_id, player_id, points)`
-
-### Règles RLS
-- Lecture/écriture restreinte au `room_id` du joueur.
-- Auth anonyme ou device token.
-
----
-
-## 🔐 Sécurité & vie privée
-
-- Pas de données personnelles stockées.
-- Pseudos et préférences locaux (SQLite).
-- Chat modéré, purge automatique ≤ 24 h.
-- Uploads d’images (si activés) : URL signées, purge ≤ 30 min.
-
----
-
-## ⚙️ Installation (base Flutter)
-
-```bash
+- ✅ Tous les widgets extraits sont testés
+- ✅ 0 erreurs, 0 warnings
+- ✅ Tests OK sur iOS et macOS
+- 📦 Prêt pour extraction future du GameBoard
