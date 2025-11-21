@@ -896,6 +896,58 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     print('[GAME] ⚠️ Aucune pièce sélectionnée pour la rotation horaire');
   }
 
+  /// Cycle vers l'orientation suivante de la pièce sélectionnée
+  /// Passe simplement à l'index suivant dans piece.positions (boucle)
+  void cycleToNextOrientation() {
+    // Pour une pièce sélectionnée (pas encore placée)
+    if (state.selectedPiece != null) {
+      final piece = state.selectedPiece!;
+      final currentIndex = state.selectedPositionIndex;
+      final nextIndex = (currentIndex + 1) % piece.numPositions;
+
+      print('[GAME] 🔄 Cycle orientation : $currentIndex → $nextIndex (sur ${piece.numPositions} positions)');
+
+      // Sauvegarder le nouvel index dans le Map
+      final newIndices = Map<int, int>.from(state.piecePositionIndices);
+      newIndices[piece.id] = nextIndex;
+
+      // Mettre à jour l'état
+      state = state.copyWith(
+        selectedPositionIndex: nextIndex,
+        piecePositionIndices: newIndices,
+      );
+      _recomputeBoardValidity();
+      return;
+    }
+
+    // Pour une pièce placée
+    if (state.selectedPlacedPiece != null) {
+      final selectedPiece = state.selectedPlacedPiece!;
+      final currentIndex = selectedPiece.positionIndex;
+      final nextIndex = (currentIndex + 1) % selectedPiece.piece.numPositions;
+
+      print('[GAME] 🔄 Cycle orientation pièce placée : $currentIndex → $nextIndex (sur ${selectedPiece.piece.numPositions} positions)');
+
+      // Créer la pièce avec la nouvelle orientation
+      final transformedPiece = selectedPiece.copyWith(positionIndex: nextIndex);
+
+      // Recalculer les solutions possibles
+      final solutionsCount = _computeSolutionsWithTransformedPiece(transformedPiece);
+      print('[GAME] 🎯 Solutions possibles après cycle : $solutionsCount');
+
+      // Mettre à jour l'état
+      state = state.copyWith(
+        selectedPlacedPiece: transformedPiece,
+        selectedPositionIndex: nextIndex,
+        solutionsCount: solutionsCount,
+      );
+      _recomputeBoardValidity();
+      return;
+    }
+
+    print('[GAME] ⚠️ Aucune pièce sélectionnée pour le cycle');
+  }
+
   /// Applique une symétrie horizontale à la pièce sélectionnée
   /// Fonctionne en mode jeu normal ET en mode isométries
   /// Symétrie géométrique par rapport à x = x0 (axe vertical à travers la mastercase)

@@ -14,7 +14,7 @@ import 'package:pentapol/screens/pentomino_game/widgets/shared/draggable_piece_w
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
 
 /// Slider de pièces disponibles
-/// 
+///
 /// Affiche les pièces non encore placées dans un slider infini.
 /// - Portrait: horizontal en bas
 /// - Paysage: vertical à droite
@@ -116,18 +116,18 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
           borderRadius: BorderRadius.circular(12),
           border: isSelected
               ? Border.all(
-                  color: Colors.amber.shade700,
-                  width: 3,
-                )
+            color: Colors.amber.shade700,
+            width: 3,
+          )
               : null,
           boxShadow: isSelected
               ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ]
               : null,
         ),
         child: DraggablePieceWidget(
@@ -146,7 +146,7 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
             if (settings.game.enableHaptics) {
               HapticFeedback.selectionClick();
             }
-            notifier.applyIsometryRotation();
+            notifier.cycleToNextOrientation();
           },
           onCancel: () {
             if (settings.game.enableHaptics) {
@@ -156,8 +156,8 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
           },
           childBuilder: (isDragging) => PieceRenderer(
             piece: piece,
-            positionIndex: state.selectedPiece?.id == piece.id 
-                ? state.selectedPositionIndex 
+            positionIndex: state.selectedPiece?.id == piece.id
+                ? state.selectedPositionIndex
                 : positionIndex,
             isDragging: isDragging,
             getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
@@ -167,4 +167,3 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
     );
   }
 }
-
