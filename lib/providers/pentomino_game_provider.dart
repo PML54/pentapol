@@ -66,6 +66,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         plateau: newPlateau,
         placedPieces: newPlaced,
       );
+      _recomputeBoardValidity();
     }
 
     // Définir une case de référence par défaut (première case de la pièce)
@@ -82,6 +83,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       clearSelectedPlacedPiece: true,
       selectedCellInPiece: defaultCell,
     );
+    _recomputeBoardValidity();
   }
 
   /// Tente de placer la pièce sélectionnée sur le plateau
@@ -171,6 +173,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       solutionsCount: solutionsCount,
       clearPreview: true,        // 👈 AJOUT ICI
     );
+// Recalculer la validité globale du plateau
+    _recomputeBoardValidity();
 
     print('[GAME] ✅ Pièce ${piece.id} placée à ($anchorX, $anchorY)');
     print('[GAME] Pièces restantes: ${newAvailable.length}');
@@ -227,7 +231,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         clearSelectedPlacedPiece: true,
         clearSelectedCellInPiece: true,
       );
-
+      _recomputeBoardValidity();
       print('[GAME] ❌ Sélection annulée, pièce replacée sur le plateau');
     } else {
       // C'est une pièce du slider, juste annuler la sélection
@@ -502,6 +506,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       clearSelectedCellInPiece: true,
       solutionsCount: solutionsCount,
     );
+    _recomputeBoardValidity();
 
     print('[GAME] 🗑️ Pièce ${placedPiece.piece.id} retirée du plateau');
     if (solutionsCount != null) {
@@ -687,34 +692,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
       print('[GAME] ✅ Rotation réussie : pièce ${match.piece.id}, position ${match.positionIndex}, nouvelle ancre (${match.gridX}, ${match.gridY})');
 
-      // 6. Créer une copie du plateau
-      final newPlateau = state.plateau.copy();
-
-      // 7. Effacer l'ancienne pièce du plateau temporaire
-      final position = selectedPiece.piece.positions[selectedPiece.positionIndex];
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = selectedPiece.gridX + localX;
-        final y = selectedPiece.gridY + localY;
-        if (newPlateau.isInBounds(x, y)) {
-          newPlateau.setCell(x, y, 0);
-        }
-      }
-
-      // 8. Placer la nouvelle pièce
-      final newPosition = match.piece.positions[match.positionIndex];
-      for (final cellNum in newPosition) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = match.gridX + localX;
-        final y = match.gridY + localY;
-        if (newPlateau.isInBounds(x, y)) {
-          newPlateau.setCell(x, y, match.piece.id);
-        }
-      }
-
-      // 9. Créer la nouvelle pièce placée
+      // 6. Créer la nouvelle pièce placée (transformée)
       final transformedPiece = PlacedPiece(
         piece: match.piece,
         positionIndex: match.positionIndex,
@@ -722,24 +700,26 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         gridY: match.gridY,
       );
 
-      // 10. Calculer la nouvelle position locale de la master case
+      // 7. Calculer la nouvelle position locale de la master case
       final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
       print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
 
-      // 11. Mettre à jour la liste des pièces placées
-      final updatedPieces = state.placedPieces.map((placed) {
-        return placed == selectedPiece ? transformedPiece : placed;
-      }).toList();
+      // 8. NE PAS modifier placedPieces ni le plateau
+      // La pièce reste hors du plateau (elle a été retirée lors de la sélection)
+      // et sera replacée quand l'utilisateur cliquera ailleurs
 
-      // 12. Mettre à jour l'état avec la nouvelle master case
+      // 9. Recalculer les solutions possibles avec la nouvelle configuration
+      final solutionsCount = _computeSolutionsWithTransformedPiece(transformedPiece);
+      print('[GAME] 🎯 Solutions possibles après rotation anti-horaire : $solutionsCount');
+
+      // 10. Mettre à jour l'état avec la nouvelle pièce transformée (toujours sélectionnée)
       state = state.copyWith(
-        placedPieces: updatedPieces,
-        plateau: newPlateau,
         selectedPlacedPiece: transformedPiece,
         selectedPositionIndex: match.positionIndex,
         selectedCellInPiece: newSelectedCell,
+        solutionsCount: solutionsCount,
       );
-
+      _recomputeBoardValidity();
       return;
     }
 
@@ -778,10 +758,142 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         selectedPositionIndex: match.positionIndex,
         piecePositionIndices: newIndices,
       );
+      _recomputeBoardValidity();
       return;
     }
 
     print('[GAME] ⚠️ Aucune pièce sélectionnée pour la rotation');
+  }
+
+  /// Applique une rotation 90° horaire à la pièce sélectionnée
+  /// Fonctionne en mode jeu normal ET en mode isométries
+  /// Rotation géométrique autour du point de référence (cellule rouge / mastercase)
+  void applyIsometryRotationCW() {
+    // Transformer une pièce placée avec rotation géométrique (mode game ET isométries)
+    if (state.selectedPlacedPiece != null) {
+      final selectedPiece = state.selectedPlacedPiece!;
+
+      // 1. Extraire les coordonnées absolues actuelles
+      final currentCoords = _extractAbsoluteCoords(selectedPiece);
+
+      // 2. Déterminer le centre de rotation P0
+      // Si une cellule de référence est définie, utiliser celle-ci
+      // Sinon, utiliser le coin bas-gauche de la pièce (0,0) local
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
+
+      final centerX = selectedPiece.gridX + refX;
+      final centerY = selectedPiece.gridY + refY;
+
+      print('[GAME] 🔃 Rotation 90° horaire autour de ($centerX, $centerY)');
+      print('[GAME] 📍 Coordonnées avant rotation : $currentCoords');
+
+      // 3. Appliquer la rotation autour de P0
+      final rotatedCoords = rotateAroundPoint(
+        currentCoords,
+        centerX,
+        centerY,
+        3, // 90° horaire (= 270° anti-horaire)
+      );
+
+      print('[GAME] 📍 Coordonnées après rotation : $rotatedCoords');
+
+      // 4. Reconnaître la nouvelle forme
+      final match = recognizeShape(rotatedCoords);
+
+      if (match == null) {
+        print('[GAME] ❌ Transformation invalide (forme non reconnue)');
+        print('[GAME] 🔍 Impossible de trouver une correspondance dans pentominos.dart');
+
+        // Debug : afficher les coordonnées normalisées
+        final minX = rotatedCoords.map((c) => c[0]).reduce((a, b) => a < b ? a : b);
+        final minY = rotatedCoords.map((c) => c[1]).reduce((a, b) => a < b ? a : b);
+        final normalized = rotatedCoords.map((c) => [c[0] - minX, c[1] - minY]).toList();
+        normalized.sort((a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
+        print('[GAME] 🔍 Forme normalisée recherchée : $normalized');
+
+        return;
+      }
+
+      // 5. Vérifier si la nouvelle position est valide sur le plateau
+      if (!_canPlacePieceAt(match, selectedPiece)) {
+        print('[GAME] ❌ La pièce sort du plateau ou chevauche une autre pièce');
+        return;
+      }
+
+      print('[GAME] ✅ Rotation horaire réussie : pièce ${match.piece.id}, position ${match.positionIndex}, nouvelle ancre (${match.gridX}, ${match.gridY})');
+
+      // 6. Créer la nouvelle pièce placée (transformée)
+      final transformedPiece = PlacedPiece(
+        piece: match.piece,
+        positionIndex: match.positionIndex,
+        gridX: match.gridX,
+        gridY: match.gridY,
+      );
+
+      // 7. Calculer la nouvelle position locale de la master case
+      final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
+      print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
+
+      // 8. NE PAS modifier placedPieces ni le plateau
+      // La pièce reste hors du plateau (elle a été retirée lors de la sélection)
+      // et sera replacée quand l'utilisateur cliquera ailleurs
+
+      // 9. Recalculer les solutions possibles avec la nouvelle configuration
+      final solutionsCount = _computeSolutionsWithTransformedPiece(transformedPiece);
+      print('[GAME] 🎯 Solutions possibles après rotation horaire : $solutionsCount');
+
+      // 10. Mettre à jour l'état avec la nouvelle pièce transformée (toujours sélectionnée)
+      state = state.copyWith(
+        selectedPlacedPiece: transformedPiece,
+        selectedPositionIndex: match.positionIndex,
+        selectedCellInPiece: newSelectedCell,
+        solutionsCount: solutionsCount,
+      );
+      _recomputeBoardValidity();
+      return;
+    }
+
+    // En mode jeu normal : transformer la pièce sélectionnée (pas encore placée)
+    if (state.selectedPiece != null) {
+      final piece = state.selectedPiece!;
+      final currentIndex = state.selectedPositionIndex;
+
+      // Utiliser les transformations géométriques comme en mode isométries
+      // 1. Extraire les coordonnées de la position actuelle (normalisées)
+      final currentCoords = piece.cartesianCoords[currentIndex];
+
+      // 2. Déterminer le centre de rotation (centre de la pièce locale)
+      final refX = (state.selectedCellInPiece?.x ?? 0).toInt();
+      final refY = (state.selectedCellInPiece?.y ?? 0).toInt();
+
+      // 3. Appliquer la rotation autour du centre local
+      final rotatedCoords = rotateAroundPoint(currentCoords, refX, refY, 3); // 90° horaire
+
+      // 4. Reconnaître la nouvelle forme
+      final match = recognizeShape(rotatedCoords);
+
+      if (match == null || match.piece.id != piece.id) {
+        print('[GAME] ⚠️ Aucune rotation disponible pour cette pièce (symétrique)');
+        return;
+      }
+
+      print('[GAME] 🔃 Rotation 90° horaire de la pièce sélectionnée (position $currentIndex → ${match.positionIndex})');
+
+      // 5. Sauvegarder le nouvel index dans le Map
+      final newIndices = Map<int, int>.from(state.piecePositionIndices);
+      newIndices[piece.id] = match.positionIndex;
+
+      // 6. Mettre à jour l'état
+      state = state.copyWith(
+        selectedPositionIndex: match.positionIndex,
+        piecePositionIndices: newIndices,
+      );
+      _recomputeBoardValidity();
+      return;
+    }
+
+    print('[GAME] ⚠️ Aucune pièce sélectionnée pour la rotation horaire');
   }
 
   /// Applique une symétrie horizontale à la pièce sélectionnée
@@ -824,34 +936,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
       print('[GAME] ✅ Symétrie horizontale réussie : pièce ${match.piece.id}, position ${match.positionIndex}, nouvelle ancre (${match.gridX}, ${match.gridY})');
 
-      // 6. Créer une copie du plateau
-      final newPlateau = state.plateau.copy();
-
-      // 7. Effacer l'ancienne pièce
-      final position = selectedPiece.piece.positions[selectedPiece.positionIndex];
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = selectedPiece.gridX + localX;
-        final y = selectedPiece.gridY + localY;
-        if (newPlateau.isInBounds(x, y)) {
-          newPlateau.setCell(x, y, 0);
-        }
-      }
-
-      // 8. Placer la nouvelle pièce
-      final newPosition = match.piece.positions[match.positionIndex];
-      for (final cellNum in newPosition) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = match.gridX + localX;
-        final y = match.gridY + localY;
-        if (newPlateau.isInBounds(x, y)) {
-          newPlateau.setCell(x, y, match.piece.id);
-        }
-      }
-
-      // 9. Créer la nouvelle pièce placée
+      // 6. Créer la nouvelle pièce placée (transformée)
       final transformedPiece = PlacedPiece(
         piece: match.piece,
         positionIndex: match.positionIndex,
@@ -859,27 +944,28 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         gridY: match.gridY,
       );
 
-      // 10. Calculer la nouvelle position locale de la master case
+      // 7. Calculer la nouvelle position locale de la master case
       // Pour la symétrie horizontale (↔️), on inverse gauche/droite autour de x = axisX
       final centerX = axisX;
       final centerY = selectedPiece.gridY + refY;
       final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
       print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
 
-      // 11. Mettre à jour la liste des pièces placées
-      final updatedPieces = state.placedPieces.map((placed) {
-        return placed == selectedPiece ? transformedPiece : placed;
-      }).toList();
+      // 8. NE PAS modifier placedPieces ni le plateau
+      // La pièce reste hors du plateau et sera replacée quand l'utilisateur cliquera ailleurs
 
-      // 12. Mettre à jour l'état avec la nouvelle master case
+      // 9. Recalculer les solutions possibles avec la nouvelle configuration
+      final solutionsCount = _computeSolutionsWithTransformedPiece(transformedPiece);
+      print('[GAME] 🎯 Solutions possibles après symétrie horizontale : $solutionsCount');
+
+      // 10. Mettre à jour l'état avec la nouvelle pièce transformée (toujours sélectionnée)
       state = state.copyWith(
-        placedPieces: updatedPieces,
-        plateau: newPlateau,
         selectedPlacedPiece: transformedPiece,
         selectedPositionIndex: match.positionIndex,
         selectedCellInPiece: newSelectedCell,
+        solutionsCount: solutionsCount,
       );
-
+      _recomputeBoardValidity();
       return;
     }
 
@@ -917,6 +1003,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         selectedPositionIndex: match.positionIndex,
         piecePositionIndices: newIndices,
       );
+      _recomputeBoardValidity();
       return;
     }
 
@@ -963,34 +1050,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
       print('[GAME] ✅ Symétrie verticale réussie : pièce ${match.piece.id}, position ${match.positionIndex}, nouvelle ancre (${match.gridX}, ${match.gridY})');
 
-      // 6. Créer une copie du plateau
-      final newPlateau = state.plateau.copy();
-
-      // 7. Effacer l'ancienne pièce
-      final position = selectedPiece.piece.positions[selectedPiece.positionIndex];
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = selectedPiece.gridX + localX;
-        final y = selectedPiece.gridY + localY;
-        if (newPlateau.isInBounds(x, y)) {
-          newPlateau.setCell(x, y, 0);
-        }
-      }
-
-      // 8. Placer la nouvelle pièce
-      final newPosition = match.piece.positions[match.positionIndex];
-      for (final cellNum in newPosition) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = match.gridX + localX;
-        final y = match.gridY + localY;
-        if (newPlateau.isInBounds(x, y)) {
-          newPlateau.setCell(x, y, match.piece.id);
-        }
-      }
-
-      // 9. Créer la nouvelle pièce placée
+      // 6. Créer la nouvelle pièce placée (transformée)
       final transformedPiece = PlacedPiece(
         piece: match.piece,
         positionIndex: match.positionIndex,
@@ -998,27 +1058,28 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         gridY: match.gridY,
       );
 
-      // 10. Calculer la nouvelle position locale de la master case
+      // 7. Calculer la nouvelle position locale de la master case
       // Pour la symétrie verticale (↕️), on inverse haut/bas autour de y = axisY
       final centerX = selectedPiece.gridX + refX;
       final centerY = axisY;
       final newSelectedCell = _calculateNewMasterCell(centerX, centerY, match.gridX, match.gridY);
       print('[GAME] 🎯 Master case conservée : ($centerX, $centerY) absolu → (${newSelectedCell.x}, ${newSelectedCell.y}) local');
 
-      // 11. Mettre à jour la liste des pièces placées
-      final updatedPieces = state.placedPieces.map((placed) {
-        return placed == selectedPiece ? transformedPiece : placed;
-      }).toList();
+      // 8. NE PAS modifier placedPieces ni le plateau
+      // La pièce reste hors du plateau et sera replacée quand l'utilisateur cliquera ailleurs
 
-      // 12. Mettre à jour l'état avec la nouvelle master case
+      // 9. Recalculer les solutions possibles avec la nouvelle configuration
+      final solutionsCount = _computeSolutionsWithTransformedPiece(transformedPiece);
+      print('[GAME] 🎯 Solutions possibles après symétrie verticale : $solutionsCount');
+
+      // 10. Mettre à jour l'état avec la nouvelle pièce transformée (toujours sélectionnée)
       state = state.copyWith(
-        placedPieces: updatedPieces,
-        plateau: newPlateau,
         selectedPlacedPiece: transformedPiece,
         selectedPositionIndex: match.positionIndex,
         selectedCellInPiece: newSelectedCell,
+        solutionsCount: solutionsCount,
       );
-
+      _recomputeBoardValidity();
       return;
     }
 
@@ -1056,6 +1117,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         selectedPositionIndex: match.positionIndex,
         piecePositionIndices: newIndices,
       );
+      _recomputeBoardValidity();
       return;
     }
 
@@ -1103,7 +1165,85 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: nextIndex,
     );
+    _recomputeBoardValidity();
   }
+  /// Recalcule la validité du plateau et les cellules problématiques
+  void _recomputeBoardValidity() {
+    final overlapping = <Point>{};
+    final offBoard = <Point>{};
+    final cellCounts = <Point, int>{};
+
+    for (final placed in state.placedPieces) {
+      // 🔁 On utilise directement les cases absolues de la pièce
+      for (final p in placed.absoluteCells) {
+        final x = p.x;
+        final y = p.y;
+
+        // Hors plateau ?
+        if (x < 0 ||
+            x >= state.plateau.width ||
+            y < 0 ||
+            y >= state.plateau.height) {
+          offBoard.add(p);
+          continue;
+        }
+
+        final count = (cellCounts[p] ?? 0) + 1;
+        cellCounts[p] = count;
+        if (count > 1) {
+          overlapping.add(p);
+        }
+      }
+    }
+
+    final isValid = overlapping.isEmpty && offBoard.isEmpty;
+
+    state = state.copyWith(
+      boardIsValid: isValid,
+      overlappingCells: overlapping,
+      offBoardCells: offBoard,
+    );
+  }
+
+  /// Calcule le nombre de solutions possibles avec une pièce transformée
+  /// Crée temporairement un plateau avec toutes les pièces incluant la transformée
+  int? _computeSolutionsWithTransformedPiece(PlacedPiece transformedPiece) {
+    // Créer un plateau temporaire
+    final tempPlateau = Plateau.allVisible(6, 10);
+
+    // Placer toutes les pièces déjà placées (sauf celle en transformation)
+    for (final placed in state.placedPieces) {
+      final position = placed.piece.positions[placed.positionIndex];
+      for (final cellNum in position) {
+        final localX = (cellNum - 1) % 5;
+        final localY = (cellNum - 1) ~/ 5;
+        final x = placed.gridX + localX;
+        final y = placed.gridY + localY;
+        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+          tempPlateau.setCell(x, y, placed.piece.id);
+        }
+      }
+    }
+
+    // Placer la pièce transformée
+    final position = transformedPiece.piece.positions[transformedPiece.positionIndex];
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      final x = transformedPiece.gridX + localX;
+      final y = transformedPiece.gridY + localY;
+      if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+        tempPlateau.setCell(x, y, transformedPiece.piece.id);
+      }
+    }
+
+    // Calculer les solutions possibles
+    return tempPlateau.countPossibleSolutions();
+  }
+
+
+
+
 }
 
 final pentominoGameProvider = NotifierProvider<PentominoGameNotifier, PentominoGameState>(

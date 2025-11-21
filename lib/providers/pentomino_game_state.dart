@@ -7,7 +7,8 @@ import '../models/plateau.dart';
 import '../models/point.dart';
 
 /// Représente une pièce placée sur le plateau
-class PlacedPiece {
+class PlacedPiece
+{
   final Pento piece;
   final int positionIndex; // Index dans piece.positions
   final int gridX; // Position X sur le plateau (0-5)
@@ -56,6 +57,18 @@ class PlacedPiece {
       gridY: gridY ?? this.gridY,
     );
   }
+
+  Iterable<Point> get absoluteCells sync* {
+    final position = piece.positions[positionIndex];
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      yield Point(gridX + localX, gridY + localY);
+    }
+  }
+
+
+
 }
 
 /// État du jeu de pentominos
@@ -73,6 +86,10 @@ class PentominoGameState {
   final int? previewX; // Position X de la preview
   final int? previewY; // Position Y de la preview
   final bool isPreviewValid; // La preview est-elle un placement valide ?
+  // Validation du plateau
+  final bool boardIsValid; // true si pas de chevauchement ni débordement
+  final Set<Point> overlappingCells; // Cases où au moins 2 pièces se chevauchent
+  final Set<Point> offBoardCells; // Cases de pièces en dehors du plateau
 
   // Nombre de solutions possibles
   final int? solutionsCount; // Nombre de solutions possibles avec l'état actuel
@@ -96,19 +113,31 @@ class PentominoGameState {
     this.solutionsCount,
     this.isIsometriesMode = false,
     this.savedGameState,
-  }) : piecePositionIndices = piecePositionIndices ?? {};
+
+    // Nouveaux champs
+    this.boardIsValid = true,
+    Set<Point>? overlappingCells,
+    Set<Point>? offBoardCells,
+  })  : piecePositionIndices = piecePositionIndices ?? {},
+        overlappingCells = overlappingCells ?? <Point>{},
+        offBoardCells = offBoardCells ?? <Point>{};
+
 
   /// État initial du jeu
   factory PentominoGameState.initial() {
     return PentominoGameState(
       plateau: Plateau.allVisible(6, 10),
-      availablePieces: List.from(pentominos), // Les 12 pièces
+      availablePieces: List.from(pentominos),
       placedPieces: [],
       selectedPiece: null,
       selectedPositionIndex: 0,
-      piecePositionIndices: {}, // Toutes les pièces commencent à position 0
+      piecePositionIndices: {},
+      boardIsValid: true,
+      overlappingCells: <Point>{},
+      offBoardCells: <Point>{},
     );
   }
+
 
   /// Obtient l'index de position pour une pièce (par défaut 0)
   int getPiecePositionIndex(int pieceId) {
@@ -163,6 +192,11 @@ class PentominoGameState {
     bool? isIsometriesMode,
     PentominoGameState? savedGameState,
     bool clearSavedGameState = false,
+
+    // Nouveaux paramètres
+    bool? boardIsValid,
+    Set<Point>? overlappingCells,
+    Set<Point>? offBoardCells,
   }) {
     return PentominoGameState(
       plateau: plateau ?? this.plateau,
@@ -179,6 +213,12 @@ class PentominoGameState {
       solutionsCount: solutionsCount ?? this.solutionsCount,
       isIsometriesMode: isIsometriesMode ?? this.isIsometriesMode,
       savedGameState: clearSavedGameState ? null : (savedGameState ?? this.savedGameState),
+
+      // Nouveaux champs
+      boardIsValid: boardIsValid ?? this.boardIsValid,
+      overlappingCells: overlappingCells ?? this.overlappingCells,
+      offBoardCells: offBoardCells ?? this.offBoardCells,
     );
   }
+
 }

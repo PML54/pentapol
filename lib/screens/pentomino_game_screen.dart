@@ -26,29 +26,15 @@ class PentominoGameScreen extends ConsumerStatefulWidget {
   ConsumerState<PentominoGameScreen> createState() => _PentominoGameScreenState();
 }
 
-class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
   @override
   void initState() {
     super.initState();
-    
-    // Animation de pulsation pour l'icône œil (plus prononcée)
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    )..repeat(reverse: true);
-    
-    _pulseAnimation = Tween<double>(begin: 0.6, end: 1.4).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -67,152 +53,180 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
           toolbarHeight: 56.0,
-          backgroundColor: state.isIsometriesMode 
+          backgroundColor: state.isIsometriesMode
               ? settings.ui.isometriesAppBarColor  // Couleur paramétrable en mode isométries
               : null,  // Fond par défaut (indigo) en mode normal
           leading: state.isIsometriesMode
               ? IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    notifier.exitIsometriesMode();
-                  },
-                  tooltip: 'Sortir du mode isométries',
-                )
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              notifier.exitIsometriesMode();
+            },
+            tooltip: 'Sortir du mode isométries',
+          )
               : IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                    );
-                  },
-                  tooltip: 'Paramètres',
-                ),
-          title: !state.isIsometriesMode && state.solutionsCount != null && state.solutionsCount! > 0 && state.placedPieces.isNotEmpty
-              ? ScaleTransition(
-                  scale: _pulseAnimation,
-                  child: IconButton(
-                    icon: Icon(GameIcons.viewSolutions.icon, size: 32),
-                    tooltip: GameIcons.viewSolutions.tooltip,
-                    color: Colors.lightBlueAccent,
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            tooltip: 'Paramètres',
+          ),
+          title: !state.isIsometriesMode && state.solutionsCount != null && state.placedPieces.isNotEmpty
+              ? IconButton(
+            icon: Icon(
+              state.solutionsCount! > 0 ? Icons.thumb_up : Icons.thumb_down,
+              size: 32,
+            ),
+            tooltip: state.solutionsCount! > 0
+                ? '${state.solutionsCount} solution(s) possible(s)'
+                : 'Aucune solution possible',
+            color: state.solutionsCount! > 0
+                ? Colors.green
+                : Colors.red,
+            onPressed: state.solutionsCount! > 0
+                ? () {
+              HapticFeedback.selectionClick();
 
-                      // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
-                      final compatible = state.plateau.getCompatibleSolutionsBigInt();
+              // Récupérer les solutions compatibles pour le plateau actuel (BigInt)
+              final compatible = state.plateau.getCompatibleSolutionsBigInt();
 
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => SolutionsBrowserScreen.forSolutions(
-                            solutions: compatible,
-                            title: 'Solutions possibles',
-                          ),
-                        ),
-                      );
-                    },
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => SolutionsBrowserScreen.forSolutions(
+                    solutions: compatible,
+                    title: 'Solutions possibles',
                   ),
-                )
+                ),
+              );
+            }
+                : null, // Pas d'action si pas de solutions
+          )
               : const SizedBox.shrink(),
           actions: state.isIsometriesMode
               ? [
-                  // MODE ISOMÉTRIES : Boutons de transformation (icônes plus grandes)
-                  IconButton(
-                    icon: Icon(GameIcons.isometryRotation.icon, size: 32),
-                    onPressed: state.selectedPlacedPiece != null
-                        ? () {
-                            HapticFeedback.selectionClick();
-                            notifier.applyIsometryRotation();
-                          }
-                        : null,
-                    tooltip: GameIcons.isometryRotation.tooltip,
-                    color: state.selectedPlacedPiece != null 
-                        ? GameIcons.isometryRotation.color 
-                        : Colors.grey,
-                  ),
-                  IconButton(
-                    icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
-                    onPressed: state.selectedPlacedPiece != null
-                        ? () {
-                            HapticFeedback.selectionClick();
-                            notifier.applyIsometrySymmetryH();
-                          }
-                        : null,
-                    tooltip: GameIcons.isometrySymmetryH.tooltip,
-                    color: state.selectedPlacedPiece != null 
-                        ? GameIcons.isometrySymmetryH.color 
-                        : Colors.grey,
-                  ),
-                  IconButton(
-                    icon: Icon(GameIcons.isometrySymmetryV.icon,size: settings.ui.iconSize),
-                    onPressed: state.selectedPlacedPiece != null
-                        ? () {
-                            HapticFeedback.selectionClick();
-                            notifier.applyIsometrySymmetryV();
-                          }
-                        : null,
-                    tooltip: GameIcons.isometrySymmetryV.tooltip,
-                    color: state.selectedPlacedPiece != null 
-                        ? GameIcons.isometrySymmetryV.color 
-                        : Colors.grey,
-                  ),
-                  // Bouton Delete (visible si une pièce placée est sélectionnée)
-                  if (state.selectedPlacedPiece != null)
-                    IconButton(
-                      icon: Icon(GameIcons.isometryDelete.icon, size: settings.ui.iconSize),
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        notifier.removePlacedPiece(state.selectedPlacedPiece!);
-                      },
-                      tooltip: GameIcons.isometryDelete.tooltip,
-                      color: GameIcons.isometryDelete.color,
-                    ),
-                ]
+            // MODE ISOMÉTRIES : Boutons de transformation (icônes plus grandes)
+            IconButton(
+              icon: Icon(GameIcons.isometryRotation.icon, size: 32),
+              onPressed: state.selectedPlacedPiece != null
+                  ? () {
+                HapticFeedback.selectionClick();
+                notifier.applyIsometryRotation();
+              }
+                  : null,
+              tooltip: GameIcons.isometryRotation.tooltip,
+              color: state.selectedPlacedPiece != null
+                  ? GameIcons.isometryRotation.color
+                  : Colors.grey,
+            ),
+            IconButton(
+              icon: Icon(GameIcons.isometryRotationCW.icon, size: 32),
+              onPressed: state.selectedPlacedPiece != null
+                  ? () {
+                HapticFeedback.selectionClick();
+                notifier.applyIsometryRotationCW();
+              }
+                  : null,
+              tooltip: GameIcons.isometryRotationCW.tooltip,
+              color: state.selectedPlacedPiece != null
+                  ? GameIcons.isometryRotationCW.color
+                  : Colors.grey,
+            ),
+            IconButton(
+              icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
+              onPressed: state.selectedPlacedPiece != null
+                  ? () {
+                HapticFeedback.selectionClick();
+                notifier.applyIsometrySymmetryH();
+              }
+                  : null,
+              tooltip: GameIcons.isometrySymmetryH.tooltip,
+              color: state.selectedPlacedPiece != null
+                  ? GameIcons.isometrySymmetryH.color
+                  : Colors.grey,
+            ),
+            IconButton(
+              icon: Icon(GameIcons.isometrySymmetryV.icon,size: settings.ui.iconSize),
+              onPressed: state.selectedPlacedPiece != null
+                  ? () {
+                HapticFeedback.selectionClick();
+                notifier.applyIsometrySymmetryV();
+              }
+                  : null,
+              tooltip: GameIcons.isometrySymmetryV.tooltip,
+              color: state.selectedPlacedPiece != null
+                  ? GameIcons.isometrySymmetryV.color
+                  : Colors.grey,
+            ),
+            // Bouton Delete (visible si une pièce placée est sélectionnée)
+            if (state.selectedPlacedPiece != null)
+              IconButton(
+                icon: Icon(GameIcons.isometryDelete.icon, size: settings.ui.iconSize),
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  notifier.removePlacedPiece(state.selectedPlacedPiece!);
+                },
+                tooltip: GameIcons.isometryDelete.tooltip,
+                color: GameIcons.isometryDelete.color,
+              ),
+          ]
               : [
-                  // MODE JEU NORMAL : Boutons normaux
-                  // Boutons de transformation (visibles si pièce sélectionnée)
-                  if (state.selectedPiece != null) ...[
-                    IconButton(
-                      icon: Icon(GameIcons.isometryRotation.icon,size: settings.ui.iconSize),
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        notifier.applyIsometryRotation();
-                      },
-                      tooltip: GameIcons.isometryRotation.tooltip,
-                      color: GameIcons.isometryRotation.color,
-                    ),
-                    IconButton(
-                      icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        notifier.applyIsometrySymmetryH();
-                      },
-                      tooltip: GameIcons.isometrySymmetryH.tooltip,
-                      color: GameIcons.isometrySymmetryH.color,
-                    ),
-                    IconButton(
-                      icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        notifier.applyIsometrySymmetryV();
-                      },
-                      tooltip: GameIcons.isometrySymmetryV.tooltip,
-                      color: GameIcons.isometrySymmetryV.color,
-                    ),
-                  ],
-                  // Bouton retirer (visible si pièce placée sélectionnée)
-                  if (state.selectedPlacedPiece != null)
-                    IconButton(
-                      icon: Icon(GameIcons.removePiece.icon,size: settings.ui.iconSize),
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        notifier.removePlacedPiece(state.selectedPlacedPiece!);
-                      },
-                      tooltip: GameIcons.removePiece.tooltip,
-                      color: GameIcons.removePiece.color,
-                    ),
-                  
-                  // 🎓 Bouton "Mode Isométries" à droite
+            // MODE JEU NORMAL : Boutons normaux
+            // Boutons de transformation (visibles si pièce sélectionnée)
+            if (state.selectedPiece != null) ...[
+              IconButton(
+                icon: Icon(GameIcons.isometryRotation.icon,size: settings.ui.iconSize),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  notifier.applyIsometryRotation();
+                },
+                tooltip: GameIcons.isometryRotation.tooltip,
+                color: GameIcons.isometryRotation.color,
+              ),
+              IconButton(
+                icon: Icon(GameIcons.isometryRotationCW.icon, size: settings.ui.iconSize),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  notifier.applyIsometryRotationCW();
+                },
+                tooltip: GameIcons.isometryRotationCW.tooltip,
+                color: GameIcons.isometryRotationCW.color,
+              ),
+              IconButton(
+                icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  notifier.applyIsometrySymmetryH();
+                },
+                tooltip: GameIcons.isometrySymmetryH.tooltip,
+                color: GameIcons.isometrySymmetryH.color,
+              ),
+              IconButton(
+                icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  notifier.applyIsometrySymmetryV();
+                },
+                tooltip: GameIcons.isometrySymmetryV.tooltip,
+                color: GameIcons.isometrySymmetryV.color,
+              ),
+            ],
+            // Bouton retirer (visible si pièce placée sélectionnée)
+            if (state.selectedPlacedPiece != null)
+              IconButton(
+                icon: Icon(GameIcons.removePiece.icon,size: settings.ui.iconSize),
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  notifier.removePlacedPiece(state.selectedPlacedPiece!);
+                },
+                tooltip: GameIcons.removePiece.tooltip,
+                color: GameIcons.removePiece.color,
+              ),
+
+            // 🎓 Bouton "Mode Isométries" à droite
 /*                  IconButton(
                     icon: Icon(GameIcons.enterIsometries.icon, size: settings.ui.iconSize),
                     onPressed: () {
@@ -222,7 +236,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                     tooltip: GameIcons.enterIsometries.tooltip,
                     color: GameIcons.enterIsometries.color,
                   ),*/
-                ],
+          ],
         ),
       ),
       body: LayoutBuilder(
@@ -281,7 +295,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
       notifier,
       ) {
     final settings = ref.watch(settingsProvider);
-    
+
     return Row(
       children: [
         // Plateau de jeu (10×6 visuel)
@@ -296,7 +310,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
             Container(
               width: 44,
               decoration: BoxDecoration(
-                color: state.isIsometriesMode 
+                color: state.isIsometriesMode
                     ? settings.ui.isometriesAppBarColor.withValues(alpha: 0.3)  // Couleur paramétrable atténuée
                     : Colors.grey.shade200,   // Fond gris en mode normal
                 boxShadow: [

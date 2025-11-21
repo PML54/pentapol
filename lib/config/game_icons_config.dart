@@ -32,7 +32,7 @@ class GameIconConfig {
 /// Catalogue complet des icônes de l'application
 class GameIcons {
   // ==================== NAVIGATION ====================
-  
+
   /// Paramètres de l'application
   static const settings = GameIconConfig(
     icon: Icons.settings,
@@ -109,13 +109,22 @@ class GameIcons {
 
   // ==================== ISOMÉTRIES ====================
 
-  /// Rotation 90° (transformation isométrique)
+  /// Rotation 90° anti-horaire (transformation isométrique)
   static const isometryRotation = GameIconConfig(
     icon: Icons.rotate_right,
-    tooltip: 'Rotation 90°',
+    tooltip: 'Rotation 90° ↺',
     color: Color(0xFFFFA726), // Colors.orange[400]
-    visibleInModes: [GameMode.isometries],
-    description: 'Applique une rotation de 90° à la pièce',
+    visibleInModes: [GameMode.normal, GameMode.isometries],
+    description: 'Applique une rotation de 90° anti-horaire à la pièce',
+  );
+
+  /// Rotation 90° horaire (transformation isométrique)
+  static const isometryRotationCW = GameIconConfig(
+    icon: Icons.rotate_left,
+    tooltip: 'Rotation 90° ↻',
+    color: Color(0xFFFF7043), // Colors.deepOrange[400]
+    visibleInModes: [GameMode.normal, GameMode.isometries],
+    description: 'Applique une rotation de 90° horaire à la pièce',
   );
 
   /// Symétrie horizontale
@@ -159,6 +168,7 @@ class GameIcons {
       removePiece,
       undo,
       isometryRotation,
+      isometryRotationCW,
       isometrySymmetryH,
       isometrySymmetryV,
       isometryDelete,
@@ -176,4 +186,3 @@ class GameIcons {
     print('─' * 60);
   }
 }
-
