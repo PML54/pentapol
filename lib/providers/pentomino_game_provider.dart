@@ -169,6 +169,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       clearSelectedPlacedPiece: true,
       clearSelectedCellInPiece: true,
       solutionsCount: solutionsCount,
+      clearPreview: true,        // 👈 AJOUT ICI
     );
 
     print('[GAME] ✅ Pièce ${piece.id} placée à ($anchorX, $anchorY)');

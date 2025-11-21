@@ -213,7 +213,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                     ),
                   
                   // 🎓 Bouton "Mode Isométries" à droite
-                  IconButton(
+/*                  IconButton(
                     icon: Icon(GameIcons.enterIsometries.icon, size: settings.ui.iconSize),
                     onPressed: () {
                       HapticFeedback.selectionClick();
@@ -221,7 +221,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen>
                     },
                     tooltip: GameIcons.enterIsometries.tooltip,
                     color: GameIcons.enterIsometries.color,
-                  ),
+                  ),*/
                 ],
         ),
       ),
