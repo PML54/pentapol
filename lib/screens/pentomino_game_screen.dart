@@ -75,7 +75,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             },
             tooltip: 'Paramètres',
           ),
-          title: !state.isIsometriesMode && state.solutionsCount != null && state.placedPieces.isNotEmpty
+          title: !state.isIsometriesMode && state.solutionsCount != null && (state.placedPieces.isNotEmpty || state.selectedPlacedPiece != null)
               ? IconButton(
             icon: Icon(
               state.solutionsCount! > 0 ? Icons.thumb_up : Icons.thumb_down,
