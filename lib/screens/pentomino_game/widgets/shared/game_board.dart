@@ -360,6 +360,11 @@ class GameBoard extends ConsumerWidget {
           child: cellWidget,
         ),
         child: GestureDetector(
+          onTap: () {
+            // Permettre de changer la mastercase sur la même pièce
+            HapticFeedback.selectionClick();
+            notifier.selectPlacedPiece(state.selectedPlacedPiece!, logicalX, logicalY);
+          },
           onDoubleTap: () {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotation();
