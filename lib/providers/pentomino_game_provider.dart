@@ -593,6 +593,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     return true;
   }
 
+/*
   /// Efface une pièce du plateau (utilisé pendant les transformations)
   void _clearPieceFromPlateau(PlacedPiece piece) {
     final position = piece.piece.positions[piece.positionIndex];
@@ -608,7 +609,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       }
     }
   }
+*/
 
+/*
   /// Place une pièce sur le plateau selon un ShapeMatch
   void _placePieceOnPlateau(ShapeMatch match) {
     final position = match.piece.positions[match.positionIndex];
@@ -624,6 +627,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       }
     }
   }
+*/
 
   /// Calcule la nouvelle position locale de la master case après une transformation
   /// [centerX], [centerY] : coordonnées absolues de la master case (fixe)
@@ -1179,7 +1183,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   /// Méthode helper pour appliquer une transformation (OBSOLÈTE - conservée pour compatibilité)
   /// Les nouvelles transformations géométriques sont gérées directement dans
   /// applyIsometryRotation, applyIsometrySymmetryH, applyIsometrySymmetryV
-  void _applyTransformation(int nextIndex) {
+/*  void _applyTransformation(int nextIndex) {
     if (state.selectedPlacedPiece == null) return;
 
     final selectedPiece = state.selectedPlacedPiece!;
@@ -1218,7 +1222,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       selectedPositionIndex: nextIndex,
     );
     _recomputeBoardValidity();
-  }
+  }*/
   /// Recalcule la validité du plateau et les cellules problématiques
   void _recomputeBoardValidity() {
     final overlapping = <Point>{};

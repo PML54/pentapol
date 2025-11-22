@@ -9,7 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'bootstrap.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/plateau_editor_screen.dart';
+
 import 'screens/pentomino_game_screen.dart';
 import 'services/solution_matcher.dart';
 import 'services/pentapol_solutions_loader.dart'; // <-- loader binaire -> BigInt
@@ -69,7 +69,7 @@ class MyApp extends StatelessWidget {
               ? const AuthScreen()
               : const HomeScreen();
         },
-        '/editor': (context) => const PlateauEditorScreen(),
+
         '/game': (context) => const PentominoGameScreen(),
       },
     );

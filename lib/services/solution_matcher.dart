@@ -38,10 +38,10 @@ class SolutionMatcher {
     final startTime = DateTime.now();
 
     final expanded = <BigInt>[];
-    int idx = 0;
+
 
     for (final canonical in canonicalSolutions) {
-      idx++;
+
 
       // 1) Décoder le BigInt canonique vers 60 codes bit6
       final baseBoard = _decodeBigIntToBit6Board(canonical);
