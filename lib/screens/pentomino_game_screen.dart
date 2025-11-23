@@ -73,48 +73,40 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             tooltip: 'Paramètres',
           )
               : null,
-
-          // TITLE : Nombre de solutions LIVE (masqué si 0 solutions)
+// TITLE : Bouton Solutions (masqué si 0 solutions)
           title: state.solutionsCount != null
               && state.solutionsCount! > 0
               && (state.placedPieces.isNotEmpty || state.selectedPlacedPiece != null)
-              ? GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              final solutions = _getCompatibleSolutionsIncludingSelected(state);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => SolutionsBrowserScreen.forSolutions(
-                    solutions: solutions,
-                    title: 'Solutions possibles',
-                  ),
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.thumb_up,
-                    size: 18,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '${state.solutionsCount}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+              ? FittedBox(
+            fit: BoxFit.scaleDown,
+            child: ElevatedButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                final solutions = _getCompatibleSolutionsIncludingSelected(state);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => SolutionsBrowserScreen.forSolutions(
+                      solutions: solutions,
+                      title: 'Solutions possibles',
                     ),
                   ),
-                ],
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                elevation: 4,
+              ),
+              child: Text(
+                '${state.solutionsCount}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           )
