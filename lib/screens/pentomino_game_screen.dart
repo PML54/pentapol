@@ -17,7 +17,7 @@ import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
-
+import 'package:pentapol/models/plateau.dart';
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
   const PentominoGameScreen({super.key});
@@ -74,36 +74,45 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           )
               : null,
 
-          // TITLE : Bouton Solutions (toujours visible si applicable)
+          // TITLE : Nombre de solutions LIVE (toujours visible si applicable)
           title: state.solutionsCount != null && (state.placedPieces.isNotEmpty || state.selectedPlacedPiece != null)
-              ? IconButton(
-            icon: Icon(
-              state.solutionsCount! > 0 ? Icons.thumb_up : Icons.thumb_down,
-              size: 18,
-            ),
-            tooltip: state.solutionsCount! > 0
-                ? '${state.solutionsCount} solution(s) possible(s)'
-                : 'Aucune solution possible',
-            color: state.solutionsCount! > 0
-                ? Colors.green
-                : Colors.red,
-            onPressed: state.solutionsCount! > 0
+              ? GestureDetector(
+            onTap: state.solutionsCount! > 0
                 ? () {
               HapticFeedback.selectionClick();
-              final compatible = state.plateau.getCompatibleSolutionsBigInt();
+              // Créer un plateau temporaire incluant la pièce sélectionnée
+              final solutions = _getCompatibleSolutionsIncludingSelected(state);
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => SolutionsBrowserScreen.forSolutions(
-                    solutions: compatible,
+                    solutions: solutions,
                     title: 'Solutions possibles',
                   ),
                 ),
               );
             }
                 : null,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  state.solutionsCount! > 0 ? Icons.thumb_up : Icons.thumb_down,
+                  size: 18,
+                  color: state.solutionsCount! > 0 ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${state.solutionsCount}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: state.solutionsCount! > 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
           )
               : const SizedBox.shrink(),
-
           // ACTIONS : Mode transformation OU mode général
           actions: isInTransformMode
               ? _buildTransformActions(state, notifier, settings)
@@ -228,7 +237,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       state,
       notifier,
       bool isInTransformMode,
-      ) {
+      )
+  {
     final settings = ref.watch(settingsProvider);
 
     return Row(
@@ -278,5 +288,45 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         ),
       ],
     );
+  }
+
+  /// Récupère les solutions compatibles en incluant la pièce sélectionnée si présente
+  List<BigInt> _getCompatibleSolutionsIncludingSelected(state) {
+    // Si pas de pièce sélectionnée, utiliser le plateau directement
+    if (state.selectedPlacedPiece == null) {
+      return state.plateau.getCompatibleSolutionsBigInt();
+    }
+
+    // Sinon, créer un plateau temporaire avec la pièce sélectionnée incluse
+    final tempPlateau = Plateau.allVisible(6, 10);
+
+    // Placer toutes les pièces déjà placées
+    for (final placed in state.placedPieces) {
+      final position = placed.piece.positions[placed.positionIndex];
+      for (final cellNum in position) {
+        final localX = (cellNum - 1) % 5;
+        final localY = (cellNum - 1) ~/ 5;
+        final x = placed.gridX + localX;
+        final y = placed.gridY + localY;
+        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+          tempPlateau.setCell(x, y, placed.piece.id);
+        }
+      }
+    }
+
+    // Placer la pièce sélectionnée (avec son positionIndex actuel)
+    final selectedPiece = state.selectedPlacedPiece!;
+    final position = selectedPiece.piece.positions[state.selectedPositionIndex];
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      final x = selectedPiece.gridX + localX;
+      final y = selectedPiece.gridY + localY;
+      if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+        tempPlateau.setCell(x, y, selectedPiece.piece.id);
+      }
+    }
+
+    return tempPlateau.getCompatibleSolutionsBigInt();
   }
 }
