@@ -246,6 +246,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
   /// Sélectionne une pièce déjà placée pour la déplacer
   /// [cellX] et [cellY] sont les coordonnées de la case touchée sur le plateau
+
+  /// Sélectionne une pièce déjà placée pour la déplacer
+  /// [cellX] et [cellY] sont les coordonnées de la case touchée sur le plateau
   void selectPlacedPiece(PlacedPiece placedPiece, int cellX, int cellY) {
     // Si une autre pièce du plateau est déjà sélectionnée, la replacer d'abord
     if (state.selectedPlacedPiece != null && state.selectedPlacedPiece != placedPiece) {
@@ -336,6 +339,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     // Retirer la pièce de la liste des placées
     final newPlaced = state.placedPieces.where((p) => p != placedPiece).toList();
 
+    // ✅ AJOUT : Calculer les solutions en incluant la pièce sélectionnée
+    final solutionsCount = _computeSolutionsWithTransformedPiece(placedPiece);
+
     // Sélectionner la pièce avec sa position actuelle et la case de référence
     state = state.copyWith(
       plateau: newPlateau,
@@ -344,11 +350,11 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       selectedPositionIndex: placedPiece.positionIndex,
       selectedPlacedPiece: placedPiece,
       selectedCellInPiece: selectedCell,
+      solutionsCount: solutionsCount,  // ✅ AJOUT
     );
 
     print('[GAME] 🔄 Pièce ${placedPiece.piece.id} sélectionnée pour déplacement (case ref: $selectedCell)');
   }
-
   /// Trouve la pièce placée à une position donnée
   PlacedPiece? getPlacedPieceAt(int gridX, int gridY) {
     for (final placed in state.placedPieces) {
