@@ -113,7 +113,7 @@ class GameIcons {
   static const isometryRotation = GameIconConfig(
     icon: Icons.rotate_right,
     tooltip: 'Rotation 90° ↺',
-    color: Color(0xFFFFA726), // Colors.orange[400]
+    color: Color(0xFF42A5F5), // Colors.blue[400] ✅ Changé
     visibleInModes: [GameMode.normal, GameMode.isometries],
     description: 'Applique une rotation de 90° anti-horaire à la pièce',
   );
@@ -122,7 +122,7 @@ class GameIcons {
   static const isometryRotationCW = GameIconConfig(
     icon: Icons.rotate_left,
     tooltip: 'Rotation 90° ↻',
-    color: Color(0xFFFF7043), // Colors.deepOrange[400]
+    color: Color(0xFF66BB6A), // Colors.green[400] ✅ Changé
     visibleInModes: [GameMode.normal, GameMode.isometries],
     description: 'Applique une rotation de 90° horaire à la pièce',
   );
