@@ -88,11 +88,15 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
   /// Tente de placer la pièce sélectionnée sur le plateau
   /// [gridX] et [gridY] sont les coordonnées où on lâche la pièce (position du doigt)
+  /// Tente de placer la pièce sélectionnée sur le plateau
+  /// [gridX] et [gridY] sont les coordonnées où on lâche la pièce (position du doigt)
   bool tryPlacePiece(int gridX, int gridY) {
     if (state.selectedPiece == null) return false;
 
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
+    final wasPlacedPiece = state.selectedPlacedPiece != null; // ✅ Mémoriser si c'était une pièce placée
+    final savedCellInPiece = state.selectedCellInPiece; // ✅ Garder la master cell
 
     // Calculer la position d'ancrage en utilisant la case de référence
     int anchorX = gridX;
@@ -151,7 +155,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       gridY: anchorY,
     );
 
-    // Retirer la pièce des disponibles
+    // Retirer la pièce des disponibles (si elle y était)
     final newAvailable = List<Pento>.from(state.availablePieces)
       ..removeWhere((p) => p.id == piece.id);
 
@@ -162,23 +166,56 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     // Calculer le nombre de solutions possibles
     final solutionsCount = newPlateau.countPossibleSolutions();
 
-    // Mettre à jour l'état
-    state = state.copyWith(
-      plateau: newPlateau,
-      availablePieces: newAvailable,
-      placedPieces: newPlaced,
-      clearSelectedPiece: true,
-      clearSelectedPlacedPiece: true,
-      clearSelectedCellInPiece: true,
-      solutionsCount: solutionsCount,
-      clearPreview: true,        // 👈 AJOUT ICI
-    );
-// Recalculer la validité globale du plateau
-    _recomputeBoardValidity();
+    // ✅ Si c'était une pièce placée, on la garde sélectionnée (comme pour rotation/symétrie)
+    if (wasPlacedPiece) {
+      // Retirer la pièce du plateau pour qu'elle reste "flottante" (sélectionnée)
+      final plateauSansPiece = Plateau.allVisible(6, 10);
+      for (final placed in state.placedPieces) {
+        final pos = placed.piece.positions[placed.positionIndex];
+        for (final cellNum in pos) {
+          final localX = (cellNum - 1) % 5;
+          final localY = (cellNum - 1) ~/ 5;
+          final x = placed.gridX + localX;
+          final y = placed.gridY + localY;
+          if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+            plateauSansPiece.setCell(x, y, placed.piece.id);
+          }
+        }
+      }
 
-    print('[GAME] ✅ Pièce ${piece.id} placée à ($anchorX, $anchorY)');
-    print('[GAME] Pièces restantes: ${newAvailable.length}');
-    print('[GAME] 🎯 Solutions possibles: $solutionsCount');
+      state = state.copyWith(
+        plateau: plateauSansPiece,
+        availablePieces: newAvailable,
+        placedPieces: state.placedPieces, // ✅ Ne pas ajouter la pièce aux placées
+        selectedPiece: piece,
+        selectedPositionIndex: positionIndex,
+        selectedPlacedPiece: placedPiece, // ✅ Garder la référence à la nouvelle position
+        selectedCellInPiece: savedCellInPiece, // ✅ Garder la master cell
+        solutionsCount: solutionsCount,
+        clearPreview: true,
+      );
+      _recomputeBoardValidity();
+
+      print('[GAME] ✅ Pièce ${piece.id} déplacée à ($anchorX, $anchorY) - reste sélectionnée');
+      print('[GAME] 🎯 Solutions possibles: $solutionsCount');
+    } else {
+      // C'était une pièce du slider → comportement normal (désélectionner)
+      state = state.copyWith(
+        plateau: newPlateau,
+        availablePieces: newAvailable,
+        placedPieces: newPlaced,
+        clearSelectedPiece: true,
+        clearSelectedPlacedPiece: true,
+        clearSelectedCellInPiece: true,
+        solutionsCount: solutionsCount,
+        clearPreview: true,
+      );
+      _recomputeBoardValidity();
+
+      print('[GAME] ✅ Pièce ${piece.id} placée à ($anchorX, $anchorY)');
+      print('[GAME] Pièces restantes: ${newAvailable.length}');
+      print('[GAME] 🎯 Solutions possibles: $solutionsCount');
+    }
 
     return true;
   }

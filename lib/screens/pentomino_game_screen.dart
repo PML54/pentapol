@@ -74,13 +74,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           )
               : null,
 
-          // TITLE : Nombre de solutions LIVE (toujours visible si applicable)
-          title: state.solutionsCount != null && (state.placedPieces.isNotEmpty || state.selectedPlacedPiece != null)
+          // TITLE : Nombre de solutions LIVE (masqué si 0 solutions)
+          title: state.solutionsCount != null
+              && state.solutionsCount! > 0
+              && (state.placedPieces.isNotEmpty || state.selectedPlacedPiece != null)
               ? GestureDetector(
-            onTap: state.solutionsCount! > 0
-                ? () {
+            onTap: () {
               HapticFeedback.selectionClick();
-              // Créer un plateau temporaire incluant la pièce sélectionnée
               final solutions = _getCompatibleSolutionsIncludingSelected(state);
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -90,26 +90,32 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   ),
                 ),
               );
-            }
-                : null,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  state.solutionsCount! > 0 ? Icons.thumb_up : Icons.thumb_down,
-                  size: 18,
-                  color: state.solutionsCount! > 0 ? Colors.green : Colors.red,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${state.solutionsCount}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: state.solutionsCount! > 0 ? Colors.green : Colors.red,
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.thumb_up,
+                    size: 18,
+                    color: Colors.green,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Text(
+                    '${state.solutionsCount}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
             ),
           )
               : const SizedBox.shrink(),
