@@ -27,6 +27,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     // Récupérer l'index de position sauvegardé pour cette pièce
     final savedIndex = state.getPiecePositionIndex(piece.id);
     // Si une pièce du plateau est déjà sélectionnée, la replacer d'abord
+    print('[DEBUG PAYSAGE] 🔍 selectPiece(${piece.id})');
+    print('[DEBUG PAYSAGE] 📋 piecePositionIndices: ${state.piecePositionIndices}');
+    print('[DEBUG PAYSAGE] 📌 savedIndex pour pièce ${piece.id}: $savedIndex');
     if (state.selectedPlacedPiece != null) {
       final placedPiece = state.selectedPlacedPiece!;
 
@@ -95,6 +98,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
+    print('[DEBUG PLACEMENT] 🎯 tryPlacePiece: piece=${piece.id}, positionIndex=$positionIndex');
+    print('[DEBUG PLACEMENT] 📋 piecePositionIndices=${state.piecePositionIndices}');
     final wasPlacedPiece = state.selectedPlacedPiece != null; // ✅ Mémoriser si c'était une pièce placée
     final savedCellInPiece = state.selectedCellInPiece; // ✅ Garder la master cell
 
@@ -636,41 +641,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     return true;
   }
 
-/*
-  /// Efface une pièce du plateau (utilisé pendant les transformations)
-  void _clearPieceFromPlateau(PlacedPiece piece) {
-    final position = piece.piece.positions[piece.positionIndex];
 
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      final x = piece.gridX + localX;
-      final y = piece.gridY + localY;
-
-      if (state.plateau.isInBounds(x, y)) {
-        state.plateau.setCell(x, y, 0);
-      }
-    }
-  }
-*/
-
-/*
-  /// Place une pièce sur le plateau selon un ShapeMatch
-  void _placePieceOnPlateau(ShapeMatch match) {
-    final position = match.piece.positions[match.positionIndex];
-
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      final x = match.gridX + localX;
-      final y = match.gridY + localY;
-
-      if (state.plateau.isInBounds(x, y)) {
-        state.plateau.setCell(x, y, match.piece.id);
-      }
-    }
-  }
-*/
 
   /// Calcule la nouvelle position locale de la master case après une transformation
   /// [centerX], [centerY] : coordonnées absolues de la master case (fixe)
@@ -817,6 +788,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   /// Rotation géométrique autour du point de référence (cellule rouge / mastercase)
   void applyIsometryRotationCW() {
     // Transformer une pièce placée avec rotation géométrique (mode game ET isométries)
+    print('[DEBUG] 🔥 applyIsometryRotationCW appelée !');
+    print('[DEBUG] 📚 StackTrace: ${StackTrace.current}');
+
     if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
 

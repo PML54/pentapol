@@ -7,18 +7,51 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/config/game_icons_config.dart';
+import 'package:pentapol/models/plateau.dart';  // ✅ AJOUT
 import 'package:pentapol/providers/pentomino_game_provider.dart';
 import 'package:pentapol/providers/pentomino_game_state.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/solutions_browser_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
-import 'package:pentapol/services/plateau_solution_counter.dart'; // ✅ AJOUT : Pour l'extension getCompatibleSolutionsBigInt()
+import 'package:pentapol/services/plateau_solution_counter.dart';
+
+/// ✅ Fonction helper en dehors de la classe
+List<BigInt> getCompatibleSolutionsIncludingSelected(PentominoGameState state) {
+  if (state.selectedPlacedPiece == null) {
+    return state.plateau.getCompatibleSolutionsBigInt();
+  }
+
+  final tempPlateau = Plateau.allVisible(6, 10);
+
+  for (final placed in state.placedPieces) {
+    final position = placed.piece.positions[placed.positionIndex];
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      final x = placed.gridX + localX;
+      final y = placed.gridY + localY;
+      if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+        tempPlateau.setCell(x, y, placed.piece.id);
+      }
+    }
+  }
+
+  final selectedPiece = state.selectedPlacedPiece!;
+  final position = selectedPiece.piece.positions[state.selectedPositionIndex];
+  for (final cellNum in position) {
+    final localX = (cellNum - 1) % 5;
+    final localY = (cellNum - 1) ~/ 5;
+    final x = selectedPiece.gridX + localX;
+    final y = selectedPiece.gridY + localY;
+    if (x >= 0 && x < 6 && y >= 0 && y < 10) {
+      tempPlateau.setCell(x, y, selectedPiece.piece.id);
+    }
+  }
+
+  return tempPlateau.getCompatibleSolutionsBigInt();
+}
 
 /// Slider vertical d'actions en mode paysage
-///
-/// Affiche automatiquement les bonnes actions selon la sélection :
-/// - Mode transformation (pièce sélectionnée) : isométries + delete
-/// - Mode général (aucune sélection) : solutions, undo, paramètres
 class ActionSlider extends ConsumerWidget {
   const ActionSlider({super.key});
 
@@ -45,9 +78,48 @@ class ActionSlider extends ConsumerWidget {
       PentominoGameNotifier notifier,
       settings,
       ) {
-    return Column(
+    return
+      Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // ✅ Bouton Solutions (si > 0)
+        if (state.solutionsCount != null && state.solutionsCount! > 0)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: ElevatedButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                final solutions = getCompatibleSolutionsIncludingSelected(state);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SolutionsBrowserScreen.forSolutions(
+                      solutions: solutions,
+                      title: 'Solutions possibles',
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                minimumSize: const Size(40, 32),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
+              ),
+              child: Text(
+                '${state.solutionsCount}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
         // Rotation anti-horaire
         IconButton(
           icon: Icon(GameIcons.isometryRotation.icon, size: 28),
@@ -162,75 +234,44 @@ class ActionSlider extends ConsumerWidget {
         const SizedBox(height: 12),
 
         // Compteur de solutions
-        if (state.solutionsCount != null && state.placedPieces.isNotEmpty)
+        if (state.solutionsCount != null && state.solutionsCount! > 0 && state.placedPieces.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  '${state.solutionsCount}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: state.solutionsCount! > 0
-                        ? Colors.green[700]
-                        : Colors.red[700],
-                  ),
-                ),
-                Icon(
-                  GameIcons.solutionsCounter.icon,
-                  size: 20,
-                  color: state.solutionsCount! > 0
-                      ? Colors.green[700]
-                      : Colors.red[700],
-                ),
-              ],
-            ),
-          ),
-
-        // Bouton "voir les solutions possibles"
-        if (state.solutionsCount != null && state.solutionsCount! > 0) ...[
-          const SizedBox(height: 8),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ElevatedButton(
+              onPressed: () {
                 HapticFeedback.selectionClick();
-                try {
-                  final compatible = state.plateau.getCompatibleSolutionsBigInt();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SolutionsBrowserScreen.forSolutions(
-                        solutions: compatible,
-                        title: 'Solutions possibles',
-                      ),
+                final solutions = state.plateau.getCompatibleSolutionsBigInt();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SolutionsBrowserScreen.forSolutions(
+                      solutions: solutions,
+                      title: 'Solutions possibles',
                     ),
-                  );
-                } catch (e, stackTrace) {
-                  debugPrint('❌ Erreur: $e');
-                  debugPrint('❌ Stack: $stackTrace');
-                }
+                  ),
+                );
               },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: GameIcons.viewSolutions.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                minimumSize: const Size(40, 32),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                alignment: Alignment.center,
-                child: Icon(
-                  GameIcons.viewSolutions.icon,
-                  size: 22,
-                  color: GameIcons.viewSolutions.color,
+                elevation: 4,
+              ),
+              child: Text(
+                '${state.solutionsCount}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-        ],
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // Bouton Undo
         IconButton(
