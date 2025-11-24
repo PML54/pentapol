@@ -14,10 +14,14 @@ import 'package:pentapol/services/plateau_solution_counter.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 
 // Widgets extraits
-import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart';
+import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart'
+    show ActionSlider, getCompatibleSolutionsIncludingSelected;
 import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
 import 'package:pentapol/models/plateau.dart';
+
+
+
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
   const PentominoGameScreen({super.key});
@@ -73,16 +77,14 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             tooltip: 'Paramètres',
           )
               : null,
-// TITLE : Bouton Solutions (masqué si 0 solutions)
-          title: state.solutionsCount != null
-              && state.solutionsCount! > 0
-              && (state.placedPieces.isNotEmpty || state.selectedPlacedPiece != null)
+// TITLE : Bouton Solutions (affiché dès qu'il y a des solutions > 0)
+          title: state.solutionsCount != null && state.solutionsCount! > 0
               ? FittedBox(
             fit: BoxFit.scaleDown,
             child: ElevatedButton(
               onPressed: () {
                 HapticFeedback.selectionClick();
-                final solutions = _getCompatibleSolutionsIncludingSelected(state);
+                final solutions = getCompatibleSolutionsIncludingSelected(state);
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => SolutionsBrowserScreen.forSolutions(
@@ -117,16 +119,23 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               : _buildGeneralActions(state, notifier, settings),
         ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isLandscape = constraints.maxWidth > constraints.maxHeight;
+      body: Stack(
+        children: [
+          // Layout principal (portrait ou paysage)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
-          if (isLandscape) {
-            return _buildLandscapeLayout(context, ref, state, notifier, isInTransformMode);
-          } else {
-            return _buildPortraitLayout(context, ref, state, notifier);
-          }
-        },
+              if (isLandscape) {
+                return _buildLandscapeLayout(context, ref, state, notifier, isInTransformMode);
+              } else {
+                return _buildPortraitLayout(context, ref, state, notifier);
+              }
+            },
+          ),
+
+
+        ],
       ),
     );
   }
@@ -190,8 +199,17 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
 
   /// Actions en mode GÉNÉRAL (aucune pièce sélectionnée)
   List<Widget> _buildGeneralActions(state, notifier, settings) {
-    // Rien pour l'instant, ou tu peux ajouter d'autres actions générales
-    return [];
+    return [
+      // Bouton Démo/Tutoriel
+      IconButton(
+        icon: const Icon(Icons.help_outline),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+
+        },
+        tooltip: 'Démo : Comment jouer',
+      ),
+    ];
   }
 
   /// Layout portrait (classique) : plateau en haut, slider en bas
@@ -286,45 +304,5 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         ),
       ],
     );
-  }
-
-  /// Récupère les solutions compatibles en incluant la pièce sélectionnée si présente
-  List<BigInt> _getCompatibleSolutionsIncludingSelected(state) {
-    // Si pas de pièce sélectionnée, utiliser le plateau directement
-    if (state.selectedPlacedPiece == null) {
-      return state.plateau.getCompatibleSolutionsBigInt();
-    }
-
-    // Sinon, créer un plateau temporaire avec la pièce sélectionnée incluse
-    final tempPlateau = Plateau.allVisible(6, 10);
-
-    // Placer toutes les pièces déjà placées
-    for (final placed in state.placedPieces) {
-      final position = placed.piece.positions[placed.positionIndex];
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = placed.gridX + localX;
-        final y = placed.gridY + localY;
-        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-          tempPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-    }
-
-    // Placer la pièce sélectionnée (avec son positionIndex actuel)
-    final selectedPiece = state.selectedPlacedPiece!;
-    final position = selectedPiece.piece.positions[state.selectedPositionIndex];
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      final x = selectedPiece.gridX + localX;
-      final y = selectedPiece.gridY + localY;
-      if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-        tempPlateau.setCell(x, y, selectedPiece.piece.id);
-      }
-    }
-
-    return tempPlateau.getCompatibleSolutionsBigInt();
   }
 }
