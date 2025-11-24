@@ -53,7 +53,12 @@ List<BigInt> getCompatibleSolutionsIncludingSelected(PentominoGameState state) {
 
 /// Slider vertical d'actions en mode paysage
 class ActionSlider extends ConsumerWidget {
-  const ActionSlider({super.key});
+  final bool isLandscape;
+
+  const ActionSlider({
+    super.key,
+    this.isLandscape = true, // Par défaut true car utilisé principalement en paysage
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -78,8 +83,7 @@ class ActionSlider extends ConsumerWidget {
       PentominoGameNotifier notifier,
       settings,
       ) {
-    return
-      Column(
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // ✅ Bouton Solutions (si > 0)
@@ -148,28 +152,38 @@ class ActionSlider extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
 
-        // Symétrie Horizontale
+        // Symétrie Horizontale (visuelle)
+        // ✅ En mode paysage : H visuel = V logique (à cause de la rotation du plateau)
         IconButton(
           icon: Icon(GameIcons.isometrySymmetryH.icon, size: 28),
           padding: const EdgeInsets.all(8),
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           onPressed: () {
             HapticFeedback.selectionClick();
-            notifier.applyIsometrySymmetryH();
+            if (isLandscape) {
+              notifier.applyIsometrySymmetryV(); // Paysage: H visuel = V logique
+            } else {
+              notifier.applyIsometrySymmetryH(); // Portrait: H visuel = H logique
+            }
           },
           tooltip: GameIcons.isometrySymmetryH.tooltip,
           color: GameIcons.isometrySymmetryH.color,
         ),
         const SizedBox(height: 8),
 
-        // Symétrie Verticale
+        // Symétrie Verticale (visuelle)
+        // ✅ En mode paysage : V visuel = H logique (à cause de la rotation du plateau)
         IconButton(
           icon: Icon(GameIcons.isometrySymmetryV.icon, size: 28),
           padding: const EdgeInsets.all(8),
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           onPressed: () {
             HapticFeedback.selectionClick();
-            notifier.applyIsometrySymmetryV();
+            if (isLandscape) {
+              notifier.applyIsometrySymmetryH(); // Paysage: V visuel = H logique
+            } else {
+              notifier.applyIsometrySymmetryV(); // Portrait: V visuel = V logique
+            }
           },
           tooltip: GameIcons.isometrySymmetryV.tooltip,
           color: GameIcons.isometrySymmetryV.color,

@@ -104,6 +104,13 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
         ? state.selectedPositionIndex
         : state.getPiecePositionIndex(piece.id);
 
+    // ✅ En mode paysage : rotation visuelle de -90° (= +3 positions)
+    // pour que les pièces correspondent visuellement à l'orientation du plateau
+    int displayPositionIndex = positionIndex;
+    if (widget.isLandscape) {
+      displayPositionIndex = (positionIndex + 3) % piece.numPositions;
+    }
+
     final isSelected = state.selectedPiece?.id == piece.id;
     final settings = ref.read(settingsProvider);
 
@@ -156,9 +163,7 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
           },
           childBuilder: (isDragging) => PieceRenderer(
             piece: piece,
-            positionIndex: state.selectedPiece?.id == piece.id
-                ? state.selectedPositionIndex
-                : positionIndex,
+            positionIndex: displayPositionIndex, // ✅ Utiliser displayPositionIndex pour l'affichage
             isDragging: isDragging,
             getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
           ),

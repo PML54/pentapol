@@ -264,7 +264,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                   ),
                 ],
               ),
-              child: const ActionSlider(),
+              child: const ActionSlider(isLandscape: true),
             ),
 
             // Slider de pièces vertical
