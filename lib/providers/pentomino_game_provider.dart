@@ -1,7 +1,8 @@
-// Modified: 2025-11-20 (Transformations géométriques)
+// Modified: 2025-11-25 (Ajout support tutoriel)
 // lib/providers/pentomino_game_provider.dart
 // Provider pour gérer l'état du jeu de pentominos
 
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pentomino_game_state.dart';
 import '../models/pentominos.dart';
@@ -1315,7 +1316,312 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   }
 
 
+  // ============================================================
+  // 🆕 MÉTHODES TUTORIEL - Ajoutées pour le système Scratch-Pentapol
+  // ============================================================
 
+  /// Entre en mode tutoriel : sauvegarde l'état actuel et reset le jeu
+  void enterTutorialMode() {
+    if (state.isInTutorial) {
+      throw StateError('Déjà en mode tutoriel');
+    }
+
+    if (state.isIsometriesMode) {
+      throw StateError('Impossible d\'entrer en tutoriel depuis le mode isométries');
+    }
+
+    // Sauvegarder l'état complet actuel
+    final savedState = state.copyWith();
+
+    // Reset le jeu pour un plateau vierge
+    reset();
+
+    // Marquer comme mode tutoriel avec sauvegarde
+    state = state.copyWith(
+      savedGameState: savedState,
+      isInTutorial: true,
+    );
+
+    print('[TUTORIAL] Mode tutoriel activé, état sauvegardé');
+  }
+
+  /// Sort du mode tutoriel et restaure l'état sauvegardé
+  void exitTutorialMode({bool restore = true}) {
+    if (!state.isInTutorial) {
+      throw StateError('Pas en mode tutoriel');
+    }
+
+    if (state.savedGameState == null) {
+      throw StateError('Pas de sauvegarde disponible');
+    }
+
+    if (restore) {
+      // Restaurer l'état complet
+      state = state.savedGameState!.copyWith(
+        savedGameState: null,
+        isInTutorial: false,
+        clearHighlightedSliderPiece: true,
+        clearHighlightedBoardPiece: true,
+        clearHighlightedMastercase: true,
+        clearCellHighlights: true,
+        sliderOffset: 0,
+      );
+      print('[TUTORIAL] Mode tutoriel quitté, état restauré');
+    } else {
+      // Garder le plateau actuel, juste enlever le flag tutoriel
+      state = state.copyWith(
+        savedGameState: null,
+        isInTutorial: false,
+        clearHighlightedSliderPiece: true,
+        clearHighlightedBoardPiece: true,
+        clearHighlightedMastercase: true,
+        clearCellHighlights: true,
+        sliderOffset: 0,
+      );
+      print('[TUTORIAL] Mode tutoriel quitté, plateau conservé');
+    }
+  }
+
+  /// Annule le tutoriel (toujours restaurer)
+  void cancelTutorial() {
+    exitTutorialMode(restore: true);
+  }
+
+  // ============================================================
+  // HIGHLIGHTS SLIDER
+  // ============================================================
+
+  /// Surligne une pièce dans le slider (sans la sélectionner)
+  void highlightPieceInSlider(int pieceNumber) {
+    if (pieceNumber < 1 || pieceNumber > 12) {
+      throw ArgumentError('pieceNumber doit être entre 1 et 12');
+    }
+
+    state = state.copyWith(highlightedSliderPiece: pieceNumber);
+    print('[TUTORIAL] Pièce $pieceNumber surlignée dans le slider');
+  }
+
+  /// Efface la surbrillance du slider
+  void clearSliderHighlight() {
+    state = state.copyWith(clearHighlightedSliderPiece: true);
+    print('[TUTORIAL] Surbrillance slider effacée');
+  }
+
+  // ============================================================
+  // HIGHLIGHTS PLATEAU
+  // ============================================================
+
+  /// Surligne une pièce posée sur le plateau (sans la sélectionner)
+  void highlightPieceOnBoard(int pieceNumber) {
+    if (pieceNumber < 1 || pieceNumber > 12) {
+      throw ArgumentError('pieceNumber doit être entre 1 et 12');
+    }
+
+    // Vérifier que la pièce existe sur le plateau
+    final exists = state.placedPieces.any((p) => p.piece.id == pieceNumber);
+    if (!exists) {
+      throw StateError('La pièce $pieceNumber n\'est pas sur le plateau');
+    }
+
+    state = state.copyWith(highlightedBoardPiece: pieceNumber);
+    print('[TUTORIAL] Pièce $pieceNumber surlignée sur le plateau');
+  }
+
+  /// Efface la surbrillance du plateau
+  void clearBoardHighlight() {
+    state = state.copyWith(clearHighlightedBoardPiece: true);
+    print('[TUTORIAL] Surbrillance plateau effacée');
+  }
+
+  /// Surligne la mastercase d'une pièce
+  void highlightMastercase(Point position) {
+    state = state.copyWith(highlightedMastercase: position);
+    print('[TUTORIAL] Mastercase surlignée en (${position.x}, ${position.y})');
+  }
+
+  /// Efface la surbrillance de la mastercase
+  void clearMastercaseHighlight() {
+    state = state.copyWith(clearHighlightedMastercase: true);
+    print('[TUTORIAL] Surbrillance mastercase effacée');
+  }
+
+  // ============================================================
+  // HIGHLIGHTS DE CASES
+  // ============================================================
+
+  /// Surligne une case individuelle avec une couleur
+  void highlightCell(int x, int y, Color color) {
+    if (x < 0 || x >= 6 || y < 0 || y >= 10) {
+      throw ArgumentError('Position hors limites: ($x, $y)');
+    }
+
+    final newHighlights = Map<Point, Color>.from(state.cellHighlights);
+    newHighlights[Point(x, y)] = color;
+
+    state = state.copyWith(cellHighlights: newHighlights);
+    print('[TUTORIAL] Case ($x, $y) surlignée');
+  }
+
+  /// Surligne plusieurs cases avec la même couleur
+  void highlightCells(List<Point> cells, Color color) {
+    final newHighlights = Map<Point, Color>.from(state.cellHighlights);
+
+    for (final cell in cells) {
+      if (cell.x >= 0 && cell.x < 6 && cell.y >= 0 && cell.y < 10) {
+        newHighlights[cell] = color;
+      }
+    }
+
+    state = state.copyWith(cellHighlights: newHighlights);
+    print('[TUTORIAL] ${cells.length} cases surlignées');
+  }
+
+  /// Efface toutes les surbrillances de cases
+  void clearCellHighlights() {
+    state = state.copyWith(clearCellHighlights: true);
+    print('[TUTORIAL] Toutes les surbrillances de cases effacées');
+  }
+
+  /// Surligne toutes les positions valides pour la pièce sélectionnée
+  void highlightValidPositions(Pento piece, int positionIndex, Color color) {
+    final validCells = <Point>[];
+
+    // Tester toutes les positions du plateau
+    for (int y = 0; y < 10; y++) {
+      for (int x = 0; x < 6; x++) {
+        if (state.canPlacePiece(piece, positionIndex, x, y)) {
+          // Ajouter toutes les cases que la pièce occuperait
+          final position = piece.positions[positionIndex];
+          for (final cellNum in position) {
+            final localX = (cellNum - 1) % 5;
+            final localY = (cellNum - 1) ~/ 5;
+            final absX = x + localX;
+            final absY = y + localY;
+
+            if (absX >= 0 && absX < 6 && absY >= 0 && absY < 10) {
+              validCells.add(Point(absX, absY));
+            }
+          }
+        }
+      }
+    }
+
+    highlightCells(validCells, color);
+    print('[TUTORIAL] ${validCells.length} positions valides surlignées');
+  }
+
+  // ============================================================
+  // CONTRÔLE DU SLIDER
+  // ============================================================
+
+  /// Fait défiler le slider de N positions
+  /// positions > 0 : vers la droite
+  /// positions < 0 : vers la gauche
+  void scrollSlider(int positions) {
+    final newOffset = (state.sliderOffset + positions) % 12;
+    state = state.copyWith(sliderOffset: newOffset);
+    print('[TUTORIAL] Slider décalé de $positions positions (offset: $newOffset)');
+  }
+
+  /// Fait défiler le slider pour centrer sur une pièce
+  void scrollSliderToPiece(int pieceNumber) {
+    if (pieceNumber < 1 || pieceNumber > 12) {
+      throw ArgumentError('pieceNumber doit être entre 1 et 12');
+    }
+
+    // Calculer l'offset pour centrer cette pièce
+    // (dépend de l'implémentation exacte du slider)
+    final targetOffset = (pieceNumber - 1) % 12;
+    state = state.copyWith(sliderOffset: targetOffset);
+    print('[TUTORIAL] Slider centré sur pièce $pieceNumber');
+  }
+
+  /// Remet le slider à sa position initiale
+  void resetSliderPosition() {
+    state = state.copyWith(sliderOffset: 0);
+    print('[TUTORIAL] Slider remis à la position initiale');
+  }
+
+  // ============================================================
+  // UTILITAIRES TUTORIEL
+  // ============================================================
+
+  /// Trouve une pièce placée à une position donnée
+  PlacedPiece? findPlacedPieceAt(int x, int y) {
+    for (final placedPiece in state.placedPieces) {
+      final cells = placedPiece.absoluteCells;
+      if (cells.any((cell) => cell.x == x && cell.y == y)) {
+        return placedPiece;
+      }
+    }
+    return null;
+  }
+
+  /// Trouve une pièce placée par son ID
+  PlacedPiece? findPlacedPieceById(int pieceNumber) {
+    try {
+      return state.placedPieces.firstWhere((p) => p.piece.id == pieceNumber);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Sélectionne une pièce du slider avec mastercase explicite
+  /// (pour compatibilité Scratch SELECT_PIECE_FROM_SLIDER)
+  void selectPieceFromSliderForTutorial(int pieceNumber) {
+    if (pieceNumber < 1 || pieceNumber > 12) {
+      throw ArgumentError('pieceNumber doit être entre 1 et 12');
+    }
+
+    final piece = pentominos.firstWhere((p) => p.id == pieceNumber);
+    selectPiece(piece);
+
+    print('[TUTORIAL] Pièce $pieceNumber sélectionnée depuis le slider');
+  }
+
+  /// Sélectionne une pièce sur le plateau à une position donnée
+  /// (pour compatibilité Scratch SELECT_PIECE_ON_BOARD_AT)
+  void selectPlacedPieceAtForTutorial(int x, int y) {
+    final placedPiece = findPlacedPieceAt(x, y);
+
+    if (placedPiece == null) {
+      throw StateError('Aucune pièce à la position ($x, $y)');
+    }
+
+    // La case cliquée devient la mastercase
+    selectPlacedPiece(placedPiece, x, y);
+
+    print('[TUTORIAL] Pièce ${placedPiece.piece.id} sélectionnée en ($x, $y)');
+  }
+
+  /// Sélectionne une pièce avec une mastercase explicite
+  /// (pour compatibilité Scratch SELECT_PIECE_ON_BOARD_WITH_MASTERCASE)
+  void selectPlacedPieceWithMastercaseForTutorial(
+      int pieceNumber,
+      int mastercaseX,
+      int mastercaseY,
+      ) {
+    final placedPiece = findPlacedPieceById(pieceNumber);
+
+    if (placedPiece == null) {
+      throw StateError('La pièce $pieceNumber n\'est pas sur le plateau');
+    }
+
+    // Vérifier que la mastercase est bien dans la pièce
+    final isInPiece = placedPiece.absoluteCells.any(
+          (cell) => cell.x == mastercaseX && cell.y == mastercaseY,
+    );
+
+    if (!isInPiece) {
+      throw ArgumentError(
+        'La position ($mastercaseX, $mastercaseY) n\'est pas dans la pièce $pieceNumber',
+      );
+    }
+
+    selectPlacedPiece(placedPiece, mastercaseX, mastercaseY);
+
+    print('[TUTORIAL] Pièce $pieceNumber sélectionnée avec mastercase ($mastercaseX, $mastercaseY)');
+  }
 
 }
 

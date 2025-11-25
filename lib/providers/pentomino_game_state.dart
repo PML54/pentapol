@@ -1,7 +1,8 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2025-11-25 (Tutorial support added)
 // lib/providers/pentomino_game_state.dart
-// État du jeu de pentominos (mode libre)
+// État du jeu de pentominos (mode libre + mode tutoriel)
 
+import 'package:flutter/material.dart';
 import '../models/pentominos.dart';
 import '../models/plateau.dart';
 import '../models/point.dart';
@@ -66,9 +67,6 @@ class PlacedPiece
       yield Point(gridX + localX, gridY + localY);
     }
   }
-
-
-
 }
 
 /// État du jeu de pentominos
@@ -86,6 +84,7 @@ class PentominoGameState {
   final int? previewX; // Position X de la preview
   final int? previewY; // Position Y de la preview
   final bool isPreviewValid; // La preview est-elle un placement valide ?
+
   // Validation du plateau
   final bool boardIsValid; // true si pas de chevauchement ni débordement
   final Set<Point> overlappingCells; // Cases où au moins 2 pièces se chevauchent
@@ -96,7 +95,19 @@ class PentominoGameState {
 
   // Mode isométries
   final bool isIsometriesMode; // true = mode isométries, false = mode jeu normal
-  final PentominoGameState? savedGameState; // État du jeu sauvegardé avant d'entrer en mode isométries
+  final PentominoGameState? savedGameState; // État du jeu sauvegardé (isométries OU tutoriel)
+
+  // 🆕 MODE TUTORIEL
+  final bool isInTutorial; // true = en mode tutoriel, false = jeu normal
+
+  // 🆕 HIGHLIGHTS TUTORIEL
+  final int? highlightedSliderPiece; // ID de la pièce surlignée dans le slider (null = aucune)
+  final int? highlightedBoardPiece; // ID de la pièce surlignée sur le plateau (null = aucune)
+  final Point? highlightedMastercase; // Position de la mastercase surlignée (null = aucune)
+  final Map<Point, Color> cellHighlights; // Highlights de cases individuelles avec couleur
+
+  // 🆕 SLIDER POSITION
+  final int sliderOffset; // Offset de défilement du slider (0 = position initiale)
 
   PentominoGameState({
     required this.plateau,
@@ -114,14 +125,22 @@ class PentominoGameState {
     this.isIsometriesMode = false,
     this.savedGameState,
 
-    // Nouveaux champs
+    // Validation
     this.boardIsValid = true,
     Set<Point>? overlappingCells,
     Set<Point>? offBoardCells,
+
+    // 🆕 Tutoriel
+    this.isInTutorial = false,
+    this.highlightedSliderPiece,
+    this.highlightedBoardPiece,
+    this.highlightedMastercase,
+    Map<Point, Color>? cellHighlights,
+    this.sliderOffset = 0,
   })  : piecePositionIndices = piecePositionIndices ?? {},
         overlappingCells = overlappingCells ?? <Point>{},
-        offBoardCells = offBoardCells ?? <Point>{};
-
+        offBoardCells = offBoardCells ?? <Point>{},
+        cellHighlights = cellHighlights ?? <Point, Color>{};
 
   /// État initial du jeu
   factory PentominoGameState.initial() {
@@ -135,9 +154,11 @@ class PentominoGameState {
       boardIsValid: true,
       overlappingCells: <Point>{},
       offBoardCells: <Point>{},
+      isInTutorial: false,
+      sliderOffset: 0,
+      cellHighlights: <Point, Color>{},
     );
   }
-
 
   /// Obtient l'index de position pour une pièce (par défaut 0)
   int getPiecePositionIndex(int pieceId) {
@@ -193,10 +214,22 @@ class PentominoGameState {
     PentominoGameState? savedGameState,
     bool clearSavedGameState = false,
 
-    // Nouveaux paramètres
+    // Validation
     bool? boardIsValid,
     Set<Point>? overlappingCells,
     Set<Point>? offBoardCells,
+
+    // 🆕 Tutoriel
+    bool? isInTutorial,
+    int? highlightedSliderPiece,
+    bool clearHighlightedSliderPiece = false,
+    int? highlightedBoardPiece,
+    bool clearHighlightedBoardPiece = false,
+    Point? highlightedMastercase,
+    bool clearHighlightedMastercase = false,
+    Map<Point, Color>? cellHighlights,
+    bool clearCellHighlights = false,
+    int? sliderOffset,
   }) {
     return PentominoGameState(
       plateau: plateau ?? this.plateau,
@@ -214,11 +247,18 @@ class PentominoGameState {
       isIsometriesMode: isIsometriesMode ?? this.isIsometriesMode,
       savedGameState: clearSavedGameState ? null : (savedGameState ?? this.savedGameState),
 
-      // Nouveaux champs
+      // Validation
       boardIsValid: boardIsValid ?? this.boardIsValid,
       overlappingCells: overlappingCells ?? this.overlappingCells,
       offBoardCells: offBoardCells ?? this.offBoardCells,
+
+      // 🆕 Tutoriel
+      isInTutorial: isInTutorial ?? this.isInTutorial,
+      highlightedSliderPiece: clearHighlightedSliderPiece ? null : (highlightedSliderPiece ?? this.highlightedSliderPiece),
+      highlightedBoardPiece: clearHighlightedBoardPiece ? null : (highlightedBoardPiece ?? this.highlightedBoardPiece),
+      highlightedMastercase: clearHighlightedMastercase ? null : (highlightedMastercase ?? this.highlightedMastercase),
+      cellHighlights: clearCellHighlights ? <Point, Color>{} : (cellHighlights ?? this.cellHighlights),
+      sliderOffset: sliderOffset ?? this.sliderOffset,
     );
   }
-
 }

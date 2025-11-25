@@ -20,7 +20,9 @@ import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
 import 'package:pentapol/models/plateau.dart';
 
-
+// Tutorial
+import 'package:pentapol/tutorial/tutorial.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -135,6 +137,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           ),
 
 
+          // ⭐ AJOUTER CES 2 LIGNES ⭐
+          const TutorialOverlay(),
+          const TutorialControls(),
         ],
       ),
     );
@@ -200,12 +205,33 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
   /// Actions en mode GÉNÉRAL (aucune pièce sélectionnée)
   List<Widget> _buildGeneralActions(state, notifier, settings) {
     return [
-      // Bouton Démo/Tutoriel
       IconButton(
         icon: const Icon(Icons.help_outline),
-        onPressed: () {
+        onPressed: () async {
           HapticFeedback.selectionClick();
 
+          try {
+            // Charger le tutoriel d'introduction
+            final yamlContent = await rootBundle.loadString(
+              'assets/tutorials/01_intro_basics.yaml',
+            );
+
+            // Parser le script
+            final script = YamlScriptParser.parse(yamlContent);
+
+            // Charger et démarrer le tutoriel
+            final tutorialNotifier = ref.read(tutorialProvider.notifier);
+            tutorialNotifier.loadScript(script);
+            await tutorialNotifier.start();
+
+          } catch (e) {
+            // En cas d'erreur, afficher un message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Erreur: $e')),
+              );
+            }
+          }
         },
         tooltip: 'Démo : Comment jouer',
       ),
