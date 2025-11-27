@@ -4,6 +4,7 @@
 import 'tutorial_script.dart';
 import 'tutorial_context.dart';
 import '../interpreter/scratch_interpreter.dart';
+import '../../providers/pentomino_game_state.dart';
 
 /// État d'un tutoriel
 class TutorialState {
@@ -31,6 +32,9 @@ class TutorialState {
   /// Script chargé mais pas encore démarré
   final bool isLoaded;
 
+  /// 💾 État du jeu sauvegardé avant le tutorial (pour restauration au quit)
+  final PentominoGameState? savedGameState;
+
   const TutorialState({
     this.currentScript,
     this.interpreter,
@@ -40,6 +44,7 @@ class TutorialState {
     this.currentStep = 0,
     this.currentMessage,
     this.isLoaded = false,
+    this.savedGameState,
   });
 
   /// État initial
@@ -61,6 +66,8 @@ class TutorialState {
     String? currentMessage,
     bool clearCurrentMessage = false,
     bool? isLoaded,
+    PentominoGameState? savedGameState,
+    bool clearSavedGameState = false,
   }) {
     return TutorialState(
       currentScript: clearCurrentScript
@@ -75,6 +82,9 @@ class TutorialState {
           ? null
           : (currentMessage ?? this.currentMessage),
       isLoaded: isLoaded ?? this.isLoaded,
+      savedGameState: clearSavedGameState
+          ? null
+          : (savedGameState ?? this.savedGameState),
     );
   }
 

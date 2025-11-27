@@ -215,7 +215,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             final yamlContent = await rootBundle.loadString(
              // 'assets/tutorials/01_intro_basics.yaml',
              // 'assets/tutorials/test_coords.yaml',
-              'assets/tutorials/02_intro_basics.yaml',
+              'assets/tutorials/03_Rotation_basics.yaml',
             );
 
             // Parser le script

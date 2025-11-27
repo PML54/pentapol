@@ -50,8 +50,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         1, // 90° anti-horaire
       );
 
-
-
       // 4. Reconnaître la nouvelle forme
       final match = recognizeShape(rotatedCoords);
 
@@ -181,7 +179,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   void applyIsometryRotationCW() {
     // Transformer une pièce placée avec rotation géométrique (mode game ET isométries)
     print('[DEBUG] 🔥 applyIsometryRotationCW appelée !');
-
 
     if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
@@ -872,6 +869,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     }
   }
 
+  // À AJOUTER dans pentomino_game_provider.dart
+  // Après la méthode exitTutorialMode() (vers ligne 870)
+
   /// Trouve une pièce placée à une position donnée
   PlacedPiece? findPlacedPieceAt(int x, int y) {
     for (final placedPiece in state.placedPieces) {
@@ -944,10 +944,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     print('[TUTORIAL] Mastercase surlignée en (${position.x}, ${position.y})');
   }
 
-  // ============================================================
-  // 🆕 MÉTHODES TUTORIEL - Ajoutées pour le système Scratch-Pentapol
-  // ============================================================
-
   /// Surligne une pièce dans le slider (sans la sélectionner)
   void highlightPieceInSlider(int pieceNumber) {
     if (pieceNumber < 1 || pieceNumber > 12) {
@@ -957,6 +953,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     state = state.copyWith(highlightedSliderPiece: pieceNumber);
     print('[TUTORIAL] Pièce $pieceNumber surlignée dans le slider');
   }
+
+  // ============================================================
+  // 🆕 MÉTHODES TUTORIEL - Ajoutées pour le système Scratch-Pentapol
+  // ============================================================
 
   /// Surligne une pièce posée sur le plateau (sans la sélectionner)
   void highlightPieceOnBoard(int pieceNumber) {
@@ -1001,10 +1001,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     highlightCells(validCells, color);
     print('[TUTORIAL] ${validCells.length} positions valides surlignées');
   }
-
-  // ============================================================
-  // HIGHLIGHTS SLIDER
-  // ============================================================
 
   /// Place la pièce sélectionnée à la position indiquée (pour tutoriel)
   /// Place la pièce sélectionnée à la position indiquée (pour tutoriel)
@@ -1064,8 +1060,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     final placedPiece = PlacedPiece(
       piece: piece,
       positionIndex: positionIndex,
-      gridX: anchorX,  // ← Ancre, pas mastercase
-      gridY: anchorY,  // ← Ancre, pas mastercase
+      gridX: anchorX, // ← Ancre, pas mastercase
+      gridY: anchorY, // ← Ancre, pas mastercase
     );
 
     // Retirer la pièce des disponibles
@@ -1088,9 +1084,17 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       solutionsCount: solutionsCount,
     );
 
-    print('[TUTORIAL] 🔍 PlacedPiece absoluteCells: ${placedPiece.absoluteCells.toList()}');
-    print('[TUTORIAL] ✅ Pièce ${piece.id} placée avec mastercase en ($gridX, $gridY)');
+    print(
+      '[TUTORIAL] 🔍 PlacedPiece absoluteCells: ${placedPiece.absoluteCells.toList()}',
+    );
+    print(
+      '[TUTORIAL] ✅ Pièce ${piece.id} placée avec mastercase en ($gridX, $gridY)',
+    );
   }
+
+  // ============================================================
+  // HIGHLIGHTS SLIDER
+  // ============================================================
 
   /// Retire une pièce placée du plateau
   void removePlacedPiece(PlacedPiece placedPiece) {
@@ -1146,19 +1150,27 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     }
   }
 
-  // ============================================================
-  // HIGHLIGHTS PLATEAU
-  // ============================================================
-
   /// Réinitialise le jeu
   void reset() {
     state = PentominoGameState.initial();
   }
 
+  // ============================================================
+  // HIGHLIGHTS PLATEAU
+  // ============================================================
+
   /// Remet le slider à sa position initiale
   void resetSliderPosition() {
     state = state.copyWith(sliderOffset: 0);
     print('[TUTORIAL] Slider remis à la position initiale');
+  }
+
+  /// 🆕 Restaure un état sauvegardé (utilisé par TutorialProvider au quit)
+  void restoreState(PentominoGameState savedState) {
+    print(
+      '[GAME] ♻️ Restauration de l\'état : ${savedState.placedPieces.length} pièces placées',
+    );
+    state = savedState;
   }
 
   /// Fait défiler le slider de N positions
@@ -1546,13 +1558,14 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       state = state.copyWith(
         plateau: plateauSansPiece,
         availablePieces: newAvailable,
-        placedPieces:
-            state.placedPieces, // ✅ Ne pas ajouter la pièce aux placées
+        placedPieces: state.placedPieces,
+        // ✅ Ne pas ajouter la pièce aux placées
         selectedPiece: piece,
         selectedPositionIndex: positionIndex,
-        selectedPlacedPiece:
-            placedPiece, // ✅ Garder la référence à la nouvelle position
-        selectedCellInPiece: savedCellInPiece, // ✅ Garder la master cell
+        selectedPlacedPiece: placedPiece,
+        // ✅ Garder la référence à la nouvelle position
+        selectedCellInPiece: savedCellInPiece,
+        // ✅ Garder la master cell
         solutionsCount: solutionsCount,
         clearPreview: true,
       );
@@ -1814,6 +1827,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     );
     _recomputeBoardValidity();
   }*/
+
   /// Recalcule la validité du plateau et les cellules problématiques
   void _recomputeBoardValidity() {
     final overlapping = <Point>{};

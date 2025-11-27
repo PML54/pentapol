@@ -70,11 +70,15 @@ class TutorialNotifier extends Notifier<TutorialState> {
 
     print('[TUTORIAL] Démarrage du tutoriel: ${state.currentScript!.name}');
 
+    // 💾 SAUVEGARDER l'état du jeu AVANT d'entrer en mode tutorial
+    final gameState = ref.read(pentominoGameProvider);
+    print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu (${gameState.placedPieces.length} pièces placées)');
+
     // Créer le contexte
     final gameNotifier = ref.read(pentominoGameProvider.notifier);
     final context = TutorialContext(
       gameNotifier: gameNotifier,
-      ref: ref,  // ← ENLEVER le "as WidgetRef"
+      ref: ref,
       variables: Map.from(state.currentScript!.variables),
     );
 
@@ -92,9 +96,10 @@ class TutorialNotifier extends Notifier<TutorialState> {
       context: context,
       isRunning: true,
       currentStep: 0,
+      savedGameState: gameState, // 💾 Sauvegarde
     );
 
-// Lancer l'exécution en asynchrone
+    // Lancer l'exécution en asynchrone
     print('[TUTORIAL] 🟢 Appel de interpreter.run()...');
     interpreter.run();
     print('[TUTORIAL] 🟢 Appel terminé (asynchrone)');
@@ -114,6 +119,9 @@ class TutorialNotifier extends Notifier<TutorialState> {
   void _onCompleted() {
     print('[TUTORIAL] Tutoriel terminé: ${state.currentScript?.name}');
 
+    // ♻️ RESTAURER l'état du jeu sauvegardé
+    _restoreGameState();
+
     // Nettoyer complètement l'état
     state = state.copyWith(
       isRunning: false,
@@ -122,6 +130,7 @@ class TutorialNotifier extends Notifier<TutorialState> {
       clearInterpreter: true,
       clearContext: true,
       clearCurrentMessage: true,
+      clearSavedGameState: true,
       isLoaded: false,
       currentStep: 0,
     );
@@ -166,9 +175,55 @@ class TutorialNotifier extends Notifier<TutorialState> {
     if (!state.isRunning) return;
 
     state.interpreter?.stop();
-    state = state.copyWith(isRunning: false, isPaused: false, currentStep: 0);
+
+    // ♻️ RESTAURER l'état du jeu sauvegardé
+    _restoreGameState();
+
+    state = state.copyWith(
+      isRunning: false,
+      isPaused: false,
+      currentStep: 0,
+      clearSavedGameState: true,
+    );
 
     print('[TUTORIAL] Arrêt');
+  }
+
+  /// 🆕 QUITTE le tutoriel (comme stop mais nettoie tout)
+  void quit() {
+    if (!state.isRunning) return;
+
+    print('[TUTORIAL] 🚪 Quit demandé');
+
+    state.interpreter?.stop();
+
+    // ♻️ RESTAURER l'état du jeu sauvegardé
+    _restoreGameState();
+
+    // Nettoyer complètement
+    state = state.copyWith(
+      isRunning: false,
+      isPaused: false,
+      clearCurrentScript: true,
+      clearInterpreter: true,
+      clearContext: true,
+      clearCurrentMessage: true,
+      clearSavedGameState: true,
+      isLoaded: false,
+      currentStep: 0,
+    );
+
+    print('[TUTORIAL] 🚪 Quit terminé');
+  }
+
+  /// ♻️ Restaure l'état du jeu sauvegardé
+  void _restoreGameState() {
+    if (state.savedGameState != null) {
+      print('[TUTORIAL] ♻️ Restauration de l\'état du jeu (${state.savedGameState!.placedPieces.length} pièces)');
+      ref.read(pentominoGameProvider.notifier).restoreState(state.savedGameState!);
+    } else {
+      print('[TUTORIAL] ⚠️ Aucun état à restaurer');
+    }
   }
 
   /// Redémarre depuis le début

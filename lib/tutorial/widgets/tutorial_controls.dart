@@ -30,16 +30,17 @@ class TutorialControls extends ConsumerWidget {
           padding: const EdgeInsets.all(8),
           child: tutorialState.isRunning
               ? _RunningControls(
-                  isPaused: tutorialState.isPaused,
-                  onPause: () => notifier.pause(),
-                  onResume: () => notifier.resume(),
-                  onStop: () => notifier.stop(),
-                  onRestart: () => notifier.restart(),
-                )
+            isPaused: tutorialState.isPaused,
+            onPause: () => notifier.pause(),
+            onResume: () => notifier.resume(),
+            onStop: () => notifier.stop(),
+            onRestart: () => notifier.restart(),
+            onQuit: () => notifier.quit(), // 🆕 Callback Quit
+          )
               : _LoadedControls(
-                  onStart: () => notifier.start(),
-                  onCancel: () => notifier.unloadScript(),
-                ),
+            onStart: () => notifier.start(),
+            onCancel: () => notifier.unloadScript(),
+          ),
         ),
       ),
     );
@@ -87,6 +88,7 @@ class _RunningControls extends StatelessWidget {
   final VoidCallback onResume;
   final VoidCallback onStop;
   final VoidCallback onRestart;
+  final VoidCallback onQuit; // 🆕 Callback Quit
 
   const _RunningControls({
     required this.isPaused,
@@ -94,6 +96,7 @@ class _RunningControls extends StatelessWidget {
     required this.onResume,
     required this.onStop,
     required this.onRestart,
+    required this.onQuit,
   });
 
   @override
@@ -127,6 +130,16 @@ class _RunningControls extends StatelessWidget {
           color: Colors.red[700],
           tooltip: 'Arrêter',
           onPressed: onStop,
+        ),
+
+        const SizedBox(width: 4),
+
+        // 🆕 Bouton Quit (Quitter le tutoriel)
+        IconButton(
+          icon: const Icon(Icons.exit_to_app, size: 28),
+          color: Colors.grey[700],
+          tooltip: 'Quitter le tutoriel',
+          onPressed: onQuit,
         ),
       ],
     );
