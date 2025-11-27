@@ -14,9 +14,9 @@ import '../services/shape_recognizer.dart';
 import 'pentomino_game_state.dart';
 
 final pentominoGameProvider =
-    NotifierProvider<PentominoGameNotifier, PentominoGameState>(
+NotifierProvider<PentominoGameNotifier, PentominoGameState>(
       () => PentominoGameNotifier(),
-    );
+);
 
 class PentominoGameNotifier extends Notifier<PentominoGameState> {
   /// Applique une rotation 90° anti-horaire à la pièce sélectionnée
@@ -49,6 +49,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         centerY,
         1, // 90° anti-horaire
       );
+
+
 
       // 4. Reconnaître la nouvelle forme
       final match = recognizeShape(rotatedCoords);
@@ -179,6 +181,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   void applyIsometryRotationCW() {
     // Transformer une pièce placée avec rotation géométrique (mode game ET isométries)
     print('[DEBUG] 🔥 applyIsometryRotationCW appelée !');
+
 
     if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
@@ -708,6 +711,24 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     print('[TUTORIAL] Surbrillance slider effacée');
   }
 
+  /// 🆕 Surligne une icône d'isométrie (pour tutoriel)
+  /// iconName: 'rotation', 'rotation_cw', 'symmetry_h', 'symmetry_v'
+  void highlightIsometryIcon(String iconName) {
+    final validIcons = ['rotation', 'rotation_cw', 'symmetry_h', 'symmetry_v'];
+    if (!validIcons.contains(iconName)) {
+      print('[TUTORIAL] ⚠️ Icône invalide: $iconName (attendu: ${validIcons.join(", ")})');
+      return;
+    }
+    state = state.copyWith(highlightedIsometryIcon: iconName);
+    print('[TUTORIAL] 🔆 Icône d\'isométrie surlignée: $iconName');
+  }
+
+  /// 🆕 Efface la surbrillance des icônes d'isométrie
+  void clearIsometryIconHighlight() {
+    state = state.copyWith(clearHighlightedIsometryIcon: true);
+    print('[TUTORIAL] Surbrillance icône isométrie effacée');
+  }
+
   /// Cycle vers l'orientation suivante de la pièce sélectionnée
   /// Passe simplement à l'index suivant dans piece.positions (boucle)
   void cycleToNextOrientation() {
@@ -869,8 +890,13 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     }
   }
 
-  // À AJOUTER dans pentomino_game_provider.dart
-  // Après la méthode exitTutorialMode() (vers ligne 870)
+  /// 🆕 Restaure un état sauvegardé (utilisé par TutorialProvider au quit)
+  void restoreState(PentominoGameState savedState) {
+    print(
+      '[GAME] ♻️ Restauration de l\'état : ${savedState.placedPieces.length} pièces placées',
+    );
+    state = savedState;
+  }
 
   /// Trouve une pièce placée à une position donnée
   PlacedPiece? findPlacedPieceAt(int x, int y) {
@@ -944,6 +970,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     print('[TUTORIAL] Mastercase surlignée en (${position.x}, ${position.y})');
   }
 
+  // ============================================================
+  // 🆕 MÉTHODES TUTORIEL - Ajoutées pour le système Scratch-Pentapol
+  // ============================================================
+
   /// Surligne une pièce dans le slider (sans la sélectionner)
   void highlightPieceInSlider(int pieceNumber) {
     if (pieceNumber < 1 || pieceNumber > 12) {
@@ -953,10 +983,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     state = state.copyWith(highlightedSliderPiece: pieceNumber);
     print('[TUTORIAL] Pièce $pieceNumber surlignée dans le slider');
   }
-
-  // ============================================================
-  // 🆕 MÉTHODES TUTORIEL - Ajoutées pour le système Scratch-Pentapol
-  // ============================================================
 
   /// Surligne une pièce posée sur le plateau (sans la sélectionner)
   void highlightPieceOnBoard(int pieceNumber) {
@@ -1001,6 +1027,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     highlightCells(validCells, color);
     print('[TUTORIAL] ${validCells.length} positions valides surlignées');
   }
+
+  // ============================================================
+  // HIGHLIGHTS SLIDER
+  // ============================================================
 
   /// Place la pièce sélectionnée à la position indiquée (pour tutoriel)
   /// Place la pièce sélectionnée à la position indiquée (pour tutoriel)
@@ -1060,8 +1090,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     final placedPiece = PlacedPiece(
       piece: piece,
       positionIndex: positionIndex,
-      gridX: anchorX, // ← Ancre, pas mastercase
-      gridY: anchorY, // ← Ancre, pas mastercase
+      gridX: anchorX,  // ← Ancre, pas mastercase
+      gridY: anchorY,  // ← Ancre, pas mastercase
     );
 
     // Retirer la pièce des disponibles
@@ -1084,17 +1114,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       solutionsCount: solutionsCount,
     );
 
-    print(
-      '[TUTORIAL] 🔍 PlacedPiece absoluteCells: ${placedPiece.absoluteCells.toList()}',
-    );
-    print(
-      '[TUTORIAL] ✅ Pièce ${piece.id} placée avec mastercase en ($gridX, $gridY)',
-    );
+    print('[TUTORIAL] 🔍 PlacedPiece absoluteCells: ${placedPiece.absoluteCells.toList()}');
+    print('[TUTORIAL] ✅ Pièce ${piece.id} placée avec mastercase en ($gridX, $gridY)');
   }
-
-  // ============================================================
-  // HIGHLIGHTS SLIDER
-  // ============================================================
 
   /// Retire une pièce placée du plateau
   void removePlacedPiece(PlacedPiece placedPiece) {
@@ -1150,27 +1172,19 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     }
   }
 
+  // ============================================================
+  // HIGHLIGHTS PLATEAU
+  // ============================================================
+
   /// Réinitialise le jeu
   void reset() {
     state = PentominoGameState.initial();
   }
 
-  // ============================================================
-  // HIGHLIGHTS PLATEAU
-  // ============================================================
-
   /// Remet le slider à sa position initiale
   void resetSliderPosition() {
     state = state.copyWith(sliderOffset: 0);
     print('[TUTORIAL] Slider remis à la position initiale');
-  }
-
-  /// 🆕 Restaure un état sauvegardé (utilisé par TutorialProvider au quit)
-  void restoreState(PentominoGameState savedState) {
-    print(
-      '[GAME] ♻️ Restauration de l\'état : ${savedState.placedPieces.length} pièces placées',
-    );
-    state = savedState;
   }
 
   /// Fait défiler le slider de N positions
@@ -1419,10 +1433,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   /// Sélectionne une pièce avec une mastercase explicite
   /// (pour compatibilité Scratch SELECT_PIECE_ON_BOARD_WITH_MASTERCASE)
   void selectPlacedPieceWithMastercaseForTutorial(
-    int pieceNumber,
-    int mastercaseX,
-    int mastercaseY,
-  ) {
+      int pieceNumber,
+      int mastercaseX,
+      int mastercaseY,
+      ) {
     final placedPiece = findPlacedPieceById(pieceNumber);
 
     if (placedPiece == null) {
@@ -1431,7 +1445,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
     // Vérifier que la mastercase est bien dans la pièce
     final isInPiece = placedPiece.absoluteCells.any(
-      (cell) => cell.x == mastercaseX && cell.y == mastercaseY,
+          (cell) => cell.x == mastercaseX && cell.y == mastercaseY,
     );
 
     if (!isInPiece) {
@@ -1464,7 +1478,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     );
     final wasPlacedPiece =
         state.selectedPlacedPiece !=
-        null; // ✅ Mémoriser si c'était une pièce placée
+            null; // ✅ Mémoriser si c'était une pièce placée
     final savedCellInPiece =
         state.selectedCellInPiece; // ✅ Garder la master cell
 
@@ -1492,9 +1506,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     // Créer une copie du plateau et placer la pièce
     final newGrid = List.generate(
       state.plateau.height,
-      (y) => List.generate(
+          (y) => List.generate(
         state.plateau.width,
-        (x) => state.plateau.getCell(x, y),
+            (x) => state.plateau.getCell(x, y),
       ),
     );
 
@@ -1558,14 +1572,13 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       state = state.copyWith(
         plateau: plateauSansPiece,
         availablePieces: newAvailable,
-        placedPieces: state.placedPieces,
-        // ✅ Ne pas ajouter la pièce aux placées
+        placedPieces:
+        state.placedPieces, // ✅ Ne pas ajouter la pièce aux placées
         selectedPiece: piece,
         selectedPositionIndex: positionIndex,
-        selectedPlacedPiece: placedPiece,
-        // ✅ Garder la référence à la nouvelle position
-        selectedCellInPiece: savedCellInPiece,
-        // ✅ Garder la master cell
+        selectedPlacedPiece:
+        placedPiece, // ✅ Garder la référence à la nouvelle position
+        selectedCellInPiece: savedCellInPiece, // ✅ Garder la master cell
         solutionsCount: solutionsCount,
         clearPreview: true,
       );
@@ -1697,11 +1710,11 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   /// [centerX], [centerY] : coordonnées absolues de la master case (fixe)
   /// [newGridX], [newGridY] : nouvelle ancre de la pièce transformée
   Point _calculateNewMasterCell(
-    int centerX,
-    int centerY,
-    int newGridX,
-    int newGridY,
-  ) {
+      int centerX,
+      int centerY,
+      int newGridX,
+      int newGridY,
+      ) {
     final newLocalX = centerX - newGridX;
     final newLocalY = centerY - newGridY;
     return Point(newLocalX, newLocalY);
@@ -1756,7 +1769,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
 
     // Placer la pièce transformée
     final position =
-        transformedPiece.piece.positions[transformedPiece.positionIndex];
+    transformedPiece.piece.positions[transformedPiece.positionIndex];
     for (final cellNum in position) {
       final localX = (cellNum - 1) % 5;
       final localY = (cellNum - 1) ~/ 5;
@@ -1827,7 +1840,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     );
     _recomputeBoardValidity();
   }*/
-
   /// Recalcule la validité du plateau et les cellules problématiques
   void _recomputeBoardValidity() {
     final overlapping = <Point>{};

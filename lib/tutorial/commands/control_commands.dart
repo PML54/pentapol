@@ -22,7 +22,20 @@ class WaitCommand extends ScratchCommand {
   String get description => 'Attend $durationMs millisecondes';
 
   factory WaitCommand.fromMap(Map<String, dynamic> params) {
-    return WaitCommand(durationMs: params['duration'] as int? ?? 1000);
+    final duration = params['duration'];
+    int durationMs;
+
+    if (duration == null) {
+      durationMs = 1000;
+    } else if (duration is int) {
+      durationMs = duration;
+    } else if (duration is double) {
+      durationMs = duration.toInt();
+    } else {
+      durationMs = int.parse(duration.toString());
+    }
+
+    return WaitCommand(durationMs: durationMs);
   }
 }
 
@@ -52,8 +65,21 @@ class RepeatCommand extends ScratchCommand {
   String get description => 'Répète $count fois';
 
   factory RepeatCommand.fromMap(Map<String, dynamic> params) {
+    final countValue = params['count'];
+    int count;
+
+    if (countValue == null) {
+      count = 1;
+    } else if (countValue is int) {
+      count = countValue;
+    } else if (countValue is double) {
+      count = countValue.toInt();
+    } else {
+      count = int.parse(countValue.toString());
+    }
+
     return RepeatCommand(
-      count: params['count'] as int? ?? 1,
+      count: count,
       commands: [], // Sera rempli par le parser
     );
   }

@@ -22,8 +22,14 @@ class SelectPieceFromSliderCommand extends ScratchCommand {
   String get description => 'Sélectionne la pièce $pieceNumber du slider';
 
   factory SelectPieceFromSliderCommand.fromMap(Map<String, dynamic> params) {
+    final pieceNum = params['pieceNumber'];
+    if (pieceNum == null) {
+      throw FormatException(
+        'SELECT_PIECE_FROM_SLIDER: le paramètre "pieceNumber" est obligatoire',
+      );
+    }
     return SelectPieceFromSliderCommand(
-      pieceNumber: params['pieceNumber'] as int,
+      pieceNumber: pieceNum is int ? pieceNum : int.parse(pieceNum.toString()),
     );
   }
 }
@@ -46,8 +52,14 @@ class HighlightPieceInSliderCommand extends ScratchCommand {
   String get description => 'Surligne la pièce $pieceNumber dans le slider';
 
   factory HighlightPieceInSliderCommand.fromMap(Map<String, dynamic> params) {
+    final pieceNum = params['pieceNumber'];
+    if (pieceNum == null) {
+      throw FormatException(
+        'HIGHLIGHT_PIECE_IN_SLIDER: le paramètre "pieceNumber" est obligatoire',
+      );
+    }
     return HighlightPieceInSliderCommand(
-      pieceNumber: params['pieceNumber'] as int,
+      pieceNumber: pieceNum is int ? pieceNum : int.parse(pieceNum.toString()),
     );
   }
 }
@@ -86,7 +98,15 @@ class ScrollSliderCommand extends ScratchCommand {
   String get description => 'Fait défiler le slider de $positions positions';
 
   factory ScrollSliderCommand.fromMap(Map<String, dynamic> params) {
-    return ScrollSliderCommand(positions: params['positions'] as int);
+    final pos = params['positions'];
+    if (pos == null) {
+      throw FormatException(
+        'SCROLL_SLIDER: le paramètre "positions" est obligatoire',
+      );
+    }
+    return ScrollSliderCommand(
+      positions: pos is int ? pos : int.parse(pos.toString()),
+    );
   }
 }
 
@@ -109,8 +129,14 @@ class ScrollSliderToPieceCommand extends ScratchCommand {
       'Fait défiler le slider jusqu\'à la pièce $pieceNumber';
 
   factory ScrollSliderToPieceCommand.fromMap(Map<String, dynamic> params) {
+    final pieceNum = params['pieceNumber'];
+    if (pieceNum == null) {
+      throw FormatException(
+        'SCROLL_SLIDER_TO_PIECE: le paramètre "pieceNumber" est obligatoire',
+      );
+    }
     return ScrollSliderToPieceCommand(
-      pieceNumber: params['pieceNumber'] as int,
+      pieceNumber: pieceNum is int ? pieceNum : int.parse(pieceNum.toString()),
     );
   }
 }

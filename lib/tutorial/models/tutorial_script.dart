@@ -43,7 +43,7 @@ class TutorialScript {
   /// Crée un script depuis un Map (YAML parsé)
   factory TutorialScript.fromMap(Map<String, dynamic> map) {
     return TutorialScript(
-      id: map['id'] as String,
+      id: map['id'] as String? ?? map['name'] as String? ?? 'unknown',
       name: map['name'] as String,
       description: map['description'] as String? ?? '',
       difficulty: _parseDifficulty(map['difficulty'] as String?),

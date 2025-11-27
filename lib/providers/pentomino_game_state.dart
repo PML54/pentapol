@@ -105,6 +105,7 @@ class PentominoGameState {
   final int? highlightedBoardPiece; // ID de la pièce surlignée sur le plateau (null = aucune)
   final Point? highlightedMastercase; // Position de la mastercase surlignée (null = aucune)
   final Map<Point, Color> cellHighlights; // Highlights de cases individuelles avec couleur
+  final String? highlightedIsometryIcon; // Icône d'isométrie surlignée ('rotation', 'rotation_cw', 'symmetry_h', 'symmetry_v')
 
   // 🆕 SLIDER POSITION
   final int sliderOffset; // Offset de défilement du slider (0 = position initiale)
@@ -137,6 +138,7 @@ class PentominoGameState {
     this.highlightedMastercase,
     Map<Point, Color>? cellHighlights,
     this.sliderOffset = 0,
+    this.highlightedIsometryIcon,
   })  : piecePositionIndices = piecePositionIndices ?? {},
         overlappingCells = overlappingCells ?? <Point>{},
         offBoardCells = offBoardCells ?? <Point>{},
@@ -230,6 +232,8 @@ class PentominoGameState {
     Map<Point, Color>? cellHighlights,
     bool clearCellHighlights = false,
     int? sliderOffset,
+    String? highlightedIsometryIcon,
+    bool clearHighlightedIsometryIcon = false,
   }) {
     return PentominoGameState(
       plateau: plateau ?? this.plateau,
@@ -259,6 +263,7 @@ class PentominoGameState {
       highlightedMastercase: clearHighlightedMastercase ? null : (highlightedMastercase ?? this.highlightedMastercase),
       cellHighlights: clearCellHighlights ? <Point, Color>{} : (cellHighlights ?? this.cellHighlights),
       sliderOffset: sliderOffset ?? this.sliderOffset,
+      highlightedIsometryIcon: clearHighlightedIsometryIcon ? null : (highlightedIsometryIcon ?? this.highlightedIsometryIcon),
     );
   }
 }

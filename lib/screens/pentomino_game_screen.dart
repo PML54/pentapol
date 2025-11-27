@@ -19,10 +19,13 @@ import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dar
 import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
 import 'package:pentapol/models/plateau.dart';
+import '../tutorial/widgets/highlighted_icon_button.dart';
 
 // Tutorial
 import 'package:pentapol/tutorial/tutorial.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import '../tutorial/widgets/highlighted_icon_button.dart';
+
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -146,48 +149,67 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
   }
 
   /// Actions en mode TRANSFORMATION (pièce sélectionnée)
+// ========== REMPLACER _buildTransformActions() COMPLÈTE ==========
+
+  /// Actions en mode TRANSFORMATION (pièce sélectionnée)
   List<Widget> _buildTransformActions(state, notifier, settings) {
     return [
       // Rotation anti-horaire
-      IconButton(
-        icon: Icon(GameIcons.isometryRotation.icon, size: settings.ui.iconSize),
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          notifier.applyIsometryRotation();
-        },
-        tooltip: GameIcons.isometryRotation.tooltip,
-        color: GameIcons.isometryRotation.color,
+      HighlightedIconButton(
+        isHighlighted: state.highlightedIsometryIcon == 'rotation',
+        child: IconButton(
+          icon: Icon(GameIcons.isometryRotation.icon, size: settings.ui.iconSize),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            notifier.applyIsometryRotation();
+          },
+          tooltip: GameIcons.isometryRotation.tooltip,
+          color: GameIcons.isometryRotation.color,
+        ),
       ),
+
       // Rotation horaire
-      IconButton(
-        icon: Icon(GameIcons.isometryRotationCW.icon, size: settings.ui.iconSize),
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          notifier.applyIsometryRotationCW();
-        },
-        tooltip: GameIcons.isometryRotationCW.tooltip,
-        color: GameIcons.isometryRotationCW.color,
+      HighlightedIconButton(
+        isHighlighted: state.highlightedIsometryIcon == 'rotation_cw',
+        child: IconButton(
+          icon: Icon(GameIcons.isometryRotationCW.icon, size: settings.ui.iconSize),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            notifier.applyIsometryRotationCW();
+          },
+          tooltip: GameIcons.isometryRotationCW.tooltip,
+          color: GameIcons.isometryRotationCW.color,
+        ),
       ),
+
       // Symétrie horizontale
-      IconButton(
-        icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          notifier.applyIsometrySymmetryH();
-        },
-        tooltip: GameIcons.isometrySymmetryH.tooltip,
-        color: GameIcons.isometrySymmetryH.color,
+      HighlightedIconButton(
+        isHighlighted: state.highlightedIsometryIcon == 'symmetry_h',
+        child: IconButton(
+          icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            notifier.applyIsometrySymmetryH();
+          },
+          tooltip: GameIcons.isometrySymmetryH.tooltip,
+          color: GameIcons.isometrySymmetryH.color,
+        ),
       ),
+
       // Symétrie verticale
-      IconButton(
-        icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          notifier.applyIsometrySymmetryV();
-        },
-        tooltip: GameIcons.isometrySymmetryV.tooltip,
-        color: GameIcons.isometrySymmetryV.color,
+      HighlightedIconButton(
+        isHighlighted: state.highlightedIsometryIcon == 'symmetry_v',
+        child: IconButton(
+          icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            notifier.applyIsometrySymmetryV();
+          },
+          tooltip: GameIcons.isometrySymmetryV.tooltip,
+          color: GameIcons.isometrySymmetryV.color,
+        ),
       ),
+
       // Delete (uniquement si pièce placée sélectionnée)
       if (state.selectedPlacedPiece != null)
         IconButton(
@@ -215,7 +237,10 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             final yamlContent = await rootBundle.loadString(
              // 'assets/tutorials/01_intro_basics.yaml',
              // 'assets/tutorials/test_coords.yaml',
-              'assets/tutorials/03_Rotation_basics.yaml',
+             // 'assets/tutorials/03_Rotation_basics.yaml',
+                'assets/tutorials/test_features.yaml',
+
+
             );
 
             // Parser le script

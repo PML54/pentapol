@@ -12,6 +12,7 @@ import '../commands/board_selection_commands.dart';
 import '../commands/placement_commands.dart';
 import '../commands/highlight_commands.dart';
 import '../commands/transform_commands.dart';
+import '../commands/highlight_isometry_icon.dart';
 
 /// Parser de scripts YAML
 class YamlScriptParser {
@@ -61,7 +62,6 @@ class YamlScriptParser {
     }
   }
 
-  /// Parse une commande depuis un Map
   /// Parse une commande depuis un Map
   static ScratchCommand _parseCommand(dynamic stepData) {
     // Convertir en Map de manière sûre
@@ -153,6 +153,18 @@ class YamlScriptParser {
         return RotateAroundMasterCommand.fromMap(paramsMap);
       case 'SYMMETRY_AROUND_MASTER':
         return SymmetryAroundMasterCommand.fromMap(paramsMap);
+
+    // 🆕 Highlights Icônes Isométries
+      case 'highlight_isometry_icon':
+      // Merger step et params pour avoir tous les paramètres
+        final allParams = Map<String, dynamic>.from(step);
+        allParams.addAll(paramsMap);
+        return HighlightIsometryIconCommand.fromYaml(allParams);
+
+      case 'clear_isometry_icon_highlight':
+        return ClearIsometryIconHighlightCommand.fromYaml(
+          Map<String, dynamic>.from(step),
+        );
 
       default:
         throw FormatException('Commande inconnue: $commandName');

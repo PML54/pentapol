@@ -8,6 +8,7 @@ import '../models/app_settings.dart';
 import '../providers/settings_provider.dart';
 import 'custom_colors_screen.dart';
 
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
