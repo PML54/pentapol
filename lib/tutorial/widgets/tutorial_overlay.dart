@@ -29,7 +29,7 @@ class TutorialOverlay extends ConsumerWidget {
             child: _MessageBox(message: tutorialState.currentMessage!),
           ),
 
-        // Barre de progression en bas
+    /*    // Barre de progression en bas
         if (tutorialState.isRunning)
           Positioned(
             bottom: 80,
@@ -40,7 +40,7 @@ class TutorialOverlay extends ConsumerWidget {
               currentStep: tutorialState.currentStep,
               totalSteps: tutorialState.totalSteps,
             ),
-          ),
+          ),*/
       ],
     );
   }

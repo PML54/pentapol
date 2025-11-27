@@ -10,7 +10,7 @@ import 'package:pentapol/providers/pentomino_game_provider.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calculator.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
-
+import 'package:pentapol/models/point.dart';
 /// Plateau de jeu 6×10
 ///
 /// Gère :
@@ -292,6 +292,9 @@ class GameBoard extends ConsumerWidget {
           } else {
             cellColor = Colors.red.withValues(alpha: 0.3);
           }
+
+
+
           cellText = piece.id.toString();
 
           // Ajouter la lettre en mode isométries
@@ -321,7 +324,16 @@ class GameBoard extends ConsumerWidget {
       border = PieceBorderCalculator.calculate(
           logicalX, logicalY, state.plateau, isLandscape);
     }
-
+    // Vérifier si la cellule est highlightée (tutoriel)
+    final highlightPoint = Point(logicalX, logicalY);
+    final highlightColor = state.cellHighlights[highlightPoint];
+    if (highlightColor != null) {
+      // Superposer la couleur de highlight
+      cellColor = Color.alphaBlend(
+        highlightColor.withValues(alpha: 0.6),
+        cellColor,
+      );
+    }
     Widget cellWidget = Container(
       decoration: BoxDecoration(
         color: cellColor,

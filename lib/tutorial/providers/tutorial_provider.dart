@@ -74,7 +74,7 @@ class TutorialNotifier extends Notifier<TutorialState> {
     final gameNotifier = ref.read(pentominoGameProvider.notifier);
     final context = TutorialContext(
       gameNotifier: gameNotifier,
-      ref: ref as WidgetRef, // Cast explicite
+      ref: ref,  // ← ENLEVER le "as WidgetRef"
       variables: Map.from(state.currentScript!.variables),
     );
 
@@ -94,8 +94,10 @@ class TutorialNotifier extends Notifier<TutorialState> {
       currentStep: 0,
     );
 
-    // Lancer l'exécution en asynchrone
+// Lancer l'exécution en asynchrone
+    print('[TUTORIAL] 🟢 Appel de interpreter.run()...');
     interpreter.run();
+    print('[TUTORIAL] 🟢 Appel terminé (asynchrone)');
   }
 
   /// Callback quand une étape change
@@ -112,7 +114,17 @@ class TutorialNotifier extends Notifier<TutorialState> {
   void _onCompleted() {
     print('[TUTORIAL] Tutoriel terminé: ${state.currentScript?.name}');
 
-    state = state.copyWith(isRunning: false, isPaused: false);
+    // Nettoyer complètement l'état
+    state = state.copyWith(
+      isRunning: false,
+      isPaused: false,
+      clearCurrentScript: true,
+      clearInterpreter: true,
+      clearContext: true,
+      clearCurrentMessage: true,
+      isLoaded: false,
+      currentStep: 0,
+    );
   }
 
   /// Callback en cas d'erreur

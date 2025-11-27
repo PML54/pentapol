@@ -13,8 +13,7 @@ class PlaceSelectedPieceAtCommand extends ScratchCommand {
 
   @override
   Future<void> execute(TutorialContext context) async {
-    // TODO: Cette méthode n'existe pas encore dans le provider
-    print('[TUTORIAL] PLACE_SELECTED_PIECE_AT non implémenté');
+    context.gameNotifier.placeSelectedPieceForTutorial(gridX, gridY);
   }
 
   @override

@@ -213,7 +213,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           try {
             // Charger le tutoriel d'introduction
             final yamlContent = await rootBundle.loadString(
-              'assets/tutorials/01_intro_basics.yaml',
+             // 'assets/tutorials/01_intro_basics.yaml',
+             // 'assets/tutorials/test_coords.yaml',
+              'assets/tutorials/02_intro_basics.yaml',
             );
 
             // Parser le script

@@ -3,7 +3,7 @@
 **Application de puzzles pentominos en Flutter**
 
 **Date de création : 14 novembre 2025**  
-**Dernière mise à jour : 18 novembre 2025**
+**Dernière mise à jour : 24 novembre 2025**
 
 ---
 
@@ -17,6 +17,8 @@
 6. [Providers (Riverpod)](#providers-riverpod)
 7. [Système de solutions](#système-de-solutions)
 8. [Configuration](#configuration)
+9. [Réorganisation complète](#réorganisation-complète)
+10. [Index des fichiers](#index-des-fichiers)
 
 ---
 
@@ -27,6 +29,7 @@ Pentapol est une application Flutter permettant de :
 - Résoudre automatiquement les puzzles
 - Jouer interactivement avec drag & drop
 - Naviguer dans une base de 2339 solutions canoniques (9356 avec transformations)
+- Jouer avec deux modes : **Mode Jeu** (placement de pièces) et **Mode Isométries** (transformations géométriques)
 
 ### Technologies principales
 - **Flutter** : Framework UI
@@ -42,43 +45,107 @@ Pentapol est une application Flutter permettant de :
 ```
 lib/
 ├── main.dart                    # Point d'entrée, pré-chargement solutions
+│   DATEMODIF: 11212044  CODELINE: 55
+│
 ├── bootstrap.dart               # Init Supabase
+│
+├── config/
+│   └── game_icons_config.dart  # Configuration des icônes de jeu
+│       DATEMODIF: 11230417  CODELINE: 139
+│
 ├── models/                      # Modèles de données
 │   ├── pentominos.dart         # 12 pièces avec toutes rotations
+│   │   DATEMODIF: 11200721  CODELINE: 364
 │   ├── plateau.dart            # Grille de jeu 6×10
+│   │   DATEMODIF: 11191843  CODELINE: 67
 │   ├── bigint_plateau.dart     # Plateau encodé en BigInt
+│   │   DATEMODIF: 11150647  CODELINE: 70
 │   ├── game_piece.dart         # Pièce interactive
+│   │   DATEMODIF: 11150647  CODELINE: 63
 │   ├── game.dart               # État complet d'une partie
-│   └── point.dart              # Coordonnées 2D
+│   │   DATEMODIF: 11150647  CODELINE: 96
+│   ├── point.dart              # Coordonnées 2D
+│   │   DATEMODIF: 11150647  CODELINE: 13
+│   └── app_settings.dart       # Paramètres de l'application
+│       DATEMODIF: 11220530  CODELINE: 271
+│
+├── database/                    # Base de données locale
+│   ├── settings_database.dart  # Drift database pour settings
+│   └── settings_database.g.dart # Code généré
+│
 ├── services/                    # Logique métier
 │   ├── solution_matcher.dart           # Comparaison solutions BigInt
+│   │   DATEMODIF: 11230417  CODELINE: 131
 │   ├── pentapol_solutions_loader.dart  # Chargement .bin → BigInt
+│   │   DATEMODIF: 11150647  CODELINE: 51
 │   ├── plateau_solution_counter.dart   # Extension Plateau
-│   └── pentomino_solver.dart          # Backtracking avec heuristiques
+│   │   DATEMODIF: 11150647  CODELINE: 74
+│   ├── pentomino_solver.dart          # Backtracking avec heuristiques
+│   │   DATEMODIF: 11192114  CODELINE: 589
+│   ├── isometry_transforms.dart       # Transformations géométriques
+│   │   DATEMODIF: 11200617  CODELINE: 57
+│   └── shape_recognizer.dart          # Reconnaissance de formes
+│       DATEMODIF: 11200618  CODELINE: 46
+│
 ├── providers/                   # Gestion d'état Riverpod
-│   ├── plateau_editor_provider.dart   # Logique éditeur
-│   ├── plateau_editor_state.dart      # État éditeur
-│   ├── pentomino_game_provider.dart   # Logique jeu
-│   └── pentomino_game_state.dart      # État jeu
+│   ├── pentomino_game_provider.dart   # Logique jeu unifié
+│   │   DATEMODIF: 11230501  CODELINE: 844
+│   ├── pentomino_game_state.dart      # État jeu
+│   │   DATEMODIF: 11210756  CODELINE: 168
+│   └── settings_provider.dart         # Paramètres utilisateur
+│       DATEMODIF: 11220530  CODELINE: 131
+│
 ├── screens/                     # Interfaces utilisateur
-│   ├── plateau_editor_screen.dart     # Éditeur de plateau
-│   ├── pentomino_game_screen.dart     # Jeu interactif (1350+ lignes)
-│   ├── pentomino_game/                # Structure modulaire (en cours)
-│   │   ├── utils/                     # Utilitaires extraits ✅
+│   ├── pentomino_game_screen.dart     # Jeu interactif (orchestrateur)
+│   │   DATEMODIF: 11230417  CODELINE: 231
+│   │
+│   ├── pentomino_game/                # Structure modulaire ✅
+│   │   ├── utils/                     # Utilitaires
 │   │   │   ├── game_constants.dart    # Constantes du jeu
+│   │   │   │   DATEMODIF: 11180509  CODELINE: 19
 │   │   │   ├── game_colors.dart       # Palette de couleurs
+│   │   │   │   DATEMODIF: 11180612  CODELINE: 52
 │   │   │   └── game_utils.dart        # Export centralisé
-│   │   ├── widgets/                   # Widgets (à extraire)
-│   │   │   ├── shared/                # Partagés entre modes
-│   │   │   ├── game_mode/             # Mode jeu normal
-│   │   │   └── isometries_mode/       # Mode isométries
-│   │   ├── modes/                     # Vues des modes (à extraire)
-│   │   └── README.md                  # Documentation structure
+│   │   │       DATEMODIF: 11180611  CODELINE: 2
+│   │   │
+│   │   └── widgets/                   # Widgets modulaires
+│   │       ├── shared/                # Partagés entre modes
+│   │       │   ├── piece_renderer.dart          # Affichage pièce
+│   │       │   │   DATEMODIF: 11191843  CODELINE: 98
+│   │       │   ├── draggable_piece_widget.dart  # Drag & drop
+│   │       │   │   DATEMODIF: 11180633  CODELINE: 119
+│   │       │   ├── piece_border_calculator.dart # Bordures
+│   │       │   │   DATEMODIF: 11191843  CODELINE: 79
+│   │       │   ├── action_slider.dart           # Actions paysage
+│   │       │   │   DATEMODIF: 11230447  CODELINE: 214
+│   │       │   └── game_board.dart              # Plateau de jeu
+│   │       │       DATEMODIF: 11212021  CODELINE: 336
+│   │       │
+│   │       └── game_mode/             # Mode jeu normal
+│   │           └── piece_slider.dart  # Slider pièces
+│   │               DATEMODIF: 11210703  CODELINE: 137
+│   │
 │   ├── solutions_browser_screen.dart  # Navigateur solutions
+│   ├── solutions_viewer_screen.dart   # Visualisation solutions
 │   ├── home_screen.dart               # Écran principal
-│   └── auth_screen.dart               # Connexion
-└── utils/                       # Utilitaires
-    └── time_format.dart        # Formatage temps
+│   ├── settings_screen.dart           # Paramètres
+│   │   DATEMODIF: 11220406  CODELINE: 355
+│   ├── custom_colors_screen.dart      # Personnalisation couleurs
+│   ├── auth_screen.dart               # Connexion
+│   └── leaderboard_screen.dart        # Classements
+│
+├── utils/                       # Utilitaires
+│   ├── time_format.dart        # Formatage temps
+│   ├── pentomino_geometry.dart # Géométrie pentominos
+│   ├── piece_utils.dart        # Utilitaires pièces
+│   │   DATEMODIF: 11191843  CODELINE: 184
+│   ├── plateau_compressor.dart # Compression plateau
+│   ├── solution_collector.dart # Collection solutions
+│   └── solution_exporter.dart  # Export solutions
+│
+└── data/                        # Données
+    ├── race_repo.dart          # Repository courses
+    └── solution_database.dart  # Base de données solutions
 ```
 
 ---
@@ -86,6 +153,7 @@ lib/
 ## 📦 Modèles de données
 
 ### 1. `pentominos.dart` - Les 12 pièces
+**DATEMODIF:** 11200721 | **CODELINE:** 364
 
 Définit les 12 pièces de pentomino avec toutes leurs rotations/symétries.
 
@@ -122,6 +190,7 @@ print('${piece1.numPositions} orientations'); // 1
 ---
 
 ### 2. `plateau.dart` - Grille de jeu
+**DATEMODIF:** 11191843 | **CODELINE:** 67
 
 Représente une grille 6×10 (ou dimension variable).
 
@@ -160,6 +229,7 @@ print('${plateau.numFreeCells} cases libres');
 ---
 
 ### 3. `bigint_plateau.dart` - Encodage BigInt
+**DATEMODIF:** 11150647 | **CODELINE:** 70
 
 Version optimisée du plateau encodée sur 360 bits (60 cases × 6 bits).
 
@@ -208,6 +278,7 @@ final pieceId = updated.getCell(0, 0); // 1
 ---
 
 ### 4. `game_piece.dart` - Pièce interactive
+**DATEMODIF:** 11150647 | **CODELINE:** 63
 
 Wrapper autour de `Pento` pour le jeu interactif.
 
@@ -231,6 +302,7 @@ class GamePiece {
 ---
 
 ### 5. `game.dart` - État complet d'une partie
+**DATEMODIF:** 11150647 | **CODELINE:** 96
 
 **Structure `Game`** :
 ```dart
@@ -258,9 +330,37 @@ class Game {
 
 ---
 
+### 6. `point.dart` - Coordonnées 2D
+**DATEMODIF:** 11150647 | **CODELINE:** 13
+
+Simple classe pour représenter des coordonnées (x, y).
+
+---
+
+### 7. `app_settings.dart` - Paramètres application
+**DATEMODIF:** 11220530 | **CODELINE:** 271
+
+**Structure `AppSettings`** :
+```dart
+class AppSettings {
+  final bool showSolutionCount;
+  final bool enableHapticFeedback;
+  final bool showPieceNumbers;
+  final Map<int, Color> customPieceColors;
+  
+  // Méthodes
+  AppSettings copyWith({...});
+  Map<String, dynamic> toJson();
+  factory AppSettings.fromJson(Map<String, dynamic> json);
+}
+```
+
+---
+
 ## ⚙️ Services
 
 ### 1. `solution_matcher.dart` - Comparaison solutions BigInt
+**DATEMODIF:** 11230417 | **CODELINE:** 131
 
 Service central pour comparer un plateau avec les 2339 solutions canoniques.
 
@@ -299,30 +399,10 @@ Pour chaque solution canonique (2339), on génère 4 variantes :
 
 Total : 2339 × 4 = 9356 solutions
 
-**Comparaison** :
-```dart
-// Vérification compatibilité
-bool _isCompatibleBigInt(BigInt piecesBits, BigInt maskBits, BigInt solution) {
-  return (solution & maskBits) == piecesBits;
-}
-```
-
-**Utilisation** :
-```dart
-// Dans main.dart, au démarrage
-final solutions = await loadNormalizedSolutionsAsBigInt();
-solutionMatcher.initWithBigIntSolutions(solutions);
-
-// Compter solutions compatibles
-final count = solutionMatcher.countCompatibleFromBigInts(
-  piecesBits, 
-  maskBits,
-);
-```
-
 ---
 
 ### 2. `pentapol_solutions_loader.dart` - Chargement binaire
+**DATEMODIF:** 11150647 | **CODELINE:** 51
 
 Charge le fichier `assets/data/solutions_6x10_normalisees.bin`.
 
@@ -331,31 +411,10 @@ Charge le fichier `assets/data/solutions_6x10_normalisees.bin`.
 - 2339 solutions × 45 octets = 105 255 octets
 - Encodage bit-packed 6 bits par case
 
-**Fonction principale** :
-```dart
-Future<List<BigInt>> loadNormalizedSolutionsAsBigInt() async {
-  final data = await rootBundle.load(
-    'assets/data/solutions_6x10_normalisees.bin'
-  );
-  final bytes = data.buffer.asUint8List();
-  
-  // Décode chaque bloc de 45 octets en BigInt
-  final solutions = <BigInt>[];
-  // ... décodage
-  return solutions;
-}
-```
-
-**Utilisation** :
-```dart
-// Dans main.dart
-final solutions = await loadNormalizedSolutionsAsBigInt();
-print('${solutions.length} solutions chargées'); // 2339
-```
-
 ---
 
 ### 3. `plateau_solution_counter.dart` - Extension Plateau
+**DATEMODIF:** 11150647 | **CODELINE:** 74
 
 Ajoute des méthodes au `Plateau` pour compter les solutions.
 
@@ -370,49 +429,10 @@ extension PlateauSolutionCounter on Plateau {
 }
 ```
 
-**Conversion interne** :
-```dart
-_PlateauBigIntMask _toBigIntMask() {
-  // Convertit Plateau en (piecesBits, maskBits)
-  BigInt piecesBits = BigInt.zero;
-  BigInt maskBits = BigInt.zero;
-  
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      final cellValue = getCell(x, y); // 0 ou 1-12
-      
-      piecesBits = piecesBits << 6;
-      maskBits = maskBits << 6;
-      
-      if (cellValue > 0) {
-        final code = bit6ById[cellValue];
-        piecesBits |= BigInt.from(code);
-        maskBits |= BigInt.from(0x3F);
-      }
-    }
-  }
-  
-  return _PlateauBigIntMask(piecesBits, maskBits);
-}
-```
-
-**Utilisation** :
-```dart
-final plateau = Plateau.allVisible(6, 10);
-plateau.setCell(0, 0, 1);
-plateau.setCell(0, 1, 1);
-
-// Compter solutions
-final count = plateau.countPossibleSolutions();
-print('$count solutions compatibles');
-
-// Récupérer solutions
-final solutions = plateau.getCompatibleSolutionsBigInt();
-```
-
 ---
 
 ### 4. `pentomino_solver.dart` - Backtracking
+**DATEMODIF:** 11192114 | **CODELINE:** 589
 
 Algorithme de résolution par backtracking avec heuristiques avancées.
 
@@ -449,16 +469,43 @@ class PentominoSolver {
 3. **Flood fill** : Détecte régions impossibles
 4. **Ordre fixe des pièces** : Reproductibilité
 
-**Utilisation** :
-```dart
-final solver = PentominoSolver();
-final solution = solver.solve();
+---
 
-if (solution != null) {
-  print('Solution trouvée en ${solution.length} placements');
+### 5. `isometry_transforms.dart` - Transformations géométriques
+**DATEMODIF:** 11200617 | **CODELINE:** 57
+
+Service pour appliquer des transformations isométriques (rotation, miroir) sur le plateau.
+
+**Fonctions principales** :
+```dart
+// Rotation 90° horaire
+Plateau rotateClockwise(Plateau plateau);
+
+// Rotation 90° anti-horaire
+Plateau rotateCounterClockwise(Plateau plateau);
+
+// Miroir horizontal
+Plateau mirrorHorizontal(Plateau plateau);
+
+// Miroir vertical
+Plateau mirrorVertical(Plateau plateau);
+```
+
+---
+
+### 6. `shape_recognizer.dart` - Reconnaissance de formes
+**DATEMODIF:** 11200618 | **CODELINE:** 46
+
+Service pour reconnaître les pièces placées sur le plateau.
+
+**Classe `ShapeRecognizer`** :
+```dart
+class ShapeRecognizer {
+  // Reconnaît la pièce à partir de ses coordonnées
+  int? recognizePiece(List<Point> coordinates);
   
-  // Chercher solution suivante
-  final next = solver.findNext();
+  // Vérifie si une forme correspond à une pièce
+  bool matchesPiece(List<Point> shape, int pieceId);
 }
 ```
 
@@ -466,41 +513,12 @@ if (solution != null) {
 
 ## 📱 Écrans
 
-### 1. `plateau_editor_screen.dart` - Éditeur de plateau
+### 1. `pentomino_game_screen.dart` - Jeu interactif (REFACTORÉ ✅)
+**DATEMODIF:** 11230417 | **CODELINE:** 231
 
-Interface pour créer et tester des plateaux personnalisés.
+Interface de jeu complète avec **2 modes auto-détectés** :
 
-**Fonctionnalités** :
-- ✅ Grille 6×10 interactive (tap pour toggle case)
-- ✅ Slider nombre de pièces (1-12)
-- ✅ Bouton "Valider" : teste toutes combinaisons
-- ✅ Bouton "Suivante" : cherche solution alternative
-- ✅ Affichage visuel de la solution (couleurs + numéros)
-- ✅ Compteur "✓ N°1", "✓ N°2", etc.
-
-**Composants** :
-```dart
-class PlateauEditorScreen extends ConsumerWidget {
-  Widget _buildInfoPanel();        // Stats en haut
-  Widget _buildPlateauGrid();      // Grille 6×10
-  Widget _buildControlPanel();     // Slider + boutons
-  Widget _CellWidget();            // Case individuelle
-}
-```
-
-**États** :
-- `idle` : Rien à afficher
-- `solving` : Validation en cours
-- `solved` : Solution trouvée
-- `error` : Erreur (ex: pas de solution)
-
----
-
-### 2. `pentomino_game_screen.dart` - Jeu interactif
-
-Interface de jeu complète avec drag & drop.
-
-**Fonctionnalités** :
+#### **Mode Jeu** (placement de pièces)
 - ✅ Drag & drop des pièces depuis slider
 - ✅ Rotation (double-tap ou bouton)
 - ✅ Placement avec validation visuelle
@@ -511,170 +529,91 @@ Interface de jeu complète avec drag & drop.
 - ✅ Scroll infini dans slider
 - ✅ Message victoire
 
-**Composants** :
+#### **Mode Isométries** (transformations)
+- ✅ Rotation horaire/anti-horaire
+- ✅ Miroir horizontal/vertical
+- ✅ Action slider en mode paysage
+- ✅ Boutons d'action en mode portrait
+- ✅ Détection automatique du mode selon sélection
+
+**Architecture modulaire** :
 ```dart
 class PentominoGameScreen extends ConsumerStatefulWidget {
-  Widget _buildGameBoard();         // Plateau avec DragTarget
-  Widget _buildPieceSlider();       // Slider horizontal pièces
-  Widget _buildDraggablePiece();    // Pièce draggable
-  Widget _DraggablePieceWidget();   // Gestion gestures
+  // Orchestrateur principal (231 lignes)
+  
+  // Composants extraits :
+  Widget _buildGameBoard();      // → GameBoard widget
+  Widget _buildPieceSlider();    // → PieceSlider widget
+  Widget _buildActionSlider();   // → ActionSlider widget
 }
 ```
 
-**Gestures** :
-- **Tap** : Sélectionner pièce placée
-- **Double-tap** : Rotation
-- **Long-press** : Retrait ou drag depuis slider
-- **Drag** : Déplacement avec preview
+**Widgets extraits** :
+- `GameBoard` : Plateau de jeu avec DragTarget (336 lignes)
+- `PieceSlider` : Slider horizontal pièces (137 lignes)
+- `ActionSlider` : Slider actions (214 lignes)
+- `PieceRenderer` : Affichage pièce (98 lignes)
+- `DraggablePieceWidget` : Gestion gestures (119 lignes)
+- `PieceBorderCalculator` : Calcul bordures (79 lignes)
 
 ---
 
-### 3. `solutions_browser_screen.dart` - Navigateur solutions
+### 2. `settings_screen.dart` - Paramètres
+**DATEMODIF:** 11220406 | **CODELINE:** 355
 
-Affiche et navigue dans les solutions.
+Écran de configuration de l'application.
 
 **Fonctionnalités** :
-- ✅ Affichage grille 6×10 colorée
-- ✅ Navigation flèches (← →)
-- ✅ Compteur "X / Y"
-- ✅ Boucle infinie
-- ✅ Titre personnalisé (optionnel)
-
-**Constructeurs** :
-```dart
-// Toutes les solutions
-const SolutionsBrowserScreen();
-
-// Solutions filtrées
-SolutionsBrowserScreen.forSolutions(
-  solutions: compatibleSolutions,
-  title: 'Solutions compatibles',
-);
-```
-
-**Utilisation** :
-```dart
-// Navigation vers navigateur
-Navigator.push(context, MaterialPageRoute(
-  builder: (_) => SolutionsBrowserScreen.forSolutions(
-    solutions: plateau.getCompatibleSolutionsBigInt(),
-    title: '$count solutions',
-  ),
-));
-```
-
----
-
-### 4. `home_screen.dart` & `auth_screen.dart`
-
-Écrans pour le mode multijoueur (Supabase) - non prioritaires.
+- ✅ Afficher/masquer compteur de solutions
+- ✅ Activer/désactiver haptic feedback
+- ✅ Afficher/masquer numéros de pièces
+- ✅ Personnaliser couleurs des pièces
+- ✅ Réinitialiser paramètres
 
 ---
 
 ## 🔄 Providers (Riverpod)
 
-### 1. `plateau_editor_provider.dart` - Logique éditeur
-
-**Notifier** :
-```dart
-class PlateauEditorNotifier extends Notifier<PlateauEditorState> {
-  void toggleCell(int x, int y);
-  void setNumPieces(int n);
-  void reset();
-  Future<void> validate();        // Teste toutes combinaisons
-  Future<void> findNextSolution();
-}
-
-final plateauEditorProvider = NotifierProvider<
-  PlateauEditorNotifier, 
-  PlateauEditorState
->(PlateauEditorNotifier.new);
-```
-
-**Validation exhaustive** :
-```dart
-Future<void> validate() async {
-  // Génère C(12, p) combinaisons de p pièces parmi 12
-  final combinations = _generateCombinations(pieceIds, numPieces);
-  
-  // Teste chaque combinaison
-  for (final combo in combinations) {
-    final solver = PentominoSolver();
-    final solution = solver.solve();
-    if (solution != null) {
-      // Solution trouvée !
-      break;
-    }
-  }
-}
-```
-
----
-
-### 2. `plateau_editor_state.dart` - État éditeur
-
-**Structure** :
-```dart
-class PlateauEditorState {
-  final Plateau plateau;
-  final int numPieces;
-  final bool isSolving;
-  final bool? hasSolution;
-  final String? errorMessage;
-  final List<PlacementInfo>? solution;
-  final PentominoSolver? solver;
-  final List<int>? selectedPieces;
-  final int solutionIndex;
-  
-  // Timestamp pour forcer rebuild Riverpod
-  final int _timestamp;
-  
-  factory PlateauEditorState.initial();
-  PlateauEditorState copyWith({...});
-}
-```
-
-**Truc important** : Le `_timestamp` force Riverpod à détecter **toujours** un changement d'état, même si les autres champs sont identiques.
-
----
-
-### 3. `pentomino_game_provider.dart` - Logique jeu
+### 1. `pentomino_game_provider.dart` - Logique jeu unifiée
+**DATEMODIF:** 11230501 | **CODELINE:** 844
 
 **Notifier** :
 ```dart
 class PentominoGameNotifier extends Notifier<PentominoGameState> {
+  // Gestion générale
   void reset();
-  void selectPiece(int pieceIndex);
-  void cyclePosition();
-  void tryPlacePiece(int gridX, int gridY, int cellX, int cellY);
-  void cancelSelection();
-  void selectPlacedPiece(int index);
+  void undo();
+  
+  // Mode Jeu
+  void selectPiece(int? pieceIndex);
+  void selectPlacedPiece(int? index);
+  void cycleOrientation();
+  void tryPlacePiece(int gridX, int gridY);
   void removePlacedPiece(int index);
-  void undoLastPlacement();
   void updatePreview(int? gridX, int? gridY);
   void clearPreview();
-  int? getPlacedPieceAt(int gridX, int gridY);
-}
-```
-
-**Système case de référence** :
-```dart
-void selectPiece(int pieceIndex) {
-  // Définir case de référence (coin sup gauche)
-  final shape = currentShape;
-  final coords = GamePiece.shapeToCoordinates(shape);
-  final minX = coords.map((p) => p.x).reduce(min);
-  final minY = coords.map((p) => p.y).reduce(min);
   
-  state = state.copyWith(
-    selectedCellInPiece: Point(minX, minY),
-  );
+  // Mode Isométries
+  void rotateClockwise();
+  void rotateCounterClockwise();
+  void mirrorHorizontal();
+  void mirrorVertical();
+  
+  // Utilitaires
+  int? getPlacedPieceAt(int gridX, int gridY);
+  bool canPlacePiece(int pieceIndex, int gridX, int gridY);
 }
+
+final pentominoGameProvider = NotifierProvider<
+  PentominoGameNotifier, 
+  PentominoGameState
+>(PentominoGameNotifier.new);
 ```
 
 ---
 
-### 4. `pentomino_game_state.dart` - État jeu
+### 2. `pentomino_game_state.dart` - État jeu
+**DATEMODIF:** 11210756 | **CODELINE:** 168
 
 **Structure** :
 ```dart
@@ -682,26 +621,40 @@ class PentominoGameState {
   final Plateau plateau;
   final List<Pento> availablePieces;
   final List<PlacedPiece> placedPieces;
-  final int? selectedPieceIndex;
-  final int selectedPositionIndex;
-  final int? selectedPlacedPieceIndex;
-  final Map<int, int> piecePositionIndices;
-  final Point? selectedCellInPiece;
-  final int? previewX, previewY;
-  final bool isPreviewValid;
+  
+  // Mode Jeu
+  final int? selectedPiece;           // Index pièce sélectionnée
+  final int? selectedPlacedPiece;     // Index pièce placée sélectionnée
+  final int selectedOrientation;      // Orientation actuelle
+  final Map<int, int> pieceOrientations; // Orientations par pièce
+  final Point? referenceCellInPiece;  // Case de référence
+  final int? previewX, previewY;      // Position preview
+  final bool isPreviewValid;          // Preview valide?
+  
+  // Historique
+  final List<PentominoGameState> history;
   
   factory PentominoGameState.initial();
   PentominoGameState copyWith({...});
   bool canPlacePiece(int pieceIndex, int gridX, int gridY);
+  bool get isCompleted;
 }
+```
 
-class PlacedPiece {
-  final Pento piece;
-  final int positionIndex;
-  final int gridX, gridY;
-  
-  List<Point> getOccupiedCells();
-  PlacedPiece copyWith({...});
+---
+
+### 3. `settings_provider.dart` - Paramètres utilisateur
+**DATEMODIF:** 11220530 | **CODELINE:** 131
+
+**Notifier** :
+```dart
+class SettingsNotifier extends Notifier<AppSettings> {
+  Future<void> toggleSolutionCount();
+  Future<void> toggleHapticFeedback();
+  Future<void> togglePieceNumbers();
+  Future<void> setCustomColor(int pieceId, Color color);
+  Future<void> resetColors();
+  Future<void> resetAll();
 }
 ```
 
@@ -818,6 +771,7 @@ assets:
 ```
 
 ### `main.dart` - Point d'entrée
+**DATEMODIF:** 11212044 | **CODELINE:** 55
 
 ```dart
 void main() async {
@@ -841,22 +795,6 @@ void main() async {
 }
 ```
 
-### Mode debug
-
-```dart
-// Dans MyApp.build()
-const bool debugEditorMode = true;
-
-if (debugEditorMode) {
-  return const PlateauEditorScreen();
-}
-```
-
-Active le mode debug pour :
-- Lancer directement l'éditeur
-- Bypass l'authentification
-- Tester rapidement
-
 ---
 
 ## 📊 Statistiques
@@ -868,23 +806,22 @@ Active le mode debug pour :
 - **45 octets** par solution dans le fichier .bin
 - **105 KB** taille du fichier binaire
 
-### Nombre de combinaisons (C(12,p))
+### Lignes de code (hors commentaires)
 
-| Pièces | Combinaisons | Temps validation |
-|--------|--------------|------------------|
-| 2      | 66           | < 1 minute       |
-| 3      | 220          | ~1-5 minutes     |
-| 4      | 495          | ~5-15 minutes    |
-| 5      | 792          | ~15-60 minutes   |
-| 6      | 924          | ~30-120 minutes  |
-| 12     | 1            | ~9 minutes       |
+- **Total core** : ~5 200 lignes
+- **Provider principal** : 844 lignes
+- **Solver** : 589 lignes
+- **Pentominos** : 364 lignes
+- **Settings screen** : 355 lignes
+- **Game board** : 336 lignes
+- **App settings** : 271 lignes
 
 ### Performances
 
 - **Chargement solutions** : ~200-500ms
 - **Génération transformations** : ~100-300ms
 - **Comptage compatible** : ~10-50ms (pour 9356 solutions)
-- **Validation plateau** : 1-60 minutes (selon nb de pièces)
+- **Transformation isométrique** : ~1-5ms
 
 ---
 
@@ -900,91 +837,120 @@ debugPrint('✅ $count solutions BigInt chargées en ${duration}ms');
 // Dans solution_matcher.dart
 debugPrint('[SOLUTION_MATCHER] ✓ ${_solutions.length} solutions générées');
 
-// Dans plateau_editor_provider.dart
-print('[VALIDATE] Combinaison: ${combo.join(",")}');
-print('[VALIDATE] ✓ Solution trouvée !');
+// Dans pentomino_game_provider.dart
+print('[GAME] Rotation horaire appliquée');
+print('[GAME] Pièce ${pieceIndex} placée en ($gridX, $gridY)');
 ```
-
-### Vérifications
-
-```dart
-// Vérifier init du matcher
-assert(solutionMatcher.totalSolutions == 9356);
-
-// Vérifier format BigInt
-assert(solution.bitLength <= 360);
-
-// Vérifier plateau
-assert(plateau.width == 6 && plateau.height == 10);
-```
-
-### Outils de debug
-
-- Logs détaillés dans les providers
-- `print()` statements dans les services
-- Git history propre pour tracking
 
 ---
 
-## 🔧 Réorganisation progressive (complète Phase 1-2)
+## 🔧 Réorganisation complète (Phase 1-2 terminée ✅)
 
 ### Objectif
 Découper `pentomino_game_screen.dart` (1350+ lignes) en modules réutilisables et maintenables.
 
 ### Phase 1 : Utilitaires ✅ (18 nov 2025)
 **Fichiers créés** :
-- `lib/screens/pentomino_game/utils/game_constants.dart` - Dimensions, bordures, constantes
-- `lib/screens/pentomino_game/utils/game_colors.dart` - Palette complète
-- `lib/screens/pentomino_game/utils/game_utils.dart` - Export centralisé
+- `game_constants.dart` - DATEMODIF: 11180509 | CODELINE: 19
+- `game_colors.dart` - DATEMODIF: 11180612 | CODELINE: 52
+- `game_utils.dart` - DATEMODIF: 11180611 | CODELINE: 2
 
-### Phase 2 : Widgets ✅ (18 nov 2025)
+### Phase 2 : Widgets ✅ (18-23 nov 2025)
 **Fichiers créés** :
-- `widgets/shared/piece_renderer.dart` - Affichage pièce (120 lignes)
-- `widgets/shared/draggable_piece_widget.dart` - Drag & drop (170 lignes)
-- `widgets/shared/piece_border_calculator.dart` - Bordures (120 lignes)
-- `widgets/shared/action_slider.dart` - Actions paysage (310 lignes)
-- `widgets/game_mode/piece_slider.dart` - Slider pièces (175 lignes)
+- `piece_renderer.dart` - DATEMODIF: 11191843 | CODELINE: 98
+- `draggable_piece_widget.dart` - DATEMODIF: 11180633 | CODELINE: 119
+- `piece_border_calculator.dart` - DATEMODIF: 11191843 | CODELINE: 79
+- `action_slider.dart` - DATEMODIF: 11230447 | CODELINE: 214
+- `game_board.dart` - DATEMODIF: 11212021 | CODELINE: 336
+- `piece_slider.dart` - DATEMODIF: 11210703 | CODELINE: 137
 
 ### Résultats
 - **Avant** : 1350 lignes (monolithique)
-- **Après** : 650 lignes (orchestrateur)
-- **Gain** : -700 lignes (-52%) 🎯
+- **Après** : 231 lignes (orchestrateur)
+- **Gain** : -1119 lignes (-83%) 🎯
 - **Imports** : Tous en absolu depuis `lib/`
 
-**Usage** :
-```dart
-// Imports absolus
-import 'package:pentapol/screens/pentomino_game/utils/game_utils.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
-
-// Utilisation
-final width = GameConstants.boardWidth;
-final color = GameColors.masterCellBorderColor;
+**Architecture finale** :
+```
+pentomino_game_screen.dart (231 lignes)
+├── GameBoard (336 lignes)
+├── PieceSlider (137 lignes) - Mode Jeu
+├── ActionSlider (214 lignes) - Mode Isométries
+└── Widgets partagés
+    ├── PieceRenderer (98 lignes)
+    ├── DraggablePieceWidget (119 lignes)
+    └── PieceBorderCalculator (79 lignes)
 ```
 
-### Phases futures (optionnelles)
-- **Phase 3** : Extraire `game_board.dart` (~400 lignes)
-- **Phase 4** : Extraire AppBars (~100 lignes)
-- **Phase 5** : Vues complètes des modes
+### Améliorations apportées (23 nov 2025)
+- ✅ **Détection automatique des modes** : Plus besoin de toggle manuel
+- ✅ **Mode Isométries complet** : Rotation, miroirs avec UI adaptative
+- ✅ **Extraction GameBoard** : Plateau de jeu complètement modulaire
+- ✅ **Code ultra-propre** : Orchestrateur de 231 lignes seulement
+- ✅ **Architecture scalable** : Facile d'ajouter de nouveaux modes
 
-**Approche** : Extraction progressive, sans breaking changes, tests continus.
+---
+
+## 📊 Index des fichiers
+
+### Fichiers récemment modifiés (Novembre 2025)
+
+| Fichier | DATEMODIF | CODELINE | Description |
+|---------|-----------|----------|-------------|
+| `pentomino_game_provider.dart` | 11230501 | 844 | Provider jeu unifié |
+| `action_slider.dart` | 11230447 | 214 | Slider actions isométries |
+| `solution_matcher.dart` | 11230417 | 131 | Comparaison solutions |
+| `pentomino_game_screen.dart` | 11230417 | 231 | Orchestrateur principal |
+| `game_icons_config.dart` | 11230417 | 139 | Config icônes |
+| `settings_provider.dart` | 11220530 | 131 | Provider paramètres |
+| `app_settings.dart` | 11220530 | 271 | Modèle paramètres |
+| `settings_screen.dart` | 11220406 | 355 | Écran paramètres |
+| `main.dart` | 11212044 | 55 | Point d'entrée |
+| `game_board.dart` | 11212021 | 336 | Plateau de jeu |
+| `pentomino_game_state.dart` | 11210756 | 168 | État jeu |
+| `piece_slider.dart` | 11210703 | 137 | Slider pièces |
+| `pentominos.dart` | 11200721 | 364 | 12 pièces |
+| `shape_recognizer.dart` | 11200618 | 46 | Reconnaissance formes |
+| `isometry_transforms.dart` | 11200617 | 57 | Transformations |
+| `pentomino_solver.dart` | 11192114 | 589 | Solver backtracking |
+| `piece_utils.dart` | 11191843 | 184 | Utilitaires pièces |
+| `piece_renderer.dart` | 11191843 | 98 | Affichage pièce |
+| `piece_border_calculator.dart` | 11191843 | 79 | Calcul bordures |
+| `plateau.dart` | 11191843 | 67 | Grille de jeu |
+| `draggable_piece_widget.dart` | 11180633 | 119 | Drag & drop |
+| `game_colors.dart` | 11180612 | 52 | Palette couleurs |
+| `game_utils.dart` | 11180611 | 2 | Export centralisé |
+| `game_constants.dart` | 11180509 | 19 | Constantes jeu |
+
+### Fichiers stables (Novembre 2025)
+
+| Fichier | DATEMODIF | CODELINE | Description |
+|---------|-----------|----------|-------------|
+| `bigint_plateau.dart` | 11150647 | 70 | Plateau BigInt |
+| `game_piece.dart` | 11150647 | 63 | Pièce interactive |
+| `game.dart` | 11150647 | 96 | État partie |
+| `point.dart` | 11150647 | 13 | Coordonnées 2D |
+| `pentapol_solutions_loader.dart` | 11150647 | 51 | Chargement binaire |
+| `plateau_solution_counter.dart` | 11150647 | 74 | Extension Plateau |
 
 ---
 
 ## 🚀 Prochaines étapes
 
 ### Court terme
-- [x] Réorganisation pentomino_game Phase 1-2 (-52%)
-- [ ] Optimiser validation (paralléliser avec isolates)
-- [ ] Ajouter progress bar pendant validation
+- [x] Réorganisation pentomino_game Phase 1-2 (-83%)
+- [x] Mode Isométries complet avec UI adaptative
+- [x] Extraction complète GameBoard
+- [ ] Optimiser transformations isométriques (cache)
+- [ ] Ajouter animations pour transformations
 - [ ] Sauvegarder/charger plateaux
-- [ ] Améliorer UI navigateur solutions
 
 ### Moyen terme
 - [ ] Mode challenge avec objectifs
 - [ ] Statistiques et analytics
 - [ ] Partage de configurations
 - [ ] Tutorial interactif
+- [ ] Améliorer UI navigateur solutions
 
 ### Long terme
 - [ ] Mode multijoueur temps réel
@@ -998,10 +964,10 @@ final color = GameColors.masterCellBorderColor;
 
 ### ⚠️ Points d'attention
 
-1. **debugEditorMode** : Mettre à `false` en production
-2. **Timeout solver** : 30s par défaut, ajustable
-3. **Mémoire** : Les 9356 solutions BigInt occupent ~100KB en RAM
-4. **Validation** : Peut prendre du temps avec 5-11 pièces
+1. **Mémoire** : Les 9356 solutions BigInt occupent ~100KB en RAM
+2. **Transformations** : Les isométries modifient le plateau entier
+3. **Mode auto-détection** : Basé sur la présence de sélection (pièce ou placée)
+4. **Orientation** : AppBar s'adapte automatiquement (portrait/paysage)
 
 ### ✅ Bonnes pratiques
 
@@ -1009,6 +975,8 @@ final color = GameColors.masterCellBorderColor;
 2. Utiliser `copyWith()` pour l'immutabilité
 3. Préférer `BigInt` pour les comparaisons (performances)
 4. Ajouter logs pour debugging
+5. Commenter les modifications avec dates (format DATEMODIF)
+6. Compter les lignes de code hors commentaires (CODELINE)
 
 ### 🔗 Liens utiles
 
@@ -1019,6 +987,10 @@ final color = GameColors.masterCellBorderColor;
 
 ---
 
-**Dernière mise à jour : 14 novembre 2025**
+**Dernière mise à jour : 24 novembre 2025**
 
 **Mainteneur : Documentation générée automatiquement**
+
+**Format des métadonnées :**
+- **DATEMODIF** : Format MMDDHHMM (Mois Jour Heure Minute)
+- **CODELINE** : Nombre de lignes de code (hors commentaires et lignes vides)

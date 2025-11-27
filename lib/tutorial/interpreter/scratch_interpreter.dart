@@ -38,16 +38,25 @@ class ScratchInterpreter {
 
   /// Lance l'exécution du script du début à la fin
   Future<void> run() async {
+    print('[INTERPRETER] 🔵 Méthode run() appelée !');
+
     if (isRunning) {
+      print('[INTERPRETER] ❌ Déjà en cours, abandon');
       throw StateError('Le script est déjà en cours d\'exécution');
     }
 
+    print('[INTERPRETER] 🔵 Mise à jour isRunning...');
     isRunning = true;
     currentStep = 0;
 
+    print('[INTERPRETER] 🔵 Affichage des infos...');
+    print('[INTERPRETER] ========================================');
     print('[INTERPRETER] Démarrage du script: ${script.name}');
+    print('[INTERPRETER] Nombre d\'étapes: ${script.steps.length}');
+    print('[INTERPRETER] ========================================');
 
     try {
+      print('[INTERPRETER] Début de la boucle while...');
       while (currentStep < script.steps.length && !context.isCancelled) {
         // Attendre si en pause
         await context.waitIfPaused();

@@ -916,3 +916,5 @@ print('[GAME] Pièce ${pieceIndex} placée en ($gridX, $gridY)');
 - **CODELINE** : Nombre de lignes de code (hors commentaires et lignes vides)
 
 
+
+
