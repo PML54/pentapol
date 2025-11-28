@@ -25,3 +25,6 @@ export 'highlight_commands.dart';
 
 // Transformations
 export 'transform_commands.dart';
+
+// Translation
+export 'translate_command.dart';

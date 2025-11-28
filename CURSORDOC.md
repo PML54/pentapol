@@ -3,7 +3,7 @@
 **Application de puzzles pentominos en Flutter**
 
 **Date de création : 14 novembre 2025**  
-**Dernière mise à jour : 27 novembre 2025**
+**Dernière mise à jour : 28 novembre 2025**
 
 ---
 
@@ -112,7 +112,7 @@ lib/
 │
 ├── screens/                     # Interfaces utilisateur
 │   ├── pentomino_game_screen.dart     # Jeu interactif (orchestrateur)
-│   │   DATEMODIF: 11271540  CODELINE: 320
+│   │   DATEMODIF: 11280712  CODELINE: 322
 │   │
 │   ├── pentomino_game/                # Structure modulaire ✅
 │   │   ├── utils/                     # Utilitaires
@@ -171,15 +171,15 @@ lib/
 │   │
 │   ├── parser/                 # Parseur YAML
 │   │   └── yaml_parser.dart   # Parse YAML → TutorialScript
-│   │       DATEMODIF: 11271030  CODELINE: 171
+│   │       DATEMODIF: 11280725  CODELINE: 180
 │   │
 │   ├── interpreter/            # Interpréteur de commandes
 │   │   └── scratch_interpreter.dart  # Exécute les commandes
 │   │       DATEMODIF: 11260400  CODELINE: 137
 │   │
-│   ├── commands/               # 28 commandes Phase 1 ✅
+│   ├── commands/               # 29 commandes Phase 1 ✅
 │   │   ├── commands.dart              # Export centralisé
-│   │   │   DATEMODIF: 11251401  CODELINE: 17
+│   │   │   DATEMODIF: 11280726  CODELINE: 20
 │   │   ├── control_commands.dart      # WAIT, LOOP, IF, etc.
 │   │   │   DATEMODIF: 11271033  CODELINE: 82
 │   │   ├── message_commands.dart      # SHOW_MESSAGE, CLEAR_MESSAGE
@@ -190,8 +190,10 @@ lib/
 │   │   │   DATEMODIF: 11260521  CODELINE: 53
 │   │   ├── transform_commands.dart    # ROTATE, MIRROR, etc.
 │   │   │   DATEMODIF: 11271049  CODELINE: 138
+│   │   ├── translate_command.dart     # TRANSLATE (déplacement animé)
+│   │   │   DATEMODIF: 11280702  CODELINE: 204
 │   │   ├── highlight_commands.dart    # HIGHLIGHT_CELL, etc.
-│   │   │   DATEMODIF: 11251649  CODELINE: 167
+│   │   │   DATEMODIF: 11280721  CODELINE: 208
 │   │   ├── highlight_isometry_icon.dart # HIGHLIGHT_ISOMETRY_ICON
 │   │   │   DATEMODIF: 11270953  CODELINE: 69
 │   │   ├── board_selection_commands.dart # SELECT_PIECE_ON_BOARD
@@ -205,7 +207,7 @@ lib/
 │   │
 │   ├── widgets/                # Widgets UI
 │   │   ├── tutorial_overlay.dart     # Overlay messages + highlights
-│   │   │   DATEMODIF: 11271530  CODELINE: 161
+│   │   │   DATEMODIF: 11280611  CODELINE: 159
 │   │   ├── tutorial_controls.dart    # Contrôles play/pause/stop
 │   │   │   DATEMODIF: 11271529  CODELINE: 204
 │   │   └── highlighted_icon_button.dart # IconButton avec highlight
@@ -378,7 +380,7 @@ Plateau mirrorVertical(Plateau plateau);
 ## 📱 Écrans
 
 ### 1. `pentomino_game_screen.dart` - Jeu interactif (REFACTORÉ ✅)
-**DATEMODIF:** 11271540 | **CODELINE:** 320
+**DATEMODIF:** 11280712 | **CODELINE:** 322
 
 Interface de jeu complète avec **2 modes auto-détectés** + **intégration tutoriel** :
 
@@ -669,7 +671,7 @@ steps:
       restore: true
 ```
 
-### 28 Commandes Phase 1 ✅
+### 29 Commandes Phase 1 ✅
 
 #### **Contrôle de flux**
 1. `WAIT` - Pause (durée en ms)
@@ -701,22 +703,65 @@ steps:
 19. `MIRROR_VERTICAL` - Miroir vertical plateau
 20. `ROTATE_AROUND_MASTER` - Rotation autour mastercase
 
+#### **Translation** 🆕
+21. `TRANSLATE` - Déplacer une pièce vers une nouvelle position (avec animation optionnelle)
+
 #### **Highlights**
-21. `HIGHLIGHT_CELL` - Highlight cellule
-22. `HIGHLIGHT_PIECE_IN_SLIDER` - Highlight pièce slider
-23. `HIGHLIGHT_PLACED_PIECE_AT` - Highlight pièce placée
-24. `HIGHLIGHT_ISOMETRY_ICON` - Highlight icône isométrie
-25. `CLEAR_HIGHLIGHTS` - Effacer highlights
-26. `CLEAR_SLIDER_HIGHLIGHT` - Effacer highlight slider
+22. `HIGHLIGHT_CELL` - Highlight cellule
+23. `HIGHLIGHT_PIECE_IN_SLIDER` - Highlight pièce slider
+24. `HIGHLIGHT_PLACED_PIECE_AT` - Highlight pièce placée
+25. `HIGHLIGHT_ISOMETRY_ICON` - Highlight icône isométrie
+26. `CLEAR_HIGHLIGHTS` - Effacer highlights
+27. `CLEAR_SLIDER_HIGHLIGHT` - Effacer highlight slider
 
 #### **Mode tutoriel**
-27. `ENTER_TUTORIAL_MODE` - Entrer en mode tutoriel
-28. `EXIT_TUTORIAL_MODE` - Sortir du mode tutoriel
+28. `ENTER_TUTORIAL_MODE` - Entrer en mode tutoriel
+29. `EXIT_TUTORIAL_MODE` - Sortir du mode tutoriel
+
+### Commande TRANSLATE (Nouvelle! 🆕)
+
+La commande `TRANSLATE` permet de déplacer une pièce déjà placée vers une nouvelle position.
+
+**Paramètres** :
+- `pieceNumber` : Numéro de la pièce à déplacer (1-12)
+- `toX`, `toY` : Position finale de la mastercase
+- `duration` : Durée de l'animation en ms (défaut: 500)
+- `animated` : Si `true`, anime le déplacement case par case (défaut: `false`)
+
+**Modes** :
+1. **Mode direct** (`animated: false`) : Saut instantané vers la position finale
+2. **Mode animé** (`animated: true`) : Déplacement progressif case par case avec interpolation linéaire
+
+**Exemple YAML** :
+```yaml
+# Translation directe
+- command: TRANSLATE
+  params:
+    pieceNumber: 5
+    toX: 3
+    toY: 7
+    duration: 800
+
+# Translation animée (case par case)
+- command: TRANSLATE
+  params:
+    pieceNumber: 5
+    toX: 3
+    toY: 7
+    duration: 1500
+    animated: true
+```
+
+**Algorithme d'animation** :
+- Calcul de la distance de Manhattan (|dx| + |dy|)
+- Interpolation linéaire pour un mouvement diagonal fluide
+- Déplacement progressif avec préservation de l'orientation
+- Durée répartie équitablement entre les étapes
 
 ### Widgets tutoriel
 
 #### `TutorialOverlay`
-**DATEMODIF:** 11271530 | **CODELINE:** 161
+**DATEMODIF:** 11280611 | **CODELINE:** 159
 
 Overlay transparent qui affiche :
 - Messages flottants avec animation
@@ -803,10 +848,10 @@ Découper `pentomino_game_screen.dart` (1350+ lignes) en modules réutilisables 
 - `game_board.dart` - DATEMODIF: 11261507 | CODELINE: 388
 - `piece_slider.dart` - DATEMODIF: 11271509 | CODELINE: 176
 
-### Phase 3 : Système de tutoriel ✅ (25-27 nov 2025) 🎓
+### Phase 3 : Système de tutoriel ✅ (25-28 nov 2025) 🎓
 **Module complet créé** :
-- 28 commandes type Scratch
-- Parser YAML
+- 29 commandes type Scratch (+ TRANSLATE 🆕)
+- Parser YAML amélioré
 - Interpréteur de commandes
 - Provider Riverpod
 - Widgets UI (overlay, contrôles, highlights)
@@ -814,31 +859,32 @@ Découper `pentomino_game_screen.dart` (1350+ lignes) en modules réutilisables 
 
 ### Résultats
 - **Avant** : 1350 lignes (monolithique)
-- **Après** : 320 lignes (orchestrateur)
-- **Gain** : -1030 lignes (-76%) 🎯
+- **Après** : 322 lignes (orchestrateur)
+- **Gain** : -1028 lignes (-76%) 🎯
 - **Imports** : Tous en absolu depuis `lib/`
-- **Nouveau** : +2500 lignes de système de tutoriel
+- **Nouveau** : +2700 lignes de système de tutoriel
 
 **Architecture finale** :
 ```
-pentomino_game_screen.dart (320 lignes)
+pentomino_game_screen.dart (322 lignes)
 ├── GameBoard (388 lignes)
 ├── PieceSlider (176 lignes) - Mode Jeu
 ├── ActionSlider (287 lignes) - Mode Isométries
-├── TutorialOverlay (161 lignes) - Mode Tutoriel 🎓
+├── TutorialOverlay (159 lignes) - Mode Tutoriel 🎓
 └── Widgets partagés
     ├── PieceRenderer (108 lignes)
     ├── DraggablePieceWidget (134 lignes)
     └── PieceBorderCalculator (88 lignes)
 ```
 
-### Améliorations apportées (27 nov 2025)
+### Améliorations apportées (28 nov 2025)
 - ✅ **Détection automatique des modes** : Plus besoin de toggle manuel
 - ✅ **Mode Isométries complet** : Rotation, miroirs avec UI adaptative
 - ✅ **Extraction GameBoard** : Plateau de jeu complètement modulaire
-- ✅ **Code ultra-propre** : Orchestrateur de 320 lignes seulement
+- ✅ **Code ultra-propre** : Orchestrateur de 322 lignes seulement
 - ✅ **Architecture scalable** : Facile d'ajouter de nouveaux modes
 - ✅ **Système de tutoriel** : Moteur complet avec scripting YAML 🎓
+- ✅ **Commande TRANSLATE** : Déplacement animé de pièces 🆕
 
 ---
 
@@ -849,15 +895,18 @@ pentomino_game_screen.dart (320 lignes)
 | Fichier | DATEMODIF | CODELINE | Description |
 |---------|-----------|----------|-------------|
 | **TUTORIEL** | | | |
+| `commands.dart` | 11280726 | 20 | Export commandes |
+| `yaml_parser.dart` | 11280725 | 180 | Parser YAML |
+| `highlight_commands.dart` | 11280721 | 208 | Commandes highlights |
+| `pentomino_game_screen.dart` | 11280712 | 322 | Orchestrateur + tutorial |
+| `translate_command.dart` | 11280702 | 204 | Commande translation 🆕 |
+| `tutorial_overlay.dart` | 11280611 | 159 | Overlay messages |
 | `tutorial_provider.dart` | 11271551 | 241 | Provider tutoriel |
-| `pentomino_game_screen.dart` | 11271540 | 320 | Orchestrateur + tutorial |
 | `tutorial_state.dart` | 11271533 | 93 | État tutoriel |
-| `tutorial_overlay.dart` | 11271530 | 161 | Overlay messages |
 | `tutorial_controls.dart` | 11271529 | 204 | Contrôles play/pause |
 | `piece_slider.dart` | 11271509 | 176 | Slider pièces |
 | `transform_commands.dart` | 11271049 | 138 | Commandes transformation |
 | `control_commands.dart` | 11271033 | 82 | Commandes contrôle |
-| `yaml_parser.dart` | 11271030 | 171 | Parser YAML |
 | `selection_commands.dart` | 11271027 | 150 | Commandes sélection |
 | `tutorial_script.dart` | 11271020 | 94 | Script parsé |
 | `highlight_isometry_icon.dart` | 11270953 | 69 | Highlight icône |
@@ -870,7 +919,6 @@ pentomino_game_screen.dart (320 lignes)
 | `message_commands.dart` | 11261335 | 52 | Commandes messages |
 | `placement_commands.dart` | 11260521 | 53 | Commandes placement |
 | `scratch_interpreter.dart` | 11260400 | 137 | Interpréteur |
-| `highlight_commands.dart` | 11251649 | 167 | Commandes highlights |
 | `board_selection_commands.dart` | 11251649 | 104 | Sélection plateau |
 | `tutorial_context.dart` | 11251436 | 70 | Contexte exécution |
 | `tutorial_mode_commands.dart` | 11251434 | 69 | Mode tutoriel |
@@ -920,14 +968,15 @@ pentomino_game_screen.dart (320 lignes)
 ### Lignes de code (hors commentaires)
 
 - **Total core** : ~5 200 lignes
-- **Système tutoriel** : ~2 500 lignes 🎓
+- **Système tutoriel** : ~2 700 lignes 🎓
 - **Provider principal** : 1578 lignes (avec tutorial)
 - **Solver** : 735 lignes
 - **Pentominos** : 413 lignes
 - **Game board** : 388 lignes
 - **Settings screen** : 386 lignes
-- **Orchestrateur** : 320 lignes
+- **Orchestrateur** : 322 lignes
 - **App settings** : 297 lignes
+- **Commande TRANSLATE** : 204 lignes 🆕
 
 ### Performances
 
@@ -969,9 +1018,10 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 - [x] Réorganisation pentomino_game Phase 1-2 (-76%)
 - [x] Mode Isométries complet avec UI adaptative
 - [x] Extraction complète GameBoard
-- [x] Système de tutoriel Phase 1 (28 commandes) 🎓
+- [x] Système de tutoriel Phase 1 (29 commandes) 🎓
+- [x] Commande TRANSLATE avec animation 🆕
 - [ ] Tutoriels supplémentaires (isométries, solutions, avancé)
-- [ ] Animations pour transformations
+- [ ] Animations pour transformations isométriques
 - [ ] Sauvegarder/charger plateaux
 
 ### Moyen terme
@@ -1022,7 +1072,7 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 ---
 
-**Dernière mise à jour : 27 novembre 2025**
+**Dernière mise à jour : 28 novembre 2025**
 
 **Mainteneur : Documentation générée automatiquement**
 
@@ -1034,10 +1084,26 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 ## 🎉 Nouveautés majeures
 
+### Version 28 novembre 2025 🆕
+
+#### 🎯 Commande TRANSLATE (Nouvelle!)
+- **Déplacement animé** de pièces déjà placées
+- **2 modes** : direct (saut) ou animé (case par case)
+- **Interpolation linéaire** pour mouvements diagonaux fluides
+- **Préservation de l'orientation** pendant le déplacement
+- **Algorithme de Manhattan** pour calcul de distance
+- **204 lignes** de code optimisé
+
+#### 🔧 Améliorations
+- **Parser YAML** : +9 lignes (171 → 180)
+- **Highlight commands** : +41 lignes (167 → 208)
+- **Tutorial overlay** : Optimisé (-2 lignes)
+- **Export centralisé** : Ajout de translate_command
+
 ### Version 27 novembre 2025
 
 #### 🎓 Système de tutoriel complet
-- **28 commandes Phase 1** type Scratch
+- **29 commandes Phase 1** type Scratch (+ TRANSLATE)
 - **Parser YAML** pour scripts de tutoriel
 - **Interpréteur** avec gestion d'état et contexte
 - **Provider Riverpod** dédié
@@ -1048,10 +1114,10 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 - **Contrôles** : play/pause/stop avec barre de progression
 
 #### 📈 Statistiques impressionnantes
-- **+2500 lignes** de code pour le système de tutoriel
+- **+2700 lignes** de code pour le système de tutoriel
 - **Provider jeu** : 1578 lignes (avec intégration tutorial)
 - **Architecture modulaire** : 76% de réduction du fichier principal
-- **28 commandes** implémentées et testées
+- **29 commandes** implémentées et testées
 - **3 modes** : Jeu, Isométries, Tutoriel
 
 #### 🏆 Qualité du code
