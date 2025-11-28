@@ -100,16 +100,18 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), // ← Très réduit
+                minimumSize: const Size(45, 30), // ← Encore plus petit
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                elevation: 4,
+                elevation: 3, // ← Réduit aussi
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
                 '${state.solutionsCount}',
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15, // ← Légèrement réduit si besoin
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -146,7 +148,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     );
   }
 
-
+  /// Actions en mode TRANSFORMATION (pièce sélectionnée)
+// ========== REMPLACER _buildTransformActions() COMPLÈTE ==========
 
   /// Actions en mode TRANSFORMATION (pièce sélectionnée)
   List<Widget> _buildTransformActions(state, notifier, settings) {
@@ -234,9 +237,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             final yamlContent = await rootBundle.loadString(
               // 'assets/tutorials/01_intro_basics.yaml',
               // 'assets/tutorials/test_coords.yaml',
-             // 'assets/tutorials/03_Rotation_basics.yaml',
+              //'assets/tutorials/03_Rotation_basics.yaml',
               //   'assets/tutorials/test_features.yaml',
-               'assets/tutorials/Translation_basics.yaml'
+                'assets/tutorials/Translation_basics.yaml',
 
 
             );
