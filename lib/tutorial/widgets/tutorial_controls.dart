@@ -14,8 +14,8 @@ class TutorialControls extends ConsumerWidget {
     final tutorialState = ref.watch(tutorialProvider);
     final notifier = ref.read(tutorialProvider.notifier);
 
-    // Ne rien afficher si pas de tutoriel
-    if (!tutorialState.isRunning && !tutorialState.isLoaded) {
+    // Ne rien afficher si pas de tutoriel chargé
+    if (!tutorialState.isLoaded) {
       return const SizedBox.shrink();
     }
 
@@ -35,7 +35,12 @@ class TutorialControls extends ConsumerWidget {
             onResume: () => notifier.resume(),
             onStop: () => notifier.stop(),
             onRestart: () => notifier.restart(),
-            onQuit: () => notifier.quit(), // 🆕 Callback Quit
+            onQuit: () => notifier.quit(),
+          )
+              : tutorialState.isCompleted
+              ? _CompletedControls(
+            onRestart: () => notifier.restart(),
+            onQuit: () => notifier.quit(),
           )
               : _LoadedControls(
             onStart: () => notifier.start(),
@@ -75,6 +80,75 @@ class _LoadedControls extends StatelessWidget {
           color: Colors.red[700],
           tooltip: 'Annuler',
           onPressed: onCancel,
+        ),
+      ],
+    );
+  }
+}
+
+/// Contrôles quand le tutoriel est terminé
+class _CompletedControls extends StatelessWidget {
+  final VoidCallback onRestart;
+  final VoidCallback onQuit;
+
+  const _CompletedControls({
+    required this.onRestart,
+    required this.onQuit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Message de confirmation
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Tutorial terminé !',
+                style: TextStyle(
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Boutons d'actions
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Bouton Recommencer
+            IconButton(
+              icon: const Icon(Icons.replay, size: 32),
+              color: Colors.blue[700],
+              tooltip: 'Recommencer le tutoriel',
+              onPressed: onRestart,
+            ),
+
+            const SizedBox(width: 8),
+
+            // Bouton Fermer/Quitter
+            IconButton(
+              icon: const Icon(Icons.close, size: 32),
+              color: Colors.red[700],
+              tooltip: 'Fermer le tutoriel',
+              onPressed: onQuit,
+            ),
+          ],
         ),
       ],
     );

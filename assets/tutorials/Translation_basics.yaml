@@ -1,0 +1,60 @@
+# Tutorial d'introduction aux rotations
+
+id: intro_basics
+name: "Rotation"
+description: "les rotations"
+difficulty: beginner
+estimatedDuration: 120
+tags:
+  - introduction
+  - placement
+  - rotation
+
+steps:
+  # Placer pièce 6 en (2, 4)
+  - command: SELECT_PIECE_FROM_SLIDER
+    params:
+      pieceNumber: 6
+
+  - command: PLACE_SELECTED_PIECE_AT
+    params:
+      gridX: 2
+      gridY: 4
+
+  - command: SHOW_MESSAGE
+    params:
+      text: "La pièce va se déplacer vers (5, 7) ! 🚀"
+
+  - command: WAIT
+    params:
+      duration: 2000
+
+  # Translation automatique
+  - command: TRANSLATE
+    params:
+      pieceNumber: 6
+      toX: 3
+      toY: 5
+      duration: 1500
+  - command: WAIT
+    params:
+      duration: 3000
+  - command: SHOW_MESSAGE
+    params:
+      text: "Translation terminée ! ✨"
+
+  # Fin
+  - command: SHOW_MESSAGE
+    params:
+      text: "Félicitations ! Vous maîtrisez les Translation ! 🎉"
+
+  - command: WAIT
+    params:
+      duration: 3000
+
+  - command: CLEAR_MESSAGE
+
+  # Sortie du mode tutoriel (restaurer le plateau)
+  - command: EXIT_TUTORIAL_MODE
+    params:
+      restore: true

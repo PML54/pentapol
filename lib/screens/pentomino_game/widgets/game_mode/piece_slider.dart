@@ -32,6 +32,7 @@ class PieceSlider extends ConsumerStatefulWidget {
 
 class _PieceSliderState extends ConsumerState<PieceSlider> {
   final ScrollController _sliderController = ScrollController();
+  int _lastSliderOffset = 0; // ← AJOUTER : tracker le dernier offset
 
   @override
   void dispose() {
@@ -43,6 +44,23 @@ class _PieceSliderState extends ConsumerState<PieceSlider> {
   Widget build(BuildContext context) {
     final state = ref.watch(pentominoGameProvider);
     final notifier = ref.read(pentominoGameProvider.notifier);
+
+    // ← AJOUTER : Écouter les changements de sliderOffset
+    if (state.sliderOffset != _lastSliderOffset && _sliderController.hasClients) {
+      _lastSliderOffset = state.sliderOffset;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_sliderController.hasClients) {
+          const itemSize = GameConstants.sliderItemSize;
+          final targetOffset = state.sliderOffset * itemSize;
+          print('[SLIDER] 📜 Scroll vers offset: $targetOffset (sliderOffset: ${state.sliderOffset})');
+          _sliderController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
 
     if (state.availablePieces.isEmpty) {
       return const SizedBox.shrink();

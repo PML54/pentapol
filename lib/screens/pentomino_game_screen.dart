@@ -60,15 +60,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
     return Scaffold(
+      backgroundColor: Colors.white, // ← FOND BLANC dans tous les modes
       // AppBar uniquement en mode portrait
       appBar: isLandscape ? null : PreferredSize(
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
           toolbarHeight: 56.0,
-          backgroundColor: isInTransformMode
-              ? settings.ui.isometriesAppBarColor  // Couleur en mode transformation
-              : null,  // Fond par défaut en mode général
-
+          backgroundColor: Colors.white, // ← BLANC dans tous les modes (général ET isométries)
           // LEADING : Paramètres (mode général) ou rien (mode transformation)
           leading: !isInTransformMode
               ? IconButton(
@@ -148,8 +146,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     );
   }
 
-  /// Actions en mode TRANSFORMATION (pièce sélectionnée)
-// ========== REMPLACER _buildTransformActions() COMPLÈTE ==========
+
 
   /// Actions en mode TRANSFORMATION (pièce sélectionnée)
   List<Widget> _buildTransformActions(state, notifier, settings) {
@@ -235,10 +232,11 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           try {
             // Charger le tutoriel d'introduction
             final yamlContent = await rootBundle.loadString(
-             // 'assets/tutorials/01_intro_basics.yaml',
-             // 'assets/tutorials/test_coords.yaml',
-             'assets/tutorials/03_Rotation_basics.yaml',
-             //   'assets/tutorials/test_features.yaml',
+              // 'assets/tutorials/01_intro_basics.yaml',
+              // 'assets/tutorials/test_coords.yaml',
+             // 'assets/tutorials/03_Rotation_basics.yaml',
+              //   'assets/tutorials/test_features.yaml',
+               'assets/tutorials/Translation_basics.yaml'
 
 
             );
@@ -324,9 +322,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             Container(
               width: 44,
               decoration: BoxDecoration(
-                color: isInTransformMode
-                    ? settings.ui.isometriesAppBarColor.withValues(alpha: 0.3)
-                    : Colors.grey.shade200,
+                color: Colors.white, // ← BLANC dans tous les modes
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),

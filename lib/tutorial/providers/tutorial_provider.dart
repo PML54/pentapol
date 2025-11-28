@@ -34,6 +34,7 @@ class TutorialNotifier extends Notifier<TutorialState> {
       currentScript: script,
       isLoaded: true,
       currentStep: 0,
+      scriptName: script.name, // ← Ajouter le nom du script
     );
   }
 
@@ -49,6 +50,7 @@ class TutorialNotifier extends Notifier<TutorialState> {
       clearContext: true,
       isLoaded: false,
       currentStep: 0,
+      clearScriptName: true, // ← Clear le nom du script
     );
 
     print('[TUTORIAL] Script déchargé');
@@ -117,23 +119,35 @@ class TutorialNotifier extends Notifier<TutorialState> {
 
   /// Callback quand le script est terminé
   void _onCompleted() {
-    print('[TUTORIAL] Tutoriel terminé: ${state.currentScript?.name}');
+    print('[TUTORIAL] 🏁 Tutoriel terminé: ${state.currentScript?.name}');
+    print('[TUTORIAL] 🔍 État AVANT nettoyage:');
+    print('[TUTORIAL]   - isRunning: ${state.isRunning}');
+    print('[TUTORIAL]   - isLoaded: ${state.isLoaded}');
+    print('[TUTORIAL]   - isCompleted: ${state.isCompleted}');
+    print('[TUTORIAL]   - currentStep: ${state.currentStep}');
+    print('[TUTORIAL]   - totalSteps: ${state.totalSteps}');
 
     // ♻️ RESTAURER l'état du jeu sauvegardé
     _restoreGameState();
 
-    // Nettoyer complètement l'état
+    // ⚠️ NE PAS nettoyer complètement - garder le script chargé pour afficher le message de fin
     state = state.copyWith(
       isRunning: false,
       isPaused: false,
-      clearCurrentScript: true,
       clearInterpreter: true,
       clearContext: true,
       clearCurrentMessage: true,
       clearSavedGameState: true,
-      isLoaded: false,
-      currentStep: 0,
+      // ← NE PAS clear currentScript ni isLoaded
+      // ← NE PAS reset currentStep pour que isCompleted soit true
     );
+
+    print('[TUTORIAL] 🔍 État APRÈS nettoyage:');
+    print('[TUTORIAL]   - isRunning: ${state.isRunning}');
+    print('[TUTORIAL]   - isLoaded: ${state.isLoaded}');
+    print('[TUTORIAL]   - isCompleted: ${state.isCompleted}');
+    print('[TUTORIAL]   - scriptName: ${state.scriptName}');
+    print('[TUTORIAL] ✅ Les contrôles devraient rester visibles !');
   }
 
   /// Callback en cas d'erreur
@@ -189,15 +203,22 @@ class TutorialNotifier extends Notifier<TutorialState> {
     print('[TUTORIAL] Arrêt');
   }
 
-  /// 🆕 QUITTE le tutoriel (comme stop mais nettoie tout)
+  /// 🆕 QUITTE le tutoriel (fonctionne même si terminé)
   void quit() {
-    if (!state.isRunning) return;
+    print('[TUTORIAL] 🚪 Quit demandé (isRunning: ${state.isRunning}, isLoaded: ${state.isLoaded})');
 
-    print('[TUTORIAL] 🚪 Quit demandé');
+    // ✅ Fonctionner même si le tutorial est terminé (isRunning = false)
+    if (!state.isLoaded) {
+      print('[TUTORIAL] ⚠️ Aucun tutorial chargé, rien à quitter');
+      return;
+    }
 
-    state.interpreter?.stop();
+    // Arrêter l'interpréteur si encore en cours
+    if (state.isRunning) {
+      state.interpreter?.stop();
+    }
 
-    // ♻️ RESTAURER l'état du jeu sauvegardé
+    // ♻️ RESTAURER l'état du jeu sauvegardé (si pas déjà fait)
     _restoreGameState();
 
     // Nettoyer complètement
@@ -211,9 +232,10 @@ class TutorialNotifier extends Notifier<TutorialState> {
       clearSavedGameState: true,
       isLoaded: false,
       currentStep: 0,
+      clearScriptName: true,
     );
 
-    print('[TUTORIAL] 🚪 Quit terminé');
+    print('[TUTORIAL] 🚪 Quit terminé - Retour au jeu normal');
   }
 
   /// ♻️ Restaure l'état du jeu sauvegardé

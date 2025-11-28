@@ -2,17 +2,20 @@
 // Parser YAML → TutorialScript
 
 import 'package:yaml/yaml.dart';
-import '../models/tutorial_script.dart';
-import '../models/scratch_command.dart';
-import '../commands/control_commands.dart';
-import '../commands/message_commands.dart';
-import '../commands/tutorial_mode_commands.dart';
-import '../commands/selection_commands.dart';
+
 import '../commands/board_selection_commands.dart';
-import '../commands/placement_commands.dart';
+import '../commands/control_commands.dart';
 import '../commands/highlight_commands.dart';
-import '../commands/transform_commands.dart';
 import '../commands/highlight_isometry_icon.dart';
+import '../commands/message_commands.dart';
+import '../commands/placement_commands.dart';
+import '../commands/selection_commands.dart';
+import '../commands/transform_commands.dart';
+// Import
+import '../commands/translate_command.dart';
+import '../commands/tutorial_mode_commands.dart';
+import '../models/scratch_command.dart';
+import '../models/tutorial_script.dart';
 
 /// Parser de scripts YAML
 class YamlScriptParser {
@@ -54,11 +57,29 @@ class YamlScriptParser {
 
       print('[PARSER] Toutes les steps parsées !');
       return script.copyWith(steps: steps);
-
     } catch (e, stackTrace) {
       print('[PARSER] ERREUR: $e');
       print('[PARSER] Stack: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// Valide un script YAML sans le parser complètement
+  static bool validate(String yamlContent) {
+    try {
+      final doc = loadYaml(yamlContent) as Map;
+
+      // Vérifications basiques
+      if (!doc.containsKey('id')) return false;
+      if (!doc.containsKey('name')) return false;
+      if (!doc.containsKey('steps')) return false;
+
+      final steps = doc['steps'] as List?;
+      if (steps == null || steps.isEmpty) return false;
+
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -84,19 +105,19 @@ class YamlScriptParser {
     }
 
     switch (commandName) {
-    // Contrôle
+      // Contrôle
       case 'WAIT':
         return WaitCommand.fromMap(paramsMap);
       case 'REPEAT':
         return RepeatCommand.fromMap(paramsMap);
 
-    // Messages
+      // Messages
       case 'SHOW_MESSAGE':
         return ShowMessageCommand.fromMap(paramsMap);
       case 'CLEAR_MESSAGE':
         return ClearMessageCommand();
 
-    // Mode tutoriel
+      // Mode tutoriel
       case 'ENTER_TUTORIAL_MODE':
         return EnterTutorialModeCommand();
       case 'EXIT_TUTORIAL_MODE':
@@ -106,7 +127,7 @@ class YamlScriptParser {
       case 'RESET_GAME':
         return ResetGameCommand();
 
-    // Sélection Slider
+      // Sélection Slider
       case 'SELECT_PIECE_FROM_SLIDER':
         return SelectPieceFromSliderCommand.fromMap(paramsMap);
       case 'HIGHLIGHT_PIECE_IN_SLIDER':
@@ -120,7 +141,7 @@ class YamlScriptParser {
       case 'RESET_SLIDER_POSITION':
         return ResetSliderPositionCommand();
 
-    // Sélection Plateau
+      // Sélection Plateau
       case 'SELECT_PIECE_ON_BOARD_AT':
         return SelectPieceOnBoardAtCommand.fromMap(paramsMap);
       case 'SELECT_PIECE_ON_BOARD_WITH_MASTERCASE':
@@ -130,13 +151,13 @@ class YamlScriptParser {
       case 'CANCEL_SELECTION':
         return CancelSelectionCommand();
 
-    // Placement
+      // Placement
       case 'PLACE_SELECTED_PIECE_AT':
         return PlaceSelectedPieceAtCommand.fromMap(paramsMap);
       case 'REMOVE_PIECE_AT':
         return RemovePieceAtCommand.fromMap(paramsMap);
 
-    // Highlights
+      // Highlights
       case 'HIGHLIGHT_CELL':
         return HighlightCellCommand.fromMap(paramsMap);
       case 'HIGHLIGHT_CELLS':
@@ -148,15 +169,15 @@ class YamlScriptParser {
       case 'HIGHLIGHT_MASTERCASE':
         return HighlightMastercaseCommand.fromMap(paramsMap);
 
-    // Transformations
+      // Transformations
       case 'ROTATE_AROUND_MASTER':
         return RotateAroundMasterCommand.fromMap(paramsMap);
       case 'SYMMETRY_AROUND_MASTER':
         return SymmetryAroundMasterCommand.fromMap(paramsMap);
 
-    // 🆕 Highlights Icônes Isométries
+      // 🆕 Highlights Icônes Isométries
       case 'highlight_isometry_icon':
-      // Merger step et params pour avoir tous les paramètres
+        // Merger step et params pour avoir tous les paramètres
         final allParams = Map<String, dynamic>.from(step);
         allParams.addAll(paramsMap);
         return HighlightIsometryIconCommand.fromYaml(allParams);
@@ -165,28 +186,10 @@ class YamlScriptParser {
         return ClearIsometryIconHighlightCommand.fromYaml(
           Map<String, dynamic>.from(step),
         );
-
+      case 'TRANSLATE':
+        return TranslateCommand.fromMap(paramsMap);
       default:
         throw FormatException('Commande inconnue: $commandName');
-    }
-  }
-
-  /// Valide un script YAML sans le parser complètement
-  static bool validate(String yamlContent) {
-    try {
-      final doc = loadYaml(yamlContent) as Map;
-
-      // Vérifications basiques
-      if (!doc.containsKey('id')) return false;
-      if (!doc.containsKey('name')) return false;
-      if (!doc.containsKey('steps')) return false;
-
-      final steps = doc['steps'] as List?;
-      if (steps == null || steps.isEmpty) return false;
-
-      return true;
-    } catch (e) {
-      return false;
     }
   }
 }

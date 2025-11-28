@@ -1,4 +1,4 @@
-# Tutorial d'introduction aux bases de Pentapol
+# Tutorial d'introduction aux rotations
 
 id: intro_basics
 name: "Rotation"
@@ -17,7 +17,7 @@ steps:
   # Message de bienvenue
   - command: SHOW_MESSAGE
     params:
-      text: "les rotations !"
+      text: "Les rotations !"
 
   - command: WAIT
     params:
@@ -26,16 +26,39 @@ steps:
   # Présentation du slider
   - command: SHOW_MESSAGE
     params:
-      text: "Voici le slider de pièces. Il contient  12 pentominos"
+      text: "Faites défiler les Pieces  "
 
   - command: WAIT
     params:
-      duration: 2000
+      duration: 1500
 
-  # Highlight première pièce
-  - command: SCROLL_SLIDER_TO_PIECE
+  # Défilement visible en allant de pièce en pièce
+  - command: RESET_SLIDER_POSITION
+
+  - command: WAIT
     params:
-      pieceNumber: 6
+      duration: 500
+
+  - command: SCROLL_SLIDER
+    params:
+      positions: 3
+
+  - command: WAIT
+    params:
+      duration: 1000
+
+  - command: SCROLL_SLIDER
+    params:
+      positions: 4
+
+  - command: WAIT
+    params:
+      duration: 1000
+
+  - command: SCROLL_SLIDER
+    params:
+      positions: 8
+
 
   - command: HIGHLIGHT_PIECE_IN_SLIDER
     params:
@@ -43,7 +66,7 @@ steps:
 
   - command: SHOW_MESSAGE
     params:
-      text: "Sélectionnons la pièce n°6"
+      text: "Prenons la pièce n°6"
 
   - command: WAIT
     params:
@@ -58,11 +81,11 @@ steps:
 
   - command: SHOW_MESSAGE
     params:
-      text: "Excellent ! La pièce est maintenant sélectionnée."
+      text: "Surbrillance: elle est selectée."
 
   - command: WAIT
     params:
-      duration: 2000
+      duration: 1500
 
   # Montrer où placer
   - command: SHOW_MESSAGE
@@ -93,17 +116,9 @@ steps:
 
   - command: WAIT
     params:
-      duration: 3500
+      duration: 1500
 
-  # Démonstration rotation
-  - command: SHOW_MESSAGE
-    params:
-      text: "Rotation"
-
-  - command: WAIT
-    params:
-      duration: 2000
-
+  # Sélection de la pièce sur le plateau
   - command: SELECT_PIECE_ON_BOARD_AT
     params:
       x: 2
@@ -111,93 +126,138 @@ steps:
 
   - command: SHOW_MESSAGE
     params:
-      text: "Observez la rotation de 90° autour de la mastercase (le point rouge)."
+      text: "Maintenant, voyons les rotations !"
 
   - command: WAIT
     params:
       duration: 2000
 
-
+  # Montrer l'icône de rotation horaire
   - command: SHOW_MESSAGE
     params:
-      text: "🔄 Regarde cette icône qui clignote !"
-      duration: 2.5
+      text: "🔄 Cette icône fait tourner dans le sens Trigo ↺"
 
   - command: highlight_isometry_icon
     params:
-        icon: rotation
-  - command: WAIT
-    params:
-        duration: 1000
-  - command: WAIT
-    params:
-        duration: 3.0
-  # Rotation 1
-  - command: ROTATE_AROUND_MASTER
-    params:
-      pieceNumber: 6
-      quarterTurns: 1
-      direction: cw
-      duration: 800
-
-  # Rotation 2
-  - command: ROTATE_AROUND_MASTER
-    params:
-      pieceNumber: 6
-      quarterTurns: 1
-      direction: cw
-      duration: 800
-
-  # Rotation 3
-  - command: ROTATE_AROUND_MASTER
-    params:
-      pieceNumber: 6
-      quarterTurns: 1
-      direction: cw
-      duration: 800
-
-  # Rotation 4
-  - command: ROTATE_AROUND_MASTER
-    params:
-      pieceNumber: 6
-      quarterTurns: 1
-      direction: cw
-      duration: 800
-
-  - command: SHOW_MESSAGE
-    params:
-      text: "Vous pouvez faire pivoter les pièces pour les adapter au plateau !"
+      icon: rotation
 
   - command: WAIT
     params:
       duration: 3000
 
-  # Rotation 4
+  # 4 rotations horaires
   - command: ROTATE_AROUND_MASTER
     params:
       pieceNumber: 6
       quarterTurns: 1
-      direction: ccw
+      direction: cw
+      duration: 1000
+
+  - command: WAIT
+    params:
       duration: 800
 
-
-  #Rotation 4
   - command: ROTATE_AROUND_MASTER
     params:
       pieceNumber: 6
       quarterTurns: 1
-      direction: ccw
+      direction: cw
+      duration: 1000
+
+  - command: WAIT
+    params:
       duration: 800
 
+  - command: ROTATE_AROUND_MASTER
+    params:
+      pieceNumber: 6
+      quarterTurns: 1
+      direction: cw
+      duration: 1000
 
+  - command: WAIT
+    params:
+      duration: 800
 
+  - command: ROTATE_AROUND_MASTER
+    params:
+      pieceNumber: 6
+      quarterTurns: 1
+      direction: cw
+      duration: 1000
 
-  # Fin
-  - command: CLEAR_MESSAGE
+  - command: clear_isometry_icon_highlight
 
+  - command: WAIT
+    params:
+      duration: 1500
+
+  # Montrer l'icône de rotation anti-horaire
   - command: SHOW_MESSAGE
     params:
-      text: "Félicitations ! Vous maîtrisez les bases de Pentapol. 🎉"
+      text: "🔄 Et cette icône fait tourner dans  le sens  horaire ↻"
+
+  - command: highlight_isometry_icon
+    params:
+      icon: rotation_cw
+
+  - command: WAIT
+    params:
+      duration: 3000
+
+  # 2 rotations anti-horaires
+  - command: ROTATE_AROUND_MASTER
+    params:
+      pieceNumber: 6
+      quarterTurns: 1
+      direction: ccw
+      duration: 1000
+
+  - command: WAIT
+    params:
+      duration: 800
+
+  - command: ROTATE_AROUND_MASTER
+    params:
+      pieceNumber: 6
+      quarterTurns: 1
+      direction: ccw
+      duration: 1000
+
+  - command: clear_isometry_icon_highlight
+
+  - command: WAIT
+    params:
+      duration: 1500
+
+  # Explication mastercase
+  - command: SHOW_MESSAGE
+    params:
+      text: "Les rotations se font toujours autour du centre de  rotation (carré rouge)"
+  - command: WAIT
+    params:
+      duration: 1500
+  - command: SHOW_MESSAGE
+    params:
+      text: "💡une  rotation dans le plan  c'est un centre de rotation et un angle de rotation "
+  - command: WAIT
+    params:
+      duration:2000
+  - command: HIGHLIGHT_MASTERCASE
+    params:
+      x: 2
+      y: 4
+
+  - command: WAIT
+    params:
+      duration: 4000
+
+  - command: CLEAR_HIGHLIGHTS
+
+  # Fin
+  - command: SHOW_MESSAGE
+    params:
+      text: "Félicitations ! Vous maîtrisez les rotations ! 🎉"
 
   - command: WAIT
     params:

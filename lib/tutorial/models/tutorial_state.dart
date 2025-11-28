@@ -32,6 +32,9 @@ class TutorialState {
   /// Script chargé mais pas encore démarré
   final bool isLoaded;
 
+  /// Nom du script (pour affichage)
+  final String? scriptName;
+
   /// 💾 État du jeu sauvegardé avant le tutorial (pour restauration au quit)
   final PentominoGameState? savedGameState;
 
@@ -44,6 +47,7 @@ class TutorialState {
     this.currentStep = 0,
     this.currentMessage,
     this.isLoaded = false,
+    this.scriptName,
     this.savedGameState,
   });
 
@@ -66,6 +70,8 @@ class TutorialState {
     String? currentMessage,
     bool clearCurrentMessage = false,
     bool? isLoaded,
+    String? scriptName,
+    bool clearScriptName = false,
     PentominoGameState? savedGameState,
     bool clearSavedGameState = false,
   }) {
@@ -82,6 +88,7 @@ class TutorialState {
           ? null
           : (currentMessage ?? this.currentMessage),
       isLoaded: isLoaded ?? this.isLoaded,
+      scriptName: clearScriptName ? null : (scriptName ?? this.scriptName),
       savedGameState: clearSavedGameState
           ? null
           : (savedGameState ?? this.savedGameState),

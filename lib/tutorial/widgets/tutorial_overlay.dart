@@ -13,35 +13,73 @@ class TutorialOverlay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tutorialState = ref.watch(tutorialProvider);
 
-    // Ne rien afficher si pas de tutoriel en cours
-    if (!tutorialState.isRunning && tutorialState.currentMessage == null) {
+    // Ne rien afficher si pas de tutoriel chargé
+    if (!tutorialState.isLoaded) {
       return const SizedBox.shrink();
     }
 
     return Stack(
       children: [
-        // Message en haut
-        if (tutorialState.currentMessage != null)
+        // Message en haut (ou message de fin si terminé)
+        if (tutorialState.currentMessage != null || tutorialState.isCompleted)
           Positioned(
             top: 16,
             left: 16,
             right: 16,
-            child: _MessageBox(message: tutorialState.currentMessage!),
+            child: tutorialState.isCompleted
+                ? _CompletionMessage(scriptName: tutorialState.scriptName ?? 'Tutorial')
+                : _MessageBox(message: tutorialState.currentMessage!),
           ),
-
-    /*    // Barre de progression en bas
-        if (tutorialState.isRunning)
-          Positioned(
-            bottom: 80,
-            left: 16,
-            right: 16,
-            child: _ProgressBar(
-              progress: tutorialState.progress,
-              currentStep: tutorialState.currentStep,
-              totalSteps: tutorialState.totalSteps,
-            ),
-          ),*/
       ],
+    );
+  }
+}
+
+/// Message de fin de tutorial
+class _CompletionMessage extends StatelessWidget {
+  final String scriptName;
+
+  const _CompletionMessage({required this.scriptName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(12),
+      color: Colors.green[700],
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 36),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Félicitations ! 🎉',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tutorial "$scriptName" terminé avec succès !',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
