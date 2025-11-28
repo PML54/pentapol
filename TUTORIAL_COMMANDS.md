@@ -286,11 +286,31 @@ Fait pivoter une pièce sélectionnée autour de sa mastercase.
 - command: ROTATE_AROUND_MASTER
   params:
     pieceNumber: 5
-    quarterTurns: 1    # 1 = 90° horaire, 2 = 180°, 3 = 270°, -1 = 90° anti-horaire
-    duration: 500      # optionnel, durée animation en ms
+    quarterTurns: 1      # 1 = 90°, 2 = 180°, 3 = 270°
+    direction: cw        # 'cw' (horaire) ou 'ccw' (anti-horaire), défaut: 'cw'
+    duration: 500        # optionnel, durée animation en ms
 ```
 
-**Note :** La pièce doit être sélectionnée et placée sur le plateau.
+**Important :** La pièce doit être sélectionnée avec `SELECT_PIECE_ON_BOARD_AT` avant d'appliquer les rotations.
+
+**Exemples :**
+```yaml
+# Rotation 90° horaire
+- command: ROTATE_AROUND_MASTER
+  params:
+    pieceNumber: 6
+    quarterTurns: 1
+    direction: cw
+    duration: 1000
+
+# Rotation 90° anti-horaire (sens trigonométrique)
+- command: ROTATE_AROUND_MASTER
+  params:
+    pieceNumber: 6
+    quarterTurns: 1
+    direction: ccw
+    duration: 1000
+```
 
 ### SYMMETRY_AROUND_MASTER
 Applique une symétrie à une pièce sélectionnée.
@@ -298,11 +318,117 @@ Applique une symétrie à une pièce sélectionnée.
 - command: SYMMETRY_AROUND_MASTER
   params:
     pieceNumber: 5
-    symmetryKind: "H"  # H = horizontale, V = verticale
+    symmetryKind: H    # H = horizontale ↔️, V = verticale ↕️
     duration: 500      # optionnel, durée animation en ms
 ```
 
-**Note :** La pièce doit être sélectionnée et placée sur le plateau.
+**Important :** La pièce doit être sélectionnée avec `SELECT_PIECE_ON_BOARD_AT` avant d'appliquer les symétries.
+
+**Exemples :**
+```yaml
+# Symétrie horizontale (retourne gauche ↔️ droite)
+- command: SYMMETRY_AROUND_MASTER
+  params:
+    pieceNumber: 6
+    symmetryKind: H
+    duration: 1000
+
+# Symétrie verticale (retourne haut ↕️ bas)
+- command: SYMMETRY_AROUND_MASTER
+  params:
+    pieceNumber: 6
+    symmetryKind: V
+    duration: 1000
+```
+
+### TRANSLATE
+Translate (déplace) une pièce d'une position à une autre.
+```yaml
+- command: TRANSLATE
+  params:
+    pieceNumber: 6
+    toX: 5             # Position finale X (ancre)
+    toY: 7             # Position finale Y (ancre)
+    duration: 1500     # Durée animation (ms)
+    animated: true     # Animation progressive case par case (optionnel, défaut: false)
+```
+
+**Détection automatique :** La position de départ est détectée automatiquement depuis la pièce placée sur le plateau.
+
+**Exemples :**
+```yaml
+# Translation directe (saut instantané)
+- command: TRANSLATE
+  params:
+    pieceNumber: 1
+    toX: 5
+    toY: 7
+    duration: 1000
+    animated: false
+
+# Translation animée (déplacement progressif case par case)
+- command: TRANSLATE
+  params:
+    pieceNumber: 1
+    toX: 5
+    toY: 7
+    duration: 2000
+    animated: true  # La pièce glisse visuellement !
+```
+
+**Mode animé :** En mode `animated: true`, la pièce se déplace case par case avec une interpolation linéaire, créant un effet de mouvement fluide.
+
+### HIGHLIGHT_ISOMETRY_ICON
+Surligne une icône d'isométrie dans l'AppBar (mode transformations).
+```yaml
+- command: HIGHLIGHT_ISOMETRY_ICON
+  params:
+    icon: rotation_cw  # rotation, rotation_cw, symmetry_h, symmetry_v
+```
+
+**Icônes disponibles :**
+- `rotation` : Rotation anti-horaire (sens trigo) ↺
+- `rotation_cw` : Rotation horaire ↻
+- `symmetry_h` : Symétrie horizontale ↔️
+- `symmetry_v` : Symétrie verticale ↕️
+
+**Exemple complet :**
+```yaml
+# Highlight l'icône de rotation horaire
+- command: HIGHLIGHT_ISOMETRY_ICON
+  params:
+    icon: rotation_cw
+
+- command: SHOW_MESSAGE
+  params:
+    text: "Cliquez sur cette icône ↻ pour faire tourner la pièce !"
+
+- command: WAIT
+  params:
+    duration: 3000
+
+# Faire la rotation
+- command: ROTATE_AROUND_MASTER
+  params:
+    pieceNumber: 6
+    quarterTurns: 1
+    direction: cw
+
+# Enlever le highlight
+- command: CLEAR_ISOMETRY_ICON_HIGHLIGHT
+```
+
+### CLEAR_ISOMETRY_ICON_HIGHLIGHT
+Efface le surlignage de l'icône d'isométrie.
+```yaml
+- command: CLEAR_ISOMETRY_ICON_HIGHLIGHT
+```
+
+### CLEAR_MASTERCASE_HIGHLIGHT
+Efface le surlignage de la mastercase.
+```yaml
+- command: CLEAR_MASTERCASE_HIGHLIGHT
+```
 
 ---
 
@@ -478,34 +604,54 @@ steps:
 - command: CLEAR_HIGHLIGHTS
 ```
 
-### 6. Séquence typique de rotation
+### 6. Séquence typique de rotation/symétrie
 ```yaml
-# 1. Sélectionner la pièce sur le plateau
+# 1. Placer la pièce d'abord
+- command: SELECT_PIECE_FROM_SLIDER
+  params:
+    pieceNumber: 6
+
+- command: PLACE_SELECTED_PIECE_AT
+  params:
+    gridX: 2
+    gridY: 4
+
+# 2. CRUCIAL : Sélectionner la pièce sur le plateau
 - command: SELECT_PIECE_ON_BOARD_AT
   params:
-    x: 3  # une cellule de la pièce
-    y: 5
+    x: 2  # n'importe quelle cellule de la pièce
+    y: 4
 
-# 2. Expliquer
+# 3. Expliquer et montrer l'icône
 - command: SHOW_MESSAGE
   params:
     text: "Observez la rotation autour du point rouge"
+
+- command: HIGHLIGHT_ISOMETRY_ICON
+  params:
+    icon: rotation_cw
 
 - command: WAIT
   params:
     duration: 2000
 
-# 3. Faire pivoter
+# 4. Faire pivoter (la pièce reste sélectionnée)
 - command: ROTATE_AROUND_MASTER
   params:
-    pieceNumber: 5
+    pieceNumber: 6
     quarterTurns: 1
+    direction: cw
     duration: 800
 
 - command: WAIT
   params:
     duration: 1000
+
+# 5. Nettoyer
+- command: CLEAR_ISOMETRY_ICON_HIGHLIGHT
 ```
+
+**Important :** `SELECT_PIECE_ON_BOARD_AT` doit être appelé **UNE FOIS** après le placement, avant toutes les transformations. La pièce reste sélectionnée pendant toutes les rotations/symétries suivantes.
 
 ---
 
@@ -540,4 +686,7 @@ Pour toute question ou amélioration :
 
 ---
 
-**Dernière mise à jour : Novembre 2025**
+**Dernière mise à jour : 2025-11-28 06:38**
+
+**Changelog :**
+- **2025-11-28 06:38** : Ajout de TRANSLATE (avec mode animé), HIGHLIGHT_ISOMETRY_ICON, CLEAR_ISOMETRY_ICON_HIGHLIGHT, CLEAR_MASTERCASE_HIGHLIGHT. Clarification sur SELECT_PIECE_ON_BOARD_AT obligatoire avant transformations. Ajout paramètre `direction` pour ROTATE_AROUND_MASTER.

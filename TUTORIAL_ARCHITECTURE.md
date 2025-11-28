@@ -814,8 +814,11 @@ testWidgets('Tutorial runs to completion', (tester) async {
 
 ---
 
-**Document rédigé en Novembre 2025**
+**Dernière mise à jour : 2025-11-28 06:38**
 
 **Auteur** : Système Tutorial Pentapol
 
-**Version** : 1.0 - Phase 1
+**Version** : 1.1 - Phase 1
+
+**Changelog :**
+- **2025-11-28 06:38** : Ajout commandes TRANSLATE, HIGHLIGHT_ISOMETRY_ICON, CLEAR_ISOMETRY_ICON_HIGHLIGHT, CLEAR_MASTERCASE_HIGHLIGHT. Documentation du paramètre `animated` pour translations progressives. Clarifications sur l'état de sélection requis pour les transformations.

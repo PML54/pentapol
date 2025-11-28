@@ -1,20 +1,23 @@
-# Tutorial d'introduction aux rotations
+# Tutorial d'introduction aux translations
 
 id: intro_basics
-name: "Rotation"
-description: "les rotations"
+name: "Translations"
+description: "les Translations"
 difficulty: beginner
 estimatedDuration: 120
 tags:
   - introduction
   - placement
-  - rotation
+  - translation
 
 steps:
-  # Placer pièce 6 en (2, 4)
+  # Entrée en mode tutoriel
+  - command: ENTER_TUTORIAL_MODE
+
+  # Placer pièce 1 en (2, 4)
   - command: SELECT_PIECE_FROM_SLIDER
     params:
-      pieceNumber: 6
+      pieceNumber: 1
 
   - command: PLACE_SELECTED_PIECE_AT
     params:
@@ -23,30 +26,28 @@ steps:
 
   - command: SHOW_MESSAGE
     params:
-      text: "La pièce va se déplacer vers (5, 7) ! 🚀"
+      text: "La pièce va se déplacer case par case vers (3, 5) ! 🚀"
 
   - command: WAIT
     params:
       duration: 2000
 
-  # Translation automatique
+  # Translation automatique ANIMÉE
   - command: TRANSLATE
     params:
-      pieceNumber: 6
+      pieceNumber: 1
       toX: 3
       toY: 5
       duration: 1500
+      animated: true  # ✨ Animation progressive !
+
   - command: WAIT
     params:
       duration: 3000
+
   - command: SHOW_MESSAGE
     params:
       text: "Translation terminée ! ✨"
-
-  # Fin
-  - command: SHOW_MESSAGE
-    params:
-      text: "Félicitations ! Vous maîtrisez les Translation ! 🎉"
 
   - command: WAIT
     params:

@@ -30,10 +30,19 @@ class HighlightCellCommand extends ScratchCommand {
   String get description => 'Surligne la case ($x, $y)';
 
   factory HighlightCellCommand.fromMap(Map<String, dynamic> params) {
+    final xValue = params['x'];
+    final yValue = params['y'];
+
+    if (xValue == null || yValue == null) {
+      throw FormatException(
+        'HIGHLIGHT_CELL: les paramètres x et y sont obligatoires',
+      );
+    }
+
     final colorStr = params['color'] as String? ?? 'yellow';
     return HighlightCellCommand(
-      x: params['x'] as int,
-      y: params['y'] as int,
+      x: xValue is int ? xValue : int.parse(xValue.toString()),
+      y: yValue is int ? yValue : int.parse(yValue.toString()),
       color: _parseColor(colorStr),
     );
   }
@@ -116,9 +125,17 @@ class HighlightValidPositionsCommand extends ScratchCommand {
       'Surligne les positions valides pour la pièce $pieceNumber';
 
   factory HighlightValidPositionsCommand.fromMap(Map<String, dynamic> params) {
+    final pieceNum = params['pieceNumber'];
+
+    if (pieceNum == null) {
+      throw FormatException(
+        'HIGHLIGHT_VALID_POSITIONS: le paramètre pieceNumber est obligatoire',
+      );
+    }
+
     final colorStr = params['color'] as String? ?? 'green';
     return HighlightValidPositionsCommand(
-      pieceNumber: params['pieceNumber'] as int,
+      pieceNumber: pieceNum is int ? pieceNum : int.parse(pieceNum.toString()),
       color: HighlightCellCommand._parseColor(colorStr),
     );
   }
@@ -168,9 +185,35 @@ class HighlightMastercaseCommand extends ScratchCommand {
   String get description => 'Surligne la mastercase à ($x, $y)';
 
   factory HighlightMastercaseCommand.fromMap(Map<String, dynamic> params) {
+    // Accepter 'x' OU 'gridX' (et 'y' OU 'gridY')
+    final xValue = params['x'] ?? params['gridX'];
+    final yValue = params['y'] ?? params['gridY'];
+
+    if (xValue == null || yValue == null) {
+      throw FormatException(
+        'HIGHLIGHT_MASTERCASE: les paramètres x/gridX et y/gridY sont obligatoires',
+      );
+    }
+
     return HighlightMastercaseCommand(
-      x: params['x'] as int,
-      y: params['y'] as int,
+      x: xValue is int ? xValue : int.parse(xValue.toString()),
+      y: yValue is int ? yValue : int.parse(yValue.toString()),
     );
   }
+}
+
+/// CLEAR_MASTERCASE_HIGHLIGHT
+class ClearMastercaseHighlightCommand extends ScratchCommand {
+  const ClearMastercaseHighlightCommand();
+
+  @override
+  Future<void> execute(TutorialContext context) async {
+    context.gameNotifier.clearMastercaseHighlight();
+  }
+
+  @override
+  String get name => 'CLEAR_MASTERCASE_HIGHLIGHT';
+
+  @override
+  String get description => 'Efface le surlignage de la mastercase';
 }

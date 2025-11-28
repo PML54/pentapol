@@ -105,19 +105,19 @@ class YamlScriptParser {
     }
 
     switch (commandName) {
-      // Contrôle
+    // Contrôle
       case 'WAIT':
         return WaitCommand.fromMap(paramsMap);
       case 'REPEAT':
         return RepeatCommand.fromMap(paramsMap);
 
-      // Messages
+    // Messages
       case 'SHOW_MESSAGE':
         return ShowMessageCommand.fromMap(paramsMap);
       case 'CLEAR_MESSAGE':
         return ClearMessageCommand();
 
-      // Mode tutoriel
+    // Mode tutoriel
       case 'ENTER_TUTORIAL_MODE':
         return EnterTutorialModeCommand();
       case 'EXIT_TUTORIAL_MODE':
@@ -127,7 +127,7 @@ class YamlScriptParser {
       case 'RESET_GAME':
         return ResetGameCommand();
 
-      // Sélection Slider
+    // Sélection Slider
       case 'SELECT_PIECE_FROM_SLIDER':
         return SelectPieceFromSliderCommand.fromMap(paramsMap);
       case 'HIGHLIGHT_PIECE_IN_SLIDER':
@@ -141,7 +141,7 @@ class YamlScriptParser {
       case 'RESET_SLIDER_POSITION':
         return ResetSliderPositionCommand();
 
-      // Sélection Plateau
+    // Sélection Plateau
       case 'SELECT_PIECE_ON_BOARD_AT':
         return SelectPieceOnBoardAtCommand.fromMap(paramsMap);
       case 'SELECT_PIECE_ON_BOARD_WITH_MASTERCASE':
@@ -151,13 +151,13 @@ class YamlScriptParser {
       case 'CANCEL_SELECTION':
         return CancelSelectionCommand();
 
-      // Placement
+    // Placement
       case 'PLACE_SELECTED_PIECE_AT':
         return PlaceSelectedPieceAtCommand.fromMap(paramsMap);
       case 'REMOVE_PIECE_AT':
         return RemovePieceAtCommand.fromMap(paramsMap);
 
-      // Highlights
+    // Highlights
       case 'HIGHLIGHT_CELL':
         return HighlightCellCommand.fromMap(paramsMap);
       case 'HIGHLIGHT_CELLS':
@@ -169,25 +169,33 @@ class YamlScriptParser {
       case 'HIGHLIGHT_MASTERCASE':
         return HighlightMastercaseCommand.fromMap(paramsMap);
 
-      // Transformations
+    // Transformations
       case 'ROTATE_AROUND_MASTER':
         return RotateAroundMasterCommand.fromMap(paramsMap);
       case 'SYMMETRY_AROUND_MASTER':
         return SymmetryAroundMasterCommand.fromMap(paramsMap);
 
-      // 🆕 Highlights Icônes Isométries
+    // Translation
+      case 'TRANSLATE':
+        return TranslateCommand.fromMap(paramsMap);
+
+    // 🆕 Highlights Icônes Isométries
       case 'highlight_isometry_icon':
-        // Merger step et params pour avoir tous les paramètres
+      case 'HIGHLIGHT_ISOMETRY_ICON':
+      // Merger step et params pour avoir tous les paramètres
         final allParams = Map<String, dynamic>.from(step);
         allParams.addAll(paramsMap);
         return HighlightIsometryIconCommand.fromYaml(allParams);
 
       case 'clear_isometry_icon_highlight':
+      case 'CLEAR_ISOMETRY_ICON_HIGHLIGHT':
         return ClearIsometryIconHighlightCommand.fromYaml(
           Map<String, dynamic>.from(step),
         );
-      case 'TRANSLATE':
-        return TranslateCommand.fromMap(paramsMap);
+
+      case 'CLEAR_MASTERCASE_HIGHLIGHT':
+        return const ClearMastercaseHighlightCommand();
+
       default:
         throw FormatException('Commande inconnue: $commandName');
     }

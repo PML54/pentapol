@@ -20,15 +20,13 @@ class TutorialOverlay extends ConsumerWidget {
 
     return Stack(
       children: [
-        // Message en haut (ou message de fin si terminé)
-        if (tutorialState.currentMessage != null || tutorialState.isCompleted)
+        // Message en haut (seulement pendant l'exécution, PAS à la fin)
+        if (tutorialState.currentMessage != null && !tutorialState.isCompleted)
           Positioned(
             top: 16,
             left: 16,
             right: 16,
-            child: tutorialState.isCompleted
-                ? _CompletionMessage(scriptName: tutorialState.scriptName ?? 'Tutorial')
-                : _MessageBox(message: tutorialState.currentMessage!),
+            child: _MessageBox(message: tutorialState.currentMessage!),
           ),
       ],
     );
