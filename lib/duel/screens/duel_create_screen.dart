@@ -1,10 +1,11 @@
 // lib/duel/screens/duel_create_screen.dart
-// Écran de création de partie (saisie pseudo puis affiche le code)
+// Écran de création de room avec nom sauvegardé via SQLite (SettingsProvider)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:pentapol/providers/settings_provider.dart';
 import '../providers/duel_provider.dart';
-import '../models/duel_state.dart';
 import 'duel_waiting_screen.dart';
 
 class DuelCreateScreen extends ConsumerStatefulWidget {
@@ -16,14 +17,19 @@ class DuelCreateScreen extends ConsumerStatefulWidget {
 
 class _DuelCreateScreenState extends ConsumerState<DuelCreateScreen> {
   final _nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    // Pseudo par défaut
-    _nameController.text = 'Joueur';
+    // Charger le nom sauvegardé depuis SQLite
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final savedName = ref.read(settingsProvider).duel.playerName;
+      if (savedName != null && savedName.isNotEmpty) {
+        _nameController.text = savedName;
+      }
+    });
   }
 
   @override
@@ -33,165 +39,107 @@ class _DuelCreateScreenState extends ConsumerState<DuelCreateScreen> {
   }
 
   Future<void> _createRoom() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      setState(() => _errorMessage = 'Entrez un pseudo');
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final name = _nameController.text.trim();
+
+    setState(() => _isLoading = true);
 
     try {
-      final success = await ref.read(duelProvider.notifier).createRoom(name);
+      // Sauvegarder le nom dans SQLite
+      await ref.read(settingsProvider.notifier).setDuelPlayerName(name);
 
-      if (success && mounted) {
-        // Naviguer vers l'écran d'attente
+      // Créer la room
+      await ref.read(duelProvider.notifier).createRoom(name);
+
+      if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const DuelWaitingScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const DuelWaitingScreen()),
         );
-      } else if (mounted) {
-        setState(() {
-          _errorMessage = 'Impossible de créer la partie. Vérifiez votre connexion.';
-          _isLoading = false;
-        });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = 'Erreur: $e';
-          _isLoading = false;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Écouter les changements d'état pour les erreurs
-    ref.listen<DuelState>(duelProvider, (previous, next) {
-      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
-        setState(() => _errorMessage = next.errorMessage);
-      }
-    });
+    final savedName = ref.watch(settingsProvider).duel.playerName;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Créer une partie'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Icône
-              const Icon(
-                Icons.person_add,
-                size: 80,
-                color: Colors.blue,
-              ),
+              const Icon(Icons.person_add, size: 80, color: Colors.blue),
               const SizedBox(height: 32),
 
-              // Titre
               const Text(
-                'Choisissez votre pseudo',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Entrez votre pseudo',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 8),
+
+              if (savedName != null && savedName.isNotEmpty)
+                Text(
+                  'Dernier pseudo utilisé',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
               const SizedBox(height: 24),
 
-              // Champ pseudo
-              TextField(
+              TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Votre pseudo',
-                  hintText: 'Ex: Paul',
+                  labelText: 'Pseudo',
+                  hintText: 'Ex: Max',
                   prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.grey.shade50,
                 ),
                 textCapitalization: TextCapitalization.words,
                 maxLength: 20,
-                enabled: !_isLoading,
-                onSubmitted: (_) => _createRoom(),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return 'Veuillez entrer un pseudo';
+                  if (value.trim().length < 2) return 'Minimum 2 caractères';
+                  return null;
+                },
+                onFieldSubmitted: (_) => _createRoom(),
               ),
-              const SizedBox(height: 16),
-
-              // Message d'erreur
-              if (_errorMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: Colors.red.shade700),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (_errorMessage != null) const SizedBox(height: 16),
-
-              // Bouton créer
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createRoom,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                      : const Text(
-                    'Créer la partie',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-
               const SizedBox(height: 24),
 
-              // Info
-              Text(
-                'Un code sera généré pour inviter votre adversaire',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
+              ElevatedButton(
+                onPressed: _isLoading ? null : _createRoom,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                textAlign: TextAlign.center,
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 24, width: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+                    : const Text('Créer la partie', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

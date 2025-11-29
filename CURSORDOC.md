@@ -3,7 +3,7 @@
 **Application de puzzles pentominos en Flutter**
 
 **Date de création : 14 novembre 2025**  
-**Dernière mise à jour : 28 novembre 2025**
+**Dernière mise à jour : 29 novembre 2025**
 
 ---
 
@@ -32,6 +32,7 @@ Pentapol est une application Flutter permettant de :
 - Naviguer dans une base de 2339 solutions canoniques (9356 avec transformations)
 - Jouer avec deux modes : **Mode Jeu** (placement de pièces) et **Mode Isométries** (transformations géométriques)
 - **Apprendre avec des tutoriels interactifs** guidés par un système de scripting YAML
+- **Jouer en mode Duel** : Affrontez un adversaire en temps réel pour compléter une solution
 
 ### Technologies principales
 - **Flutter** : Framework UI
@@ -70,8 +71,8 @@ lib/
 │   │   DATEMODIF: 11150647  CODELINE: 120
 │   ├── point.dart              # Coordonnées 2D
 │   │   DATEMODIF: 11150647  CODELINE: 18
-│   └── app_settings.dart       # Paramètres de l'application
-│       DATEMODIF: 11220530  CODELINE: 297
+│   └── app_settings.dart       # Paramètres de l'application + Duel
+│       DATEMODIF: 11290000  CODELINE: 348
 │
 ├── database/                    # Base de données locale
 │   ├── settings_database.dart  # Drift database pour settings
@@ -107,8 +108,8 @@ lib/
 │   │   DATEMODIF: 11270851  CODELINE: 1578
 │   ├── pentomino_game_state.dart      # État jeu
 │   │   DATEMODIF: 11270850  CODELINE: 240
-│   └── settings_provider.dart         # Paramètres utilisateur
-│       DATEMODIF: 11220530  CODELINE: 156
+│   └── settings_provider.dart         # Paramètres utilisateur + Duel
+│       DATEMODIF: 11290000  CODELINE: 190
 │
 ├── screens/                     # Interfaces utilisateur
 │   ├── pentomino_game_screen.dart     # Jeu interactif (orchestrateur)
@@ -154,6 +155,35 @@ lib/
 │   │   DATEMODIF: -  CODELINE: 64
 │   └── leaderboard_screen.dart        # Classements
 │       DATEMODIF: -  CODELINE: 69
+│
+├── duel/                        # 🎮 Mode Duel (NOUVEAU!)
+│   ├── duel.dart                # Point d'entrée module
+│   │
+│   ├── models/                  # Modèles de données
+│   │   ├── duel_state.dart      # État du duel
+│   │   └── duel_player.dart     # Joueur
+│   │
+│   ├── providers/               # Provider Riverpod
+│   │   └── duel_provider.dart   # Gestion état duel
+│   │
+│   ├── screens/                 # Écrans du mode Duel
+│   │   ├── duel_create_screen.dart   # Créer une partie
+│   │   │   DATEMODIF: 11290000  CODELINE: 150
+│   │   ├── duel_join_screen.dart     # Rejoindre une partie
+│   │   │   DATEMODIF: 11290000  CODELINE: 183
+│   │   ├── duel_game_screen.dart     # Jeu en temps réel
+│   │   │   DATEMODIF: 11290000  CODELINE: 986
+│   │   ├── duel_waiting_screen.dart  # Attente adversaire
+│   │   ├── duel_result_screen.dart   # Résultats
+│   │   └── duel_lobby_screen.dart    # Lobby principal
+│   │
+│   ├── services/                # Services
+│   │   └── duel_validator.dart  # Validation placements
+│   │
+│   └── widgets/                 # Widgets UI
+│       ├── duel_countdown.dart  # Compte à rebours
+│       ├── duel_player_card.dart # Carte joueur
+│       └── duel_timer.dart      # Timer de partie
 │
 ├── tutorial/                    # 🎓 Système de tutoriel (NOUVEAU!)
 │   ├── tutorial.dart           # Point d'entrée module
@@ -305,20 +335,27 @@ Version optimisée du plateau encodée sur 360 bits (60 cases × 6 bits).
 ---
 
 ### 4. `app_settings.dart` - Paramètres application
-**DATEMODIF:** 11220530 | **CODELINE:** 297
+**DATEMODIF:** 11290000 | **CODELINE:** 348
 
 **Structure `AppSettings`** :
 ```dart
 class AppSettings {
-  final bool showSolutionCount;
-  final bool enableHapticFeedback;
-  final bool showPieceNumbers;
-  final Map<int, Color> customPieceColors;
+  final UISettings ui;           // Paramètres UI (couleurs, animations, etc.)
+  final GameSettings game;       // Paramètres de jeu (difficulté, indices, etc.)
+  final DuelSettings duel;       // Paramètres Duel (nom du joueur) 🆕
   
   // Méthodes
   AppSettings copyWith({...});
   Map<String, dynamic> toJson();
   factory AppSettings.fromJson(Map<String, dynamic> json);
+}
+
+class DuelSettings {
+  final String? playerName;      // Nom du joueur sauvegardé
+  
+  DuelSettings copyWith({...});
+  Map<String, dynamic> toJson();
+  factory DuelSettings.fromJson(Map<String, dynamic> json);
 }
 ```
 
@@ -799,6 +836,254 @@ Le fichier `01_intro_basics.yaml` est un tutoriel complet qui :
 
 ---
 
+## 🎮 Système de Duel
+
+### Vue d'ensemble
+
+Le système de Duel permet à deux joueurs de s'affronter en temps réel pour compléter une même solution de pentominos. Le premier joueur à placer toutes ses pièces correctement remporte la partie.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SYSTÈME DE DUEL                           │
+│                                                              │
+│  1. Création de partie                                      │
+│     └─> Joueur 1 crée une room avec code unique (4 char)   │
+│         └─> Nom sauvegardé dans SQLite (DuelSettings)      │
+│                                                              │
+│  2. Attente adversaire                                      │
+│     └─> Affichage du code de la room                       │
+│         └─> Écoute des connexions via Supabase             │
+│                                                              │
+│  3. Rejoindre une partie                                    │
+│     └─> Joueur 2 entre le code de la room                  │
+│         └─> Nom sauvegardé dans SQLite                     │
+│                                                              │
+│  4. Jeu en temps réel                                       │
+│     ├─> Solution commune chargée depuis la base            │
+│     ├─> Overlay guide avec la solution                     │
+│     ├─> Validation des placements                          │
+│     ├─> Synchronisation via Supabase Realtime              │
+│     ├─> Hachures pour les pièces adversaires               │
+│     ├─> Isométries sur pièces sélectionnées                │
+│     └─> Timer de 3 minutes                                 │
+│                                                              │
+│  5. Résultats                                               │
+│     └─> Affichage du gagnant et des scores                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Fonctionnalités principales
+
+#### **Création et gestion de parties**
+- ✅ Code unique de 4 caractères (alphanumériques)
+- ✅ Sauvegarde automatique du nom du joueur via SQLite
+- ✅ Attente de l'adversaire avec affichage du code
+- ✅ Annulation possible avant le début
+
+#### **Jeu en temps réel**
+- ✅ Solution commune affichée en overlay (guide atténué)
+- ✅ Validation stricte des placements (position + orientation)
+- ✅ Synchronisation instantanée via Supabase Realtime
+- ✅ Distinction visuelle : pièces du joueur (éclatantes) vs adversaire (hachurées)
+- ✅ Isométries complètes sur pièces sélectionnées (rotation, miroirs)
+- ✅ Timer de 3 minutes avec changement de couleur (vert → orange → rouge)
+- ✅ Compteur de pièces placées dans le titre
+
+#### **Interface utilisateur**
+- ✅ Slider infini avec toutes les pièces disponibles
+- ✅ Drag & drop pour placer les pièces
+- ✅ Double-tap sur une pièce = placement automatique
+- ✅ Tap sur le guide = placement si pièce sélectionnée correspond
+- ✅ Barre d'isométries visible quand une pièce est sélectionnée
+- ✅ Haptic feedback pour toutes les interactions
+- ✅ Messages d'erreur contextuels
+
+### Écrans du mode Duel
+
+#### 1. `duel_create_screen.dart` - Création de partie
+**DATEMODIF:** 11290000 | **CODELINE:** 150
+
+Permet au joueur 1 de créer une nouvelle partie :
+- Champ de saisie du pseudo (sauvegardé dans SQLite)
+- Affichage du dernier pseudo utilisé
+- Validation (minimum 2 caractères)
+- Création de la room avec code unique
+
+#### 2. `duel_join_screen.dart` - Rejoindre une partie
+**DATEMODIF:** 11290000 | **CODELINE:** 183
+
+Permet au joueur 2 de rejoindre une partie existante :
+- Champ de saisie du code (4 caractères, auto-majuscules)
+- Champ de saisie du pseudo (sauvegardé dans SQLite)
+- Validation et connexion à la room
+
+#### 3. `duel_game_screen.dart` - Jeu en temps réel
+**DATEMODIF:** 11290000 | **CODELINE:** 986
+
+Interface de jeu complète avec :
+- **Plateau de jeu** : Grille 6×10 avec overlay solution
+- **Slider de pièces** : Scroll infini avec pièces disponibles
+- **Barre d'isométries** : 4 boutons (rotation ↺↻, miroirs ↔↕)
+- **Timer** : Compte à rebours de 3 minutes
+- **Score** : Format "ADVERSAIRE = X • 1:20 • MOI = Y"
+
+**Système de couleurs** :
+- **Guide solution** : Couleurs atténuées (opacité 0.35)
+- **Pièces placées (moi)** : Couleurs éclatantes + numéro blanc
+- **Pièces placées (adversaire)** : Couleurs éclatantes + hachures diagonales + numéro blanc
+- **Preview** : Couleur avec bordure verte (valide) ou orange (invalide)
+
+**Validation des placements** :
+```dart
+DuelValidator.instance.validatePlacement(
+  pieceId: pieceId,
+  x: x,
+  y: y,
+  orientation: orientation,
+);
+```
+
+Vérifie :
+1. Position et orientation exactes par rapport à la solution
+2. Pas de collision avec d'autres pièces
+3. Pièce dans les limites du plateau
+
+#### 4. `duel_waiting_screen.dart` - Attente adversaire
+
+Affiche le code de la room en grand et attend la connexion du joueur 2.
+
+#### 5. `duel_result_screen.dart` - Résultats
+
+Affiche le gagnant, les scores finaux et permet de rejouer ou retourner au lobby.
+
+### Services
+
+#### `duel_validator.dart` - Validation des placements
+
+Service singleton qui :
+- Charge et décode la solution de référence
+- Valide chaque placement (position + orientation)
+- Détecte les collisions
+- Vérifie les limites du plateau
+
+**Méthodes principales** :
+```dart
+class DuelValidator {
+  // Initialiser avec toutes les solutions
+  void initialize(List<BigInt> allSolutions);
+  
+  // Charger une solution spécifique
+  Future<bool> loadSolution(int solutionId);
+  
+  // Valider un placement
+  ValidationResult validatePlacement({
+    required int pieceId,
+    required int x,
+    required int y,
+    required int orientation,
+  });
+}
+```
+
+### Providers
+
+#### `duel_provider.dart` - Gestion de l'état
+
+Provider Riverpod qui gère :
+- Création et connexion aux rooms
+- Synchronisation en temps réel via Supabase
+- Placement des pièces
+- Gestion du timer
+- Détection de la fin de partie
+
+**État `DuelState`** :
+```dart
+class DuelState {
+  final String? roomCode;
+  final int? solutionId;
+  final DuelPlayer? localPlayer;
+  final DuelPlayer? opponent;
+  final List<DuelPlacedPiece> placedPieces;
+  final DuelGameState gameState;
+  final int? countdown;
+  final int? timeRemaining;
+  final int localScore;
+  final int opponentScore;
+  final String? errorMessage;
+}
+```
+
+### Widgets
+
+#### `duel_countdown.dart` - Compte à rebours
+
+Affiche le compte à rebours avant le début de la partie (3, 2, 1, GO!).
+
+#### `duel_player_card.dart` - Carte joueur
+
+Affiche les informations d'un joueur (nom, score, statut).
+
+#### `duel_timer.dart` - Timer de partie
+
+Affiche le temps restant avec changement de couleur selon l'urgence.
+
+### Intégration avec AppSettings
+
+Le nom du joueur est sauvegardé dans `DuelSettings` :
+
+```dart
+// Sauvegarder le nom
+await ref.read(settingsProvider.notifier).setDuelPlayerName(name);
+
+// Récupérer le nom
+final savedName = ref.read(settingsProvider).duel.playerName;
+```
+
+Cela permet de pré-remplir le champ de nom lors des prochaines parties.
+
+### Flux de jeu complet
+
+```
+1. Joueur 1 crée une partie
+   └─> Génération code unique (ex: AB12)
+   └─> Attente sur DuelWaitingScreen
+
+2. Joueur 2 rejoint avec le code
+   └─> Connexion à la room
+   └─> Transition vers DuelGameScreen pour les deux
+
+3. Compte à rebours (3, 2, 1, GO!)
+   └─> Chargement de la solution commune
+
+4. Jeu en temps réel
+   ├─> Placement des pièces
+   ├─> Validation stricte
+   ├─> Synchronisation instantanée
+   └─> Timer de 3 minutes
+
+5. Fin de partie (conditions)
+   ├─> Un joueur complète toutes les pièces → Victoire
+   ├─> Timer à 0 → Victoire du joueur avec le plus de pièces
+   └─> Abandon → Victoire de l'adversaire
+
+6. Écran de résultats
+   └─> Affichage du gagnant et des scores
+```
+
+### Optimisations et bonnes pratiques
+
+1. **Sauvegarde du nom** : Utilise SQLite via `SettingsProvider` pour persister le nom du joueur
+2. **Validation stricte** : Chaque placement est validé côté client ET serveur
+3. **Synchronisation temps réel** : Utilise Supabase Realtime pour la communication
+4. **Distinction visuelle** : Hachures diagonales pour les pièces adversaires
+5. **Guide solution** : Overlay atténué pour aider sans dévoiler complètement
+6. **Isométries complètes** : Rotation et miroirs sur pièces sélectionnées
+7. **Haptic feedback** : Retour tactile pour toutes les interactions importantes
+
+---
+
 ## ⚙️ Configuration
 
 ### `main.dart` - Point d'entrée
@@ -894,6 +1179,12 @@ pentomino_game_screen.dart (322 lignes)
 
 | Fichier | DATEMODIF | CODELINE | Description |
 |---------|-----------|----------|-------------|
+| **DUEL** | | | |
+| `duel_create_screen.dart` | 11290000 | 150 | Création de partie |
+| `duel_join_screen.dart` | 11290000 | 183 | Rejoindre une partie |
+| `duel_game_screen.dart` | 11290000 | 986 | Jeu en temps réel |
+| `app_settings.dart` | 11290000 | 348 | Ajout DuelSettings |
+| `settings_provider.dart` | 11290000 | 190 | Ajout setDuelPlayerName |
 | **TUTORIEL** | | | |
 | `commands.dart` | 11280726 | 20 | Export commandes |
 | `yaml_parser.dart` | 11280725 | 180 | Parser YAML |
@@ -930,8 +1221,8 @@ pentomino_game_screen.dart (322 lignes)
 | **CORE** | | | |
 | `solution_matcher.dart` | 11230417 | 167 | Comparaison solutions |
 | `game_icons_config.dart` | 11231630 | 139 | Config icônes |
-| `settings_provider.dart` | 11220530 | 156 | Provider paramètres |
-| `app_settings.dart` | 11220530 | 297 | Modèle paramètres |
+| `settings_provider.dart` | 11290000 | 190 | Provider paramètres + Duel |
+| `app_settings.dart` | 11290000 | 348 | Modèle paramètres + Duel |
 | `pentominos.dart` | 11200721 | 413 | 12 pièces |
 | `shape_recognizer.dart` | 11200618 | 60 | Reconnaissance formes |
 | `isometry_transforms.dart` | 11200617 | 66 | Transformations |
@@ -969,14 +1260,17 @@ pentomino_game_screen.dart (322 lignes)
 
 - **Total core** : ~5 200 lignes
 - **Système tutoriel** : ~2 700 lignes 🎓
+- **Système Duel** : ~1 500 lignes 🎮
 - **Provider principal** : 1578 lignes (avec tutorial)
+- **Duel game screen** : 986 lignes
 - **Solver** : 735 lignes
 - **Pentominos** : 413 lignes
 - **Game board** : 388 lignes
 - **Settings screen** : 386 lignes
+- **App settings** : 348 lignes (avec Duel)
 - **Orchestrateur** : 322 lignes
-- **App settings** : 297 lignes
 - **Commande TRANSLATE** : 204 lignes 🆕
+- **Settings provider** : 190 lignes (avec Duel)
 
 ### Performances
 
@@ -1020,9 +1314,11 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 - [x] Extraction complète GameBoard
 - [x] Système de tutoriel Phase 1 (29 commandes) 🎓
 - [x] Commande TRANSLATE avec animation 🆕
+- [x] Mode Duel en temps réel 🎮
 - [ ] Tutoriels supplémentaires (isométries, solutions, avancé)
 - [ ] Animations pour transformations isométriques
 - [ ] Sauvegarder/charger plateaux
+- [ ] Améliorer UI mode Duel (animations, effets)
 
 ### Moyen terme
 - [ ] Tutoriel Phase 2 : Commandes avancées (variables, conditions complexes)
@@ -1030,13 +1326,15 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 - [ ] Statistiques et analytics
 - [ ] Partage de configurations
 - [ ] Améliorer UI navigateur solutions
+- [ ] Classements et historique pour le mode Duel
+- [ ] Mode Duel avec plusieurs rounds
 
 ### Long terme
-- [ ] Mode multijoueur temps réel
 - [ ] Générateur de puzzles avec difficulté
-- [ ] Leaderboards et achievements
+- [ ] Leaderboards et achievements globaux
 - [ ] Support autres formats (non 6×10)
 - [ ] Éditeur visuel de tutoriels
+- [ ] Tournois en mode Duel
 
 ---
 
@@ -1050,6 +1348,9 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 4. **Orientation** : AppBar s'adapte automatiquement (portrait/paysage)
 5. **Tutoriel** : Sauvegarde automatique de l'état du jeu avant démarrage
 6. **Scripts YAML** : Validation stricte des commandes et paramètres
+7. **Duel** : Validation stricte des placements (position + orientation exactes)
+8. **Synchronisation** : Utilise Supabase Realtime pour le mode Duel
+9. **Nom du joueur** : Sauvegardé dans SQLite via DuelSettings
 
 ### ✅ Bonnes pratiques
 
@@ -1061,6 +1362,9 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 6. Compter les lignes de code hors commentaires (CODELINE)
 7. **Tester les scripts de tutoriel avant déploiement**
 8. **Valider les paramètres des commandes**
+9. **Initialiser DuelValidator avec toutes les solutions**
+10. **Sauvegarder le nom du joueur via SettingsProvider**
+11. **Valider strictement les placements en mode Duel**
 
 ### 🔗 Liens utiles
 
@@ -1072,7 +1376,7 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 ---
 
-**Dernière mise à jour : 28 novembre 2025**
+**Dernière mise à jour : 29 novembre 2025**
 
 **Mainteneur : Documentation générée automatiquement**
 
@@ -1083,6 +1387,27 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 ---
 
 ## 🎉 Nouveautés majeures
+
+### Version 29 novembre 2025 🎮
+
+#### 🎮 Mode Duel (Nouveau!)
+- **Jeu en temps réel** : Affrontez un adversaire pour compléter une solution
+- **Code de partie** : Système de rooms avec codes uniques (4 caractères)
+- **Sauvegarde du nom** : Nom du joueur persisté dans SQLite via DuelSettings
+- **Overlay solution** : Guide visuel atténué pour aider les joueurs
+- **Distinction visuelle** : Hachures diagonales pour les pièces adversaires
+- **Isométries complètes** : Rotation et miroirs sur pièces sélectionnées
+- **Validation stricte** : Position + orientation exactes requises
+- **Timer de 3 minutes** : Avec changement de couleur selon l'urgence
+- **Synchronisation Supabase** : Communication en temps réel via Realtime
+- **~1500 lignes** de code pour le système complet
+
+#### 🔧 Améliorations AppSettings
+- **DuelSettings** : Nouvelle classe pour les paramètres du mode Duel
+- **playerName** : Champ pour sauvegarder le nom du joueur
+- **setDuelPlayerName()** : Méthode dans SettingsProvider
+- **+51 lignes** dans app_settings.dart (297 → 348)
+- **+34 lignes** dans settings_provider.dart (156 → 190)
 
 ### Version 28 novembre 2025 🆕
 
@@ -1115,10 +1440,11 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 #### 📈 Statistiques impressionnantes
 - **+2700 lignes** de code pour le système de tutoriel
+- **+1500 lignes** de code pour le système de Duel 🎮
 - **Provider jeu** : 1578 lignes (avec intégration tutorial)
 - **Architecture modulaire** : 76% de réduction du fichier principal
 - **29 commandes** implémentées et testées
-- **3 modes** : Jeu, Isométries, Tutoriel
+- **4 modes** : Jeu, Isométries, Tutoriel, Duel
 
 #### 🏆 Qualité du code
 - **Architecture propre** : Séparation claire des responsabilités

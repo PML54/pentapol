@@ -1,5 +1,6 @@
 // lib/duel/screens/duel_game_screen.dart
 // Écran principal du jeu duel avec overlay solution et isométries
+// CORRIGÉ : Slider infini + conflits tap/scroll
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +14,6 @@ import 'package:pentapol/config/game_icons_config.dart';
 import '../providers/duel_provider.dart';
 import '../models/duel_state.dart';
 import '../services/duel_validator.dart';
-import '../widgets/duel_scoreboard.dart';
 import '../widgets/duel_countdown.dart';
 import 'duel_result_screen.dart';
 
@@ -52,6 +52,12 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
 
   /// Map des positions par pièce (pour garder l'orientation entre les sélections)
   final Map<int, int> _piecePositionIndices = {};
+
+  /// FIX #1 : Flag pour éviter les re-initialisations du scroll
+  bool _sliderInitialized = false;
+
+  /// FIX #2 : Nombre de pièces disponibles (pour détecter les changements)
+  int _lastAvailablePiecesCount = 0;
 
   @override
   void initState() {
@@ -186,124 +192,214 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
       }
     });
 
-    final bool hasSelection = _selectedPiece != null;
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        _showLeaveConfirmation();
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.red),
-          onPressed: () {
-            ref.read(duelProvider.notifier).leaveRoom();
-            Navigator.pop(context);
-          },
-          tooltip: 'Quitter',
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.red),
+            onPressed: _showLeaveConfirmation,
+            tooltip: 'Quitter',
+          ),
+          title: _buildScoreTitle(duelState),
+          centerTitle: true,
         ),
-        title: Text(
-          'Solution #${duelState.solutionId ?? "?"}',
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        centerTitle: true,
-        actions: hasSelection
-            ? _buildIsometryActions(settings)
-            : null,
-      ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                // Barre de score
-                DuelScoreboard(
-                  player1Name: duelState.localPlayer?.name ?? 'Moi',
-                  player1Score: duelState.localScore,
-                  player2Name: duelState.opponent?.name ?? 'Adversaire',
-                  player2Score: duelState.opponentScore,
-                  timeRemaining: duelState.timeRemaining ?? 180,
-                  isPlayer1Local: true,
-                ),
-
-                // Message d'erreur
-                if (duelState.errorMessage != null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.red.shade100,
-                    child: Text(
-                      duelState.errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.red.shade800),
-                    ),
-                  ),
-
-                // Plateau de jeu avec overlay
-                Expanded(
-                  flex: 3,
-                  child: _buildGameBoard(context, ref, duelState, settings),
-                ),
-
-                // Slider des pièces (infini)
-                Container(
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, -2),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  // Message d'erreur
+                  if (duelState.errorMessage != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.red.shade100,
+                      child: Text(
+                        duelState.errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.red.shade800),
                       ),
-                    ],
-                  ),
-                  child: _buildPieceSlider(context, ref, duelState, settings),
-                ),
-              ],
-            ),
+                    ),
 
-            // Overlay countdown
-            if (duelState.gameState == DuelGameState.countdown &&
-                duelState.countdown != null)
-              DuelCountdown(value: duelState.countdown!),
-          ],
+                  // Plateau de jeu avec overlay
+                  Expanded(
+                    flex: 4,
+                    child: _buildGameBoard(context, ref, duelState, settings),
+                  ),
+
+                  // Barre d'isométries (visible si pièce sélectionnée)
+                  if (_selectedPiece != null)
+                    Container(
+                      height: 44,
+                      margin: const EdgeInsets.only(top: 8),
+                      color: Colors.white,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildIsometryButton(
+                            icon: GameIcons.isometryRotation.icon,
+                            color: GameIcons.isometryRotation.color,
+                            onPressed: _rotateCounterClockwise,
+                            tooltip: 'Rotation ↺',
+                          ),
+                          _buildIsometryButton(
+                            icon: GameIcons.isometryRotationCW.icon,
+                            color: GameIcons.isometryRotationCW.color,
+                            onPressed: _rotateClockwise,
+                            tooltip: 'Rotation ↻',
+                          ),
+                          _buildIsometryButton(
+                            icon: GameIcons.isometrySymmetryH.icon,
+                            color: GameIcons.isometrySymmetryH.color,
+                            onPressed: _flipHorizontal,
+                            tooltip: 'Symétrie ↔',
+                          ),
+                          _buildIsometryButton(
+                            icon: GameIcons.isometrySymmetryV.icon,
+                            color: GameIcons.isometrySymmetryV.color,
+                            onPressed: _flipVertical,
+                            tooltip: 'Symétrie ↕',
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Slider des pièces (infini)
+                  Container(
+                    height: 130,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: _buildPieceSlider(context, ref, duelState, settings),
+                  ),
+                ],
+              ),
+
+              // Overlay countdown
+              if (duelState.gameState == DuelGameState.countdown &&
+                  duelState.countdown != null)
+                DuelCountdown(value: duelState.countdown!),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Actions isométries dans l'AppBar
-  List<Widget> _buildIsometryActions(settings) {
-    return [
-      // Rotation anti-horaire
-      IconButton(
-        icon: Icon(GameIcons.isometryRotation.icon, size: settings.ui.iconSize),
-        onPressed: _rotateCounterClockwise,
-        tooltip: 'Rotation ↺',
-        color: GameIcons.isometryRotation.color,
+  /// Bouton d'isométrie
+  Widget _buildIsometryButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return IconButton(
+      icon: Icon(icon, color: color, size: 28),
+      onPressed: onPressed,
+      tooltip: tooltip,
+      splashRadius: 24,
+    );
+  }
+
+  /// Dialogue de confirmation pour quitter
+  void _showLeaveConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Quitter la partie ?'),
+        content: const Text('Vous abandonnerez la partie en cours.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(duelProvider.notifier).leaveRoom();
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Quitter'),
+          ),
+        ],
       ),
-      // Rotation horaire
-      IconButton(
-        icon: Icon(GameIcons.isometryRotationCW.icon, size: settings.ui.iconSize),
-        onPressed: _rotateClockwise,
-        tooltip: 'Rotation ↻',
-        color: GameIcons.isometryRotationCW.color,
-      ),
-      // Symétrie horizontale
-      IconButton(
-        icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
-        onPressed: _flipHorizontal,
-        tooltip: 'Symétrie ↔',
-        color: GameIcons.isometrySymmetryH.color,
-      ),
-      // Symétrie verticale
-      IconButton(
-        icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
-        onPressed: _flipVertical,
-        tooltip: 'Symétrie ↕',
-        color: GameIcons.isometrySymmetryV.color,
-      ),
-    ];
+    );
+  }
+
+  /// Titre avec score intégré : "PML = 2 • 1:20 • MAX = 0"
+  Widget _buildScoreTitle(DuelState duelState) {
+    final timeRemaining = duelState.timeRemaining ?? 180;
+    final minutes = timeRemaining ~/ 60;
+    final seconds = timeRemaining % 60;
+    final timeStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
+
+    final localName = duelState.localPlayer?.name ?? 'Moi';
+    final opponentName = duelState.opponent?.name ?? 'Adversaire';
+
+    // Couleur du timer selon le temps restant
+    Color timerColor = Colors.blue;
+    if (timeRemaining <= 30) {
+      timerColor = Colors.red;
+    } else if (timeRemaining <= 60) {
+      timerColor = Colors.orange;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Score adversaire (gauche)
+        Text(
+          '$opponentName = ${duelState.opponentScore}',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Timer (centre)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: timerColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            timeStr,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Score local (droite)
+        Text(
+          '$localName = ${duelState.localScore}',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
   }
 
   /// Construit le plateau de jeu avec overlay solution
@@ -434,31 +530,34 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
 
     // Couleurs et styles
     Color cellColor;
-    Color borderColor = Colors.grey.shade400;
+    Color borderColor = Colors.grey.shade300;
     double borderWidth = 0.5;
-    bool showHatch = false;
     String? cellNumber;
+    bool showHatch = false; // Hachures uniquement pour l'adversaire
 
     if (placedPiece != null) {
-      // PIÈCE PLACÉE
+      // PIÈCE PLACÉE - Couleurs ÉCLATANTES
       cellColor = settings.ui.getPieceColor(placedPiece.pieceId);
       cellNumber = '${placedPiece.pieceId}';
-      showHatch = placedPiece.ownerId != duelState.localPlayer?.id;
-      borderColor = Colors.grey.shade600;
-      borderWidth = 1;
+      borderColor = Colors.grey.shade700;
+      borderWidth = 1.5;
+
+      // Hachures uniquement pour l'ADVERSAIRE
+      final isMyPiece = placedPiece.ownerId == duelState.localPlayer?.id;
+      showHatch = !isMyPiece;
     } else if (isPreview) {
       // PREVIEW
-      cellColor = settings.ui.getPieceColor(_selectedPiece!.id).withOpacity(0.7);
+      cellColor = settings.ui.getPieceColor(_selectedPiece!.id).withOpacity(0.8);
       cellNumber = '${_selectedPiece!.id}';
       borderColor = previewMatchesSolution ? Colors.green : Colors.orange;
       borderWidth = 3;
     } else if (solutionPieceId > 0) {
-      // GUIDE SOLUTION - Plus visible !
+      // GUIDE SOLUTION - Couleurs ATTÉNUÉES
       final baseColor = settings.ui.getPieceColor(solutionPieceId);
-      cellColor = baseColor.withOpacity(0.35); // 35% au lieu de 15%
+      cellColor = baseColor.withOpacity(0.35); // Atténué
       cellNumber = '$solutionPieceId';
-      borderColor = baseColor.withOpacity(0.6);
-      borderWidth = 1.5;
+      borderColor = baseColor.withOpacity(0.5);
+      borderWidth = 1.0;
     } else {
       // CASE VIDE
       cellColor = Colors.grey.shade100;
@@ -485,7 +584,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                 style: TextStyle(
                   color: placedPiece != null
                       ? Colors.white
-                      : settings.ui.getPieceColor(solutionPieceId).withOpacity(0.7),
+                      : settings.ui.getPieceColor(solutionPieceId).withOpacity(0.9),
                   fontSize: placedPiece != null ? 14 : 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -494,14 +593,14 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                 : null,
           ),
 
-          // Hachures pour les pièces adverses - avec coordonnées pour alignement
+          // Hachures diagonales pour l'ADVERSAIRE uniquement
           if (showHatch)
             Positioned.fill(
               child: CustomPaint(
                 painter: HatchPainter(
                   hatchColor: Colors.black.withOpacity(0.4),
                   hatchWidth: 2,
-                  hatchSpacing: 5,
+                  hatchSpacing: 6,
                   cellX: x,
                   cellY: y,
                   cellSize: cellSize,
@@ -670,7 +769,11 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     );
   }
 
-  /// Slider des pièces avec boucle infinie
+  // ============================================================
+  // FIX : SLIDER CORRIGÉ
+  // ============================================================
+
+  /// Slider des pièces avec boucle infinie - VERSION CORRIGÉE
   Widget _buildPieceSlider(
       BuildContext context,
       WidgetRef ref,
@@ -692,17 +795,23 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
         ? availablePieces.length * DuelSliderConstants.itemsPerPage
         : availablePieces.length;
 
-    // Initialiser au milieu
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (useInfiniteScroll && _sliderController.hasClients && _sliderController.offset == 0) {
-        final middleOffset = (totalItems / 2) * DuelSliderConstants.itemSize;
-        _sliderController.jumpTo(middleOffset);
-      }
-    });
+    // FIX #1 : Initialiser UNE SEULE FOIS, ou si le nombre de pièces change
+    if (useInfiniteScroll &&
+        (!_sliderInitialized || _lastAvailablePiecesCount != availablePieces.length)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_sliderController.hasClients) {
+          final middleOffset = (totalItems / 2) * DuelSliderConstants.itemSize;
+          _sliderController.jumpTo(middleOffset);
+          _sliderInitialized = true;
+          _lastAvailablePiecesCount = availablePieces.length;
+        }
+      });
+    }
 
     return ListView.builder(
       controller: useInfiniteScroll ? _sliderController : null,
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: totalItems,
       itemBuilder: (context, index) {
@@ -713,7 +822,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     );
   }
 
-  /// Pièce draggable dans le slider
+  /// Pièce draggable dans le slider - VERSION CORRIGÉE
   Widget _buildDraggablePiece(Pento piece, DuelState duelState, settings) {
     final isSelected = _selectedPiece?.id == piece.id;
     final positionIndex = isSelected
@@ -722,50 +831,55 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: GestureDetector(
-        onTap: () {
+      child: Draggable<Pento>(
+        data: piece,
+        // FIX #2 : Sélection UNIQUEMENT quand le drag commence vraiment
+        onDragStarted: () {
           HapticFeedback.selectionClick();
           setState(() {
-            if (isSelected) {
-              // Cycle vers orientation suivante
-              _selectedPositionIndex = (_selectedPositionIndex + 1) % piece.numPositions;
-              _piecePositionIndices[piece.id] = _selectedPositionIndex;
-            } else {
-              _selectedPiece = piece;
-              _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
-            }
+            _selectedPiece = piece;
+            _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
           });
         },
-        onDoubleTap: () {
-          // Double-tap = placer directement
-          HapticFeedback.mediumImpact();
-          _tryPlacePieceAt(ref, duelState, piece.id);
-        },
-        onLongPress: () {
-          HapticFeedback.lightImpact();
-          setState(() {
-            _selectedPiece = null;
-          });
-        },
-        child: Draggable<Pento>(
-          data: piece,
-          onDragStarted: () {
+        feedback: Material(
+          color: Colors.transparent,
+          child: Transform.scale(
+            scale: 1.2,
+            child: _buildPieceWidget(piece, positionIndex, settings, isDragging: true),
+          ),
+        ),
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: _buildPieceWidget(piece, positionIndex, settings),
+        ),
+        // FIX #2 : Utiliser GestureDetector avec délai pour différencier tap/scroll
+        child: GestureDetector(
+          // onTapUp au lieu de onTap : se déclenche APRÈS le relâchement
+          // ce qui permet au scroll de prendre le dessus si on glisse
+          onTapUp: (_) {
+            HapticFeedback.selectionClick();
             setState(() {
-              _selectedPiece = piece;
-              _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+              if (isSelected) {
+                // Cycle vers orientation suivante
+                _selectedPositionIndex = (_selectedPositionIndex + 1) % piece.numPositions;
+                _piecePositionIndices[piece.id] = _selectedPositionIndex;
+              } else {
+                _selectedPiece = piece;
+                _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+              }
             });
           },
-          feedback: Material(
-            color: Colors.transparent,
-            child: Transform.scale(
-              scale: 1.2,
-              child: _buildPieceWidget(piece, positionIndex, settings, isDragging: true),
-            ),
-          ),
-          childWhenDragging: Opacity(
-            opacity: 0.3,
-            child: _buildPieceWidget(piece, positionIndex, settings),
-          ),
+          onDoubleTap: () {
+            // Double-tap = placer directement
+            HapticFeedback.mediumImpact();
+            _tryPlacePieceAt(ref, duelState, piece.id);
+          },
+          onLongPress: () {
+            HapticFeedback.lightImpact();
+            setState(() {
+              _selectedPiece = null;
+            });
+          },
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -837,14 +951,14 @@ class _Point {
   const _Point(this.x, this.y);
 }
 
-/// Hachures diagonales - alignées sur la grille globale
+/// Hachures diagonales - pour les pièces ADVERSAIRES
 class HatchPainter extends CustomPainter {
   final Color hatchColor;
   final double hatchWidth;
   final double hatchSpacing;
-  final int cellX; // Position X de la cellule dans la grille
-  final int cellY; // Position Y de la cellule dans la grille
-  final double cellSize; // Taille d'une cellule
+  final int cellX;
+  final int cellY;
+  final double cellSize;
 
   HatchPainter({
     required this.hatchColor,
@@ -862,23 +976,16 @@ class HatchPainter extends CustomPainter {
       ..strokeWidth = hatchWidth
       ..style = PaintingStyle.stroke;
 
-    // Clipper au rectangle de la cellule
     canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final spacing = hatchSpacing + hatchWidth;
-
-    // Calculer l'offset global basé sur la position de la cellule
-    // pour que les hachures soient continues entre cellules adjacentes
     final globalOffsetX = cellX * cellSize;
     final globalOffsetY = cellY * cellSize;
-
-    // Dessiner les lignes diagonales avec offset global
     final maxDimension = (size.width + size.height) * 2;
 
+    // Diagonales (/)
     for (double i = -maxDimension; i < maxDimension; i += spacing) {
-      // Ajuster le point de départ en fonction de la position globale
       final adjustedI = i - (globalOffsetX + globalOffsetY) % spacing;
-
       canvas.drawLine(
         Offset(adjustedI, 0),
         Offset(adjustedI + size.height, size.height),

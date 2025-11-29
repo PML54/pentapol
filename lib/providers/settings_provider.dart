@@ -1,4 +1,4 @@
-// Modified: 2025-11-16 10:30:00
+// Modified: 2025-11-29 - Ajout setDuelPlayerName
 // lib/providers/settings_provider.dart
 // Provider pour gérer les paramètres de l'application avec SQLite
 
@@ -168,6 +168,16 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setLongPressDuration(int duration) async {
     state = state.copyWith(
       game: state.game.copyWith(longPressDuration: duration),
+    );
+    await _saveSettings();
+  }
+
+  // === Paramètres Duel ===
+
+  /// Sauvegarde le nom du joueur pour le mode Duel
+  Future<void> setDuelPlayerName(String name) async {
+    state = state.copyWith(
+      duel: state.duel.copyWith(playerName: name),
     );
     await _saveSettings();
   }

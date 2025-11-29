@@ -1,4 +1,4 @@
-// Modified: 2025-11-16 09:45:00
+// Modified: 2025-11-29 - Ajout DuelSettings pour le nom du joueur
 // lib/models/app_settings.dart
 // Modèles pour les paramètres de l'application
 
@@ -272,23 +272,59 @@ class GameSettings {
   }
 }
 
+/// Paramètres du mode Duel
+class DuelSettings {
+  final String? playerName;  // Nom du joueur sauvegardé
+
+  const DuelSettings({
+    this.playerName,
+  });
+
+  DuelSettings copyWith({
+    String? playerName,
+    bool clearPlayerName = false,
+  }) {
+    return DuelSettings(
+      playerName: clearPlayerName ? null : (playerName ?? this.playerName),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'playerName': playerName,
+    };
+  }
+
+  factory DuelSettings.fromJson(Map<String, dynamic> json) {
+    return DuelSettings(
+      playerName: json['playerName'] as String?,
+    );
+  }
+
+  static const DuelSettings defaults = DuelSettings();
+}
+
 /// Paramètres globaux de l'application
 class AppSettings {
   final UISettings ui;
   final GameSettings game;
+  final DuelSettings duel;  // ← NOUVEAU
 
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
+    this.duel = DuelSettings.defaults,  // ← NOUVEAU
   });
 
   AppSettings copyWith({
     UISettings? ui,
     GameSettings? game,
+    DuelSettings? duel,  // ← NOUVEAU
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
       game: game ?? this.game,
+      duel: duel ?? this.duel,  // ← NOUVEAU
     );
   }
 
@@ -296,6 +332,7 @@ class AppSettings {
     return {
       'ui': ui.toJson(),
       'game': game.toJson(),
+      'duel': duel.toJson(),  // ← NOUVEAU
     };
   }
 
@@ -303,6 +340,9 @@ class AppSettings {
     return AppSettings(
       ui: UISettings.fromJson(json['ui'] ?? {}),
       game: GameSettings.fromJson(json['game'] ?? {}),
+      duel: json['duel'] != null
+          ? DuelSettings.fromJson(json['duel'])
+          : DuelSettings.defaults,  // ← NOUVEAU
     );
   }
 }
