@@ -1,20 +1,177 @@
 // lib/duel/screens/duel_game_screen.dart
-// Écran principal du jeu duel (plateau partagé)
+// Écran principal du jeu duel avec overlay solution et isométries
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:pentapol/models/pentominos.dart';
+import 'package:pentapol/providers/settings_provider.dart';
+import 'package:pentapol/services/solution_matcher.dart';
+import 'package:pentapol/config/game_icons_config.dart';
+
 import '../providers/duel_provider.dart';
 import '../models/duel_state.dart';
+import '../services/duel_validator.dart';
 import '../widgets/duel_scoreboard.dart';
 import '../widgets/duel_countdown.dart';
 import 'duel_result_screen.dart';
 
-class DuelGameScreen extends ConsumerWidget {
+/// Constantes pour le slider
+class DuelSliderConstants {
+  static const double itemSize = 90.0;
+  static const int itemsPerPage = 100; // Pour la boucle infinie
+}
+
+class DuelGameScreen extends ConsumerStatefulWidget {
   const DuelGameScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DuelGameScreen> createState() => _DuelGameScreenState();
+}
+
+class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
+  /// Pièce sélectionnée dans le slider
+  Pento? _selectedPiece;
+
+  /// Index de position (orientation) de la pièce sélectionnée
+  int _selectedPositionIndex = 0;
+
+  /// Position de preview sur le plateau
+  int? _previewX;
+  int? _previewY;
+
+  /// Solution décodée : grille 6x10 avec pieceId par cellule
+  List<List<int>>? _solutionGrid;
+
+  /// Solution chargée
+  bool _solutionLoaded = false;
+
+  /// Controller pour le slider infini
+  final ScrollController _sliderController = ScrollController();
+
+  /// Map des positions par pièce (pour garder l'orientation entre les sélections)
+  final Map<int, int> _piecePositionIndices = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeAndLoadSolution();
+    });
+  }
+
+  @override
+  void dispose() {
+    _sliderController.dispose();
+    super.dispose();
+  }
+
+  /// Initialise le validateur et charge la solution
+  Future<void> _initializeAndLoadSolution() async {
+    DuelValidator.instance.initialize(solutionMatcher.allSolutions);
+    await _loadSolution();
+  }
+
+  /// Charge et décode la solution pour l'afficher en overlay
+  Future<void> _loadSolution() async {
+    final duelState = ref.read(duelProvider);
+    final solutionId = duelState.solutionId;
+
+    if (solutionId == null) return;
+
+    print('[DUEL_GAME] Chargement solution #$solutionId...');
+
+    final success = await DuelValidator.instance.loadSolution(solutionId);
+
+    if (success) {
+      // Utiliser la grille du validateur directement
+      _solutionGrid = DuelValidator.instance.solutionGrid;
+      print('[DUEL_GAME] ✅ Solution #$solutionId prête');
+    }
+
+    setState(() {
+      _solutionLoaded = success;
+    });
+  }
+
+  // ============================================================
+  // ISOMÉTRIES - Transformations sur la pièce sélectionnée
+  // ============================================================
+
+  /// Rotation anti-horaire
+  void _rotateCounterClockwise() {
+    if (_selectedPiece == null) return;
+
+    final newIndex = _selectedPiece!.findRotation90(_selectedPositionIndex);
+    if (newIndex != -1) {
+      setState(() {
+        _selectedPositionIndex = newIndex;
+        _piecePositionIndices[_selectedPiece!.id] = newIndex;
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  /// Rotation horaire (3x anti-horaire = horaire)
+  void _rotateClockwise() {
+    if (_selectedPiece == null) return;
+
+    int newIndex = _selectedPositionIndex;
+    for (int i = 0; i < 3; i++) {
+      final next = _selectedPiece!.findRotation90(newIndex);
+      if (next != -1) {
+        newIndex = next;
+      }
+    }
+
+    if (newIndex != _selectedPositionIndex) {
+      setState(() {
+        _selectedPositionIndex = newIndex;
+        _piecePositionIndices[_selectedPiece!.id] = newIndex;
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  /// Symétrie horizontale
+  void _flipHorizontal() {
+    if (_selectedPiece == null) return;
+
+    final newIndex = _selectedPiece!.findSymmetryH(_selectedPositionIndex);
+    if (newIndex != -1) {
+      setState(() {
+        _selectedPositionIndex = newIndex;
+        _piecePositionIndices[_selectedPiece!.id] = newIndex;
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  /// Symétrie verticale
+  void _flipVertical() {
+    if (_selectedPiece == null) return;
+
+    final newIndex = _selectedPiece!.findSymmetryV(_selectedPositionIndex);
+    if (newIndex != -1) {
+      setState(() {
+        _selectedPositionIndex = newIndex;
+        _piecePositionIndices[_selectedPiece!.id] = newIndex;
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final duelState = ref.watch(duelProvider);
+    final settings = ref.watch(settingsProvider);
+
+    // Charger la solution si elle change
+    if (duelState.solutionId != null &&
+        duelState.solutionId != DuelValidator.instance.currentSolutionId) {
+      _loadSolution();
+    }
 
     // Écouter la fin de partie
     ref.listen<DuelState>(duelProvider, (previous, next) {
@@ -29,11 +186,33 @@ class DuelGameScreen extends ConsumerWidget {
       }
     });
 
+    final bool hasSelection = _selectedPiece != null;
+
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.red),
+          onPressed: () {
+            ref.read(duelProvider.notifier).leaveRoom();
+            Navigator.pop(context);
+          },
+          tooltip: 'Quitter',
+        ),
+        title: Text(
+          'Solution #${duelState.solutionId ?? "?"}',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        centerTitle: true,
+        actions: hasSelection
+            ? _buildIsometryActions(settings)
+            : null,
+      ),
       body: SafeArea(
         child: Stack(
           children: [
-            // Contenu principal
             Column(
               children: [
                 // Barre de score
@@ -42,7 +221,7 @@ class DuelGameScreen extends ConsumerWidget {
                   player1Score: duelState.localScore,
                   player2Name: duelState.opponent?.name ?? 'Adversaire',
                   player2Score: duelState.opponentScore,
-                  timeRemaining: duelState.timeRemaining ?? 0,
+                  timeRemaining: duelState.timeRemaining ?? 180,
                   isPlayer1Local: true,
                 ),
 
@@ -59,28 +238,31 @@ class DuelGameScreen extends ConsumerWidget {
                     ),
                   ),
 
-                // Zone de jeu
+                // Plateau de jeu avec overlay
                 Expanded(
-                  child: _buildGameArea(context, ref, duelState),
+                  flex: 3,
+                  child: _buildGameBoard(context, ref, duelState, settings),
                 ),
 
-                // Slider des pièces (TODO: implémenter avec le vrai slider)
+                // Slider des pièces (infini)
                 Container(
-                  height: 120,
-                  color: Colors.grey.shade200,
-                  child: Center(
-                    child: Text(
-                      'TODO: Slider des pièces\n'
-                          'Pièces placées: ${duelState.placedPieces.length}/12',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
                   ),
+                  child: _buildPieceSlider(context, ref, duelState, settings),
                 ),
               ],
             ),
 
-            // Overlay countdown (3, 2, 1, GO!)
+            // Overlay countdown
             if (duelState.gameState == DuelGameState.countdown &&
                 duelState.countdown != null)
               DuelCountdown(value: duelState.countdown!),
@@ -90,93 +272,625 @@ class DuelGameScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGameArea(BuildContext context, WidgetRef ref, DuelState state) {
-    // TODO: Intégrer le vrai plateau de jeu ici
-    // Pour l'instant, affichage de debug
-
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+  /// Actions isométries dans l'AppBar
+  List<Widget> _buildIsometryActions(settings) {
+    return [
+      // Rotation anti-horaire
+      IconButton(
+        icon: Icon(GameIcons.isometryRotation.icon, size: settings.ui.iconSize),
+        onPressed: _rotateCounterClockwise,
+        tooltip: 'Rotation ↺',
+        color: GameIcons.isometryRotation.color,
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Info solution
-          Text(
-            'Solution #${state.solutionId ?? "?"}',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
+      // Rotation horaire
+      IconButton(
+        icon: Icon(GameIcons.isometryRotationCW.icon, size: settings.ui.iconSize),
+        onPressed: _rotateClockwise,
+        tooltip: 'Rotation ↻',
+        color: GameIcons.isometryRotationCW.color,
+      ),
+      // Symétrie horizontale
+      IconButton(
+        icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
+        onPressed: _flipHorizontal,
+        tooltip: 'Symétrie ↔',
+        color: GameIcons.isometrySymmetryH.color,
+      ),
+      // Symétrie verticale
+      IconButton(
+        icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
+        onPressed: _flipVertical,
+        tooltip: 'Symétrie ↕',
+        color: GameIcons.isometrySymmetryV.color,
+      ),
+    ];
+  }
 
-          // Placeholder plateau
-          Container(
-            width: 200,
-            height: 300,
+  /// Construit le plateau de jeu avec overlay solution
+  Widget _buildGameBoard(
+      BuildContext context,
+      WidgetRef ref,
+      DuelState duelState,
+      settings,
+      ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const visualCols = 6;
+        const visualRows = 10;
+
+        final cellSize = (constraints.maxWidth / visualCols)
+            .clamp(0.0, constraints.maxHeight / visualRows)
+            .toDouble();
+
+        return Center(
+          child: Container(
+            width: cellSize * visualCols,
+            height: cellSize * visualRows,
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey.shade200,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Center(
-              child: Text(
-                'PLATEAU\n6 × 10',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: DragTarget<Pento>(
+                onWillAcceptWithDetails: (details) => true,
+                onMove: (details) {
+                  final renderBox = context.findRenderObject() as RenderBox?;
+                  if (renderBox == null) return;
+
+                  final offset = renderBox.globalToLocal(details.offset);
+                  final x = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                  final y = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+
+                  setState(() {
+                    _previewX = x;
+                    _previewY = y;
+                  });
+                },
+                onLeave: (data) {
+                  setState(() {
+                    _previewX = null;
+                    _previewY = null;
+                  });
+                },
+                onAcceptWithDetails: (details) {
+                  final renderBox = context.findRenderObject() as RenderBox?;
+                  if (renderBox == null) return;
+
+                  final offset = renderBox.globalToLocal(details.offset);
+                  final x = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
+                  final y = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+
+                  if (_selectedPiece != null) {
+                    _tryPlacePiece(ref, duelState, x, y);
+                  }
+
+                  setState(() {
+                    _previewX = null;
+                    _previewY = null;
+                  });
+                },
+                builder: (context, candidateData, rejectedData) {
+                  return GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: visualCols,
+                      childAspectRatio: 1.0,
+                    ),
+                    itemCount: 60,
+                    itemBuilder: (context, index) {
+                      final x = index % visualCols;
+                      final y = index ~/ visualCols;
+                      return _buildCell(context, ref, duelState, settings, x, y, cellSize);
+                    },
+                  );
+                },
               ),
             ),
           ),
-          const SizedBox(height: 16),
+        );
+      },
+    );
+  }
 
-          // Liste des pièces placées
-          if (state.placedPieces.isNotEmpty) ...[
-            const Text(
-              'Pièces placées:',
-              style: TextStyle(fontWeight: FontWeight.bold),
+  /// Construit une cellule du plateau
+  Widget _buildCell(
+      BuildContext context,
+      WidgetRef ref,
+      DuelState duelState,
+      settings,
+      int x,
+      int y,
+      double cellSize,
+      ) {
+    // 1. Pièce dans la SOLUTION
+    final solutionPieceId = _solutionGrid?[y][x] ?? 0;
+
+    // 2. Pièce PLACÉE
+    DuelPlacedPiece? placedPiece;
+    for (final piece in duelState.placedPieces) {
+      if (_isPieceAtCell(piece, x, y)) {
+        placedPiece = piece;
+        break;
+      }
+    }
+
+    // 3. PREVIEW
+    bool isPreview = false;
+    bool previewMatchesSolution = false;
+    if (_selectedPiece != null && _previewX != null && _previewY != null) {
+      if (_isPiecePreviewAtCell(_selectedPiece!, _selectedPositionIndex, _previewX!, _previewY!, x, y)) {
+        isPreview = true;
+        previewMatchesSolution = (solutionPieceId == _selectedPiece!.id);
+      }
+    }
+
+    // Couleurs et styles
+    Color cellColor;
+    Color borderColor = Colors.grey.shade400;
+    double borderWidth = 0.5;
+    bool showHatch = false;
+    String? cellNumber;
+
+    if (placedPiece != null) {
+      // PIÈCE PLACÉE
+      cellColor = settings.ui.getPieceColor(placedPiece.pieceId);
+      cellNumber = '${placedPiece.pieceId}';
+      showHatch = placedPiece.ownerId != duelState.localPlayer?.id;
+      borderColor = Colors.grey.shade600;
+      borderWidth = 1;
+    } else if (isPreview) {
+      // PREVIEW
+      cellColor = settings.ui.getPieceColor(_selectedPiece!.id).withOpacity(0.7);
+      cellNumber = '${_selectedPiece!.id}';
+      borderColor = previewMatchesSolution ? Colors.green : Colors.orange;
+      borderWidth = 3;
+    } else if (solutionPieceId > 0) {
+      // GUIDE SOLUTION - Plus visible !
+      final baseColor = settings.ui.getPieceColor(solutionPieceId);
+      cellColor = baseColor.withOpacity(0.35); // 35% au lieu de 15%
+      cellNumber = '$solutionPieceId';
+      borderColor = baseColor.withOpacity(0.6);
+      borderWidth = 1.5;
+    } else {
+      // CASE VIDE
+      cellColor = Colors.grey.shade100;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Tap sur le guide = placer la pièce si elle correspond
+        if (_selectedPiece != null && solutionPieceId == _selectedPiece!.id && placedPiece == null) {
+          _tryPlacePieceAt(ref, duelState, solutionPieceId);
+        }
+      },
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: cellColor,
+              border: Border.all(color: borderColor, width: borderWidth),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: state.placedPieces.map((piece) {
-                final isLocal = piece.ownerId == state.localPlayer?.id;
-                return Chip(
-                  label: Text('P${piece.pieceId}'),
-                  backgroundColor: isLocal ? Colors.green.shade100 : Colors.red.shade100,
-                  avatar: Icon(
-                    isLocal ? Icons.person : Icons.person_outline,
-                    size: 16,
-                    color: isLocal ? Colors.green : Colors.red,
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-
-          const SizedBox(height: 16),
-
-          // Bouton de test (temporaire)
-          ElevatedButton(
-            onPressed: () {
-              // Simuler un placement de pièce
-              final pieceId = state.placedPieces.length + 1;
-              if (pieceId <= 12) {
-                ref.read(duelProvider.notifier).placePiece(
-                  pieceId: pieceId,
-                  x: pieceId - 1,
-                  y: 0,
-                  orientation: 0,
-                );
-              }
-            },
-            child: const Text('TEST: Placer une pièce'),
+            child: cellNumber != null
+                ? Center(
+              child: Text(
+                cellNumber,
+                style: TextStyle(
+                  color: placedPiece != null
+                      ? Colors.white
+                      : settings.ui.getPieceColor(solutionPieceId).withOpacity(0.7),
+                  fontSize: placedPiece != null ? 14 : 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+                : null,
           ),
+
+          // Hachures pour les pièces adverses - avec coordonnées pour alignement
+          if (showHatch)
+            Positioned.fill(
+              child: CustomPaint(
+                painter: HatchPainter(
+                  hatchColor: Colors.black.withOpacity(0.4),
+                  hatchWidth: 2,
+                  hatchSpacing: 5,
+                  cellX: x,
+                  cellY: y,
+                  cellSize: cellSize,
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  /// Vérifie si une pièce placée occupe une cellule
+  bool _isPieceAtCell(DuelPlacedPiece placedPiece, int x, int y) {
+    final pento = pentominos.firstWhere((p) => p.id == placedPiece.pieceId);
+    final position = pento.positions[placedPiece.orientation % pento.numPositions];
+
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      final pieceX = placedPiece.x + localX;
+      final pieceY = placedPiece.y + localY;
+
+      if (pieceX == x && pieceY == y) return true;
+    }
+    return false;
+  }
+
+  /// Vérifie si le preview occupe une cellule
+  bool _isPiecePreviewAtCell(Pento piece, int positionIndex, int baseX, int baseY, int cellX, int cellY) {
+    final position = piece.positions[positionIndex % piece.numPositions];
+
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      if (baseX + localX == cellX && baseY + localY == cellY) return true;
+    }
+    return false;
+  }
+
+  /// Place une pièce en trouvant la bonne position/orientation
+  void _tryPlacePieceAt(WidgetRef ref, DuelState duelState, int pieceId) {
+    if (!duelState.isPlaying) return;
+
+    // Vérifier que la pièce n'est pas déjà placée
+    if (duelState.placedPieces.any((p) => p.pieceId == pieceId)) {
+      HapticFeedback.heavyImpact();
+      _showError('Déjà placée !');
+      return;
+    }
+
+    // Trouver la position correcte
+    final placement = _findCorrectPlacement(pieceId);
+    if (placement == null) return;
+
+    print('[DUEL] ✅ Placement: pièce $pieceId');
+
+    ref.read(duelProvider.notifier).placePiece(
+      pieceId: pieceId,
+      x: placement['x']!,
+      y: placement['y']!,
+      orientation: placement['orientation']!,
+    );
+
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _selectedPiece = null;
+    });
+  }
+
+  /// Trouve le placement correct d'une pièce dans la solution
+  Map<String, int>? _findCorrectPlacement(int pieceId) {
+    if (_solutionGrid == null) return null;
+
+    final cells = <_Point>[];
+    for (int y = 0; y < 10; y++) {
+      for (int x = 0; x < 6; x++) {
+        if (_solutionGrid![y][x] == pieceId) {
+          cells.add(_Point(x, y));
+        }
+      }
+    }
+
+    if (cells.isEmpty) return null;
+
+    int minX = cells.map((c) => c.x).reduce((a, b) => a < b ? a : b);
+    int minY = cells.map((c) => c.y).reduce((a, b) => a < b ? a : b);
+
+    final normalizedCells = cells.map((c) => _Point(c.x - minX, c.y - minY)).toSet();
+
+    final pento = pentominos.firstWhere((p) => p.id == pieceId);
+
+    for (int orientation = 0; orientation < pento.numPositions; orientation++) {
+      final position = pento.positions[orientation];
+      final positionCells = <_Point>{};
+
+      int posMinX = 5, posMinY = 5;
+      for (final cellNum in position) {
+        final lx = (cellNum - 1) % 5;
+        final ly = (cellNum - 1) ~/ 5;
+        if (lx < posMinX) posMinX = lx;
+        if (ly < posMinY) posMinY = ly;
+      }
+
+      for (final cellNum in position) {
+        positionCells.add(_Point((cellNum - 1) % 5 - posMinX, (cellNum - 1) ~/ 5 - posMinY));
+      }
+
+      if (_setsEqual(normalizedCells, positionCells)) {
+        return {'x': minX - posMinX, 'y': minY - posMinY, 'orientation': orientation};
+      }
+    }
+
+    return null;
+  }
+
+  bool _setsEqual(Set<_Point> a, Set<_Point> b) {
+    if (a.length != b.length) return false;
+    for (final p in a) {
+      if (!b.any((q) => q.x == p.x && q.y == p.y)) return false;
+    }
+    return true;
+  }
+
+  /// Placement via drag & drop
+  void _tryPlacePiece(WidgetRef ref, DuelState duelState, int x, int y) {
+    if (_selectedPiece == null || !duelState.isPlaying) return;
+
+    if (duelState.placedPieces.any((p) => p.pieceId == _selectedPiece!.id)) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+
+    final validation = DuelValidator.instance.validatePlacement(
+      pieceId: _selectedPiece!.id,
+      x: x,
+      y: y,
+      orientation: _selectedPositionIndex,
+    );
+
+    if (!validation.isValid) {
+      HapticFeedback.lightImpact();
+      return;
+    }
+
+    ref.read(duelProvider.notifier).placePiece(
+      pieceId: _selectedPiece!.id,
+      x: x,
+      y: y,
+      orientation: _selectedPositionIndex,
+    );
+
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _selectedPiece = null;
+    });
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  /// Slider des pièces avec boucle infinie
+  Widget _buildPieceSlider(
+      BuildContext context,
+      WidgetRef ref,
+      DuelState duelState,
+      settings,
+      ) {
+    final placedPieceIds = duelState.placedPieces.map((p) => p.pieceId).toSet();
+    final availablePieces = pentominos.where((p) => !placedPieceIds.contains(p.id)).toList();
+
+    if (availablePieces.isEmpty) {
+      return const Center(
+        child: Text('🎉 Toutes les pièces placées !', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      );
+    }
+
+    // Boucle infinie si assez de pièces
+    final useInfiniteScroll = availablePieces.length >= 4;
+    final totalItems = useInfiniteScroll
+        ? availablePieces.length * DuelSliderConstants.itemsPerPage
+        : availablePieces.length;
+
+    // Initialiser au milieu
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (useInfiniteScroll && _sliderController.hasClients && _sliderController.offset == 0) {
+        final middleOffset = (totalItems / 2) * DuelSliderConstants.itemSize;
+        _sliderController.jumpTo(middleOffset);
+      }
+    });
+
+    return ListView.builder(
+      controller: useInfiniteScroll ? _sliderController : null,
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: totalItems,
+      itemBuilder: (context, index) {
+        final pieceIndex = index % availablePieces.length;
+        final piece = availablePieces[pieceIndex];
+        return _buildDraggablePiece(piece, duelState, settings);
+      },
+    );
+  }
+
+  /// Pièce draggable dans le slider
+  Widget _buildDraggablePiece(Pento piece, DuelState duelState, settings) {
+    final isSelected = _selectedPiece?.id == piece.id;
+    final positionIndex = isSelected
+        ? _selectedPositionIndex
+        : (_piecePositionIndices[piece.id] ?? 0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() {
+            if (isSelected) {
+              // Cycle vers orientation suivante
+              _selectedPositionIndex = (_selectedPositionIndex + 1) % piece.numPositions;
+              _piecePositionIndices[piece.id] = _selectedPositionIndex;
+            } else {
+              _selectedPiece = piece;
+              _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+            }
+          });
+        },
+        onDoubleTap: () {
+          // Double-tap = placer directement
+          HapticFeedback.mediumImpact();
+          _tryPlacePieceAt(ref, duelState, piece.id);
+        },
+        onLongPress: () {
+          HapticFeedback.lightImpact();
+          setState(() {
+            _selectedPiece = null;
+          });
+        },
+        child: Draggable<Pento>(
+          data: piece,
+          onDragStarted: () {
+            setState(() {
+              _selectedPiece = piece;
+              _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+            });
+          },
+          feedback: Material(
+            color: Colors.transparent,
+            child: Transform.scale(
+              scale: 1.2,
+              child: _buildPieceWidget(piece, positionIndex, settings, isDragging: true),
+            ),
+          ),
+          childWhenDragging: Opacity(
+            opacity: 0.3,
+            child: _buildPieceWidget(piece, positionIndex, settings),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.amber.shade100 : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Colors.amber.shade700 : Colors.grey.shade300,
+                width: isSelected ? 3 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [BoxShadow(color: Colors.amber.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
+                  : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+            ),
+            child: _buildPieceWidget(piece, positionIndex, settings),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Widget d'une pièce
+  Widget _buildPieceWidget(Pento piece, int positionIndex, settings, {bool isDragging = false}) {
+    final position = piece.positions[positionIndex % piece.numPositions];
+    final color = settings.ui.getPieceColor(piece.id);
+
+    int minX = 5, maxX = 0, minY = 5, maxY = 0;
+    for (final cellNum in position) {
+      final x = (cellNum - 1) % 5;
+      final y = (cellNum - 1) ~/ 5;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+
+    final width = maxX - minX + 1;
+    final height = maxY - minY + 1;
+    const cellSize = 18.0;
+
+    return SizedBox(
+      width: width * cellSize,
+      height: height * cellSize,
+      child: Stack(
+        children: position.map((cellNum) {
+          final x = (cellNum - 1) % 5 - minX;
+          final y = (cellNum - 1) ~/ 5 - minY;
+
+          return Positioned(
+            left: x * cellSize,
+            top: y * cellSize,
+            child: Container(
+              width: cellSize,
+              height: cellSize,
+              decoration: BoxDecoration(
+                color: isDragging ? color.withOpacity(0.9) : color,
+                border: Border.all(color: Colors.white, width: 1),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _Point {
+  final int x, y;
+  const _Point(this.x, this.y);
+}
+
+/// Hachures diagonales - alignées sur la grille globale
+class HatchPainter extends CustomPainter {
+  final Color hatchColor;
+  final double hatchWidth;
+  final double hatchSpacing;
+  final int cellX; // Position X de la cellule dans la grille
+  final int cellY; // Position Y de la cellule dans la grille
+  final double cellSize; // Taille d'une cellule
+
+  HatchPainter({
+    required this.hatchColor,
+    required this.hatchWidth,
+    required this.hatchSpacing,
+    this.cellX = 0,
+    this.cellY = 0,
+    this.cellSize = 50,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = hatchColor
+      ..strokeWidth = hatchWidth
+      ..style = PaintingStyle.stroke;
+
+    // Clipper au rectangle de la cellule
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final spacing = hatchSpacing + hatchWidth;
+
+    // Calculer l'offset global basé sur la position de la cellule
+    // pour que les hachures soient continues entre cellules adjacentes
+    final globalOffsetX = cellX * cellSize;
+    final globalOffsetY = cellY * cellSize;
+
+    // Dessiner les lignes diagonales avec offset global
+    final maxDimension = (size.width + size.height) * 2;
+
+    for (double i = -maxDimension; i < maxDimension; i += spacing) {
+      // Ajuster le point de départ en fonction de la position globale
+      final adjustedI = i - (globalOffsetX + globalOffsetY) % spacing;
+
+      canvas.drawLine(
+        Offset(adjustedI, 0),
+        Offset(adjustedI + size.height, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant HatchPainter oldDelegate) {
+    return oldDelegate.cellX != cellX ||
+        oldDelegate.cellY != cellY ||
+        oldDelegate.hatchColor != hatchColor;
   }
 }
