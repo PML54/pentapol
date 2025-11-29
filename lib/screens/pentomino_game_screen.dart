@@ -26,6 +26,9 @@ import 'package:pentapol/tutorial/tutorial.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import '../tutorial/widgets/highlighted_icon_button.dart';
 
+// Duel
+import 'package:pentapol/duel/screens/duel_home_screen.dart';
+
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -67,17 +70,37 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
         child: AppBar(
           toolbarHeight: 56.0,
           backgroundColor: Colors.white, // ← BLANC dans tous les modes (général ET isométries)
-          // LEADING : Paramètres (mode général) ou rien (mode transformation)
+          // LEADING : Paramètres + Duel (mode général) ou rien (mode transformation)
+          leadingWidth: !isInTransformMode ? 96 : 56, // 2 boutons = 96px
           leading: !isInTransformMode
-              ? IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-            tooltip: 'Paramètres',
+              ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Bouton Paramètres
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+                tooltip: 'Paramètres',
+              ),
+              // Bouton Mode Duel
+              IconButton(
+                icon: const Icon(Icons.sports_esports),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DuelHomeScreen()),
+                  );
+                },
+                tooltip: 'Mode Duel',
+                color: Colors.blue,
+              ),
+            ],
           )
               : null,
 // TITLE : Bouton Solutions (affiché dès qu'il y a des solutions > 0)
@@ -239,7 +262,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               // 'assets/tutorials/test_coords.yaml',
               //'assets/tutorials/03_Rotation_basics.yaml',
               //   'assets/tutorials/test_features.yaml',
-             //   'assets/tutorials/Translation_basics.yaml',
+              //   'assets/tutorials/Translation_basics.yaml',
               'assets/tutorials/Symmetry_basics.yaml',
 
 

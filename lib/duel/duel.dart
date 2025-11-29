@@ -12,13 +12,7 @@ export 'providers/duel_provider.dart';
 export 'services/websocket_service.dart';
 export 'services/duel_validator.dart';
 
-// Screens
-export 'screens/duel_home_screen.dart';
-export 'screens/duel_create_screen.dart';
-export 'screens/duel_join_screen.dart';
-export 'screens/duel_waiting_screen.dart';
-export 'screens/duel_game_screen.dart';
-export 'screens/duel_result_screen.dart';
+
 
 // Widgets
 export 'widgets/duel_scoreboard.dart';

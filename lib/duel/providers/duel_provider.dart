@@ -2,21 +2,16 @@
 // Provider Riverpod pour la gestion du mode duel
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../models/duel_state.dart';
 import '../models/duel_messages.dart';
 import '../services/websocket_service.dart';
 
 /// Configuration du serveur
-/// TODO: Remplacer par votre URL Cloudflare
-const String kDuelServerUrl = 'wss://pentapol-duel.YOUR_SUBDOMAIN.workers.dev';
-
-/// Provider pour le service WebSocket
-final webSocketServiceProvider = Provider<WebSocketService>((ref) {
-  final service = WebSocketService(serverUrl: kDuelServerUrl);
-  ref.onDispose(() => service.dispose());
-  return service;
-});
+const String kDuelServerBaseUrl = 'https://pentapol-duel.pentapml.workers.dev';
+const String kDuelServerWsUrl = 'wss://pentapol-duel.pentapml.workers.dev';
 
 /// Provider pour l'état du duel
 final duelProvider = NotifierProvider<DuelNotifier, DuelState>(() {
@@ -42,7 +37,6 @@ class DuelNotifier extends Notifier<DuelState> {
 
   @override
   DuelState build() {
-    // Cleanup quand le provider est disposé
     ref.onDispose(_cleanup);
     return DuelState.initial();
   }
@@ -56,23 +50,70 @@ class DuelNotifier extends Notifier<DuelState> {
     print('[DUEL] Création de room par $playerName...');
     _localPlayerName = playerName;
 
-    // Connexion au serveur
-    if (!await _ensureConnected()) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de se connecter au serveur',
-      );
-      return false;
-    }
-
-    // Envoyer la demande de création
-    _wsService!.send(CreateRoomMessage(playerName: playerName));
-
     state = state.copyWith(
-      gameState: DuelGameState.waiting,
+      connectionState: DuelConnectionState.connecting,
       clearErrorMessage: true,
     );
 
-    return true;
+    try {
+      // 1. Créer la room via HTTP
+      print('[DUEL] 📡 Appel HTTP POST /room/create...');
+      final response = await http.post(
+        Uri.parse('$kDuelServerBaseUrl/room/create'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode != 200) {
+        print('[DUEL] ❌ Erreur HTTP: ${response.statusCode}');
+        state = state.copyWith(
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Erreur serveur: ${response.statusCode}',
+        );
+        return false;
+      }
+
+      final data = jsonDecode(response.body);
+      final roomCode = data['roomCode'] as String;
+      print('[DUEL] ✅ Room créée: $roomCode');
+
+      // 2. Se connecter en WebSocket
+      final wsUrl = '$kDuelServerWsUrl/room/$roomCode/ws';
+      print('[DUEL] 🔌 Connexion WebSocket: $wsUrl');
+
+      _wsService = WebSocketService(serverUrl: wsUrl);
+
+      // S'abonner aux événements
+      _messageSubscription = _wsService!.messages.listen(_onServerMessage);
+      _connectionSubscription = _wsService!.connectionState.listen(_onConnectionStateChange);
+
+      final connected = await _wsService!.connect();
+      if (!connected) {
+        state = state.copyWith(
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Impossible de se connecter au WebSocket',
+        );
+        return false;
+      }
+
+      // 3. Envoyer le message createRoom
+      _wsService!.send(CreateRoomMessage(playerName: playerName));
+
+      state = state.copyWith(
+        roomCode: roomCode,
+        gameState: DuelGameState.waiting,
+        connectionState: DuelConnectionState.connected,
+      );
+
+      return true;
+
+    } catch (e) {
+      print('[DUEL] ❌ Erreur: $e');
+      state = state.copyWith(
+        connectionState: DuelConnectionState.error,
+        errorMessage: 'Erreur: $e',
+      );
+      return false;
+    }
   }
 
   /// Rejoindre une room existante
@@ -80,26 +121,75 @@ class DuelNotifier extends Notifier<DuelState> {
     print('[DUEL] $playerName rejoint la room $roomCode...');
     _localPlayerName = playerName;
 
-    // Connexion au serveur
-    if (!await _ensureConnected()) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de se connecter au serveur',
-      );
-      return false;
-    }
-
-    // Envoyer la demande de jonction
-    _wsService!.send(JoinRoomMessage(
-      roomCode: roomCode.toUpperCase(),
-      playerName: playerName,
-    ));
-
     state = state.copyWith(
-      gameState: DuelGameState.waiting,
+      connectionState: DuelConnectionState.connecting,
       clearErrorMessage: true,
     );
 
-    return true;
+    try {
+      // 1. Vérifier que la room existe
+      print('[DUEL] 📡 Vérification room $roomCode...');
+      final checkResponse = await http.get(
+        Uri.parse('$kDuelServerBaseUrl/room/$roomCode/exists'),
+      );
+
+      if (checkResponse.statusCode != 200) {
+        state = state.copyWith(
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Erreur serveur',
+        );
+        return false;
+      }
+
+      final checkData = jsonDecode(checkResponse.body);
+      if (checkData['exists'] != true) {
+        print('[DUEL] ❌ Room $roomCode introuvable');
+        state = state.copyWith(
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Code invalide ou partie expirée',
+        );
+        return false;
+      }
+
+      print('[DUEL] ✅ Room $roomCode existe');
+
+      // 2. Se connecter en WebSocket
+      final wsUrl = '$kDuelServerWsUrl/room/$roomCode/ws';
+      print('[DUEL] 🔌 Connexion WebSocket: $wsUrl');
+
+      _wsService = WebSocketService(serverUrl: wsUrl);
+
+      _messageSubscription = _wsService!.messages.listen(_onServerMessage);
+      _connectionSubscription = _wsService!.connectionState.listen(_onConnectionStateChange);
+
+      final connected = await _wsService!.connect();
+      if (!connected) {
+        state = state.copyWith(
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Impossible de se connecter',
+        );
+        return false;
+      }
+
+      // 3. Envoyer le message joinRoom
+      _wsService!.send(JoinRoomMessage(roomCode: roomCode, playerName: playerName));
+
+      state = state.copyWith(
+        roomCode: roomCode,
+        gameState: DuelGameState.waiting,
+        connectionState: DuelConnectionState.connected,
+      );
+
+      return true;
+
+    } catch (e) {
+      print('[DUEL] ❌ Erreur: $e');
+      state = state.copyWith(
+        connectionState: DuelConnectionState.error,
+        errorMessage: 'Erreur: $e',
+      );
+      return false;
+    }
   }
 
   /// Quitter la room actuelle
@@ -126,7 +216,6 @@ class DuelNotifier extends Notifier<DuelState> {
       return;
     }
 
-    // Vérifier que la pièce n'est pas déjà placée
     final alreadyPlaced = state.placedPieces.any((p) => p.pieceId == pieceId);
     if (alreadyPlaced) {
       print('[DUEL] ⚠️ Pièce $pieceId déjà placée');
@@ -152,22 +241,8 @@ class DuelNotifier extends Notifier<DuelState> {
   // GESTION CONNEXION
   // ============================================================
 
-  Future<bool> _ensureConnected() async {
-    _wsService ??= ref.read(webSocketServiceProvider);
-
-    // S'abonner aux événements si pas déjà fait
-    _messageSubscription ??= _wsService!.messages.listen(_onServerMessage);
-    _connectionSubscription ??= _wsService!.connectionState.listen(_onConnectionStateChange);
-
-    if (_wsService!.isConnected) {
-      return true;
-    }
-
-    return await _wsService!.connect();
-  }
-
   void _onConnectionStateChange(WebSocketConnectionState wsState) {
-    print('[DUEL] État connexion: $wsState');
+    print('[DUEL] État connexion WS: $wsState');
 
     final connectionState = switch (wsState) {
       WebSocketConnectionState.disconnected => DuelConnectionState.disconnected,
@@ -179,7 +254,6 @@ class DuelNotifier extends Notifier<DuelState> {
 
     state = state.copyWith(connectionState: connectionState);
 
-    // Si déconnecté pendant une partie, afficher erreur
     if (wsState == WebSocketConnectionState.error && state.isPlaying) {
       state = state.copyWith(
         errorMessage: 'Connexion perdue avec le serveur',
@@ -223,7 +297,7 @@ class DuelNotifier extends Notifier<DuelState> {
   }
 
   void _handleRoomCreated(RoomCreatedMessage msg) {
-    print('[DUEL] ✅ Room créée: ${msg.roomCode}');
+    print('[DUEL] ✅ Room confirmée: ${msg.roomCode}');
 
     state = state.copyWith(
       roomCode: msg.roomCode,
@@ -254,7 +328,6 @@ class DuelNotifier extends Notifier<DuelState> {
   void _handlePlayerJoined(PlayerJoinedMessage msg) {
     print('[DUEL] 👤 Joueur rejoint: ${msg.playerName}');
 
-    // C'est l'adversaire qui nous rejoint
     if (msg.playerId != state.localPlayer?.id) {
       state = state.copyWith(
         opponent: DuelPlayer(id: msg.playerId, name: msg.playerName),
@@ -267,13 +340,11 @@ class DuelNotifier extends Notifier<DuelState> {
 
     if (msg.playerId == state.opponent?.id) {
       if (state.isPlaying) {
-        // Adversaire a quitté pendant la partie = on gagne
         state = state.copyWith(
           gameState: DuelGameState.ended,
           clearOpponent: true,
         );
       } else {
-        // Adversaire a quitté en attente
         state = state.copyWith(clearOpponent: true);
       }
     }
@@ -294,7 +365,6 @@ class DuelNotifier extends Notifier<DuelState> {
     print('[DUEL] ⏱️ Countdown: ${msg.value}');
 
     if (msg.value == 0) {
-      // GO !
       state = state.copyWith(
         gameState: DuelGameState.playing,
         clearCountdown: true,
@@ -330,7 +400,6 @@ class DuelNotifier extends Notifier<DuelState> {
       errorMessage: msg.reasonText,
     );
 
-    // Effacer l'erreur après 2 secondes
     Future.delayed(const Duration(seconds: 2), () {
       if (state.errorMessage == msg.reasonText) {
         state = state.copyWith(clearErrorMessage: true);
@@ -339,7 +408,6 @@ class DuelNotifier extends Notifier<DuelState> {
   }
 
   void _handleGameState(GameStateMessage msg) {
-    // Synchronisation complète de l'état
     state = state.copyWith(
       timeRemaining: msg.timeRemaining,
       placedPieces: msg.placedPieces
@@ -390,7 +458,9 @@ class DuelNotifier extends Notifier<DuelState> {
     _countdownTimer?.cancel();
     _messageSubscription?.cancel();
     _connectionSubscription?.cancel();
+    _wsService?.disconnect();
     _messageSubscription = null;
     _connectionSubscription = null;
+    _wsService = null;
   }
 }
