@@ -822,20 +822,40 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     );
   }
 
-  /// Pièce draggable dans le slider - VERSION CORRIGÉE
+  /// Pièce draggable dans le slider - VERSION CORRIGÉE V2
+  /// Utilise LongPressDraggable pour éviter les conflits avec le scroll
   Widget _buildDraggablePiece(Pento piece, DuelState duelState, settings) {
     final isSelected = _selectedPiece?.id == piece.id;
     final positionIndex = isSelected
         ? _selectedPositionIndex
         : (_piecePositionIndices[piece.id] ?? 0);
 
+    // Container visuel de la pièce
+    final pieceContainer = Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.amber.shade100 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? Colors.amber.shade700 : Colors.grey.shade300,
+          width: isSelected ? 3 : 1,
+        ),
+        boxShadow: isSelected
+            ? [BoxShadow(color: Colors.amber.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
+            : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+      ),
+      child: _buildPieceWidget(piece, positionIndex, settings),
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Draggable<Pento>(
+      // FIX : LongPressDraggable ne capture PAS les gestes courts
+      // Le scroll du ListView reste prioritaire
+      child: LongPressDraggable<Pento>(
         data: piece,
-        // FIX #2 : Sélection UNIQUEMENT quand le drag commence vraiment
+        delay: const Duration(milliseconds: 150), // Délai court avant drag
+        hapticFeedbackOnStart: true,
         onDragStarted: () {
-          HapticFeedback.selectionClick();
           setState(() {
             _selectedPiece = piece;
             _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
@@ -850,50 +870,39 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
         ),
         childWhenDragging: Opacity(
           opacity: 0.3,
-          child: _buildPieceWidget(piece, positionIndex, settings),
+          child: pieceContainer,
         ),
-        // FIX #2 : Utiliser GestureDetector avec délai pour différencier tap/scroll
-        child: GestureDetector(
-          // onTapUp au lieu de onTap : se déclenche APRÈS le relâchement
-          // ce qui permet au scroll de prendre le dessus si on glisse
-          onTapUp: (_) {
-            HapticFeedback.selectionClick();
-            setState(() {
-              if (isSelected) {
-                // Cycle vers orientation suivante
-                _selectedPositionIndex = (_selectedPositionIndex + 1) % piece.numPositions;
-                _piecePositionIndices[piece.id] = _selectedPositionIndex;
-              } else {
-                _selectedPiece = piece;
-                _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
-              }
-            });
-          },
-          onDoubleTap: () {
-            // Double-tap = placer directement
-            HapticFeedback.mediumImpact();
-            _tryPlacePieceAt(ref, duelState, piece.id);
-          },
-          onLongPress: () {
-            HapticFeedback.lightImpact();
-            setState(() {
-              _selectedPiece = null;
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.amber.shade100 : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? Colors.amber.shade700 : Colors.grey.shade300,
-                width: isSelected ? 3 : 1,
-              ),
-              boxShadow: isSelected
-                  ? [BoxShadow(color: Colors.amber.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
-                  : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
-            ),
-            child: _buildPieceWidget(piece, positionIndex, settings),
+        // Le child utilise InkWell pour les taps - ne bloque PAS le scroll parent
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                if (isSelected) {
+                  // Cycle vers orientation suivante
+                  _selectedPositionIndex = (_selectedPositionIndex + 1) % piece.numPositions;
+                  _piecePositionIndices[piece.id] = _selectedPositionIndex;
+                } else {
+                  _selectedPiece = piece;
+                  _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+                }
+              });
+            },
+            onDoubleTap: () {
+              // Double-tap = placer directement
+              HapticFeedback.mediumImpact();
+              _tryPlacePieceAt(ref, duelState, piece.id);
+            },
+            onLongPress: () {
+              // Long press sans mouvement = désélectionner
+              HapticFeedback.lightImpact();
+              setState(() {
+                _selectedPiece = null;
+              });
+            },
+            child: pieceContainer,
           ),
         ),
       ),

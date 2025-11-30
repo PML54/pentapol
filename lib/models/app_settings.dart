@@ -1,4 +1,4 @@
-// Modified: 2025-11-29 - Ajout DuelSettings pour le nom du joueur
+// Modified: 2025-11-30 - DuelSettings enrichi (durée, affichage, feedback, stats)
 // lib/models/app_settings.dart
 // Modèles pour les paramètres de l'application
 
@@ -20,6 +20,65 @@ enum GameDifficulty {
   normal,     // Normal : jeu standard
   hard,       // Difficile : moins d'indices, chronomètre
   expert,     // Expert : mode compétition
+}
+
+/// Durée de partie Duel prédéfinie
+enum DuelDuration {
+  short,    // 1 minute
+  normal,   // 3 minutes (défaut)
+  long,     // 5 minutes
+  marathon, // 10 minutes
+  custom,   // Durée personnalisée
+}
+
+extension DuelDurationExtension on DuelDuration {
+  /// Durée en secondes
+  int get seconds {
+    switch (this) {
+      case DuelDuration.short:
+        return 60;
+      case DuelDuration.normal:
+        return 180;
+      case DuelDuration.long:
+        return 300;
+      case DuelDuration.marathon:
+        return 600;
+      case DuelDuration.custom:
+        return 180; // Valeur par défaut, sera override par customDurationSeconds
+    }
+  }
+
+  /// Label pour l'UI
+  String get label {
+    switch (this) {
+      case DuelDuration.short:
+        return '1 min';
+      case DuelDuration.normal:
+        return '3 min';
+      case DuelDuration.long:
+        return '5 min';
+      case DuelDuration.marathon:
+        return '10 min';
+      case DuelDuration.custom:
+        return 'Perso';
+    }
+  }
+
+  /// Icône pour l'UI
+  String get icon {
+    switch (this) {
+      case DuelDuration.short:
+        return '⚡';
+      case DuelDuration.normal:
+        return '⏱️';
+      case DuelDuration.long:
+        return '🕐';
+      case DuelDuration.marathon:
+        return '🏃';
+      case DuelDuration.custom:
+        return '⚙️';
+    }
+  }
 }
 
 /// Paramètres UI
@@ -272,32 +331,178 @@ class GameSettings {
   }
 }
 
-/// Paramètres du mode Duel
+/// Paramètres du mode Duel - VERSION ENRICHIE
 class DuelSettings {
-  final String? playerName;  // Nom du joueur sauvegardé
+  // === Identité joueur ===
+  final String? playerName;
+
+  // === Durée de partie ===
+  final DuelDuration duration;
+  final int customDurationSeconds; // Utilisé si duration == custom (60-1800)
+
+  // === Affichage ===
+  final bool showSolutionGuide;     // Afficher le guide (couleurs atténuées)
+  final double guideOpacity;        // Opacité du guide (0.1 - 0.5)
+  final bool showPieceNumbers;      // Afficher les numéros sur le guide
+
+  // === Feedback ===
+  final bool enableSounds;          // Sons de placement/victoire
+  final bool enableVibration;       // Vibrations
+
+  // === Affichage adversaire ===
+  final bool showOpponentProgress;  // Voir les pièces de l'adversaire en temps réel
+  final bool showHatchOnOpponent;   // Hachures sur pièces adversaire
+  final double hatchOpacity;        // Opacité des hachures (0.2 - 0.6)
+
+  // === Statistiques ===
+  final int totalGamesPlayed;
+  final int totalWins;
+  final int totalLosses;
+  final int totalDraws;
 
   const DuelSettings({
+    // Identité
     this.playerName,
+    // Durée
+    this.duration = DuelDuration.normal,
+    this.customDurationSeconds = 180,
+    // Affichage
+    this.showSolutionGuide = true,
+    this.guideOpacity = 0.35,
+    this.showPieceNumbers = true,
+    // Feedback
+    this.enableSounds = true,
+    this.enableVibration = true,
+    // Affichage adversaire
+    this.showOpponentProgress = true,
+    this.showHatchOnOpponent = true,
+    this.hatchOpacity = 0.4,
+    // Stats
+    this.totalGamesPlayed = 0,
+    this.totalWins = 0,
+    this.totalLosses = 0,
+    this.totalDraws = 0,
   });
+
+  /// Durée effective en secondes
+  int get effectiveDurationSeconds {
+    if (duration == DuelDuration.custom) {
+      return customDurationSeconds.clamp(60, 1800);
+    }
+    return duration.seconds;
+  }
+
+  /// Durée formatée pour affichage
+  String get durationFormatted {
+    final secs = effectiveDurationSeconds;
+    final mins = secs ~/ 60;
+    final remainingSecs = secs % 60;
+    if (remainingSecs == 0) {
+      return '$mins min';
+    }
+    return '$mins:${remainingSecs.toString().padLeft(2, '0')}';
+  }
+
+  /// Taux de victoire en pourcentage
+  double get winRate {
+    if (totalGamesPlayed == 0) return 0.0;
+    return (totalWins / totalGamesPlayed) * 100;
+  }
 
   DuelSettings copyWith({
     String? playerName,
     bool clearPlayerName = false,
+    DuelDuration? duration,
+    int? customDurationSeconds,
+    bool? showSolutionGuide,
+    double? guideOpacity,
+    bool? showPieceNumbers,
+    bool? enableSounds,
+    bool? enableVibration,
+    bool? showOpponentProgress,
+    bool? showHatchOnOpponent,
+    double? hatchOpacity,
+    int? totalGamesPlayed,
+    int? totalWins,
+    int? totalLosses,
+    int? totalDraws,
   }) {
     return DuelSettings(
       playerName: clearPlayerName ? null : (playerName ?? this.playerName),
+      duration: duration ?? this.duration,
+      customDurationSeconds: customDurationSeconds ?? this.customDurationSeconds,
+      showSolutionGuide: showSolutionGuide ?? this.showSolutionGuide,
+      guideOpacity: guideOpacity ?? this.guideOpacity,
+      showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
+      enableSounds: enableSounds ?? this.enableSounds,
+      enableVibration: enableVibration ?? this.enableVibration,
+      showOpponentProgress: showOpponentProgress ?? this.showOpponentProgress,
+      showHatchOnOpponent: showHatchOnOpponent ?? this.showHatchOnOpponent,
+      hatchOpacity: hatchOpacity ?? this.hatchOpacity,
+      totalGamesPlayed: totalGamesPlayed ?? this.totalGamesPlayed,
+      totalWins: totalWins ?? this.totalWins,
+      totalLosses: totalLosses ?? this.totalLosses,
+      totalDraws: totalDraws ?? this.totalDraws,
+    );
+  }
+
+  /// Incrémenter les stats après une partie
+  DuelSettings recordGame({required bool? isWin}) {
+    return copyWith(
+      totalGamesPlayed: totalGamesPlayed + 1,
+      totalWins: isWin == true ? totalWins + 1 : totalWins,
+      totalLosses: isWin == false ? totalLosses + 1 : totalLosses,
+      totalDraws: isWin == null ? totalDraws + 1 : totalDraws,
+    );
+  }
+
+  /// Réinitialiser les stats uniquement
+  DuelSettings resetStats() {
+    return copyWith(
+      totalGamesPlayed: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      totalDraws: 0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'playerName': playerName,
+      'duration': duration.index,
+      'customDurationSeconds': customDurationSeconds,
+      'showSolutionGuide': showSolutionGuide,
+      'guideOpacity': guideOpacity,
+      'showPieceNumbers': showPieceNumbers,
+      'enableSounds': enableSounds,
+      'enableVibration': enableVibration,
+      'showOpponentProgress': showOpponentProgress,
+      'showHatchOnOpponent': showHatchOnOpponent,
+      'hatchOpacity': hatchOpacity,
+      'totalGamesPlayed': totalGamesPlayed,
+      'totalWins': totalWins,
+      'totalLosses': totalLosses,
+      'totalDraws': totalDraws,
     };
   }
 
   factory DuelSettings.fromJson(Map<String, dynamic> json) {
     return DuelSettings(
       playerName: json['playerName'] as String?,
+      duration: DuelDuration.values[json['duration'] ?? 1],
+      customDurationSeconds: json['customDurationSeconds'] ?? 180,
+      showSolutionGuide: json['showSolutionGuide'] ?? true,
+      guideOpacity: (json['guideOpacity'] ?? 0.35).toDouble(),
+      showPieceNumbers: json['showPieceNumbers'] ?? true,
+      enableSounds: json['enableSounds'] ?? true,
+      enableVibration: json['enableVibration'] ?? true,
+      showOpponentProgress: json['showOpponentProgress'] ?? true,
+      showHatchOnOpponent: json['showHatchOnOpponent'] ?? true,
+      hatchOpacity: (json['hatchOpacity'] ?? 0.4).toDouble(),
+      totalGamesPlayed: json['totalGamesPlayed'] ?? 0,
+      totalWins: json['totalWins'] ?? 0,
+      totalLosses: json['totalLosses'] ?? 0,
+      totalDraws: json['totalDraws'] ?? 0,
     );
   }
 
@@ -308,23 +513,23 @@ class DuelSettings {
 class AppSettings {
   final UISettings ui;
   final GameSettings game;
-  final DuelSettings duel;  // ← NOUVEAU
+  final DuelSettings duel;
 
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
-    this.duel = DuelSettings.defaults,  // ← NOUVEAU
+    this.duel = DuelSettings.defaults,
   });
 
   AppSettings copyWith({
     UISettings? ui,
     GameSettings? game,
-    DuelSettings? duel,  // ← NOUVEAU
+    DuelSettings? duel,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
       game: game ?? this.game,
-      duel: duel ?? this.duel,  // ← NOUVEAU
+      duel: duel ?? this.duel,
     );
   }
 
@@ -332,7 +537,7 @@ class AppSettings {
     return {
       'ui': ui.toJson(),
       'game': game.toJson(),
-      'duel': duel.toJson(),  // ← NOUVEAU
+      'duel': duel.toJson(),
     };
   }
 
@@ -342,7 +547,7 @@ class AppSettings {
       game: GameSettings.fromJson(json['game'] ?? {}),
       duel: json['duel'] != null
           ? DuelSettings.fromJson(json['duel'])
-          : DuelSettings.defaults,  // ← NOUVEAU
+          : DuelSettings.defaults,
     );
   }
 }
