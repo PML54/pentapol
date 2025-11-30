@@ -57,10 +57,10 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
   int? _previewY;
   List<List<int>>? _solutionGrid;
   bool _solutionLoaded = false;
-  final ScrollController _sliderController = ScrollController();
+  final ScrollController _sliderController = ScrollController(keepScrollOffset: true);
   final Map<int, int> _piecePositionIndices = {};
   bool _sliderInitialized = false;
-  int _lastAvailablePiecesCount = 0;
+  final GlobalKey _sliderKey = GlobalKey();
 
   @override
   void initState() {
@@ -74,6 +74,19 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
   void dispose() {
     _sliderController.dispose();
     super.dispose();
+  }
+
+  /// Initialise la position du slider après le countdown
+  void _initializeSliderPosition() {
+    if (_sliderInitialized) return;
+    _sliderInitialized = true;  // Marquer immédiatement pour éviter double appel
+
+    if (_sliderController.hasClients && mounted) {
+      // 12 pièces * 100 pages / 2 = milieu
+      const totalItems = 12 * DuelSliderConstants.itemsPerPage;
+      final middleOffset = (totalItems / 2) * DuelSliderConstants.itemSize;
+      _sliderController.jumpTo(middleOffset);
+    }
   }
 
   Future<void> _initializeAndLoadSolution() async {
@@ -162,6 +175,15 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     }
 
     ref.listen<DuelState>(duelProvider, (previous, next) {
+      // Initialiser le slider quand le jeu commence (après countdown)
+      if (next.gameState == DuelGameState.playing &&
+          previous?.gameState != DuelGameState.playing) {
+        // Petit délai pour laisser le ListView se construire
+        Future.delayed(const Duration(milliseconds: 200), () {
+          _initializeSliderPosition();
+        });
+      }
+
       if (next.gameState == DuelGameState.ended &&
           previous?.gameState != DuelGameState.ended) {
         Navigator.pushReplacement(
@@ -212,42 +234,48 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                     child: _buildGameBoard(context, ref, duelState, settings),
                   ),
 
-                  // Barre d'isométries
-                  if (_selectedPiece != null)
-                    Container(
-                      height: 44,
-                      margin: const EdgeInsets.only(top: 8),
-                      color: Colors.white,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildIsometryButton(
-                            icon: GameIcons.isometryRotation.icon,
-                            color: GameIcons.isometryRotation.color,
-                            onPressed: _rotateCounterClockwise,
-                            tooltip: 'Rotation ↺',
-                          ),
-                          _buildIsometryButton(
-                            icon: GameIcons.isometryRotationCW.icon,
-                            color: GameIcons.isometryRotationCW.color,
-                            onPressed: _rotateClockwise,
-                            tooltip: 'Rotation ↻',
-                          ),
-                          _buildIsometryButton(
-                            icon: GameIcons.isometrySymmetryH.icon,
-                            color: GameIcons.isometrySymmetryH.color,
-                            onPressed: _flipHorizontal,
-                            tooltip: 'Symétrie ↔',
-                          ),
-                          _buildIsometryButton(
-                            icon: GameIcons.isometrySymmetryV.icon,
-                            color: GameIcons.isometrySymmetryV.color,
-                            onPressed: _flipVertical,
-                            tooltip: 'Symétrie ↕',
-                          ),
-                        ],
+                  // Barre d'isométries (toujours visible pour éviter resize)
+                  Container(
+                    height: 44,
+                    margin: const EdgeInsets.only(top: 8),
+                    color: Colors.white,
+                    child: _selectedPiece != null
+                        ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildIsometryButton(
+                          icon: GameIcons.isometryRotation.icon,
+                          color: GameIcons.isometryRotation.color,
+                          onPressed: _rotateCounterClockwise,
+                          tooltip: 'Rotation ↺',
+                        ),
+                        _buildIsometryButton(
+                          icon: GameIcons.isometryRotationCW.icon,
+                          color: GameIcons.isometryRotationCW.color,
+                          onPressed: _rotateClockwise,
+                          tooltip: 'Rotation ↻',
+                        ),
+                        _buildIsometryButton(
+                          icon: GameIcons.isometrySymmetryH.icon,
+                          color: GameIcons.isometrySymmetryH.color,
+                          onPressed: _flipHorizontal,
+                          tooltip: 'Symétrie ↔',
+                        ),
+                        _buildIsometryButton(
+                          icon: GameIcons.isometrySymmetryV.icon,
+                          color: GameIcons.isometrySymmetryV.color,
+                          onPressed: _flipVertical,
+                          tooltip: 'Symétrie ↕',
+                        ),
+                      ],
+                    )
+                        : const Center(
+                      child: Text(
+                        'Sélectionnez une pièce',
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                     ),
+                  ),
 
                   // Slider des pièces
                   Container(
@@ -487,19 +515,28 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     double borderWidth;
     String? cellNumber;
     bool showHatch = false;
+    bool showHorizontalHatch = false;
 
     if (placedPiece != null) {
       // ══════════════════════════════════════════
-      // PIÈCE PLACÉE - Couleur VIVE + contour BLANC épais (distinction)
+      // PIÈCE PLACÉE
       // ══════════════════════════════════════════
       cellColor = _getDuelColor(placedPiece.pieceId);
       cellNumber = '${placedPiece.pieceId}';
-      borderColor = Colors.white;  // Contour BLANC pour distinguer
-      borderWidth = 3.0;           // Plus épais
+      borderColor = Colors.black;
+      borderWidth = 2.0;
 
-      // Hachures pour l'adversaire
       final isMyPiece = placedPiece.ownerId == duelState.localPlayer?.id;
-      showHatch = !isMyPiece;
+
+      if (isMyPiece) {
+        // MES PIÈCES : Hachures HORIZONTALES
+        showHatch = true;
+        showHorizontalHatch = true;
+      } else {
+        // PIÈCES ADVERSAIRE : Hachures DIAGONALES
+        showHatch = true;
+        showHorizontalHatch = false;
+      }
 
     } else if (isPreview) {
       // ══════════════════════════════════════════
@@ -561,7 +598,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                 ),
               ),
 
-            // Hachures pour l'adversaire
+            // Hachures pour distinguer joueur/adversaire
             if (showHatch)
               Positioned.fill(
                 child: CustomPaint(
@@ -572,6 +609,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                     cellX: x,
                     cellY: y,
                     cellSize: cellSize,
+                    isHorizontal: showHorizontalHatch,
                   ),
                 ),
               ),
@@ -739,32 +777,8 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
         ? availablePieces.length * DuelSliderConstants.itemsPerPage
         : availablePieces.length;
 
-    // FIX : Ne repositionner le slider que si :
-    // 1. Pas encore initialisé (première fois)
-    // 2. OU le nombre de pièces a DIMINUÉ (une pièce a été placée)
-    final shouldRepositionSlider = useInfiniteScroll &&
-        (!_sliderInitialized ||
-            (_lastAvailablePiecesCount > 0 && availablePieces.length < _lastAvailablePiecesCount));
-
-    if (shouldRepositionSlider) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_sliderController.hasClients) {
-          // Seulement si pas encore initialisé, on jump au milieu
-          if (!_sliderInitialized) {
-            final middleOffset = (totalItems / 2) * DuelSliderConstants.itemSize;
-            _sliderController.jumpTo(middleOffset);
-          }
-          _sliderInitialized = true;
-          _lastAvailablePiecesCount = availablePieces.length;
-        }
-      });
-    }
-
-    // Mettre à jour le count même sans repositionnement
-    if (_lastAvailablePiecesCount != availablePieces.length) {
-      _lastAvailablePiecesCount = availablePieces.length;
-    }
     return ListView.builder(
+      key: _sliderKey,  // Empêche le rebuild complet
       controller: useInfiniteScroll ? _sliderController : null,
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -907,7 +921,9 @@ class _Point {
   const _Point(this.x, this.y);
 }
 
-/// Hachures diagonales pour les pièces adversaires
+/// Hachures pour distinguer les pièces
+/// - Diagonales (/) pour l'adversaire
+/// - Horizontales (═) pour le joueur
 class HatchPainter extends CustomPainter {
   final Color hatchColor;
   final double hatchWidth;
@@ -915,6 +931,7 @@ class HatchPainter extends CustomPainter {
   final int cellX;
   final int cellY;
   final double cellSize;
+  final bool isHorizontal;
 
   HatchPainter({
     required this.hatchColor,
@@ -923,6 +940,7 @@ class HatchPainter extends CustomPainter {
     this.cellX = 0,
     this.cellY = 0,
     this.cellSize = 50,
+    this.isHorizontal = false,
   });
 
   @override
@@ -935,17 +953,30 @@ class HatchPainter extends CustomPainter {
     canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final spacing = hatchSpacing + hatchWidth;
-    final globalOffsetX = cellX * cellSize;
-    final globalOffsetY = cellY * cellSize;
-    final maxDimension = (size.width + size.height) * 2;
 
-    for (double i = -maxDimension; i < maxDimension; i += spacing) {
-      final adjustedI = i - (globalOffsetX + globalOffsetY) % spacing;
-      canvas.drawLine(
-        Offset(adjustedI, 0),
-        Offset(adjustedI + size.height, size.height),
-        paint,
-      );
+    if (isHorizontal) {
+      // HACHURES HORIZONTALES (pour le joueur)
+      for (double y = spacing / 2; y < size.height; y += spacing) {
+        canvas.drawLine(
+          Offset(0, y),
+          Offset(size.width, y),
+          paint,
+        );
+      }
+    } else {
+      // HACHURES DIAGONALES (pour l'adversaire)
+      final globalOffsetX = cellX * cellSize;
+      final globalOffsetY = cellY * cellSize;
+      final maxDimension = (size.width + size.height) * 2;
+
+      for (double i = -maxDimension; i < maxDimension; i += spacing) {
+        final adjustedI = i - (globalOffsetX + globalOffsetY) % spacing;
+        canvas.drawLine(
+          Offset(adjustedI, 0),
+          Offset(adjustedI + size.height, size.height),
+          paint,
+        );
+      }
     }
   }
 
@@ -953,6 +984,7 @@ class HatchPainter extends CustomPainter {
   bool shouldRepaint(covariant HatchPainter oldDelegate) {
     return oldDelegate.cellX != cellX ||
         oldDelegate.cellY != cellY ||
-        oldDelegate.hatchColor != hatchColor;
+        oldDelegate.hatchColor != hatchColor ||
+        oldDelegate.isHorizontal != isHorizontal;
   }
 }
