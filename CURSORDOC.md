@@ -3,7 +3,7 @@
 **Application de puzzles pentominos en Flutter**
 
 **Date de création : 14 novembre 2025**  
-**Dernière mise à jour : 29 novembre 2025**
+**Dernière mise à jour : 30 novembre 2025**
 
 ---
 
@@ -1376,7 +1376,7 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 ---
 
-**Dernière mise à jour : 29 novembre 2025**
+**Dernière mise à jour : 30 novembre 2025**
 
 **Mainteneur : Documentation générée automatiquement**
 

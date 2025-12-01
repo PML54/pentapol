@@ -10,7 +10,7 @@ import 'package:pentapol/providers/pentomino_game_provider.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/solutions_browser_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
-import 'package:pentapol/services/plateau_solution_counter.dart';
+
 import 'package:pentapol/config/game_icons_config.dart';
 
 // Widgets extraits
@@ -18,17 +18,20 @@ import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dar
     show ActionSlider, getCompatibleSolutionsIncludingSelected;
 import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
-import 'package:pentapol/models/plateau.dart';
+
 import '../tutorial/widgets/highlighted_icon_button.dart';
 
 // Tutorial
 import 'package:pentapol/tutorial/tutorial.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import '../tutorial/widgets/highlighted_icon_button.dart';
+
 
 // Duel
 import 'package:pentapol/duel/screens/duel_home_screen.dart';
 
+
+// Pentoscope
+import 'package:pentapol/pentoscope/screens/pentoscope_menu_screen.dart';
 
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
@@ -71,7 +74,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           toolbarHeight: 56.0,
           backgroundColor: Colors.white, // ← BLANC dans tous les modes (général ET isométries)
           // LEADING : Paramètres + Duel (mode général) ou rien (mode transformation)
-          leadingWidth: !isInTransformMode ? 96 : 56, // 2 boutons = 96px
+          leadingWidth: !isInTransformMode ? 144 : 56, // 3 boutons = 144px
           leading: !isInTransformMode
               ? Row(
             mainAxisSize: MainAxisSize.min,
@@ -100,6 +103,21 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 tooltip: 'Mode Duel',
                 color: Colors.blue,
               ),
+              // Bouton Pentoscope
+              IconButton(
+                icon: const Icon(Icons.grid_view),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PentoscopeMenuScreen()),
+                  );
+                },
+                tooltip: 'Pentoscope',
+                color: Colors.teal,
+              ),
+
+
             ],
           )
               : null,
