@@ -765,21 +765,24 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
   }
 
   // ==========================================================================
-  // RESET
+  // RESET - génère un nouveau puzzle
   // ==========================================================================
 
   void reset() {
     final puzzle = state.puzzle;
     if (puzzle == null) return;
 
-    final pieces = puzzle.pieceIds
+    // Générer un nouveau puzzle avec la même taille
+    final newPuzzle = _generator.generate(puzzle.size);
+
+    final pieces = newPuzzle.pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
         .toList();
 
     final plateau = Plateau.allVisible(puzzle.size.width, puzzle.size.height);
 
     state = PentoscopeState(
-      puzzle: puzzle,
+      puzzle: newPuzzle,
       plateau: plateau,
       availablePieces: pieces,
       placedPieces: [],
