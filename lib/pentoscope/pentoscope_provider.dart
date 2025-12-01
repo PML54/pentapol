@@ -86,7 +86,8 @@ class PentoscopeState {
 
   // État du jeu
   final bool isComplete;
-  final int moveCount;
+  final int isometryCount;
+  final int translationCount;
 
   const PentoscopeState({
     this.puzzle,
@@ -102,7 +103,8 @@ class PentoscopeState {
     this.previewY,
     this.isPreviewValid = false,
     this.isComplete = false,
-    this.moveCount = 0,
+    this.isometryCount = 0,
+    this.translationCount = 0,
   });
 
   factory PentoscopeState.initial() {
@@ -164,7 +166,8 @@ class PentoscopeState {
     bool? isPreviewValid,
     bool clearPreview = false,
     bool? isComplete,
-    int? moveCount,
+    int? isometryCount,
+    int? translationCount,
   }) {
     return PentoscopeState(
       puzzle: puzzle ?? this.puzzle,
@@ -180,7 +183,8 @@ class PentoscopeState {
       previewY: clearPreview ? null : (previewY ?? this.previewY),
       isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid),
       isComplete: isComplete ?? this.isComplete,
-      moveCount: moveCount ?? this.moveCount,
+      isometryCount: isometryCount ?? this.isometryCount,
+      translationCount: translationCount ?? this.translationCount,
     );
   }
 }
@@ -224,7 +228,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       placedPieces: [],
       piecePositionIndices: {},
       isComplete: false,
-      moveCount: 0,
+      isometryCount: 0,
+      translationCount: 0,
     );
   }
 
@@ -414,6 +419,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
 
     final isComplete = newPlacedPieces.length == (state.puzzle?.size.numPieces ?? 0);
 
+    // Compter les translations (déplacement d'une pièce déjà placée)
+    final newTranslationCount = state.selectedPlacedPiece != null
+        ? state.translationCount + 1
+        : state.translationCount;
+
     state = state.copyWith(
       plateau: newPlateau,
       availablePieces: newAvailable,
@@ -423,7 +433,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       clearSelectedCellInPiece: true,
       clearPreview: true,
       isComplete: isComplete,
-      moveCount: state.moveCount + 1,
+      translationCount: newTranslationCount,
     );
 
     return true;
@@ -529,6 +539,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: match.positionIndex,
       selectedCellInPiece: newSelectedCell,
+      isometryCount: state.isometryCount + 1,
     );
   }
 
@@ -563,6 +574,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       selectedPositionIndex: match.positionIndex,
       piecePositionIndices: newIndices,
       selectedCellInPiece: newCell,
+      isometryCount: state.isometryCount + 1,
     );
   }
 
@@ -595,6 +607,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: match.positionIndex,
       selectedCellInPiece: newSelectedCell,
+      isometryCount: state.isometryCount + 1,
     );
   }
 
@@ -627,6 +640,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: match.positionIndex,
       selectedCellInPiece: newSelectedCell,
+      isometryCount: state.isometryCount + 1,
     );
   }
 
@@ -652,6 +666,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       selectedPositionIndex: match.positionIndex,
       piecePositionIndices: newIndices,
       selectedCellInPiece: newCell,
+      isometryCount: state.isometryCount + 1,
     );
   }
 
@@ -677,6 +692,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       selectedPositionIndex: match.positionIndex,
       piecePositionIndices: newIndices,
       selectedCellInPiece: newCell,
+      isometryCount: state.isometryCount + 1,
     );
   }
 
@@ -769,7 +785,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       placedPieces: [],
       piecePositionIndices: {},
       isComplete: false,
-      moveCount: 0,
+      isometryCount: 0,
+      translationCount: 0,
     );
   }
 }

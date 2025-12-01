@@ -398,33 +398,61 @@ class PentoscopeBoard extends ConsumerWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.emoji_events, color: Colors.amber, size: 32),
-            SizedBox(width: 8),
-            Text('Bravo !'),
-          ],
-        ),
-        content: Text(
-          'Puzzle ${state.puzzle?.size.label} complété en ${state.moveCount} coups !',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(pentoscopeProvider.notifier).reset();
-            },
-            child: const Text('Rejouer'),
+      builder: (context) => Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Material(
+            borderRadius: BorderRadius.circular(12),
+            elevation: 8,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.emoji_events, color: Colors.amber, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Bravo ! ${state.puzzle?.size.label}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Isométries: ${state.isometryCount}  Translations: ${state.translationCount}'),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ref.read(pentoscopeProvider.notifier).reset();
+                        },
+                        child: const Text('Rejouer'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Menu'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('Menu'),
-          ),
-        ],
+        ),
       ),
     );
   }

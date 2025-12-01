@@ -773,3 +773,4 @@ await Supabase.initialize(
 **📌 Note** : Cette documentation est un résumé opérationnel. Pour les détails techniques complets, consulter **CURSORDOC.md**.
 
 
+
