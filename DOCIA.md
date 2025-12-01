@@ -3,7 +3,7 @@
 **Pentapol - Application Flutter de puzzles pentominos**
 
 **📅 Créé le : 1er décembre 2025 à 00:45**  
-**🔄 Dernière mise à jour : 1er décembre 2025 à 00:45**
+**🔄 Dernière mise à jour : 1er décembre 2025 à 01:15**
 
 ---
 
@@ -11,9 +11,10 @@
 
 **Pentapol** est une app Flutter de puzzles pentominos avec :
 - **4 modes de jeu** : Jeu classique, Isométries, Tutoriel, Duel multijoueur
-- **Mini-puzzles** : Plateaux réduits (2×5, 3×5, 4×5, 5×5) pour progression graduelle
+- **Mini-puzzles** : Plateaux réduits (2×5, 3×5, 4×5, 5×5) pour progression graduelle *(à venir)*
 - **2339 solutions** canoniques pré-calculées (9356 avec transformations)
 - **Architecture** : Riverpod + Supabase + SQLite
+- **Menu moderne** : HomeScreen avec cartes visuelles et navigation intuitive
 
 ---
 
@@ -268,7 +269,7 @@ toutes pièces                                          status = 'finished'
 lib/
 │
 ├── 📱 SCREENS (UI)
-│   ├── home_screen.dart                    Menu principal
+│   ├── home_screen.dart                    Menu principal (nouveau 01/12/25)
 │   ├── pentomino_game_screen.dart          Jeu + Isométries + Mini-puzzles
 │   ├── settings_screen.dart                Paramètres
 │   ├── solutions_browser_screen.dart       Navigateur solutions
@@ -308,8 +309,7 @@ lib/
 │
 ├── 🗄️ DATA (Persistance)
 │   ├── database/settings_database.dart     SQLite (Drift)
-│   ├── data/solution_database.dart         Base solutions
-│   └── data/race_repo.dart                 Repository Duel
+│   └── data/solution_database.dart         Base solutions
 │
 ├── 🎓 TUTORIAL (Système tutoriel)
 │   ├── models/                             TutorialScript, Command
@@ -329,6 +329,7 @@ lib/
 | Fichier | Lignes | Rôle | Modifié fréquemment |
 |---------|--------|------|---------------------|
 | `pentomino_game_provider.dart` | 1578 | **Cerveau du jeu** - Toute la logique | ⚠️ Oui |
+| `home_screen.dart` | 280 | **Menu principal** - Navigation | 🟡 Parfois |
 | `pentomino_game_screen.dart` | 322 | **Orchestrateur UI** - Coordonne widgets | 🟡 Parfois |
 | `game_board.dart` | 388 | **Plateau interactif** - Drag & drop | 🟢 Rarement |
 | `pentomino_solver.dart` | 735 | **Résolution** - Backtracking | 🟢 Rarement |
@@ -766,7 +767,18 @@ await Supabase.initialize(
 **Architecture** : Riverpod + Flutter + Supabase  
 **Documentation** : Générée avec Claude Sonnet 4.5
 
-**Dernière mise à jour** : 1er décembre 2025 à 00:45
+**Dernière mise à jour** : 1er décembre 2025 à 01:15
+
+---
+
+## 🔄 Changelog récent
+
+### 1er décembre 2025 (01:15)
+- ✅ **Suppression système Race** : Ancien système de courses multijoueur supprimé
+- ✅ **Nouveau HomeScreen** : Menu moderne avec cartes visuelles (280 lignes)
+- ✅ **Navigation simplifiée** : Accès direct Jeu/Duel/Solutions/Tutoriels
+- ✅ **Code nettoyé** : -534 lignes de code obsolète
+- ✅ **Un seul système multijoueur** : Mode Duel (temps réel, 1v1)
 
 ---
 

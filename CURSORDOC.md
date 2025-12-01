@@ -37,7 +37,7 @@ Pentapol est une application Flutter permettant de :
 ### Technologies principales
 - **Flutter** : Framework UI
 - **Riverpod** : Gestion d'état
-- **Supabase** : Backend (courses multijoueur)
+- **Supabase** : Backend (mode Duel multijoueur)
 - **BigInt** : Encodage solutions sur 360 bits (60 cases × 6 bits)
 - **SQLite** : Base de données locale (via Drift)
 - **YAML** : Scripts de tutoriel avec langage de commandes type Scratch
@@ -80,14 +80,8 @@ lib/
 │   └── settings_database.g.dart # Code généré
 │
 ├── data/                        # Repositories
-│   ├── race_repo.dart          # Repository courses multijoueur
-│   │   DATEMODIF: -  CODELINE: 58
 │   └── solution_database.dart  # Base de données solutions
 │       DATEMODIF: -  CODELINE: 116
-│
-├── logic/                       # Logique métier
-│   └── race_presence.dart      # Présence en course
-│       DATEMODIF: -  CODELINE: 66
 │
 ├── services/                    # Services
 │   ├── solution_matcher.dart           # Comparaison solutions BigInt
@@ -112,6 +106,8 @@ lib/
 │       DATEMODIF: 11290000  CODELINE: 190
 │
 ├── screens/                     # Interfaces utilisateur
+│   ├── home_screen.dart               # Menu principal
+│   │   DATEMODIF: 12010100  CODELINE: 280
 │   ├── pentomino_game_screen.dart     # Jeu interactif (orchestrateur)
 │   │   DATEMODIF: 11280712  CODELINE: 322
 │   │
@@ -145,16 +141,10 @@ lib/
 │   │   DATEMODIF: -  CODELINE: 402
 │   ├── solutions_viewer_screen.dart   # Visualisation solutions
 │   │   DATEMODIF: -  CODELINE: 197
-│   ├── home_screen.dart               # Écran principal
-│   │   DATEMODIF: -  CODELINE: 236
 │   ├── settings_screen.dart           # Paramètres
 │   │   DATEMODIF: 11270936  CODELINE: 386
-│   ├── custom_colors_screen.dart      # Personnalisation couleurs
-│   │   DATEMODIF: -  CODELINE: 144
-│   ├── auth_screen.dart               # Connexion
-│   │   DATEMODIF: -  CODELINE: 64
-│   └── leaderboard_screen.dart        # Classements
-│       DATEMODIF: -  CODELINE: 69
+│   └── custom_colors_screen.dart      # Personnalisation couleurs
+│       DATEMODIF: -  CODELINE: 144
 │
 ├── duel/                        # 🎮 Mode Duel (NOUVEAU!)
 │   ├── duel.dart                # Point d'entrée module
@@ -1376,9 +1366,19 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 ---
 
-**Dernière mise à jour : 30 novembre 2025**
+**Dernière mise à jour : 1er décembre 2025**
 
 **Mainteneur : Documentation générée automatiquement**
+
+---
+
+## 🔄 Changelog récent
+
+### 1er décembre 2025
+- ✅ **Suppression système Race** : Ancien système de courses multijoueur supprimé (obsolète)
+- ✅ **Nouveau HomeScreen** : Menu principal moderne avec cartes visuelles
+- ✅ **Simplification** : Navigation directe, suppression code mort (~534 lignes)
+- ✅ **Un seul système multijoueur** : Mode Duel conservé (temps réel, 1v1)
 
 **Format des métadonnées :**
 - **DATEMODIF** : Format MMDDHHMM (Mois Jour Heure Minute)

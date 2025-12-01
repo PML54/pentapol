@@ -250,12 +250,29 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
   }
 
   void cancelSelection() {
-    state = state.copyWith(
-      clearSelectedPiece: true,
-      clearSelectedPlacedPiece: true,
-      clearSelectedCellInPiece: true,
-      clearPreview: true,
-    );
+    // Si une pièce placée était sélectionnée, la remettre sur le plateau
+    if (state.selectedPlacedPiece != null) {
+      final newPlateau = Plateau.allVisible(state.plateau.width, state.plateau.height);
+      for (final p in state.placedPieces) {
+        for (final cell in p.absoluteCells) {
+          newPlateau.setCell(cell.x, cell.y, p.piece.id);
+        }
+      }
+      state = state.copyWith(
+        plateau: newPlateau,
+        clearSelectedPiece: true,
+        clearSelectedPlacedPiece: true,
+        clearSelectedCellInPiece: true,
+        clearPreview: true,
+      );
+    } else {
+      state = state.copyWith(
+        clearSelectedPiece: true,
+        clearSelectedPlacedPiece: true,
+        clearSelectedCellInPiece: true,
+        clearPreview: true,
+      );
+    }
   }
 
   void cycleToNextOrientation() {
