@@ -14,8 +14,7 @@ export 'services/duel_validator.dart';
 
 
 
-// Widgets
-export 'widgets/duel_scoreboard.dart';
+
 export 'widgets/opponent_piece_overlay.dart';
 export 'widgets/duel_countdown.dart';
 export 'widgets/duel_piece_slider.dart';

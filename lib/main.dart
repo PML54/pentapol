@@ -1,28 +1,17 @@
-// Modified: 2025-11-15 15:56:05
+// Modified: 2025-12-01 01:00:00
 // lib/main.dart
 // Version adaptée avec pré-chargement des solutions BigInt
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'bootstrap.dart';
-import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
-
 import 'screens/pentomino_game_screen.dart';
 import 'services/solution_matcher.dart';
-import 'services/pentapol_solutions_loader.dart'; // <-- loader binaire -> BigInt
+import 'services/pentapol_solutions_loader.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await initSupabase();
-  } catch (e) {
-    // En cas d'erreur Supabase (ex: web), continuer quand même
-    debugPrint('⚠️ Erreur initialisation Supabase: $e');
-  }
 
   // ✨ PRÉ-CHARGEMENT des solutions en arrière-plan
   debugPrint('🔄 Pré-chargement des solutions pentomino (BigInt)...');
@@ -53,23 +42,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // MODE DEBUG : Lancer directement le jeu
-    const bool debugGameMode = true;
-
     return MaterialApp(
       title: 'Pentapol',
-      theme: ThemeData(useMaterial3: true),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+      ),
+      home: const HomeScreen(),
       routes: {
-        '/': (context) {
-          if (debugGameMode) {
-            return const PentominoGameScreen();
-          }
-          final client = Supabase.instance.client;
-          return client.auth.currentUser == null
-              ? const AuthScreen()
-              : const HomeScreen();
-        },
-
         '/game': (context) => const PentominoGameScreen(),
       },
     );

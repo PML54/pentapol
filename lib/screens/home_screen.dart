@@ -1,59 +1,75 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2025-12-01 01:00:00
 // lib/screens/home_screen.dart
+// Menu principal simplifié - Système Race supprimé
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../data/race_repo.dart';
-import '../logic/race_presence.dart';
-import '../models.dart';
-import 'leaderboard_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'pentomino_game_screen.dart';
+import 'settings_screen.dart';
+import 'solutions_browser_screen.dart';
+import '../duel/screens/duel_home_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final repo = RaceRepo();
-  List<Race> races = [];
-  bool loading = true;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      races = await repo.myRaces();
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  Future<void> _create() async {
-    final race = await repo.createRace(puzzleId: 'pento-001');
-    if (!mounted) return;
-    setState(() => races.insert(0, race));
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => RaceLiveScreen(raceId: race.id)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser!;
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bonjour ${user.email}'),
+        title: const Text('Pentapol'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.games),
+            icon: const Icon(Icons.settings),
             onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+            tooltip: 'Paramètres',
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // En-tête
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              children: [
+                Icon(Icons.grid_3x3, size: 64, color: Colors.blue),
+                SizedBox(height: 16),
+                Text(
+                  'Pentapol',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Puzzles de pentominos',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Jeu classique
+          _buildMenuCard(
+            context: context,
+            title: 'Jeu Classique',
+            subtitle: 'Placer 12 pièces sur un plateau 6×10',
+            icon: Icons.games,
+            color: Colors.blue,
+            onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -61,180 +77,215 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-            tooltip: 'Jouer au Pentomino',
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _create,
-        label: const Text('Créer une course'),
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.separated(
-        itemCount: races.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (_, i) {
-          final r = races[i];
-          return ListTile(
-            title: Text('Course ${r.id.substring(0, 8)} — ${r.puzzleId}'),
-            subtitle: Text(r.status),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RaceLiveScreen(raceId: r.id),
+
+          const SizedBox(height: 16),
+
+          // Mode Duel
+          _buildMenuCard(
+            context: context,
+            title: 'Mode Duel',
+            subtitle: 'Affrontez un adversaire en temps réel',
+            icon: Icons.people,
+            color: Colors.orange,
+            badge: 'NOUVEAU',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DuelHomeScreen(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Navigateur de solutions
+          _buildMenuCard(
+            context: context,
+            title: 'Solutions',
+            subtitle: 'Explorer les 2339 solutions canoniques',
+            icon: Icons.explore,
+            color: Colors.green,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SolutionsBrowserScreen(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Tutoriels (TODO)
+          _buildMenuCard(
+            context: context,
+            title: 'Tutoriels',
+            subtitle: 'Apprendre à jouer avec des guides interactifs',
+            icon: Icons.school,
+            color: Colors.purple,
+            enabled: false,
+            onTap: () {
+              // TODO: Implémenter menu tutoriels
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tutoriels à venir prochainement'),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 32),
+
+          // Statistiques (placeholder)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Statistiques',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildStatRow('Parties jouées', '0'),
+                  _buildStatRow('Puzzles complétés', '0'),
+                  _buildStatRow('Meilleur temps', '--:--'),
+                ],
               ),
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.group_add),
-              onPressed: () => repo.joinRace(r.id),
-              tooltip: 'Rejoindre',
-            ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
-}
 
-class RaceLiveScreen extends StatefulWidget {
-  const RaceLiveScreen({super.key, required this.raceId});
-  final String raceId;
-
-  @override
-  State<RaceLiveScreen> createState() => _RaceLiveScreenState();
-}
-
-class _RaceLiveScreenState extends State<RaceLiveScreen> {
-  late final RealtimeChannel _ch;
-  late final RacePresence presence;
-  int placed = 0;
-  final total = 12;
-
-  @override
-  void initState() {
-    super.initState();
-    _ch = RacePresence.open(widget.raceId);
-    presence = RacePresence(_ch);
-
-    final u = Supabase.instance.client.auth.currentUser!;
-    // Souscrire + publier la présence initiale
-    presence
-        .subscribeInitial(
-      playerId: u.id,
-      name: u.email ?? 'Player',
-      totalPieces: total,
-    )
-        .then((_) {
-      // Rebuild quand la présence se resynchronise
-      _ch.onPresenceSync((_) {
-        if (mounted) setState(() {});
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    presence.close();
-    super.dispose();
-  }
-
-  Future<void> _placeOne() async {
-    setState(() => placed = (placed + 1).clamp(0, total));
-    await presence.updateProgress(placed, total);
-  }
-
-  Future<void> _finish() async {
-    final repo = RaceRepo();
-    await repo.finishRace(
-      raceId: widget.raceId,
-      elapsedMs: 60000,
-      piecesPlaced: placed,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Résultat enregistré')));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final players = presence.players();
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Course ${widget.raceId.substring(0, 8)}')),
-      body: Column(
-        children: [
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _placeOne,
-                    child: const Text('Placer une pièce (+1)'),
-                  ),
+  Widget _buildMenuCard({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    String? badge,
+    bool enabled = true,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: enabled ? 2 : 0,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Icône
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: enabled ? color.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                Text('Moi: $placed/$total'),
-              ],
-            ),
-          ),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text('Progression des joueurs'),
-          ),
-          Expanded(
-            child: ListView.separated(
-              itemCount: players.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (_, i) {
-                final p = players[i];
-                final name = (p['name'] as String?) ?? 'Player';
-                final pp = (p['piecesPlaced'] ?? 0) as int;
-                final tt = (p['totalPieces'] ?? total) as int;
-                final ratio = tt == 0 ? 0.0 : (pp / tt).clamp(0.0, 1.0);
+                child: Icon(
+                  icon,
+                  size: 32,
+                  color: enabled ? color : Colors.grey,
+                ),
+              ),
 
-                return ListTile(
-                  title: Text(name),
-                  subtitle: LinearProgressIndicator(value: ratio),
-                  trailing: Text('$pp/$tt'),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              LeaderboardScreen(raceId: widget.raceId),
+              const SizedBox(width: 16),
+
+              // Texte
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: enabled ? null : Colors.grey,
+                          ),
                         ),
-                      );
-                    },
-                    child: const Text('Voir le leaderboard'),
-                  ),
+                        if (badge != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              badge,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: enabled ? Colors.grey[600] : Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _finish,
-                    child: const Text('Terminer et enregistrer'),
-                  ),
-                ),
-              ],
+              ),
+
+              // Flèche
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: enabled ? Colors.grey : Colors.grey.withValues(alpha: 0.3),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
   }
 }
+
