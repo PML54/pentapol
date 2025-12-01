@@ -11,10 +11,9 @@
 
 **Pentapol** est une app Flutter de puzzles pentominos avec :
 - **4 modes de jeu** : Jeu classique, Isométries, Tutoriel, Duel multijoueur
-- **Mini-puzzles** : Plateaux réduits (2×5, 3×5, 4×5, 5×5) pour progression graduelle *(à venir)*
-- **2339 solutions** canoniques pré-calculées (9356 avec transformations)
-- **Architecture** : Riverpod + Supabase + SQLite
 - **Menu moderne** : HomeScreen avec cartes visuelles et navigation intuitive
+- **2339 solutions** canoniques pré-calculées (9356 avec transformations)
+- **Architecture** : Riverpod + Supabase (Duel) + SQLite
 
 ---
 
@@ -269,7 +268,7 @@ toutes pièces                                          status = 'finished'
 lib/
 │
 ├── 📱 SCREENS (UI)
-│   ├── home_screen.dart                    Menu principal (nouveau 01/12/25)
+│   ├── home_screen.dart                    Menu principal (NOUVEAU - 280 lignes)
 │   ├── pentomino_game_screen.dart          Jeu + Isométries + Mini-puzzles
 │   ├── settings_screen.dart                Paramètres
 │   ├── solutions_browser_screen.dart       Navigateur solutions
@@ -719,7 +718,7 @@ await Supabase.initialize(
 
 ## 🎯 Roadmap
 
-### ✅ Fait (Novembre 2025)
+### ✅ Fait (Novembre-Décembre 2025)
 
 - [x] Mode Jeu classique (6×10, 12 pièces)
 - [x] Mode Isométries (rotations/miroirs)
@@ -727,6 +726,8 @@ await Supabase.initialize(
 - [x] Mode Duel multijoueur
 - [x] Refactoring architecture (-76% lignes)
 - [x] Commande TRANSLATE (déplacement animé)
+- [x] Nouveau HomeScreen moderne (1er déc 2025)
+- [x] Suppression système Race obsolète (-534 lignes)
 
 ### 🚧 En cours (Décembre 2025)
 
@@ -771,14 +772,22 @@ await Supabase.initialize(
 
 ---
 
-## 🔄 Changelog récent
+## 📝 Changelog récent
 
-### 1er décembre 2025 (01:15)
-- ✅ **Suppression système Race** : Ancien système de courses multijoueur supprimé
+### 1er décembre 2025
+- ✅ **Suppression système Race** : 6 fichiers obsolètes supprimés (-534 lignes)
 - ✅ **Nouveau HomeScreen** : Menu moderne avec cartes visuelles (280 lignes)
-- ✅ **Navigation simplifiée** : Accès direct Jeu/Duel/Solutions/Tutoriels
-- ✅ **Code nettoyé** : -534 lignes de code obsolète
-- ✅ **Un seul système multijoueur** : Mode Duel (temps réel, 1v1)
+- ✅ **Navigation simplifiée** : Accès direct à tous les modes
+- ✅ **Architecture clarifiée** : Un seul système multijoueur (Duel)
+- 📚 Documentation : CLEANUP_RACE_SYSTEM.md créé
+
+### 30 novembre 2025
+- ✅ **Génération icônes** : Toutes plateformes (Android/iOS/Web/Windows/macOS)
+- 📚 Documentation : ICON_GENERATION.md créé
+
+### 29 novembre 2025
+- ✅ **Mode Duel** : Système multijoueur temps réel complet
+- ✅ **DuelSettings** : Sauvegarde nom joueur dans SQLite
 
 ---
 

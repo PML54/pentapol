@@ -1366,19 +1366,9 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 
 ---
 
-**Dernière mise à jour : 1er décembre 2025**
+**Dernière mise à jour : 30 novembre 2025**
 
 **Mainteneur : Documentation générée automatiquement**
-
----
-
-## 🔄 Changelog récent
-
-### 1er décembre 2025
-- ✅ **Suppression système Race** : Ancien système de courses multijoueur supprimé (obsolète)
-- ✅ **Nouveau HomeScreen** : Menu principal moderne avec cartes visuelles
-- ✅ **Simplification** : Navigation directe, suppression code mort (~534 lignes)
-- ✅ **Un seul système multijoueur** : Mode Duel conservé (temps réel, 1v1)
 
 **Format des métadonnées :**
 - **DATEMODIF** : Format MMDDHHMM (Mois Jour Heure Minute)
@@ -1387,6 +1377,17 @@ print('[TUTORIAL] 💾 Sauvegarde de l\'état du jeu');
 ---
 
 ## 🎉 Nouveautés majeures
+
+### Version 1er décembre 2025 🧹
+
+#### 🗑️ Nettoyage système Race
+- **Suppression complète** du système de courses multijoueur obsolète
+- **6 fichiers supprimés** : race_repo, race_presence, leaderboard_screen, auth_screen, models.dart
+- **-534 lignes** de code obsolète éliminées
+- **Nouveau HomeScreen** : Menu moderne avec cartes visuelles (280 lignes)
+- **Navigation simplifiée** : Accès direct Jeu/Duel/Solutions/Tutoriels
+- **Architecture clarifiée** : Un seul système multijoueur (Duel)
+- **Documentation** : CLEANUP_RACE_SYSTEM.md créé
 
 ### Version 29 novembre 2025 🎮
 

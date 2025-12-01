@@ -1,5 +1,6 @@
 // lib/pentoscope/widgets/pentoscope_board.dart
 // Plateau Pentoscope - calqué sur game_board.dart
+// v2: Support du snap visuel
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -227,6 +228,7 @@ class PentoscopeBoard extends ConsumerWidget {
     bool isSelected = false;
     bool isReferenceCell = false;
     bool isPreview = false;
+    bool isSnappedPreview = false;
 
     // Pièce placée sélectionnée
     if (state.selectedPlacedPiece != null) {
@@ -260,7 +262,7 @@ class PentoscopeBoard extends ConsumerWidget {
       }
     }
 
-    // Preview
+    // Preview (avec support du snap)
     if (!isSelected &&
         state.selectedPiece != null &&
         state.previewX != null &&
@@ -279,8 +281,17 @@ class PentoscopeBoard extends ConsumerWidget {
 
         if (pieceX == logicalX && pieceY == logicalY) {
           isPreview = true;
+          isSnappedPreview = state.isSnapped;
+
           if (state.isPreviewValid) {
-            cellColor = settings.ui.getPieceColor(piece.id).withValues(alpha: 0.4);
+            // Couleur légèrement différente pour le snap
+            if (isSnappedPreview) {
+              // Snap actif : vert plus lumineux avec effet "magnétique"
+              cellColor = settings.ui.getPieceColor(piece.id).withValues(alpha: 0.6);
+            } else {
+              // Position exacte
+              cellColor = settings.ui.getPieceColor(piece.id).withValues(alpha: 0.4);
+            }
           } else {
             cellColor = Colors.red.withValues(alpha: 0.3);
           }
@@ -295,10 +306,17 @@ class PentoscopeBoard extends ConsumerWidget {
     if (isReferenceCell) {
       border = Border.all(color: Colors.red, width: 4);
     } else if (isPreview) {
-      border = Border.all(
-        color: state.isPreviewValid ? Colors.green : Colors.red,
-        width: 3,
-      );
+      if (state.isPreviewValid) {
+        if (isSnappedPreview) {
+          // Snap actif : bordure cyan/turquoise pour indiquer l'aimantation
+          border = Border.all(color: Colors.cyan.shade400, width: 3);
+        } else {
+          // Position exacte valide
+          border = Border.all(color: Colors.green, width: 3);
+        }
+      } else {
+        border = Border.all(color: Colors.red, width: 3);
+      }
     } else if (isSelected) {
       border = Border.all(color: Colors.amber, width: 3);
     } else {
@@ -311,13 +329,25 @@ class PentoscopeBoard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: cellColor,
         border: border,
+        // Effet de glow subtil pour le snap
+        boxShadow: isSnappedPreview && state.isPreviewValid
+            ? [
+          BoxShadow(
+            color: Colors.cyan.withValues(alpha: 0.3),
+            blurRadius: 4,
+            spreadRadius: 1,
+          ),
+        ]
+            : null,
       ),
       child: Center(
         child: Text(
           cellText,
           style: TextStyle(
             color: isPreview
-                ? (state.isPreviewValid ? Colors.green.shade900 : Colors.red.shade900)
+                ? (state.isPreviewValid
+                ? (isSnappedPreview ? Colors.cyan.shade900 : Colors.green.shade900)
+                : Colors.red.shade900)
                 : Colors.white,
             fontWeight: (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,
             fontSize: (isSelected || isPreview) ? 16 : 14,

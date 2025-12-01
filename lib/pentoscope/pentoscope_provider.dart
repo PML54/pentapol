@@ -1,5 +1,6 @@
 // lib/pentoscope/pentoscope_provider.dart
 // Provider Pentoscope - calqué sur pentomino_game_provider
+// v2: Ajout du snap intelligent + fix cancelSelection
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -83,6 +84,7 @@ class PentoscopeState {
   final int? previewX;
   final int? previewY;
   final bool isPreviewValid;
+  final bool isSnapped; // Indique si la preview est "aimantée"
 
   // État du jeu
   final bool isComplete;
@@ -102,6 +104,7 @@ class PentoscopeState {
     this.previewX,
     this.previewY,
     this.isPreviewValid = false,
+    this.isSnapped = false,
     this.isComplete = false,
     this.isometryCount = 0,
     this.translationCount = 0,
@@ -164,6 +167,7 @@ class PentoscopeState {
     int? previewX,
     int? previewY,
     bool? isPreviewValid,
+    bool? isSnapped,
     bool clearPreview = false,
     bool? isComplete,
     int? isometryCount,
@@ -182,6 +186,7 @@ class PentoscopeState {
       previewX: clearPreview ? null : (previewX ?? this.previewX),
       previewY: clearPreview ? null : (previewY ?? this.previewY),
       isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid),
+      isSnapped: clearPreview ? false : (isSnapped ?? this.isSnapped),
       isComplete: isComplete ?? this.isComplete,
       isometryCount: isometryCount ?? this.isometryCount,
       translationCount: translationCount ?? this.translationCount,
@@ -197,6 +202,9 @@ enum PentoscopeDifficulty { easy, random, hard }
 
 class PentoscopeNotifier extends Notifier<PentoscopeState> {
   late final PentoscopeGenerator _generator;
+
+  /// Rayon de recherche pour le snap (en cases)
+  static const int _snapRadius = 2;
 
   @override
   PentoscopeState build() {
@@ -249,15 +257,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
     );
   }
 
+  /// Annule la sélection courante
+  /// FIX: Reconstruit le plateau si une pièce placée était sélectionnée
   void cancelSelection() {
     // Si une pièce placée était sélectionnée, la remettre sur le plateau
     if (state.selectedPlacedPiece != null) {
-      final newPlateau = Plateau.allVisible(state.plateau.width, state.plateau.height);
-      for (final p in state.placedPieces) {
-        for (final cell in p.absoluteCells) {
-          newPlateau.setCell(cell.x, cell.y, p.piece.id);
-        }
-      }
+      final newPlateau = _rebuildPlateau();
       state = state.copyWith(
         plateau: newPlateau,
         clearSelectedPiece: true,
@@ -273,6 +278,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
         clearPreview: true,
       );
     }
+  }
+
+  /// Reconstruit le plateau à partir de toutes les pièces placées
+  Plateau _rebuildPlateau() {
+    final newPlateau = Plateau.allVisible(state.plateau.width, state.plateau.height);
+    for (final p in state.placedPieces) {
+      for (final cell in p.absoluteCells) {
+        newPlateau.setCell(cell.x, cell.y, p.piece.id);
+      }
+    }
+    return newPlateau;
   }
 
   void cycleToNextOrientation() {
@@ -332,7 +348,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
   }
 
   // ==========================================================================
-  // PREVIEW
+  // PREVIEW AVEC SNAP INTELLIGENT
   // ==========================================================================
 
   void updatePreview(int gridX, int gridY) {
@@ -346,6 +362,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
 
+    // Calculer l'ancre en tenant compte de la mastercase
     int anchorX = gridX;
     int anchorY = gridY;
 
@@ -354,15 +371,62 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       anchorY = gridY - state.selectedCellInPiece!.y;
     }
 
-    final isValid = state.canPlacePiece(piece, positionIndex, anchorX, anchorY);
+    // 1. Vérifier la position exacte d'abord
+    if (state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
+      _updatePreviewState(anchorX, anchorY, isValid: true, isSnapped: false);
+      return;
+    }
 
-    if (state.previewX != anchorX ||
-        state.previewY != anchorY ||
-        state.isPreviewValid != isValid) {
+    // 2. Chercher la position valide la plus proche (snap)
+    final snapped = _findNearestValidPosition(piece, positionIndex, anchorX, anchorY);
+
+    if (snapped != null) {
+      _updatePreviewState(snapped.x, snapped.y, isValid: true, isSnapped: true);
+    } else {
+      // Aucune position valide proche → preview rouge à la position du curseur
+      _updatePreviewState(anchorX, anchorY, isValid: false, isSnapped: false);
+    }
+  }
+
+  /// Cherche la position valide la plus proche dans un rayon donné
+  /// Utilise la distance euclidienne pour trouver vraiment la plus proche
+  Point? _findNearestValidPosition(Pento piece, int positionIndex, int anchorX, int anchorY) {
+    Point? best;
+    double bestDistanceSquared = double.infinity;
+
+    for (int dx = -_snapRadius; dx <= _snapRadius; dx++) {
+      for (int dy = -_snapRadius; dy <= _snapRadius; dy++) {
+        if (dx == 0 && dy == 0) continue; // Position exacte déjà testée
+
+        final testX = anchorX + dx;
+        final testY = anchorY + dy;
+
+        if (state.canPlacePiece(piece, positionIndex, testX, testY)) {
+          // Distance euclidienne au carré (évite sqrt pour la perf)
+          final distanceSquared = (dx * dx + dy * dy).toDouble();
+
+          if (distanceSquared < bestDistanceSquared) {
+            bestDistanceSquared = distanceSquared;
+            best = Point(testX, testY);
+          }
+        }
+      }
+    }
+
+    return best;
+  }
+
+  /// Met à jour l'état de la preview (évite les rebuilds inutiles)
+  void _updatePreviewState(int x, int y, {required bool isValid, required bool isSnapped}) {
+    if (state.previewX != x ||
+        state.previewY != y ||
+        state.isPreviewValid != isValid ||
+        state.isSnapped != isSnapped) {
       state = state.copyWith(
-        previewX: anchorX,
-        previewY: anchorY,
+        previewX: x,
+        previewY: y,
         isPreviewValid: isValid,
+        isSnapped: isSnapped,
       );
     }
   }
@@ -381,6 +445,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
 
+    // Calculer l'ancre
     int anchorX = gridX;
     int anchorY = gridY;
 
@@ -389,7 +454,20 @@ class PentoscopeNotifier extends Notifier<PentoscopeState> {
       anchorY = gridY - state.selectedCellInPiece!.y;
     }
 
-    if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
+    // Vérifier position exacte
+    bool canPlace = state.canPlacePiece(piece, positionIndex, anchorX, anchorY);
+
+    // Si pas valide, essayer le snap
+    if (!canPlace) {
+      final snapped = _findNearestValidPosition(piece, positionIndex, anchorX, anchorY);
+      if (snapped != null) {
+        anchorX = snapped.x;
+        anchorY = snapped.y;
+        canPlace = true;
+      }
+    }
+
+    if (!canPlace) {
       return false;
     }
 
