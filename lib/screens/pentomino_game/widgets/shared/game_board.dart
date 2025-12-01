@@ -1,5 +1,6 @@
 // lib/screens/pentomino_game/widgets/shared/game_board.dart
 // Plateau de jeu 6×10 avec drag & drop
+// v2: Support du snap visuel (bordure cyan + glow)
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,12 +12,13 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calculator.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
 import 'package:pentapol/models/point.dart';
+
 /// Plateau de jeu 6×10
 ///
 /// Gère :
 /// - Affichage grille avec pièces
 /// - Drag & drop des pièces
-/// - Preview en temps réel
+/// - Preview en temps réel avec SNAP intelligent
 /// - Sélection et déplacement
 /// - Rotation portrait/paysage
 class GameBoard extends ConsumerWidget {
@@ -228,6 +230,7 @@ class GameBoard extends ConsumerWidget {
     bool isSelected = false;
     bool isReferenceCell = false;
     bool isPreview = false;
+    bool isSnappedPreview = false; // 🆕 Pour le snap
 
     if (state.selectedPlacedPiece != null) {
       final selectedPiece = state.selectedPlacedPiece!;
@@ -271,6 +274,7 @@ class GameBoard extends ConsumerWidget {
       }
     }
 
+    // Preview avec support du snap
     if (!isSelected &&
         state.selectedPiece != null &&
         state.previewX != null &&
@@ -286,14 +290,20 @@ class GameBoard extends ConsumerWidget {
 
         if (pieceX == logicalX && pieceY == logicalY) {
           isPreview = true;
+          isSnappedPreview = state.isSnapped; // 🆕 Récupérer l'état snap
+
           if (state.isPreviewValid) {
-            cellColor =
-                settings.ui.getPieceColor(piece.id).withValues(alpha: 0.4);
+            // 🆕 Couleur légèrement différente pour le snap
+            if (isSnappedPreview) {
+              // Snap actif : plus opaque pour effet "magnétique"
+              cellColor = settings.ui.getPieceColor(piece.id).withValues(alpha: 0.6);
+            } else {
+              // Position exacte
+              cellColor = settings.ui.getPieceColor(piece.id).withValues(alpha: 0.4);
+            }
           } else {
             cellColor = Colors.red.withValues(alpha: 0.3);
           }
-
-
 
           cellText = piece.id.toString();
 
@@ -307,14 +317,22 @@ class GameBoard extends ConsumerWidget {
       }
     }
 
+    // Bordure avec support du snap
     Border border;
     if (isReferenceCell) {
       border = Border.all(color: Colors.red, width: 4);
     } else if (isPreview) {
-      border = Border.all(
-        color: state.isPreviewValid ? Colors.green : Colors.red,
-        width: 3,
-      );
+      if (state.isPreviewValid) {
+        if (isSnappedPreview) {
+          // 🆕 Snap actif : bordure cyan/turquoise pour indiquer l'aimantation
+          border = Border.all(color: Colors.cyan.shade400, width: 3);
+        } else {
+          // Position exacte valide
+          border = Border.all(color: Colors.green, width: 3);
+        }
+      } else {
+        border = Border.all(color: Colors.red, width: 3);
+      }
     } else if (isSelected) {
       border = Border.all(
         color: Colors.amber,
@@ -324,6 +342,7 @@ class GameBoard extends ConsumerWidget {
       border = PieceBorderCalculator.calculate(
           logicalX, logicalY, state.plateau, isLandscape);
     }
+
     // Vérifier si la cellule est highlightée (tutoriel)
     final highlightPoint = Point(logicalX, logicalY);
     final highlightColor = state.cellHighlights[highlightPoint];
@@ -334,10 +353,21 @@ class GameBoard extends ConsumerWidget {
         cellColor,
       );
     }
+
     Widget cellWidget = Container(
       decoration: BoxDecoration(
         color: cellColor,
         border: border,
+        // 🆕 Effet de glow subtil pour le snap
+        boxShadow: isSnappedPreview && state.isPreviewValid
+            ? [
+          BoxShadow(
+            color: Colors.cyan.withValues(alpha: 0.3),
+            blurRadius: 4,
+            spreadRadius: 1,
+          ),
+        ]
+            : null,
       ),
       child: Center(
         child: Text(
@@ -345,7 +375,7 @@ class GameBoard extends ConsumerWidget {
           style: TextStyle(
             color: isPreview
                 ? (state.isPreviewValid
-                ? Colors.green.shade900
+                ? (isSnappedPreview ? Colors.cyan.shade900 : Colors.green.shade900) // 🆕
                 : Colors.red.shade900)
                 : Colors.white,
             fontWeight: (isSelected || isPreview) ? FontWeight.w900 : FontWeight.bold,

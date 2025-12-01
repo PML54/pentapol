@@ -19,6 +19,38 @@ NotifierProvider<PentominoGameNotifier, PentominoGameState>(
 );
 
 class PentominoGameNotifier extends Notifier<PentominoGameState> {
+  static const int _snapRadius = 2;
+
+
+// 2. AJOUTER cette méthode helper dans la classe :
+
+  /// Cherche la position valide la plus proche dans un rayon donné
+  /// Utilise la distance euclidienne pour trouver vraiment la plus proche
+  Point? _findNearestValidPosition(Pento piece, int positionIndex, int anchorX, int anchorY) {
+    Point? best;
+    double bestDistanceSquared = double.infinity;
+
+    for (int dx = -_snapRadius; dx <= _snapRadius; dx++) {
+      for (int dy = -_snapRadius; dy <= _snapRadius; dy++) {
+        if (dx == 0 && dy == 0) continue; // Position exacte déjà testée
+
+        final testX = anchorX + dx;
+        final testY = anchorY + dy;
+
+        if (state.canPlacePiece(piece, positionIndex, testX, testY)) {
+          // Distance euclidienne au carré (évite sqrt pour la perf)
+          final distanceSquared = (dx * dx + dy * dy).toDouble();
+
+          if (distanceSquared < bestDistanceSquared) {
+            bestDistanceSquared = distanceSquared;
+            best = Point(testX, testY);
+          }
+        }
+      }
+    }
+
+    return best;
+  }
   /// Applique une rotation 90° anti-horaire à la pièce sélectionnée
   /// Fonctionne en mode jeu normal ET en mode isométries
   /// Rotation géométrique autour du point de référence (cellule rouge / mastercase)
@@ -1055,10 +1087,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     final anchorX = gridX - masterLocalX;
     final anchorY = gridY - masterLocalY;
 
-    print('[TUTORIAL] 🔍 Conversion mastercase→ancre:');
-    print('[TUTORIAL]   Mastercase souhaitée: ($gridX, $gridY)');
-    print('[TUTORIAL]   Mastercase locale: ($masterLocalX, $masterLocalY)');
-    print('[TUTORIAL]   Ancre calculée: ($anchorX, $anchorY)');
 
     // Vérifier que la position est valide
     if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
@@ -1496,6 +1524,24 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
         '[GAME] Translation: lâcher à ($gridX, $gridY), case ref locale (${state.selectedCellInPiece!.x}, ${state.selectedCellInPiece!.y}), anchor ($anchorX, $anchorY)',
       );
     }
+// Vérifier position exacte
+    bool canPlace = state.canPlacePiece(piece, positionIndex, anchorX, anchorY);
+
+    // Si pas valide, essayer le snap
+    if (!canPlace) {
+      final snapped = _findNearestValidPosition(piece, positionIndex, anchorX, anchorY);
+      if (snapped != null) {
+        anchorX = snapped.x;
+        anchorY = snapped.y;
+        canPlace = true;
+        print('[GAME] 🧲 Snap appliqué: nouvelle position ($anchorX, $anchorY)');
+      }
+    }
+
+    if (!canPlace) {
+      print('[GAME] ❌ Placement impossible à ($anchorX, $anchorY)');
+      return false;
+    }
 
     // Vérifier si la pièce peut être placée
     if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
@@ -1669,7 +1715,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
   // UTILITAIRES TUTORIEL
   // ============================================================
 
+
   /// Met à jour la prévisualisation du placement pendant le drag
+  /// AVEC SNAP INTELLIGENT
   void updatePreview(int gridX, int gridY) {
     if (state.selectedPiece == null) {
       // Effacer la preview si aucune pièce sélectionnée
@@ -1691,17 +1739,33 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
       anchorY = gridY - state.selectedCellInPiece!.y;
     }
 
-    // Vérifier si le placement est valide
-    final isValid = state.canPlacePiece(piece, positionIndex, anchorX, anchorY);
+    // 1. Vérifier la position exacte d'abord
+    if (state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
+      _updatePreviewState(anchorX, anchorY, isValid: true, isSnapped: false);
+      return;
+    }
 
-    // Mettre à jour la preview seulement si changement
-    if (state.previewX != anchorX ||
-        state.previewY != anchorY ||
-        state.isPreviewValid != isValid) {
+    // 2. Chercher la position valide la plus proche (snap)
+    final snapped = _findNearestValidPosition(piece, positionIndex, anchorX, anchorY);
+
+    if (snapped != null) {
+      _updatePreviewState(snapped.x, snapped.y, isValid: true, isSnapped: true);
+    } else {
+      // Aucune position valide proche → preview rouge à la position du curseur
+      _updatePreviewState(anchorX, anchorY, isValid: false, isSnapped: false);
+    }
+  }
+  /// Met à jour l'état de la preview (évite les rebuilds inutiles)
+  void _updatePreviewState(int x, int y, {required bool isValid, required bool isSnapped}) {
+    if (state.previewX != x ||
+        state.previewY != y ||
+        state.isPreviewValid != isValid ||
+        state.isSnapped != isSnapped) {
       state = state.copyWith(
-        previewX: anchorX,
-        previewY: anchorY,
+        previewX: x,
+        previewY: y,
         isPreviewValid: isValid,
+        isSnapped: isSnapped,
       );
     }
   }
@@ -1794,52 +1858,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState> {
     }).toList();
   }
 
-  // ============================================================
-  // TUTORIEL - PLACEMENT
-  // ============================================================
-  /// Méthode helper pour appliquer une transformation (OBSOLÈTE - conservée pour compatibilité)
-  /// Les nouvelles transformations géométriques sont gérées directement dans
-  /// applyIsometryRotation, applyIsometrySymmetryH, applyIsometrySymmetryV
-  /*  void _applyTransformation(int nextIndex) {
-    if (state.selectedPlacedPiece == null) return;
 
-    final selectedPiece = state.selectedPlacedPiece!;
-
-    // Créer la pièce transformée
-    final transformedPiece = selectedPiece.copyWith(positionIndex: nextIndex);
-
-    // Mettre à jour la liste des pièces placées
-    final updatedPieces = state.placedPieces.map((placed) {
-      return placed == selectedPiece ? transformedPiece : placed;
-    }).toList();
-
-    // Reconstruire le plateau
-    final newPlateau = Plateau.allVisible(6, 10);
-
-    for (final placed in updatedPieces) {
-      final position = placed.piece.positions[placed.positionIndex];
-
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = placed.gridX + localX;
-        final y = placed.gridY + localY;
-
-        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-          newPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-    }
-
-    // Mettre à jour l'état (la pièce reste sélectionnée avec sa nouvelle orientation)
-    state = state.copyWith(
-      placedPieces: updatedPieces,
-      plateau: newPlateau,
-      selectedPlacedPiece: transformedPiece,
-      selectedPositionIndex: nextIndex,
-    );
-    _recomputeBoardValidity();
-  }*/
   /// Recalcule la validité du plateau et les cellules problématiques
   void _recomputeBoardValidity() {
     final overlapping = <Point>{};

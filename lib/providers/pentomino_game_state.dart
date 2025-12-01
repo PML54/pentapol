@@ -1,4 +1,4 @@
-// Modified: 2025-11-25 (Tutorial support added)
+// Modified: 2025-12-01 (Snap intelligent ajouté)
 // lib/providers/pentomino_game_state.dart
 // État du jeu de pentominos (mode libre + mode tutoriel)
 
@@ -84,6 +84,7 @@ class PentominoGameState {
   final int? previewX; // Position X de la preview
   final int? previewY; // Position Y de la preview
   final bool isPreviewValid; // La preview est-elle un placement valide ?
+  final bool isSnapped; // 🆕 La preview est-elle "aimantée" (snap) ?
 
   // Validation du plateau
   final bool boardIsValid; // true si pas de chevauchement ni débordement
@@ -122,6 +123,7 @@ class PentominoGameState {
     this.previewX,
     this.previewY,
     this.isPreviewValid = false,
+    this.isSnapped = false, // 🆕
     this.solutionsCount,
     this.isIsometriesMode = false,
     this.savedGameState,
@@ -210,6 +212,7 @@ class PentominoGameState {
     int? previewX,
     int? previewY,
     bool? isPreviewValid,
+    bool? isSnapped, // 🆕
     bool clearPreview = false,
     int? solutionsCount,
     bool? isIsometriesMode,
@@ -247,6 +250,7 @@ class PentominoGameState {
       previewX: clearPreview ? null : (previewX ?? this.previewX),
       previewY: clearPreview ? null : (previewY ?? this.previewY),
       isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid),
+      isSnapped: clearPreview ? false : (isSnapped ?? this.isSnapped), // 🆕
       solutionsCount: solutionsCount ?? this.solutionsCount,
       isIsometriesMode: isIsometriesMode ?? this.isIsometriesMode,
       savedGameState: clearSavedGameState ? null : (savedGameState ?? this.savedGameState),

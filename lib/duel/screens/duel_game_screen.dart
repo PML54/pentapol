@@ -1,6 +1,6 @@
 // lib/duel/screens/duel_game_screen.dart
 // Écran principal du jeu duel avec overlay solution et isométries
-// CORRIGÉ : Palette DUEL vive + contours noirs épais
+// v2: SNAP INTELLIGENT + Palette DUEL vive + contours noirs épais
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +22,9 @@ class DuelSliderConstants {
   static const double itemSize = 90.0;
   static const int itemsPerPage = 100;
 }
+
+/// 🆕 Rayon de recherche pour le snap (en cases)
+const int _snapRadius = 2;
 
 /// Palette DUEL : 12 couleurs VIVES et SATURÉES
 /// Couleurs franches, très distinctes, parfaites pour le mode compétitif
@@ -55,6 +58,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
   int _selectedPositionIndex = 0;
   int? _previewX;
   int? _previewY;
+  bool _isPreviewSnapped = false; // 🆕 Pour le snap
   List<List<int>>? _solutionGrid;
   bool _solutionLoaded = false;
   final ScrollController _sliderController = ScrollController(keepScrollOffset: true);
@@ -106,6 +110,103 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     setState(() {
       _solutionLoaded = success;
     });
+  }
+
+  // ============================================================
+  // 🆕 SNAP INTELLIGENT
+  // ============================================================
+
+  /// Vérifie si une pièce peut être placée à une position donnée
+  bool _canPlacePieceAt(Pento piece, int positionIndex, int gridX, int gridY, DuelState duelState) {
+    final position = piece.positions[positionIndex % piece.numPositions];
+
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      final x = gridX + localX;
+      final y = gridY + localY;
+
+      // Hors limites ?
+      if (x < 0 || x >= 6 || y < 0 || y >= 10) {
+        return false;
+      }
+
+      // Case déjà occupée par une autre pièce ?
+      for (final placed in duelState.placedPieces) {
+        if (_isPieceAtCell(placed, x, y)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /// Cherche la position valide la plus proche dans un rayon donné
+  _SnapResult? _findNearestValidPosition(Pento piece, int positionIndex, int anchorX, int anchorY, DuelState duelState) {
+    _SnapResult? best;
+    double bestDistanceSquared = double.infinity;
+
+    for (int dx = -_snapRadius; dx <= _snapRadius; dx++) {
+      for (int dy = -_snapRadius; dy <= _snapRadius; dy++) {
+        if (dx == 0 && dy == 0) continue; // Position exacte déjà testée
+
+        final testX = anchorX + dx;
+        final testY = anchorY + dy;
+
+        if (_canPlacePieceAt(piece, positionIndex, testX, testY, duelState)) {
+          // Distance euclidienne au carré (évite sqrt pour la perf)
+          final distanceSquared = (dx * dx + dy * dy).toDouble();
+
+          if (distanceSquared < bestDistanceSquared) {
+            bestDistanceSquared = distanceSquared;
+            best = _SnapResult(testX, testY);
+          }
+        }
+      }
+    }
+
+    return best;
+  }
+
+  /// Met à jour la preview avec snap
+  void _updatePreviewWithSnap(int rawX, int rawY, DuelState duelState) {
+    if (_selectedPiece == null) {
+      setState(() {
+        _previewX = null;
+        _previewY = null;
+        _isPreviewSnapped = false;
+      });
+      return;
+    }
+
+    // 1. Vérifier position exacte
+    if (_canPlacePieceAt(_selectedPiece!, _selectedPositionIndex, rawX, rawY, duelState)) {
+      setState(() {
+        _previewX = rawX;
+        _previewY = rawY;
+        _isPreviewSnapped = false;
+      });
+      return;
+    }
+
+    // 2. Chercher snap
+    final snapped = _findNearestValidPosition(_selectedPiece!, _selectedPositionIndex, rawX, rawY, duelState);
+
+    if (snapped != null) {
+      setState(() {
+        _previewX = snapped.x;
+        _previewY = snapped.y;
+        _isPreviewSnapped = true;
+      });
+    } else {
+      // Aucune position valide → afficher en rouge à la position du curseur
+      setState(() {
+        _previewX = rawX;
+        _previewY = rawY;
+        _isPreviewSnapped = false;
+      });
+    }
   }
 
   // ============================================================
@@ -498,15 +599,15 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                   final offset = renderBox.globalToLocal(details.offset);
                   final x = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
                   final y = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
-                  setState(() {
-                    _previewX = x;
-                    _previewY = y;
-                  });
+
+                  // 🆕 Utiliser le snap intelligent
+                  _updatePreviewWithSnap(x, y, duelState);
                 },
                 onLeave: (data) {
                   setState(() {
                     _previewX = null;
                     _previewY = null;
+                    _isPreviewSnapped = false;
                   });
                 },
                 onAcceptWithDetails: (details) {
@@ -515,12 +616,18 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                   final offset = renderBox.globalToLocal(details.offset);
                   final x = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
                   final y = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+
                   if (_selectedPiece != null) {
-                    _tryPlacePiece(ref, duelState, x, y);
+                    // 🆕 Utiliser la position snappée si disponible
+                    final placeX = _previewX ?? x;
+                    final placeY = _previewY ?? y;
+                    _tryPlacePiece(ref, duelState, placeX, placeY);
                   }
+
                   setState(() {
                     _previewX = null;
                     _previewY = null;
+                    _isPreviewSnapped = false;
                   });
                 },
                 builder: (context, candidateData, rejectedData) {
@@ -547,7 +654,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
   }
 
   // ============================================================
-  // CELLULE DU PLATEAU - STYLE SOLUTION VIEWER
+  // CELLULE DU PLATEAU - STYLE SOLUTION VIEWER + SNAP
   // ============================================================
 
   Widget _buildCell(
@@ -573,10 +680,13 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     // Preview ?
     bool isPreview = false;
     bool previewMatchesSolution = false;
+    bool previewIsValid = false;
+
     if (_selectedPiece != null && _previewX != null && _previewY != null) {
       if (_isPiecePreviewAtCell(_selectedPiece!, _selectedPositionIndex, _previewX!, _previewY!, x, y)) {
         isPreview = true;
         previewMatchesSolution = (solutionPieceId == _selectedPiece!.id);
+        previewIsValid = _canPlacePieceAt(_selectedPiece!, _selectedPositionIndex, _previewX!, _previewY!, duelState);
       }
     }
 
@@ -587,6 +697,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     String? cellNumber;
     bool showHatch = false;
     bool showHorizontalHatch = false;
+    List<BoxShadow>? boxShadow;
 
     if (placedPiece != null) {
       // ══════════════════════════════════════════
@@ -612,10 +723,32 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     } else if (isPreview) {
       // ══════════════════════════════════════════
       // PREVIEW - Semi-transparent + contour coloré
+      // 🆕 Support du snap avec bordure cyan
       // ══════════════════════════════════════════
-      cellColor = _getDuelColor(_selectedPiece!.id).withOpacity(0.7);
+      cellColor = _getDuelColor(_selectedPiece!.id).withOpacity(
+          _isPreviewSnapped ? 0.8 : 0.7 // Plus opaque si snappé
+      );
       cellNumber = '${_selectedPiece!.id}';
-      borderColor = previewMatchesSolution ? Colors.green : Colors.orange;
+
+      if (previewIsValid) {
+        if (_isPreviewSnapped) {
+          // 🆕 Snap actif : bordure cyan + glow
+          borderColor = Colors.cyan.shade400;
+          boxShadow = [
+            BoxShadow(
+              color: Colors.cyan.withOpacity(0.4),
+              blurRadius: 6,
+              spreadRadius: 1,
+            ),
+          ];
+        } else {
+          // Position exacte valide : bordure verte ou orange selon solution
+          borderColor = previewMatchesSolution ? Colors.green : Colors.orange;
+        }
+      } else {
+        // Position invalide : bordure rouge
+        borderColor = Colors.red;
+      }
       borderWidth = 3.0;
 
     } else if (solutionPieceId > 0) {
@@ -646,6 +779,7 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
         decoration: BoxDecoration(
           color: cellColor,
           border: Border.all(color: borderColor, width: borderWidth),
+          boxShadow: boxShadow,
         ),
         child: Stack(
           children: [
@@ -655,7 +789,9 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
                 child: Text(
                   cellNumber,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isPreview && _isPreviewSnapped
+                        ? Colors.cyan.shade900 // 🆕 Texte cyan si snappé
+                        : Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     shadows: const [
@@ -985,6 +1121,12 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
       ),
     );
   }
+}
+
+// 🆕 Helper pour le snap
+class _SnapResult {
+  final int x, y;
+  const _SnapResult(this.x, this.y);
 }
 
 class _Point {
