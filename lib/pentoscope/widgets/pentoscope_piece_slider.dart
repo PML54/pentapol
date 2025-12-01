@@ -1,5 +1,5 @@
 // lib/pentoscope/widgets/pentoscope_piece_slider.dart
-// Slider de pièces pour Pentoscope - réutilise les composants existants
+// Slider de pièces Pentoscope - calqué sur piece_slider.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +16,7 @@ class PentoscopePieceSlider extends ConsumerWidget {
 
   const PentoscopePieceSlider({
     super.key,
-    this.isLandscape = false,
+    required this.isLandscape,
   });
 
   @override
@@ -28,16 +28,7 @@ class PentoscopePieceSlider extends ConsumerWidget {
     final pieces = state.availablePieces;
 
     if (pieces.isEmpty) {
-      return Center(
-        child: Text(
-          'Toutes les pièces sont placées !',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     final scrollDirection = isLandscape ? Axis.vertical : Axis.horizontal;
@@ -51,26 +42,29 @@ class PentoscopePieceSlider extends ConsumerWidget {
       itemCount: pieces.length,
       itemBuilder: (context, index) {
         final piece = pieces[index];
-        return _buildDraggablePiece(piece, index, notifier, state, settings);
+        return _buildDraggablePiece(piece, notifier, state, settings, isLandscape);
       },
     );
   }
 
   Widget _buildDraggablePiece(
       Pento piece,
-      int index,
       PentoscopeNotifier notifier,
       PentoscopeState state,
       settings,
+      bool isLandscape,
       ) {
-    final isSelected = state.selectedPieceIndex == index;
-    final positionIndex = isSelected ? state.selectedOrientation : 0;
+    int positionIndex = state.selectedPiece?.id == piece.id
+        ? state.selectedPositionIndex
+        : state.getPiecePositionIndex(piece.id);
 
     // En mode paysage : rotation visuelle de -90° (= +3 positions)
     int displayPositionIndex = positionIndex;
     if (isLandscape) {
       displayPositionIndex = (positionIndex + 3) % piece.numPositions;
     }
+
+    final isSelected = state.selectedPiece?.id == piece.id;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -96,25 +90,25 @@ class PentoscopePieceSlider extends ConsumerWidget {
           piece: piece,
           positionIndex: positionIndex,
           isSelected: isSelected,
-          selectedPositionIndex: state.selectedOrientation,
+          selectedPositionIndex: state.selectedPositionIndex,
           longPressDuration: Duration(milliseconds: settings.game.longPressDuration),
           onSelect: () {
             if (settings.game.enableHaptics) {
               HapticFeedback.selectionClick();
             }
-            notifier.selectPiece(index);
+            notifier.selectPiece(piece);
           },
           onCycle: () {
             if (settings.game.enableHaptics) {
               HapticFeedback.selectionClick();
             }
-            notifier.cycleOrientation();
+            notifier.cycleToNextOrientation();
           },
           onCancel: () {
             if (settings.game.enableHaptics) {
               HapticFeedback.lightImpact();
             }
-            notifier.deselectPiece();
+            notifier.cancelSelection();
           },
           childBuilder: (isDragging) => PieceRenderer(
             piece: piece,

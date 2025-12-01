@@ -1,4 +1,5 @@
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Écran de jeu Pentoscope - calqué sur pentomino_game_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,39 +19,58 @@ class PentoscopeGameScreen extends ConsumerWidget {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
-    final puzzle = state.puzzle;
 
-    if (puzzle == null) {
+    if (state.puzzle == null) {
       return const Scaffold(
-        body: Center(child: Text('Aucun puzzle chargé')),
+        body: Center(child: Text('Aucun puzzle')),
       );
     }
 
+    // Détection du mode transformation (pièce sélectionnée)
+    final isInTransformMode = state.selectedPiece != null || state.selectedPlacedPiece != null;
+
+    // Orientation
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
-    final isInTransformMode = state.selectedPlacedPieceId != null;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: isLandscape
           ? null
-          : AppBar(
-        backgroundColor: Colors.white,
-        title: Text('Pentoscope ${puzzle.size.label}'),
-        centerTitle: true,
-        actions: isInTransformMode
-            ? _buildTransformActions(notifier, settings)
-            : _buildGeneralActions(state, notifier),
+          : PreferredSize(
+        preferredSize: const Size.fromHeight(56.0),
+        child: AppBar(
+          toolbarHeight: 56.0,
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: null, // PAS DE TITRE
+          actions: isInTransformMode
+              ? _buildTransformActions(state, notifier, settings)
+              : _buildGeneralActions(state, notifier),
+        ),
       ),
-      body: SafeArea(
-        child: isLandscape
-            ? _buildLandscapeLayout(context, ref, state, notifier, settings, isInTransformMode)
-            : _buildPortraitLayout(context, ref, state, notifier),
+      body: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isLandscape = constraints.maxWidth > constraints.maxHeight;
+
+              if (isLandscape) {
+                return _buildLandscapeLayout(context, ref, state, notifier, settings, isInTransformMode);
+              } else {
+                return _buildPortraitLayout(context, ref, state, notifier);
+              }
+            },
+          ),
+        ],
       ),
     );
   }
 
-  /// Actions en mode TRANSFORMATION (pièce placée sélectionnée)
-  List<Widget> _buildTransformActions(PentoscopeNotifier notifier, settings) {
+  /// Actions en mode TRANSFORMATION (pièce sélectionnée)
+  List<Widget> _buildTransformActions(PentoscopeState state, PentoscopeNotifier notifier, settings) {
     return [
       // Rotation anti-horaire
       IconButton(
@@ -96,28 +116,29 @@ class PentoscopeGameScreen extends ConsumerWidget {
         color: GameIcons.isometrySymmetryV.color,
       ),
 
-      // Supprimer la pièce
-      IconButton(
-        icon: Icon(GameIcons.removePiece.icon, size: settings.ui.iconSize),
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          notifier.removePiece(notifier.state.selectedPlacedPieceId!);
-        },
-        tooltip: GameIcons.removePiece.tooltip,
-        color: GameIcons.removePiece.color,
-      ),
+      // Supprimer (uniquement si pièce placée sélectionnée)
+      if (state.selectedPlacedPiece != null)
+        IconButton(
+          icon: Icon(GameIcons.removePiece.icon, size: settings.ui.iconSize),
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            notifier.removePlacedPiece(state.selectedPlacedPiece!);
+          },
+          tooltip: GameIcons.removePiece.tooltip,
+          color: GameIcons.removePiece.color,
+        ),
     ];
   }
 
-  /// Actions en mode GÉNÉRAL
+  /// Actions en mode GÉNÉRAL (aucune pièce sélectionnée)
   List<Widget> _buildGeneralActions(PentoscopeState state, PentoscopeNotifier notifier) {
     return [
-      // Infos
+      // Compteur pièces
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Center(
           child: Text(
-            '${state.placedPieces.length}/${state.pieces.length}',
+            '${state.placedPieces.length}/${state.puzzle?.size.numPieces ?? 0}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -138,7 +159,7 @@ class PentoscopeGameScreen extends ConsumerWidget {
     ];
   }
 
-  /// Layout portrait
+  /// Layout portrait : plateau en haut, slider en bas
   Widget _buildPortraitLayout(
       BuildContext context,
       WidgetRef ref,
@@ -153,7 +174,7 @@ class PentoscopeGameScreen extends ConsumerWidget {
           child: const PentoscopeBoard(isLandscape: false),
         ),
 
-        // Slider de pièces
+        // Slider de pièces horizontal
         Container(
           height: 140,
           decoration: BoxDecoration(
@@ -172,7 +193,7 @@ class PentoscopeGameScreen extends ConsumerWidget {
     );
   }
 
-  /// Layout paysage
+  /// Layout paysage : plateau à gauche, actions + slider vertical à droite
   Widget _buildLandscapeLayout(
       BuildContext context,
       WidgetRef ref,
@@ -191,9 +212,9 @@ class PentoscopeGameScreen extends ConsumerWidget {
         // Colonne de droite : actions + slider
         Row(
           children: [
-            // Actions verticales
+            // Slider d'actions verticales
             Container(
-              width: 50,
+              width: 44,
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -207,17 +228,28 @@ class PentoscopeGameScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: isInTransformMode
-                    ? _buildTransformActions(notifier, settings)
+                    ? _buildTransformActions(state, notifier, settings)
                     : [
+                  // Reset en mode général
                   IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: () => notifier.reset(),
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      notifier.reset();
+                    },
+                    tooltip: 'Recommencer',
+                  ),
+                  // Retour
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: 'Retour',
                   ),
                 ],
               ),
             ),
 
-            // Slider vertical
+            // Slider de pièces vertical
             Container(
               width: 120,
               decoration: BoxDecoration(
