@@ -351,38 +351,109 @@ class _DuelGameScreenState extends ConsumerState<DuelGameScreen> {
     final timeStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
 
     final localName = duelState.localPlayer?.name ?? 'Moi';
-    final opponentName = duelState.opponent?.name ?? 'Adversaire';
+    final opponentName = duelState.opponent?.name ?? 'Adv';
+    final localScore = duelState.localScore;
+    final opponentScore = duelState.opponentScore;
 
-    Color timerColor = Colors.blue;
-    if (timeRemaining <= 30) {
-      timerColor = Colors.red;
-    } else if (timeRemaining <= 60) {
-      timerColor = Colors.orange;
-    }
+    final isUrgent = timeRemaining <= 30;
+    final timerColor = isUrgent ? Colors.red : Colors.amber;
 
-    return Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade700, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildPlayerScore(localName, localScore, Colors.cyan, true),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: timerColor.withOpacity(0.5), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: timerColor.withOpacity(0.4),
+                    blurRadius: isUrgent ? 12 : 6,
+                  ),
+                ],
+              ),
+              child: Text(
+                timeStr,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: timerColor,
+                  shadows: [
+                    Shadow(color: timerColor, blurRadius: 8),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _buildPlayerScore(opponentName, opponentScore, Colors.orange, false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerScore(String name, int score, Color color, bool isLocal) {
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '$opponentName = ${duelState.opponentScore}',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLocal)
+              Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Icon(Icons.person, size: 10, color: Colors.green),
+              ),
+            Text(
+              name.length > 6 ? '${name.substring(0, 5)}.' : name,
+              style: TextStyle(
+                color: color,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
+        const SizedBox(height: 2),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          constraints: const BoxConstraints(minWidth: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: timerColor,
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withOpacity(0.4), width: 1),
+            boxShadow: [
+              BoxShadow(color: color.withOpacity(0.3), blurRadius: 4),
+            ],
           ),
           child: Text(
-            timeStr,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            '$score',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+              shadows: [
+                Shadow(color: color, blurRadius: 6),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$localName = ${duelState.localScore}',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
         ),
       ],
     );
