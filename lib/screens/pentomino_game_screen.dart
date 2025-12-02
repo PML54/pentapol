@@ -1,6 +1,7 @@
-// Modified: 2025-11-23 04:11
+// Modified: 2025-12-02
 // lib/screens/pentomino_game_screen.dart
 // Interface simplifiée avec 2 modes exclusifs auto-détectés
+// AJOUT: Drag vers slider = retirer la pièce du plateau
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import 'package:pentapol/screens/solutions_browser_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 
 import 'package:pentapol/config/game_icons_config.dart';
+import 'package:pentapol/models/pentominos.dart';
 
 // Widgets extraits
 import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart'
@@ -25,14 +27,11 @@ import '../tutorial/widgets/highlighted_icon_button.dart';
 import 'package:pentapol/tutorial/tutorial.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-
 // Duel
 import 'package:pentapol/duel/screens/duel_home_screen.dart';
 
-
 // Pentoscope
 import 'package:pentapol/pentoscope/screens/pentoscope_menu_screen.dart';
-
 
 class PentominoGameScreen extends ConsumerStatefulWidget {
   const PentominoGameScreen({super.key});
@@ -66,15 +65,15 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: Colors.white, // ← FOND BLANC dans tous les modes
+      backgroundColor: Colors.white,
       // AppBar uniquement en mode portrait
       appBar: isLandscape ? null : PreferredSize(
         preferredSize: const Size.fromHeight(56.0),
         child: AppBar(
           toolbarHeight: 56.0,
-          backgroundColor: Colors.white, // ← BLANC dans tous les modes (général ET isométries)
+          backgroundColor: Colors.white,
           // LEADING : Paramètres + Duel (mode général) ou rien (mode transformation)
-          leadingWidth: !isInTransformMode ? 144 : 56, // 3 boutons = 144px
+          leadingWidth: !isInTransformMode ? 144 : 56,
           leading: !isInTransformMode
               ? Row(
             mainAxisSize: MainAxisSize.min,
@@ -116,12 +115,10 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
                 tooltip: 'Pentoscope',
                 color: Colors.teal,
               ),
-
-
             ],
           )
               : null,
-// TITLE : Bouton Solutions (affiché dès qu'il y a des solutions > 0)
+          // TITLE : Bouton Solutions (affiché dès qu'il y a des solutions > 0)
           title: state.solutionsCount != null && state.solutionsCount! > 0
               ? FittedBox(
             fit: BoxFit.scaleDown,
@@ -141,18 +138,18 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), // ← Très réduit
-                minimumSize: const Size(45, 30), // ← Encore plus petit
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                minimumSize: const Size(45, 30),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
-                elevation: 3, // ← Réduit aussi
+                elevation: 3,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
                 '${state.solutionsCount}',
                 style: const TextStyle(
-                  fontSize: 15, // ← Légèrement réduit si besoin
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -180,17 +177,13 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             },
           ),
 
-
-          // ⭐ AJOUTER CES 2 LIGNES ⭐
+          // Tutorial overlay
           const TutorialOverlay(),
           const TutorialControls(),
         ],
       ),
     );
   }
-
-  /// Actions en mode TRANSFORMATION (pièce sélectionnée)
-// ========== REMPLACER _buildTransformActions() COMPLÈTE ==========
 
   /// Actions en mode TRANSFORMATION (pièce sélectionnée)
   List<Widget> _buildTransformActions(state, notifier, settings) {
@@ -276,14 +269,7 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           try {
             // Charger le tutoriel d'introduction
             final yamlContent = await rootBundle.loadString(
-              // 'assets/tutorials/01_intro_basics.yaml',
-              // 'assets/tutorials/test_coords.yaml',
-              //'assets/tutorials/03_Rotation_basics.yaml',
-              //   'assets/tutorials/test_features.yaml',
-              //   'assets/tutorials/Translation_basics.yaml',
               'assets/tutorials/Symmetry_basics.yaml',
-
-
             );
 
             // Parser le script
@@ -308,6 +294,106 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
     ];
   }
 
+  // ============================================================================
+  // NOUVEAU: Widget slider avec DragTarget pour retirer les pièces
+  // ============================================================================
+
+  /// Construit le slider enveloppé dans un DragTarget
+  /// Quand on drag une pièce placée vers le slider, elle est retirée du plateau
+  Widget _buildSliderWithDragTarget({
+    required WidgetRef ref,
+    required bool isLandscape,
+  }) {
+    final state = ref.watch(pentominoGameProvider);
+    final notifier = ref.read(pentominoGameProvider.notifier);
+
+    return DragTarget<Pento>(
+      onWillAcceptWithDetails: (details) {
+        // Accepter seulement si c'est une pièce placée (pas du slider)
+        return state.selectedPlacedPiece != null;
+      },
+      onAcceptWithDetails: (details) {
+        // Retirer la pièce du plateau
+        if (state.selectedPlacedPiece != null) {
+          HapticFeedback.mediumImpact();
+          notifier.removePlacedPiece(state.selectedPlacedPiece!);
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        // Highlight visuel quand on survole avec une pièce placée
+        final isHovering = candidateData.isNotEmpty;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          height: isLandscape ? null : 140,
+          width: isLandscape ? 120 : null,
+          decoration: BoxDecoration(
+            color: isHovering ? Colors.red.shade50 : Colors.grey.shade100,
+            border: isHovering
+                ? Border.all(color: Colors.red.shade400, width: 3)
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: isLandscape ? const Offset(-2, 0) : const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Le slider
+              PieceSlider(isLandscape: isLandscape),
+
+              // Overlay de suppression au survol
+              if (isHovering)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Colors.red.withOpacity(0.1),
+                      child: Center(
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.8, end: 1.0),
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.elasticOut,
+                          builder: (context, scale, child) {
+                            return Transform.scale(
+                              scale: scale,
+                              child: child,
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade100,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.delete_outline,
+                              color: Colors.red.shade700,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   /// Layout portrait (classique) : plateau en haut, slider en bas
   Widget _buildPortraitLayout(
       BuildContext context,
@@ -323,21 +409,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
           child: GameBoard(isLandscape: false),
         ),
 
-        // Slider de pièces horizontal
-        Container(
-          height: 140,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: PieceSlider(isLandscape: false),
-        ),
+        // Slider de pièces horizontal AVEC DragTarget
+        _buildSliderWithDragTarget(ref: ref, isLandscape: false),
       ],
     );
   }
@@ -367,10 +440,10 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
             Container(
               width: 44,
               decoration: BoxDecoration(
-                color: Colors.white, // ← BLANC dans tous les modes
+                color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 2,
                     offset: const Offset(-1, 0),
                   ),
@@ -379,21 +452,8 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
               child: const ActionSlider(isLandscape: true),
             ),
 
-            // Slider de pièces vertical
-            Container(
-              width: 120,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(-2, 0),
-                  ),
-                ],
-              ),
-              child: PieceSlider(isLandscape: true),
-            ),
+            // Slider de pièces vertical AVEC DragTarget
+            _buildSliderWithDragTarget(ref: ref, isLandscape: true),
           ],
         ),
       ],

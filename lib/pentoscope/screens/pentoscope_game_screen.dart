@@ -1,10 +1,12 @@
 // lib/pentoscope/screens/pentoscope_game_screen.dart
 // Écran de jeu Pentoscope - calqué sur pentomino_game_screen.dart
+// MODIFICATION: Drag vers slider = retirer la pièce
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/models/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import '../pentoscope_provider.dart';
@@ -159,6 +161,84 @@ class PentoscopeGameScreen extends ConsumerWidget {
     ];
   }
 
+  // ============================================================================
+  // NOUVEAU: Widget slider avec DragTarget pour retirer les pièces
+  // ============================================================================
+
+  /// Construit le slider enveloppé dans un DragTarget
+  /// Quand on drag une pièce placée vers le slider, elle est retirée du plateau
+  Widget _buildSliderWithDragTarget({
+    required WidgetRef ref,
+    required bool isLandscape,
+    required Widget sliderChild,
+    required BoxDecoration decoration,
+    double? width,
+    double? height,
+  }) {
+    final state = ref.watch(pentoscopeProvider);
+    final notifier = ref.read(pentoscopeProvider.notifier);
+
+    return DragTarget<Pento>(
+      onWillAcceptWithDetails: (details) {
+        // Accepter seulement si c'est une pièce placée (pas du slider)
+        return state.selectedPlacedPiece != null;
+      },
+      onAcceptWithDetails: (details) {
+        // Retirer la pièce du plateau
+        if (state.selectedPlacedPiece != null) {
+          HapticFeedback.mediumImpact();
+          notifier.removePlacedPiece(state.selectedPlacedPiece!);
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        // Highlight visuel quand on survole avec une pièce placée
+        final isHovering = candidateData.isNotEmpty;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: width,
+          height: height,
+          decoration: decoration.copyWith(
+            border: isHovering
+                ? Border.all(color: Colors.red.shade400, width: 3)
+                : null,
+            color: isHovering
+                ? Colors.red.shade50
+                : decoration.color,
+          ),
+          child: Stack(
+            children: [
+              sliderChild,
+              // Icône poubelle qui apparaît au survol
+              if (isHovering)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: Colors.red.withOpacity(0.1),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red.shade700,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   /// Layout portrait : plateau en haut, slider en bas
   Widget _buildPortraitLayout(
       BuildContext context,
@@ -169,13 +249,15 @@ class PentoscopeGameScreen extends ConsumerWidget {
     return Column(
       children: [
         // Plateau de jeu
-        Expanded(
+        const Expanded(
           flex: 3,
-          child: const PentoscopeBoard(isLandscape: false),
+          child: PentoscopeBoard(isLandscape: false),
         ),
 
-        // Slider de pièces horizontal
-        Container(
+        // Slider de pièces horizontal avec DragTarget
+        _buildSliderWithDragTarget(
+          ref: ref,
+          isLandscape: false,
           height: 140,
           decoration: BoxDecoration(
             color: Colors.grey.shade100,
@@ -187,7 +269,7 @@ class PentoscopeGameScreen extends ConsumerWidget {
               ),
             ],
           ),
-          child: const PentoscopePieceSlider(isLandscape: false),
+          sliderChild: const PentoscopePieceSlider(isLandscape: false),
         ),
       ],
     );
@@ -249,8 +331,10 @@ class PentoscopeGameScreen extends ConsumerWidget {
               ),
             ),
 
-            // Slider de pièces vertical
-            Container(
+            // Slider de pièces vertical avec DragTarget
+            _buildSliderWithDragTarget(
+              ref: ref,
+              isLandscape: true,
               width: 120,
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
@@ -262,7 +346,7 @@ class PentoscopeGameScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              child: const PentoscopePieceSlider(isLandscape: true),
+              sliderChild: const PentoscopePieceSlider(isLandscape: true),
             ),
           ],
         ),
