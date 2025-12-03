@@ -1,5 +1,6 @@
 // lib/duel/models/duel_messages.dart
 // Messages WebSocket pour la communication duel
+// MODIFIÉ: Fallback ownerId/playerId pour compatibilité serveur
 
 import 'dart:convert';
 
@@ -321,9 +322,11 @@ class PiecePlacedMessage extends ServerMessage {
       x: json['x'] as int,
       y: json['y'] as int,
       orientation: json['orientation'] as int,
-      ownerId: json['ownerId'] as String,
-      ownerName: json['ownerName'] as String,
-      timestamp: json['timestamp'] as int,
+      // Fallback: accepte ownerId OU playerId
+      ownerId: (json['ownerId'] ?? json['playerId']) as String,
+      ownerName: (json['ownerName'] ?? json['playerName']) as String,
+      // Fallback: timestamp optionnel
+      timestamp: (json['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 }
@@ -340,7 +343,7 @@ class PlacementRejectedMessage extends ServerMessage {
 
   factory PlacementRejectedMessage.fromJson(Map<String, dynamic> json) {
     return PlacementRejectedMessage(
-      pieceId: json['pieceId'] as int,
+      pieceId: (json['pieceId'] as int?) ?? 0,
       reason: json['reason'] as String,
     );
   }

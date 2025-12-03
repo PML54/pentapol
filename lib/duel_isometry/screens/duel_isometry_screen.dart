@@ -1,7 +1,6 @@
 // lib/duel_isometry/screens/duel_isometry_screen.dart
-// Écran principal du jeu Duel Isométries
-// Mode : Reconstruire une configuration cible en appliquant les bonnes isométries
-// Scoring : Moins d'isométries gagne, égalité = plus rapide gagne
+// VERSION AVEC DEBUG AMÉLIORÉ POUR SIMULATEUR
+// Le seul changement : _tryPlacePiece a des logs plus détaillés
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -63,6 +62,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
   // Controllers
   final ScrollController _sliderController = ScrollController(keepScrollOffset: true);
   bool _sliderInitialized = false;
+  final GlobalKey _sliderKey = GlobalKey();
 
   // État des pièces (isométries appliquées)
   final Map<int, int> _piecePositionIndices = {};
@@ -89,7 +89,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
   }
 
   void _initializeGame() {
-    // Charger le puzzle et initialiser les positions des pièces
+    // Charger le puzzle et initialiser les positions des pièces avec les orientations INITIALES
     final state = ref.read(duelIsometryProvider);
     if (state.puzzle != null) {
       for (final piece in state.puzzle!.pieces) {
@@ -98,6 +98,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
     }
   }
 
+  /// Initialise la position du slider après le countdown
   void _initializeSliderPosition() {
     if (_sliderInitialized) return;
     _sliderInitialized = true;
@@ -120,7 +121,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       setState(() {
         _selectedPositionIndex = newIndex;
         _piecePositionIndices[_selectedPiece!.id] = newIndex;
-        _totalIsometries++; // Comptabiliser
+        _totalIsometries++;
       });
       _notifyIsometryChange();
       HapticFeedback.selectionClick();
@@ -138,7 +139,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       setState(() {
         _selectedPositionIndex = newIndex;
         _piecePositionIndices[_selectedPiece!.id] = newIndex;
-        _totalIsometries++; // Comptabiliser
+        _totalIsometries++;
       });
       _notifyIsometryChange();
       HapticFeedback.selectionClick();
@@ -152,7 +153,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       setState(() {
         _selectedPositionIndex = newIndex;
         _piecePositionIndices[_selectedPiece!.id] = newIndex;
-        _totalIsometries++; // Comptabiliser
+        _totalIsometries++;
       });
       _notifyIsometryChange();
       HapticFeedback.selectionClick();
@@ -166,7 +167,7 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       setState(() {
         _selectedPositionIndex = newIndex;
         _piecePositionIndices[_selectedPiece!.id] = newIndex;
-        _totalIsometries++; // Comptabiliser
+        _totalIsometries++;
       });
       _notifyIsometryChange();
       HapticFeedback.selectionClick();
@@ -207,9 +208,12 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
 
     // Écouter les changements d'état
     ref.listen<DuelIsometryState>(duelIsometryProvider, (previous, next) {
+      print('[LISTENER] État changé: ${previous?.gameState} → ${next.gameState}');
+
       // Initialiser le slider quand le jeu commence
       if (next.gameState == DuelIsometryGameState.playing &&
           previous?.gameState != DuelIsometryGameState.playing) {
+        print('[LISTENER] Jeu commence!');
         _startTime = DateTime.now();
         Future.delayed(const Duration(milliseconds: 200), () {
           _initializeSliderPosition();
@@ -219,12 +223,18 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       // Naviguer vers les résultats quand le round est terminé
       if (next.gameState == DuelIsometryGameState.roundEnded &&
           previous?.gameState != DuelIsometryGameState.roundEnded) {
+        print('[LISTENER] Round terminé!');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DuelIsometryResultScreen()),
         );
       }
     });
+
+    // Afficher l'écran d'attente si on attend un adversaire
+    if (state.gameState == DuelIsometryGameState.waiting) {
+      return _buildWaitingScreen(state);
+    }
 
     return WillPopScope(
       onWillPop: () async {
@@ -262,63 +272,8 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
                       ),
                     ),
 
-                  // === CIBLE EN MINIATURE ===
-                  if (state.puzzle != null)
-                    Container(
-                      height: 100,
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Miniature de la cible
-                          Expanded(
-                            flex: 2,
-                            child: _buildTargetPreview(state),
-                          ),
-                          // Indicateur "CIBLE"
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.flag, color: Colors.green, size: 28),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'CIBLE',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Iso: $_totalIsometries',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // === PLATEAU DE JEU ===
+                  // === PLATEAU DE JEU === (espace max pour voir les pièces)
                   Expanded(
-                    flex: 4,
                     child: _buildGameBoard(context, ref, state, settings),
                   ),
 
@@ -541,60 +496,76 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
   }
 
   // ============================================================
-  // MINIATURE DE LA CIBLE
-  // ============================================================
-
-  Widget _buildTargetPreview(DuelIsometryState state) {
-    if (state.puzzle == null) return const SizedBox();
-
-    final puzzle = state.puzzle!;
-    final grid = puzzle.targetGrid;
-    final rows = grid.length;
-    final cols = grid.isNotEmpty ? grid[0].length : 0;
-
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: AspectRatio(
-        aspectRatio: cols / rows,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                childAspectRatio: 1.0,
-              ),
-              itemCount: rows * cols,
-              itemBuilder: (context, index) {
-                final x = index % cols;
-                final y = index ~/ cols;
-                final pieceId = grid[y][x];
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: pieceId > 0 ? _getDuelColor(pieceId) : Colors.grey.shade300,
-                    border: Border.all(
-                      color: pieceId > 0 ? Colors.black : Colors.grey.shade400,
-                      width: 0.5,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
   // PLATEAU DE JEU
   // ============================================================
+
+  /// Vérifie si une pièce peut être placée à une position donnée
+  bool _canPlacePieceAt(
+      Pento piece,
+      int positionIndex,
+      int gridX,
+      int gridY,
+      DuelIsometryState state,
+      ) {
+    if (state.puzzle == null) return false;
+
+    final puzzle = state.puzzle!;
+    final position = piece.positions[positionIndex % piece.numPositions];
+
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      final x = gridX + localX;
+      final y = gridY + localY;
+
+      // Hors limites ?
+      if (x < 0 || x >= puzzle.width || y < 0 || y >= puzzle.height) {
+        return false;
+      }
+
+      // Case déjà occupée par une autre pièce ?
+      for (final placed in state.placedPieces) {
+        if (_isPieceAtCell(placed, x, y, puzzle)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /// Cherche la position valide la plus proche dans un rayon donné
+  _SnapResult? _findNearestValidPosition(
+      Pento piece,
+      int positionIndex,
+      int anchorX,
+      int anchorY,
+      DuelIsometryState state,
+      ) {
+    if (state.puzzle == null) return null;
+
+    const int snapRadius = 3;
+    _SnapResult? best;
+    double bestDistanceSquared = double.infinity;
+
+    for (int dx = -snapRadius; dx <= snapRadius; dx++) {
+      for (int dy = -snapRadius; dy <= snapRadius; dy++) {
+        final testX = anchorX + dx;
+        final testY = anchorY + dy;
+
+        if (_canPlacePieceAt(piece, positionIndex, testX, testY, state)) {
+          final distanceSquared = (dx * dx + dy * dy).toDouble();
+
+          if (distanceSquared < bestDistanceSquared) {
+            bestDistanceSquared = distanceSquared;
+            best = _SnapResult(testX, testY);
+          }
+        }
+      }
+    }
+
+    return best;
+  }
 
   Widget _buildGameBoard(BuildContext context, WidgetRef ref, DuelIsometryState state, settings) {
     if (state.puzzle == null) {
@@ -634,12 +605,32 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
                   final renderBox = context.findRenderObject() as RenderBox?;
                   if (renderBox == null) return;
                   final offset = renderBox.globalToLocal(details.offset);
-                  final x = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
-                  final y = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
-                  setState(() {
-                    _previewX = x;
-                    _previewY = y;
-                  });
+                  final rawX = (offset.dx / cellSize).floor();
+                  final rawY = (offset.dy / cellSize).floor();
+
+                  // Appliquer le snap intelligent
+                  if (_selectedPiece != null) {
+                    final snapped = _findNearestValidPosition(
+                      _selectedPiece!,
+                      _selectedPositionIndex,
+                      rawX,
+                      rawY,
+                      state,
+                    );
+
+                    if (snapped != null) {
+                      setState(() {
+                        _previewX = snapped.x;
+                        _previewY = snapped.y;
+                      });
+                    } else {
+                      // Pas de position valide proche
+                      setState(() {
+                        _previewX = null;
+                        _previewY = null;
+                      });
+                    }
+                  }
                 },
                 onLeave: (data) {
                   setState(() {
@@ -651,11 +642,24 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
                   final renderBox = context.findRenderObject() as RenderBox?;
                   if (renderBox == null) return;
                   final offset = renderBox.globalToLocal(details.offset);
-                  final x = (offset.dx / cellSize).floor().clamp(0, visualCols - 1);
-                  final y = (offset.dy / cellSize).floor().clamp(0, visualRows - 1);
+                  final rawX = (offset.dx / cellSize).floor();
+                  final rawY = (offset.dy / cellSize).floor();
+
+                  // Chercher la position valide la plus proche
                   if (_selectedPiece != null) {
-                    _tryPlacePiece(ref, state, x, y);
+                    final snapped = _findNearestValidPosition(
+                      _selectedPiece!,
+                      _selectedPositionIndex,
+                      rawX,
+                      rawY,
+                      state,
+                    );
+
+                    if (snapped != null) {
+                      _tryPlacePiece(ref, state, snapped.x, snapped.y);
+                    }
                   }
+
                   setState(() {
                     _previewX = null;
                     _previewY = null;
@@ -744,10 +748,10 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       borderColor = previewIsCorrect ? Colors.green : Colors.orange;
       borderWidth = 3.0;
     } else if (targetPieceId > 0) {
-      // GUIDE CIBLE (fantôme)
-      cellColor = _getDuelColor(targetPieceId).withOpacity(0.3);
-      borderColor = Colors.grey.shade500;
-      borderWidth = 1.0;
+      // GUIDE CIBLE (fantôme) - COULEURS VIVES ET CONTOURS ÉPAIS
+      cellColor = _getDuelColor(targetPieceId).withOpacity(0.6);
+      borderColor = Colors.black87;
+      borderWidth = 2.5;
     } else {
       // CASE VIDE
       cellColor = Colors.grey.shade300;
@@ -774,7 +778,8 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
 
   bool _isPieceAtCell(DuelIsometryPlacedPiece placed, int x, int y, IsometryPuzzle puzzle) {
     final piece = pentominos.firstWhere((p) => p.id == placed.pieceId);
-    final position = piece.positions[placed.positionIndex];
+    final safeIndex = placed.positionIndex % piece.positions.length;
+    final position = piece.positions[safeIndex];
 
     for (final cellNum in position) {
       final localX = (cellNum - 1) % 5;
@@ -787,7 +792,8 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
   }
 
   bool _isPiecePreviewAtCell(Pento piece, int posIndex, int anchorX, int anchorY, int cellX, int cellY) {
-    final position = piece.positions[posIndex];
+    final safeIndex = posIndex % piece.positions.length;
+    final position = piece.positions[safeIndex];
     for (final cellNum in position) {
       final localX = (cellNum - 1) % 5;
       final localY = (cellNum - 1) ~/ 5;
@@ -813,7 +819,10 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
   // ============================================================
 
   void _tryPlacePiece(WidgetRef ref, DuelIsometryState state, int x, int y) {
-    if (_selectedPiece == null) return;
+    if (_selectedPiece == null) {
+      print('[PLACE] ❌ _selectedPiece est NULL!');
+      return;
+    }
 
     final puzzle = state.puzzle!;
     final target = puzzle.pieces.firstWhere(
@@ -821,19 +830,27 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       orElse: () => puzzle.pieces.first,
     );
 
-    // Vérifier que la position ET l'orientation sont correctes
     final isCorrectPosition = (x == target.targetGridX && y == target.targetGridY);
     final isCorrectOrientation = (_selectedPositionIndex == target.targetPositionIndex);
 
+    // 🔴 DEBUG AMÉLIORÉ
+    print('═' * 60);
+    print('[PLACE] Tentative placement pièce ${_selectedPiece!.id}');
+    print('[PLACE] Position snappée: ($x, $y)  |  Cible: (${target.targetGridX}, ${target.targetGridY})');
+    print('[PLACE] Orientation: $_selectedPositionIndex  |  Cible: ${target.targetPositionIndex}');
+    print('[PLACE] Position OK: $isCorrectPosition | Orientation OK: $isCorrectOrientation');
+    print('═' * 60);
+
     if (!isCorrectPosition || !isCorrectOrientation) {
-      // Placement refusé - mauvaise position ou orientation
+      // Placement refusé
+      print('[PLACE] ❌ Placement refusé');
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             !isCorrectPosition
-                ? 'Mauvaise position !'
-                : 'Mauvaise orientation !',
+                ? 'Mauvaise position ! (reçu: $x,$y vs attendu: ${target.targetGridX},${target.targetGridY})'
+                : 'Mauvaise orientation ! (reçu: $_selectedPositionIndex vs attendu: ${target.targetPositionIndex})',
           ),
           duration: const Duration(milliseconds: 800),
           backgroundColor: Colors.orange,
@@ -842,7 +859,10 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       return;
     }
 
-    // Placement accepté
+    // Placement accepté ✅
+    print('[PLACE] ✅ PLACEMENT ACCEPTÉ');
+    print('[PLACE] Avant: ${state.placedPieces.length} pièces');
+
     ref.read(duelIsometryProvider.notifier).placePiece(
       pieceId: _selectedPiece!.id,
       gridX: x,
@@ -850,10 +870,15 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       positionIndex: _selectedPositionIndex,
     );
 
-    // Vérifier si le puzzle est complet
+    print('[PLACE] ✅ placePiece() appelé');
+    print('[PLACE] État après: (state n\'est pas mis à jour immédiatement)');
+
+    // Vérifier si puzzle complet
     final newPlacedCount = state.placedPieces.length + 1;
+    print('[PLACE] Pièces: ${state.placedPieces.length} → $newPlacedCount / ${puzzle.pieceCount}');
+
     if (newPlacedCount == puzzle.pieceCount) {
-      // Puzzle terminé !
+      print('[PLACE] 🎉 PUZZLE COMPLET!');
       final elapsedMs = DateTime.now().difference(_startTime!).inMilliseconds;
       ref.read(duelIsometryProvider.notifier).completePuzzle(
         totalIsometries: _totalIsometries,
@@ -861,13 +886,16 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       );
     }
 
-    // Notifier la progression
+    print('[PLACE] Appel _notifyIsometryChange()');
     _notifyIsometryChange();
 
     HapticFeedback.mediumImpact();
+    print('[PLACE] Appel setState()');
     setState(() {
       _selectedPiece = null;
     });
+
+    print('[PLACE] ✅ setState() complété');
   }
 
   // ============================================================
@@ -877,144 +905,185 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
   Widget _buildPieceSlider(BuildContext context, WidgetRef ref, DuelIsometryState state, settings) {
     if (state.puzzle == null) return const SizedBox();
 
-    // Filtrer les pièces disponibles (non encore placées)
+    final puzzle = state.puzzle!;
+
     final placedIds = state.placedPieces.map((p) => p.pieceId).toSet();
-    final availablePieces = state.puzzle!.pieces
-        .where((p) => !placedIds.contains(p.pieceId))
+    final puzzlePieceIds = puzzle.pieces.map((p) => p.pieceId).toSet();
+    final availablePieces = pentominos
+        .where((p) => puzzlePieceIds.contains(p.id) && !placedIds.contains(p.id))
         .toList();
 
     if (availablePieces.isEmpty) {
       return const Center(
         child: Text(
-          'Toutes les pièces sont placées !',
-          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+          '🎉 Toutes les pièces placées !',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       );
     }
 
-    return ListView.builder(
-      key: ValueKey('slider_${availablePieces.length}'),
-      controller: _sliderController,
-      scrollDirection: Axis.horizontal,
-      itemCount: availablePieces.length * DuelIsometrySliderConstants.itemsPerPage,
-      itemBuilder: (context, index) {
-        final targetPiece = availablePieces[index % availablePieces.length];
-        final piece = pentominos.firstWhere((p) => p.id == targetPiece.pieceId);
-        final posIndex = _piecePositionIndices[piece.id] ?? targetPiece.initialPositionIndex;
-        final isSelected = _selectedPiece?.id == piece.id;
+    final useInfiniteScroll = availablePieces.length >= 4;
+    final totalItems = useInfiniteScroll
+        ? availablePieces.length * DuelIsometrySliderConstants.itemsPerPage
+        : availablePieces.length;
 
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              if (_selectedPiece?.id == piece.id) {
-                _selectedPiece = null;
-              } else {
-                _selectedPiece = piece;
-                _selectedPositionIndex = posIndex;
-              }
-            });
-            HapticFeedback.selectionClick();
-          },
-          child: Draggable<Pento>(
-            data: piece,
-            onDragStarted: () {
-              setState(() {
-                _selectedPiece = piece;
-                _selectedPositionIndex = posIndex;
-              });
-            },
-            feedback: _buildDraggablePiece(piece, posIndex),
-            childWhenDragging: Opacity(
-              opacity: 0.3,
-              child: _buildSliderPiece(piece, posIndex, false),
-            ),
-            child: _buildSliderPiece(piece, posIndex, isSelected),
-          ),
-        );
+    return ListView.builder(
+      key: _sliderKey,
+      controller: useInfiniteScroll ? _sliderController : null,
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: totalItems,
+      itemBuilder: (context, index) {
+        final pieceIndex = index % availablePieces.length;
+        final piece = availablePieces[pieceIndex];
+        return _buildDraggablePieceItem(piece, state, settings);
       },
     );
   }
 
-  Widget _buildSliderPiece(Pento piece, int posIndex, bool isSelected) {
-    return Container(
-      width: DuelIsometrySliderConstants.itemSize,
-      height: DuelIsometrySliderConstants.itemSize,
-      margin: const EdgeInsets.all(8),
+  /// Élément draggable du slider
+  Widget _buildDraggablePieceItem(Pento piece, DuelIsometryState state, settings) {
+    final isSelected = _selectedPiece?.id == piece.id;
+    final positionIndex = isSelected
+        ? _selectedPositionIndex
+        : (_piecePositionIndices[piece.id] ?? 0);
+
+    final pieceContainer = Container(
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        color: isSelected ? Colors.amber.shade100 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey.shade300,
-          width: isSelected ? 3 : 1,
+          color: isSelected ? Colors.amber.shade700 : Colors.grey.shade400,
+          width: isSelected ? 3 : 2,
         ),
         boxShadow: isSelected
-            ? [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 8)]
-            : null,
+            ? [BoxShadow(color: Colors.amber.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))]
+            : [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
       ),
-      child: _buildPieceMiniature(piece, posIndex),
-    );
-  }
-
-  Widget _buildDraggablePiece(Pento piece, int posIndex) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: _getDuelColor(piece.id).withOpacity(0.8),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              color: _getDuelColor(piece.id),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              piece.id.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: _buildPieceWidget(piece, positionIndex),
+            ),
           ),
         ],
       ),
-      child: _buildPieceMiniature(piece, posIndex),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: LongPressDraggable<Pento>(
+        data: piece,
+        delay: const Duration(milliseconds: 150),
+        hapticFeedbackOnStart: true,
+        onDragStarted: () {
+          setState(() {
+            _selectedPiece = piece;
+            _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+          });
+        },
+        feedback: Material(
+          color: Colors.transparent,
+          child: Transform.scale(
+            scale: 1.2,
+            child: _buildPieceWidget(piece, positionIndex, isDragging: true),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.3, child: pieceContainer),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                if (isSelected) {
+                  _selectedPositionIndex = (_selectedPositionIndex + 1) % piece.numPositions;
+                  _piecePositionIndices[piece.id] = _selectedPositionIndex;
+                } else {
+                  _selectedPiece = piece;
+                  _selectedPositionIndex = _piecePositionIndices[piece.id] ?? 0;
+                }
+              });
+            },
+            onDoubleTap: () {
+              HapticFeedback.mediumImpact();
+            },
+            onLongPress: () {
+              HapticFeedback.lightImpact();
+              setState(() {
+                _selectedPiece = null;
+              });
+            },
+            child: pieceContainer,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildPieceMiniature(Pento piece, int posIndex) {
-    final position = piece.positions[posIndex];
-    final coords = position.map((n) => [(n - 1) % 5, (n - 1) ~/ 5]).toList();
+  Widget _buildPieceWidget(Pento piece, int positionIndex, {bool isDragging = false}) {
+    final position = piece.positions[positionIndex % piece.numPositions];
+    final color = _getDuelColor(piece.id);
 
-    final minX = coords.map((c) => c[0]).reduce((a, b) => a < b ? a : b);
-    final maxX = coords.map((c) => c[0]).reduce((a, b) => a > b ? a : b);
-    final minY = coords.map((c) => c[1]).reduce((a, b) => a < b ? a : b);
-    final maxY = coords.map((c) => c[1]).reduce((a, b) => a > b ? a : b);
+    int minX = 5, maxX = 0, minY = 5, maxY = 0;
+    for (final cellNum in position) {
+      final x = (cellNum - 1) % 5;
+      final y = (cellNum - 1) ~/ 5;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
 
-    final gridWidth = maxX - minX + 1;
-    final gridHeight = maxY - minY + 1;
+    final width = maxX - minX + 1;
+    final height = maxY - minY + 1;
+    const cellSize = 18.0;
 
-    final normalizedCoords = coords.map((c) => [c[0] - minX, c[1] - minY]).toSet();
+    return SizedBox(
+      width: width * cellSize,
+      height: height * cellSize,
+      child: Stack(
+        children: position.map((cellNum) {
+          final x = (cellNum - 1) % 5 - minX;
+          final y = (cellNum - 1) ~/ 5 - minY;
 
-    return Center(
-      child: AspectRatio(
-        aspectRatio: gridWidth / gridHeight,
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: gridWidth,
-            childAspectRatio: 1.0,
-          ),
-          itemCount: gridWidth * gridHeight,
-          itemBuilder: (context, index) {
-            final x = index % gridWidth;
-            final y = index ~/ gridWidth;
-            final isFilled = normalizedCoords.contains([x, y]);
-
-            return Container(
-              margin: const EdgeInsets.all(0.5),
+          return Positioned(
+            left: x * cellSize,
+            top: y * cellSize,
+            child: Container(
+              width: cellSize,
+              height: cellSize,
               decoration: BoxDecoration(
-                color: isFilled ? _getDuelColor(piece.id) : Colors.transparent,
-                border: isFilled
-                    ? Border.all(color: Colors.black, width: 0.5)
-                    : null,
+                color: isDragging ? color.withOpacity(0.9) : color,
+                border: Border.all(
+                  color: Colors.black,
+                  width: 1.5,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -1061,4 +1130,108 @@ class _DuelIsometryScreenState extends ConsumerState<DuelIsometryScreen> {
       ),
     );
   }
+
+  Widget _buildWaitingScreen(DuelIsometryState state) {
+    final roomCode = state.roomCode ?? '----';
+    final hasOpponent = state.opponent != null;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Duel Isométries'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () {
+            ref.read(duelIsometryProvider.notifier).leaveRoom();
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.rotate_90_degrees_ccw, size: 64, color: Colors.purple.shade400),
+              const SizedBox(height: 24),
+              const Text(
+                'CODE DE LA PARTIE',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.purple, width: 2),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      roomCode,
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 8,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(Icons.copy, color: Colors.purple),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: roomCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Code copié !'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 48),
+              if (!hasOpponent) ...[
+                const CircularProgressIndicator(color: Colors.purple),
+                const SizedBox(height: 24),
+                const Text(
+                  'En attente d\'un adversaire...',
+                  style: TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Partagez le code ci-dessus',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+              ] else ...[
+                const Icon(Icons.check_circle, color: Colors.green, size: 64),
+                const SizedBox(height: 16),
+                Text(
+                  '${state.opponent!.name} a rejoint !',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('La partie va commencer...'),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Helper pour le snap
+class _SnapResult {
+  final int x, y;
+  const _SnapResult(this.x, this.y);
 }

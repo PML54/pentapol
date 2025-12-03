@@ -255,3 +255,5 @@ flutter build web --release
 **Dernière mise à jour** : 1er décembre 2025  
 **Statut** : ✅ Icônes générées avec succès
 
+
+

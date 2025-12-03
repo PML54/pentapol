@@ -1,6 +1,6 @@
-// Modified: 2025-12-01 01:00:00
+// Modified: 2025-12-02
 // lib/screens/home_screen.dart
-// Menu principal simplifié - Système Race supprimé
+// Menu principal avec Duel Isométries
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +9,8 @@ import 'pentomino_game_screen.dart';
 import 'settings_screen.dart';
 import 'solutions_browser_screen.dart';
 import '../duel/screens/duel_home_screen.dart';
+import '../duel_isometry/screens/duel_isometry_lobby_screen.dart';
+import '../pentoscope/screens/pentoscope_menu_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -81,19 +83,57 @@ class HomeScreen extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-          // Mode Duel
+          // Pentoscope
           _buildMenuCard(
             context: context,
-            title: 'Mode Duel',
-            subtitle: 'Affrontez un adversaire en temps réel',
+            title: 'Pentoscope',
+            subtitle: 'Mini-puzzles pour débutants (3-6 pièces)',
+            icon: Icons.auto_awesome,
+            color: Colors.teal,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PentoscopeMenuScreen(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Mode Duel Classique
+          _buildMenuCard(
+            context: context,
+            title: 'Duel Classique',
+            subtitle: 'Course aux placements en temps réel',
             icon: Icons.people,
             color: Colors.orange,
-            badge: 'NOUVEAU',
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => const DuelHomeScreen(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Mode Duel Isométries - NOUVEAU
+          _buildMenuCard(
+            context: context,
+            title: 'Duel Isométries',
+            subtitle: 'Reconstruisez la cible avec le moins de transformations',
+            icon: Icons.rotate_90_degrees_ccw,
+            color: Colors.purple,
+            badge: 'NOUVEAU',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DuelIsometryLobbyScreen(),
                 ),
               );
             },
@@ -126,10 +166,9 @@ class HomeScreen extends ConsumerWidget {
             title: 'Tutoriels',
             subtitle: 'Apprendre à jouer avec des guides interactifs',
             icon: Icons.school,
-            color: Colors.purple,
+            color: Colors.blueGrey,
             enabled: false,
             onTap: () {
-              // TODO: Implémenter menu tutoriels
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Tutoriels à venir prochainement'),
@@ -288,4 +327,3 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 }
-
