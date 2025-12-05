@@ -21,7 +21,6 @@ dependencies:
   drift: ^2.29.0
   drift_flutter: ^0.2.7
   sqlite3_flutter_libs: ^0.5.40
-  supabase_flutter: ^2.10.3
   package_info_plus: ^9.0.0
   url_launcher: ^6.3.2
   share_plus: ^12.0.1

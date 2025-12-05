@@ -1,287 +1,279 @@
-// lib/duel_isometry/screens/duel_isometry_result_screen.dart
-// Écran de résultat d'un round
+// lib/duel/screens/duel_result_screen.dart
+// Écran de résultat de la partie
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../providers/duel_isometry_provider.dart';
 import '../models/duel_isometry_state.dart';
+import 'duel_isometry_home_screen.dart';
 
-class DuelIsometryResultScreen extends ConsumerWidget {
-  const DuelIsometryResultScreen({super.key});
+class DuelResultScreen extends ConsumerWidget {
+  const DuelResultScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(duelIsometryProvider);
-    final result = state.roundResult;
+    final duelState = ref.watch(duelIsometryProvider);
 
-    if (result == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final isWinner = result.winnerId == state.localPlayer?.id;
-    final isTie = result.winnerId == null;
+    final isWinner = duelState.isWinner;
+    final isDraw = duelState.isDraw;
+    final localScore = duelState.localScore;
+    final opponentScore = duelState.opponentScore;
+    final localName = duelState.localPlayer?.name ?? 'Vous';
+    final opponentName = duelState.opponent?.name ?? 'Adversaire';
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: Text('Round ${state.roundNumber} terminé'),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // Titre résultat
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isWinner
-                      ? Colors.green.shade100
-                      : (isTie ? Colors.amber.shade100 : Colors.red.shade100),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isWinner
-                        ? Colors.green
-                        : (isTie ? Colors.amber : Colors.red),
-                    width: 2,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDraw
+                ? [Colors.grey.shade300, Colors.grey.shade100]
+                : isWinner
+                ? [Colors.green.shade300, Colors.green.shade50]
+                : [Colors.red.shade300, Colors.red.shade50],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(),
+
+                // Icône
+                Icon(
+                  isDraw
+                      ? Icons.handshake
+                      : isWinner
+                      ? Icons.emoji_events
+                      : Icons.sentiment_dissatisfied,
+                  size: 100,
+                  color: isDraw
+                      ? Colors.grey.shade700
+                      : isWinner
+                      ? Colors.amber
+                      : Colors.red.shade700,
+                ),
+                const SizedBox(height: 24),
+
+                // Titre
+                Text(
+                  isDraw
+                      ? 'Égalité !'
+                      : isWinner
+                      ? 'Victoire ! 🎉'
+                      : 'Défaite...',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: isDraw
+                        ? Colors.grey.shade800
+                        : isWinner
+                        ? Colors.green.shade800
+                        : Colors.red.shade800,
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Icon(
-                      isWinner
-                          ? Icons.emoji_events
-                          : (isTie ? Icons.handshake : Icons.sentiment_dissatisfied),
-                      size: 48,
-                      color: isWinner
-                          ? Colors.amber
-                          : (isTie ? Colors.orange : Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      isWinner
-                          ? 'VICTOIRE !'
-                          : (isTie ? 'ÉGALITÉ' : 'DÉFAITE'),
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: isWinner
-                            ? Colors.green.shade800
-                            : (isTie ? Colors.amber.shade800 : Colors.red.shade800),
+                const SizedBox(height: 32),
+
+                // Scores
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    if (!isTie)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          isWinner
-                              ? 'Moins d\'isométries !'
-                              : 'L\'adversaire a utilisé moins d\'isométries',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Joueur local
+                      _ScoreRow(
+                        name: localName,
+                        score: localScore,
+                        isWinner: isWinner && !isDraw,
+                        isLocal: true,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(),
+                      ),
+                      // Adversaire
+                      _ScoreRow(
+                        name: opponentName,
+                        score: opponentScore,
+                        isWinner: !isWinner && !isDraw,
+                        isLocal: false,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Détails
+                Text(
+                  'Pièces totales placées: ${localScore + opponentScore}/12',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
+                ),
+
+                const Spacer(),
+
+                // Boutons
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Revanche - retourner au lobby
+                      ref.read(duelIsometryProvider.notifier).leaveRoom();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DuelIsometryHomeScreen(),
                         ),
+                            (route) => false,
+                      );
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text(
+                      'Nouvelle partie',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Comparaison des stats
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPlayerStats(
-                      name: state.localPlayer?.name ?? 'Vous',
-                      isometries: result.localIsometries,
-                      optimal: result.optimalIsometries,
-                      timeMs: result.localTimeMs,
-                      isWinner: isWinner,
-                      color: Colors.cyan,
                     ),
                   ),
-                  Container(
-                    width: 2,
-                    height: 180,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildPlayerStats(
-                      name: state.opponent?.name ?? 'Adversaire',
-                      isometries: result.opponentIsometries,
-                      optimal: result.optimalIsometries,
-                      timeMs: result.opponentTimeMs,
-                      isWinner: !isWinner && !isTie,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // Score global
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade900,
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${state.localScore}',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.cyan,
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        '-',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${state.opponentScore}',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                const SizedBox(height: 12),
 
-              const Spacer(),
-
-              // Bouton continuer
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
+                // Bouton retour menu principal
+                TextButton(
                   onPressed: () {
-                    // TODO: Lancer le prochain round ou retourner au menu
-                    Navigator.pop(context);
+                    ref.read(duelIsometryProvider.notifier).leaveRoom();
+                    Navigator.popUntil(context, (route) => route.isFirst);
                   },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
                   child: Text(
-                    state.roundNumber < state.totalRounds
-                        ? 'Round suivant'
-                        : 'Voir résultat final',
-                    style: const TextStyle(fontSize: 18),
+                    'Retour au menu principal',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildPlayerStats({
-    required String name,
-    required int isometries,
-    required int optimal,
-    required int timeMs,
-    required bool isWinner,
-    required Color color,
-  }) {
-    final efficiency = optimal > 0 && isometries > 0
-        ? (optimal / isometries * 100).clamp(0.0, 100.0)
-        : 0.0;
-    final timeSeconds = timeMs / 1000;
-    final timeStr = '${timeSeconds.toStringAsFixed(1)}s';
+class _ScoreRow extends StatelessWidget {
+  final String name;
+  final int score;
+  final bool isWinner;
+  final bool isLocal;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isWinner ? color.withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: isWinner ? Border.all(color: color, width: 2) : null,
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+  const _ScoreRow({
+    required this.name,
+    required this.score,
+    required this.isWinner,
+    required this.isLocal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Icône joueur
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isLocal ? Colors.blue.shade100 : Colors.grey.shade200,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isLocal ? Icons.person : Icons.person_outline,
+            color: isLocal ? Colors.blue : Colors.grey,
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Nom
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isWinner)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Icon(Icons.star, color: Colors.amber, size: 20),
-                ),
-              Flexible(
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isWinner ? Colors.green.shade700 : Colors.black87,
                 ),
               ),
+              if (isLocal)
+                Text(
+                  'Vous',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildStatRow('Isométries', '$isometries', color),
-          _buildStatRow('Optimal', '$optimal', Colors.grey.shade600),
-          _buildStatRow(
-            'Efficacité',
-            '${efficiency.toStringAsFixed(1)}%',
-            efficiency >= 80
-                ? Colors.green
-                : (efficiency >= 60 ? Colors.orange : Colors.red),
-          ),
-          _buildStatRow('Temps', timeStr, Colors.grey.shade600),
-        ],
-      ),
-    );
-  }
+        ),
 
-  Widget _buildStatRow(String label, String value, Color valueColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        // Score
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isWinner ? Colors.green.shade100 : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: valueColor,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$score',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isWinner ? Colors.green.shade700 : Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'pièces',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              if (isWinner) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+              ],
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

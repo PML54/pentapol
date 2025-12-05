@@ -9,7 +9,8 @@ import 'pentomino_game_screen.dart';
 import 'settings_screen.dart';
 import 'solutions_browser_screen.dart';
 import '../duel/screens/duel_home_screen.dart';
-import '../duel_isometry/screens/duel_isometry_lobby_screen.dart';
+import '../duel_isometry/screens/duel_isometry_home_screen.dart';
+
 import '../pentoscope/screens/pentoscope_menu_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -133,7 +134,7 @@ class HomeScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const DuelIsometryLobbyScreen(),
+                  builder: (_) => const DuelIsometryHomeScreen(),
                 ),
               );
             },

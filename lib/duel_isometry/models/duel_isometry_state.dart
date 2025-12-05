@@ -1,23 +1,128 @@
 // lib/duel_isometry/models/duel_isometry_state.dart
-// État complet du jeu Duel Isométries
+// État d'une partie duel isométries
 
-// NOTE: On importe isometry_puzzle.dart pour les types TargetPiece et IsometryPuzzle
-// mais on s'assure qu'il n'y a pas de classes dupliquées entre les deux fichiers
-import '../services/isometry_puzzle.dart' show IsometryPuzzle, TargetPiece;
+import 'package:flutter/foundation.dart';
+import 'package:pentapol/models/plateau.dart';
 
-// ============================================================================
-// ENUMS
-// ============================================================================
+/// État d'une partie duel isométries
+@immutable
+class DuelIsometryState {
+  /// Code de la room (ex: "ABC123")
+  final String? roomCode;
 
-enum DuelIsometryGameState {
-  waiting,    // En attente d'un adversaire
-  countdown,  // Countdown avant le début du round
-  playing,    // Round en cours
-  roundEnded, // Round terminé, affichage des résultats
-  matchEnded, // Match terminé (tous les rounds joués)
+  /// État de la connexion
+  final DuelConnectionState connectionState;
+
+  /// État de la partie
+  final DuelGameState gameState;
+
+  /// Joueur local (moi)
+  final DuelPlayer? localPlayer;
+
+  /// Joueur adverse
+  final DuelPlayer? opponent;
+
+  /// ID de la solution choisie (parmi les 9356)
+  final int? solutionId;
+
+  /// Plateau généré pour duel isometry (5×5, 4×5, 3×5)
+  final Plateau? plateau;
+
+  /// Pièces placées sur le plateau partagé
+  final List<DuelIsometryPlacedPiece> placedPieces;
+
+  /// Temps restant en secondes
+  final int? timeRemaining;
+
+  /// Message d'erreur éventuel
+  final String? errorMessage;
+
+  /// Compte à rebours avant démarrage (3, 2, 1, null)
+  final int? countdown;
+
+  const DuelIsometryState({
+    this.roomCode,
+    this.connectionState = DuelConnectionState.disconnected,
+    this.gameState = DuelGameState.idle,
+    this.localPlayer,
+    this.opponent,
+    this.solutionId,
+    this.plateau,
+    this.placedPieces = const [],
+    this.timeRemaining,
+    this.errorMessage,
+    this.countdown,
+  });
+
+  /// État initial
+  factory DuelIsometryState.initial() => const DuelIsometryState();
+
+  /// Copie avec modifications
+  DuelIsometryState copyWith({
+    String? roomCode,
+    bool clearRoomCode = false,
+    DuelConnectionState? connectionState,
+    DuelGameState? gameState,
+    DuelPlayer? localPlayer,
+    bool clearLocalPlayer = false,
+    DuelPlayer? opponent,
+    bool clearOpponent = false,
+    int? solutionId,
+    bool clearSolutionId = false,
+    Plateau? plateau,
+    bool clearPlateau = false,
+    List<DuelIsometryPlacedPiece>? placedPieces,
+    int? timeRemaining,
+    bool clearTimeRemaining = false,
+    String? errorMessage,
+    bool clearErrorMessage = false,
+    int? countdown,
+    bool clearCountdown = false,
+  }) {
+    return DuelIsometryState(
+      roomCode: clearRoomCode ? null : (roomCode ?? this.roomCode),
+      connectionState: connectionState ?? this.connectionState,
+      gameState: gameState ?? this.gameState,
+      localPlayer: clearLocalPlayer ? null : (localPlayer ?? this.localPlayer),
+      opponent: clearOpponent ? null : (opponent ?? this.opponent),
+      solutionId: clearSolutionId ? null : (solutionId ?? this.solutionId),
+      plateau: clearPlateau ? null : (plateau ?? this.plateau),
+      placedPieces: placedPieces ?? this.placedPieces,
+      timeRemaining: clearTimeRemaining ? null : (timeRemaining ?? this.timeRemaining),
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      countdown: clearCountdown ? null : (countdown ?? this.countdown),
+    );
+  }
+
+  /// Score du joueur local
+  int get localScore => placedPieces
+      .where((p) => p.ownerId == localPlayer?.id)
+      .length;
+
+  /// Score de l'adversaire
+  int get opponentScore => placedPieces
+      .where((p) => p.ownerId == opponent?.id)
+      .length;
+
+  /// La partie est-elle en cours ?
+  bool get isPlaying => gameState == DuelGameState.playing;
+
+  /// La partie est-elle terminée ?
+  bool get isGameOver => gameState == DuelGameState.ended;
+
+  /// Suis-je le gagnant ?
+  bool get isWinner => isGameOver && localScore > opponentScore;
+
+  /// Est-ce une égalité ?
+  bool get isDraw => isGameOver && localScore == opponentScore;
+
+  /// En attente d'un adversaire ?
+  bool get isWaitingForOpponent =>
+      gameState == DuelGameState.waiting && opponent == null;
 }
 
-enum DuelIsometryConnectionState {
+/// État de la connexion WebSocket
+enum DuelConnectionState {
   disconnected,
   connecting,
   connected,
@@ -25,276 +130,104 @@ enum DuelIsometryConnectionState {
   error,
 }
 
-// ============================================================================
-// MODELS
-// ============================================================================
+/// État de la partie
+enum DuelGameState {
+  idle,        // Pas de partie
+  waiting,     // En attente d'un adversaire
+  countdown,   // Compte à rebours (3, 2, 1)
+  playing,     // Partie en cours
+  ended,       // Partie terminée
+}
 
-/// Joueur
-class DuelIsometryPlayer {
+/// Joueur dans une partie duel
+@immutable
+class DuelPlayer {
   final String id;
   final String name;
+  final bool isReady;
+  final bool isConnected;
 
-  const DuelIsometryPlayer({
+  const DuelPlayer({
     required this.id,
     required this.name,
+    this.isReady = false,
+    this.isConnected = true,
   });
 
-  DuelIsometryPlayer copyWith({String? id, String? name}) {
-    return DuelIsometryPlayer(
+  DuelPlayer copyWith({
+    String? id,
+    String? name,
+    bool? isReady,
+    bool? isConnected,
+  }) {
+    return DuelPlayer(
       id: id ?? this.id,
       name: name ?? this.name,
+      isReady: isReady ?? this.isReady,
+      isConnected: isConnected ?? this.isConnected,
     );
   }
 
-  @override
-  String toString() => 'Player($name, $id)';
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'isReady': isReady,
+    'isConnected': isConnected,
+  };
+
+  factory DuelPlayer.fromJson(Map<String, dynamic> json) {
+    return DuelPlayer(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isReady: json['isReady'] as bool? ?? false,
+      isConnected: json['isConnected'] as bool? ?? true,
+    );
+  }
 }
 
-/// Pièce placée sur le plateau
+/// Pièce placée dans une partie duel
+@immutable
 class DuelIsometryPlacedPiece {
-  final int pieceId;
-  final int gridX;
-  final int gridY;
-  final int positionIndex;
-  final String ownerId;
+  final int pieceId;        // 1-12
+  final int x;              // Position X sur le plateau
+  final int y;              // Position Y sur le plateau
+  final int orientation;    // Index d'orientation (0-7)
+  final String ownerId;     // ID du joueur qui a placé
+  final String ownerName;   // Nom du joueur
+  final int timestamp;      // Timestamp serveur
 
   const DuelIsometryPlacedPiece({
     required this.pieceId,
-    required this.gridX,
-    required this.gridY,
-    required this.positionIndex,
+    required this.x,
+    required this.y,
+    required this.orientation,
     required this.ownerId,
+    required this.ownerName,
+    required this.timestamp,
   });
 
-  @override
-  String toString() => 'Placed($pieceId at $gridX,$gridY pos$positionIndex)';
-}
+  Map<String, dynamic> toJson() => {
+    'pieceId': pieceId,
+    'x': x,
+    'y': y,
+    'orientation': orientation,
+    'ownerId': ownerId,
+    'ownerName': ownerName,
+    'timestamp': timestamp,
+  };
 
-/// Résultat d'un round
-class RoundResult {
-  final String? winnerId;
-  final int localIsometries;
-  final int localTimeMs;
-  final int opponentIsometries;
-  final int opponentTimeMs;
-  final int optimalIsometries;
-
-  const RoundResult({
-    this.winnerId,
-    required this.localIsometries,
-    required this.localTimeMs,
-    required this.opponentIsometries,
-    required this.opponentTimeMs,
-    required this.optimalIsometries,
-  });
-
-  /// Efficacité du joueur local (100% = optimal)
-  double get localEfficiency {
-    if (localIsometries == 0) return optimalIsometries == 0 ? 100.0 : 0.0;
-    return (optimalIsometries / localIsometries * 100).clamp(0.0, 100.0);
-  }
-
-  /// Efficacité de l'adversaire
-  double get opponentEfficiency {
-    if (opponentIsometries == 0) return optimalIsometries == 0 ? 100.0 : 0.0;
-    return (optimalIsometries / opponentIsometries * 100).clamp(0.0, 100.0);
-  }
-
-  /// Temps local formaté
-  String get localTimeFormatted {
-    final seconds = localTimeMs / 1000;
-    return '${seconds.toStringAsFixed(1)}s';
-  }
-
-  /// Temps adversaire formaté
-  String get opponentTimeFormatted {
-    final seconds = opponentTimeMs / 1000;
-    return '${seconds.toStringAsFixed(1)}s';
-  }
-}
-
-// ============================================================================
-// STATE PRINCIPAL
-// ============================================================================
-
-/// État complet du Duel Isométries
-class DuelIsometryState {
-  // --- Connexion ---
-  final DuelIsometryConnectionState connectionState;
-  final String? roomCode;
-  final String? errorMessage;
-
-  // --- État du jeu ---
-  final DuelIsometryGameState gameState;
-  final int? countdown;
-  final int? elapsedTime; // Temps écoulé en secondes
-
-  // --- Joueurs ---
-  final DuelIsometryPlayer? localPlayer;
-  final DuelIsometryPlayer? opponent;
-
-  // --- Puzzle actuel ---
-  final IsometryPuzzle? puzzle;
-  final int roundNumber;
-  final int totalRounds;
-  final int optimalIsometries;
-
-  // --- Pièces placées (joueur local uniquement) ---
-  final List<DuelIsometryPlacedPiece> placedPieces;
-
-  // --- Progression locale ---
-  final bool localCompleted;
-  final int localIsometries;
-  final int localTimeMs;
-
-  // --- Progression adversaire (live) ---
-  final int opponentPlacedPieces;
-  final int opponentIsometries;
-  final bool opponentCompleted;
-  final int opponentTimeMs;
-
-  // --- Scores globaux ---
-  final int localScore;
-  final int opponentScore;
-
-  // --- Résultat du round ---
-  final RoundResult? roundResult;
-
-  const DuelIsometryState({
-    this.connectionState = DuelIsometryConnectionState.disconnected,
-    this.roomCode,
-    this.errorMessage,
-    this.gameState = DuelIsometryGameState.waiting,
-    this.countdown,
-    this.elapsedTime,
-    this.localPlayer,
-    this.opponent,
-    this.puzzle,
-    this.roundNumber = 1,
-    this.totalRounds = 4,
-    this.optimalIsometries = 0,
-    this.placedPieces = const [],
-    this.localCompleted = false,
-    this.localIsometries = 0,
-    this.localTimeMs = 0,
-    this.opponentPlacedPieces = 0,
-    this.opponentIsometries = 0,
-    this.opponentCompleted = false,
-    this.opponentTimeMs = 0,
-    this.localScore = 0,
-    this.opponentScore = 0,
-    this.roundResult,
-  });
-
-  // --- Getters utiles ---
-
-  /// Le jeu est-il en cours ?
-  bool get isPlaying => gameState == DuelIsometryGameState.playing;
-
-  /// Un adversaire est-il connecté ?
-  bool get hasOpponent => opponent != null;
-
-  /// Nombre de pièces dans le puzzle actuel
-  int get totalPieces => puzzle?.pieceCount ?? 0;
-
-  /// Nombre de pièces correctement placées par le joueur local
-  int get localPlacedCount => placedPieces.length;
-
-  /// Progression locale en pourcentage (0-100)
-  double get localProgressPercent {
-    if (totalPieces == 0) return 0.0;
-    return (localPlacedCount / totalPieces * 100).clamp(0.0, 100.0);
-  }
-
-  /// Progression adversaire en pourcentage
-  double get opponentProgressPercent {
-    if (totalPieces == 0) return 0.0;
-    return (opponentPlacedPieces / totalPieces * 100).clamp(0.0, 100.0);
-  }
-
-  /// Temps écoulé formaté (MM:SS)
-  String get elapsedTimeFormatted {
-    final time = elapsedTime ?? 0;
-    final minutes = time ~/ 60;
-    final seconds = time % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  /// Est-ce le dernier round ?
-  bool get isLastRound => roundNumber >= totalRounds;
-
-  /// Le match est-il terminé (un joueur a gagné) ?
-  bool get isMatchOver {
-    final requiredWins = (totalRounds / 2).ceil();
-    return localScore >= requiredWins || opponentScore >= requiredWins;
-  }
-
-  // --- CopyWith ---
-
-  DuelIsometryState copyWith({
-    DuelIsometryConnectionState? connectionState,
-    String? roomCode,
-    String? errorMessage,
-    DuelIsometryGameState? gameState,
-    int? countdown,
-    int? elapsedTime,
-    DuelIsometryPlayer? localPlayer,
-    DuelIsometryPlayer? opponent,
-    IsometryPuzzle? puzzle,
-    int? roundNumber,
-    int? totalRounds,
-    int? optimalIsometries,
-    List<DuelIsometryPlacedPiece>? placedPieces,
-    bool? localCompleted,
-    int? localIsometries,
-    int? localTimeMs,
-    int? opponentPlacedPieces,
-    int? opponentIsometries,
-    bool? opponentCompleted,
-    int? opponentTimeMs,
-    int? localScore,
-    int? opponentScore,
-    RoundResult? roundResult,
-    // Flags de reset
-    bool clearError = false,
-    bool clearOpponent = false,
-    bool clearRoundResult = false,
-  }) {
-    return DuelIsometryState(
-      connectionState: connectionState ?? this.connectionState,
-      roomCode: roomCode ?? this.roomCode,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      gameState: gameState ?? this.gameState,
-      countdown: countdown ?? this.countdown,
-      elapsedTime: elapsedTime ?? this.elapsedTime,
-      localPlayer: localPlayer ?? this.localPlayer,
-      opponent: clearOpponent ? null : (opponent ?? this.opponent),
-      puzzle: puzzle ?? this.puzzle,
-      roundNumber: roundNumber ?? this.roundNumber,
-      totalRounds: totalRounds ?? this.totalRounds,
-      optimalIsometries: optimalIsometries ?? this.optimalIsometries,
-      placedPieces: placedPieces ?? this.placedPieces,
-      localCompleted: localCompleted ?? this.localCompleted,
-      localIsometries: localIsometries ?? this.localIsometries,
-      localTimeMs: localTimeMs ?? this.localTimeMs,
-      opponentPlacedPieces: opponentPlacedPieces ?? this.opponentPlacedPieces,
-      opponentIsometries: opponentIsometries ?? this.opponentIsometries,
-      opponentCompleted: opponentCompleted ?? this.opponentCompleted,
-      opponentTimeMs: opponentTimeMs ?? this.opponentTimeMs,
-      localScore: localScore ?? this.localScore,
-      opponentScore: opponentScore ?? this.opponentScore,
-      roundResult: clearRoundResult ? null : (roundResult ?? this.roundResult),
+  factory DuelIsometryPlacedPiece.fromJson(Map<String, dynamic> json) {
+    return DuelIsometryPlacedPiece(
+      pieceId: json['pieceId'] as int,
+      x: json['x'] as int,
+      y: json['y'] as int,
+      orientation: json['orientation'] as int,
+      ownerId: json['ownerId'] as String,
+      ownerName: json['ownerName'] as String,
+      timestamp: json['timestamp'] as int,
     );
   }
 
-  @override
-  String toString() {
-    return 'DuelIsometryState('
-        'game: $gameState, '
-        'round: $roundNumber/$totalRounds, '
-        'local: $localPlacedCount/$totalPieces pieces, '
-        'opponent: $opponentPlacedPieces/$totalPieces pieces, '
-        'score: $localScore-$opponentScore'
-        ')';
-  }
+  /// Cette pièce appartient-elle à ce joueur ?
+  bool isOwnedBy(String playerId) => ownerId == playerId;
 }

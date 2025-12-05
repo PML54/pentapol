@@ -1,44 +1,41 @@
-// lib/duel_isometry/providers/duel_isometry_provider.dart
-// Provider Riverpod pour la gestion du mode Duel Isométries
+// lib/duel/providers/duel_provider.dart
+// Provider Riverpod pour la gestion du mode duel
 
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:pentapol/models/pentominos.dart';
+import 'package:pentapol/models/plateau.dart';
+import 'package:pentapol/pentoscope/pentoscope_data.dart';
+import 'package:pentapol/pentoscope/pentoscope_solver.dart';
 
-// Import explicite des messages
 import '../models/duel_isometry_messages.dart';
-// Import explicite des models - tout vient de duel_isometry_state.dart
 import '../models/duel_isometry_state.dart';
-// Import explicite des services - seulement les classes nécessaires
-import '../services/isometry_puzzle.dart' show IsometryPuzzle, TargetPiece;
-import '../services/isometry_utils.dart' show PieceConfiguration;
-
+import '../services/duel_isometry_websocket_service.dart';
 /// Configuration du serveur
-const String kIsometryServerBaseUrl = 'https://pentapol-duel.pentapml.workers.dev';
-const String kIsometryServerWsUrl = 'wss://pentapol-duel.pentapml.workers.dev';
+const String kDuelServerBaseUrl = 'https://pentapol-duel.pentapml.workers.dev';
+const String kDuelServerWsUrl = 'wss://pentapol-duel.pentapml.workers.dev';
 
-/// Provider pour l'état du duel isométries
-final duelIsometryProvider =
-NotifierProvider<DuelIsometryNotifier, DuelIsometryState>(() {
+/// Provider pour l'état du duel
+final duelIsometryProvider = NotifierProvider<DuelIsometryNotifier, DuelIsometryState>(() {
   return DuelIsometryNotifier();
 });
 
-/// Notifier pour gérer l'état du duel isométries
+/// Notifier pour gérer l'état du duel
 class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
-  /// WebSocket channel
-  WebSocketChannel? _channel;
+  /// Service WebSocket
+  DuelIsometryWebSocketService? _wsService;
 
   /// Subscription aux messages
-  StreamSubscription<dynamic>? _messageSubscription;
+  StreamSubscription<ServerMessage>? _messageSubscription;
 
-  /// Timer local pour le temps écoulé
-  Timer? _elapsedTimer;
+  /// Subscription à l'état de connexion
+  StreamSubscription<WebSocketConnectionState>? _connectionSubscription;
 
-  /// Timestamp de début du round
-  DateTime? _roundStartTime;
+  /// Timer pour le compte à rebours local
+  Timer? _countdownTimer;
 
   /// Nom du joueur local
   String? _localPlayerName;
@@ -46,55 +43,46 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
   @override
   DuelIsometryState build() {
     ref.onDispose(_cleanup);
-    return const DuelIsometryState();
+    return DuelIsometryState.initial();
   }
 
   // ============================================================
-  // ACTIONS PUBLIQUES - ROOM
+  // ACTIONS PUBLIQUES
   // ============================================================
-
-  /// Puzzle terminé par le joueur local
-  void completePuzzle({
-    required int totalIsometries,
-    required int timeMs,
-  }) {
-    print('[DUEL-ISO] 🏁 Puzzle terminé ! Iso: $totalIsometries, Temps: ${timeMs}ms');
-
-    _sendMessage(CompletedMessage(
-      isometryCount: totalIsometries,
-      completionTime: timeMs,
-    ));
-
-    state = state.copyWith(
-      localCompleted: true,
-      localIsometries: totalIsometries,
-      localTimeMs: timeMs,
-    );
-  }
-
-  /// Créer une nouvelle room
-  Future<bool> createRoom(String playerName) async {
+  /// Créer une nouvelle room Duel Isométries
+  Future<bool> createRoom(String playerName, [Map<String, int>? puzzleTriple]) async {
     print('[DUEL-ISO] Création de room par $playerName...');
-    _localPlayerName = playerName;
+    if (puzzleTriple != null) {
+      print('[DUEL-ISO] Triple Pentoscope: taille=${puzzleTriple['taille']}, '
+          'config=${puzzleTriple['configIndex']}, '
+          'solution=${puzzleTriple['solutionNum']}');
+    }
 
+    _localPlayerName = playerName;
     state = state.copyWith(
-      connectionState: DuelIsometryConnectionState.connecting,
-      clearError: true,
+      connectionState: DuelConnectionState.connecting,
+      clearErrorMessage: true,
     );
 
     try {
-      // 1. Créer la room via HTTP
+      // 1. Créer la room via HTTP avec la triplette
       print('[DUEL-ISO] 📡 Appel HTTP POST /room/create...');
+      final requestBody = {
+        'gameMode': 'isometry',
+        'playerName': playerName,
+        if (puzzleTriple != null) ...puzzleTriple,
+      };
+
       final response = await http.post(
-        Uri.parse('$kIsometryServerBaseUrl/room/create'),
+        Uri.parse('$kDuelServerBaseUrl/room/create'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'gameMode': 'isometry'}),
+        body: jsonEncode(requestBody),
       );
 
       if (response.statusCode != 200) {
         print('[DUEL-ISO] ❌ Erreur HTTP: ${response.statusCode}');
         state = state.copyWith(
-          connectionState: DuelIsometryConnectionState.error,
+          connectionState: DuelConnectionState.error,
           errorMessage: 'Erreur serveur: ${response.statusCode}',
         );
         return false;
@@ -105,72 +93,117 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
       print('[DUEL-ISO] ✅ Room créée: $roomCode');
 
       // 2. Se connecter en WebSocket
-      return await _connectToRoom(roomCode, playerName, isCreator: true);
+      final wsUrl = '$kDuelServerWsUrl/room/$roomCode/ws';
+      print('[DUEL-ISO] 🔌 Connexion WebSocket: $wsUrl');
+
+      _wsService = DuelIsometryWebSocketService(serverUrl: wsUrl);
+
+      // S'abonner aux événements
+      _messageSubscription = _wsService!.messages.listen(_onServerMessage);
+      _connectionSubscription = _wsService!.connectionState.listen(_onConnectionStateChange);
+
+      final connected = await _wsService!.connect();
+      if (!connected) {
+        print('[DUEL-ISO] ❌ Connexion WebSocket échouée');
+        state = state.copyWith(
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Impossible de se connecter au WebSocket',
+        );
+        return false;
+      }
+
+      // 3. Envoyer le message createRoom
+      print('[DUEL-ISO] 📤 Envoi CreateRoomMessage');
+      _wsService!.send(CreateRoomMessage(playerName: playerName));
+
+      state = state.copyWith(
+        roomCode: roomCode,
+        gameState: DuelGameState.waiting,
+        connectionState: DuelConnectionState.connected,
+      );
+
+      print('[DUEL-ISO] ✅ Room prête!');
+      return true;
+
     } catch (e) {
       print('[DUEL-ISO] ❌ Erreur: $e');
       state = state.copyWith(
-        connectionState: DuelIsometryConnectionState.error,
+        connectionState: DuelConnectionState.error,
         errorMessage: 'Erreur: $e',
       );
       return false;
     }
   }
-
   /// Rejoindre une room existante
   Future<bool> joinRoom(String roomCode, String playerName) async {
-    print('[DUEL-ISO] $playerName rejoint la room $roomCode...');
+    print('[DUEL] $playerName rejoint la room $roomCode...');
     _localPlayerName = playerName;
 
     state = state.copyWith(
-      connectionState: DuelIsometryConnectionState.connecting,
-      clearError: true,
+      connectionState: DuelConnectionState.connecting,
+      clearErrorMessage: true,
     );
 
     try {
       // 1. Vérifier que la room existe
-      print('[DUEL-ISO] 📡 Vérification room $roomCode...');
-      print('[DUEL-ISO] DEBUG URL: $kIsometryServerBaseUrl/room/$roomCode/exists');
+      print('[DUEL] 📡 Vérification room $roomCode...');
       final checkResponse = await http.get(
-        Uri.parse('$kIsometryServerBaseUrl/room/$roomCode/exists'),
+        Uri.parse('$kDuelServerBaseUrl/room/$roomCode/exists'),
       );
 
       if (checkResponse.statusCode != 200) {
         state = state.copyWith(
-          connectionState: DuelIsometryConnectionState.error,
+          connectionState: DuelConnectionState.error,
           errorMessage: 'Erreur serveur',
         );
         return false;
       }
 
       final checkData = jsonDecode(checkResponse.body);
-      print('[DUEL-ISO] DEBUG Response: ${checkResponse.body}');
       if (checkData['exists'] != true) {
-        print('[DUEL-ISO] ❌ Room $roomCode introuvable');
+        print('[DUEL] ❌ Room $roomCode introuvable');
         state = state.copyWith(
-          connectionState: DuelIsometryConnectionState.error,
+          connectionState: DuelConnectionState.error,
           errorMessage: 'Code invalide ou partie expirée',
         );
         return false;
       }
 
-      // Vérifier le mode de jeu (optionnel)
-      if (checkData['gameMode'] != null && checkData['gameMode'] != 'isometry') {
-        print('[DUEL-ISO] ❌ Room $roomCode n\'est pas un duel isométries');
+      print('[DUEL] ✅ Room $roomCode existe');
+
+      // 2. Se connecter en WebSocket
+      final wsUrl = '$kDuelServerWsUrl/room/$roomCode/ws';
+      print('[DUEL] 🔌 Connexion WebSocket: $wsUrl');
+
+      _wsService = DuelIsometryWebSocketService(serverUrl: wsUrl);
+
+      _messageSubscription = _wsService!.messages.listen(_onServerMessage);
+      _connectionSubscription = _wsService!.connectionState.listen(_onConnectionStateChange);
+
+      final connected = await _wsService!.connect();
+      if (!connected) {
         state = state.copyWith(
-          connectionState: DuelIsometryConnectionState.error,
-          errorMessage: 'Cette room n\'est pas un Duel Isométries',
+          connectionState: DuelConnectionState.error,
+          errorMessage: 'Impossible de se connecter',
         );
         return false;
       }
 
-      print('[DUEL-ISO] ✅ Room $roomCode existe');
+      // 3. Envoyer le message joinRoom
+      _wsService!.send(JoinRoomMessage(roomCode: roomCode, playerName: playerName));
 
-      // 2. Se connecter en WebSocket
-      return await _connectToRoom(roomCode, playerName, isCreator: false);
-    } catch (e) {
-      print('[DUEL-ISO] ❌ Erreur: $e');
       state = state.copyWith(
-        connectionState: DuelIsometryConnectionState.error,
+        roomCode: roomCode,
+        gameState: DuelGameState.waiting,
+        connectionState: DuelConnectionState.connected,
+      );
+
+      return true;
+
+    } catch (e) {
+      print('[DUEL] ❌ Erreur: $e');
+      state = state.copyWith(
+        connectionState: DuelConnectionState.error,
         errorMessage: 'Erreur: $e',
       );
       return false;
@@ -179,44 +212,268 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
 
   /// Quitter la room actuelle
   void leaveRoom() {
-    print('[DUEL-ISO] Quitter la room...');
+    print('[DUEL] Quitter la room...');
 
-    if (_channel != null) {
-      _sendMessage(LeaveRoomMessage());
+    if (_wsService?.isConnected ?? false) {
+      _wsService!.send(LeaveRoomMessage());
     }
 
     _cleanup();
-    state = const DuelIsometryState();
+    state = DuelIsometryState.initial();
   }
 
   /// Placer une pièce
   void placePiece({
     required int pieceId,
-    required int gridX,
-    required int gridY,
-    required int positionIndex,
+    required int x,
+    required int y,
+    required int orientation,
   }) {
-    if (state.gameState != DuelIsometryGameState.playing) {
-      print('[DUEL-ISO] ⚠️ Partie non en cours, placement ignoré');
+    if (!state.isPlaying) {
+      print('[DUEL] ⚠️ Partie non en cours, placement ignoré');
       return;
     }
 
-    // Vérifier que la pièce n'est pas déjà placée
     final alreadyPlaced = state.placedPieces.any((p) => p.pieceId == pieceId);
     if (alreadyPlaced) {
-      print('[DUEL-ISO] ⚠️ Pièce $pieceId déjà placée');
+      print('[DUEL] ⚠️ Pièce $pieceId déjà placée');
       return;
     }
 
-    print('[DUEL-ISO] Placement: pièce $pieceId en ($gridX, $gridY) pos $positionIndex');
+    print('[DUEL] Tentative de placement: pièce $pieceId en ($x, $y) orientation $orientation');
 
-    // Ajouter localement (pas besoin d'envoyer au serveur dans le format simplifié)
-    final newPiece = DuelIsometryPlacedPiece(
+    _wsService?.send(PlacePieceMessage(
       pieceId: pieceId,
-      gridX: gridX,
-      gridY: gridY,
-      positionIndex: positionIndex,
-      ownerId: state.localPlayer?.id ?? 'local',
+      x: x,
+      y: y,
+      orientation: orientation,
+    ));
+  }
+
+  /// Signaler que le joueur est prêt
+  void setReady() {
+    _wsService?.send(PlayerReadyMessage());
+  }
+
+  /// Décode un bitmask en liste d'IDs de pièces
+  List<int> _bitmaskToIds(int bitmask) {
+    final ids = <int>[];
+    for (int i = 0; i < 12; i++) {
+      if (bitmask & (1 << i) != 0) {
+        ids.add(i + 1);
+      }
+    }
+    return ids;
+  }
+
+  // ============================================================
+  // CLEANUP
+  // ============================================================
+
+  void _cleanup() {
+    _countdownTimer?.cancel();
+    _messageSubscription?.cancel();
+    _connectionSubscription?.cancel();
+    _wsService?.disconnect();
+    _messageSubscription = null;
+    _connectionSubscription = null;
+    _wsService = null;
+  }
+
+  /// Convertit les placements PentoscopeSolver en Plateau
+  Plateau _convertToPlateau(
+      int width,
+      int height,
+      List<PentoscopePlacement> placements,
+      ) {
+    // Créer une grille vide
+    final grid = List.generate(
+      height,
+          (_) => List.filled(width, 0),
+    );
+
+    // Placer chaque pièce
+    for (final placement in placements) {
+      final pieceId = placement.pieceId;
+      for (final cellIndex in placement.occupiedCells) {
+        final x = cellIndex % width;
+        final y = cellIndex ~/ width;
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+          grid[y][x] = pieceId;
+        }
+      }
+    }
+
+    return Plateau(
+      width: width,
+      height: height,
+      grid: grid,
+    );
+
+
+
+
+  }
+
+  // Ajouter cette fonction au provider duel_isometry_provider.dart
+
+  Plateau _generatePlateauFromTriple(Map<String, int> triple) {
+    final taille = triple['taille'] as int;
+    final configIndex = triple['configIndex'] as int;
+    final solutionNum = triple['solutionNum'] as int;
+
+    print('[DUEL-ISO] Génération: taille=$taille, config=$configIndex, solution=$solutionNum');
+
+    // 1. Charger la config Pentoscope
+    final configsForSize = pentoscopeData[taille];
+    if (configsForSize == null || configIndex >= configsForSize.length) {
+      print('[DUEL-ISO] ❌ Config invalide');
+      return Plateau.empty(5, 5);
+    }
+
+    final (bitmask, numSolutions) = configsForSize[configIndex];
+    print('[DUEL-ISO] Bitmask: 0x${bitmask.toRadixString(16)}, solutions: $numSolutions');
+
+    // 2. Décoder le bitmask en pieceIds
+    final pieceIds = _bitmaskToIds(bitmask);
+    print('[DUEL-ISO] Pièces: $pieceIds');
+
+    // 3. Récupérer les tailles de plateau
+    final (width, height) = _getTaillePlateau(taille);
+    print('[DUEL-ISO] Plateau: ${width}×$height');
+
+    // 4. Obtenir les Pento correspondants
+    final selectedPieces = <Pento>[];
+    for (final id in pieceIds) {
+      // pentominos est indexé par id-1 (id 1 = F, id 2 = I, etc.)
+      if (id >= 1 && id <= pentominos.length) {
+        selectedPieces.add(pentominos[id - 1]);
+      }
+    }
+
+    if (selectedPieces.length != pieceIds.length) {
+      print('[DUEL-ISO] ❌ Pièces manquantes');
+      return Plateau.empty(width, height);
+    }
+
+    // 5. Lancer PentoscopeSolver
+    final solver = PentoscopeSolver(
+      width: width,
+      height: height,
+      pieces: selectedPieces,
+      maxSeconds: 5,
+    );
+
+    final solution = solver.findSolution();
+    if (solution == null) {
+      print('[DUEL-ISO] ❌ Pas de solution trouvée');
+      return Plateau.empty(width, height);
+    }
+
+    print('[DUEL-ISO] ✅ Solution trouvée: ${solution.length} placements');
+
+    // 6. Convertir en Plateau
+    final plateau = _convertToPlateau(width, height, solution);
+    print('[DUEL-ISO] 🎯 Plateau généré!');
+
+    return plateau;
+  }
+
+  /// Retourne (width, height) pour une taille Pentoscope
+  (int, int) _getTaillePlateau(int sizeIndex) {
+    switch (sizeIndex) {
+      case 0: return (5, 3);  // 3×5
+      case 1: return (5, 4);  // 4×5
+      case 2: return (5, 5);  // 5×5
+      default: return (5, 5);
+    }
+  }
+
+  void _handleCountdown(CountdownMessage msg) {
+    print('[DUEL] ⏱️ Countdown: ${msg.value}');
+
+    if (msg.value == 0) {
+      state = state.copyWith(
+        gameState: DuelGameState.playing,
+        clearCountdown: true,
+      );
+      _startLocalTimer();
+    } else {
+      state = state.copyWith(countdown: msg.value);
+    }
+  }
+
+  void _handleError(ErrorMessage msg) {
+    print('[DUEL] ❌ Erreur serveur: ${msg.code} - ${msg.message}');
+
+    state = state.copyWith(
+      errorMessage: msg.message,
+    );
+  }
+
+  void _handleGameEnd(GameEndMessage msg) {
+    print('[DUEL] 🏁 Partie terminée ! Gagnant: ${msg.winnerName}');
+
+    _countdownTimer?.cancel();
+
+    state = state.copyWith(
+      gameState: DuelGameState.ended,
+      clearCountdown: true,
+    );
+  }
+
+  void _handleGameStart(GameStartMessage msg) {
+    print('[DUEL-ISO] 🎮 Partie commence !');
+
+    if (msg.solutionId != null) {
+      // Duel classique
+      state = state.copyWith(
+        solutionId: msg.solutionId,
+        timeRemaining: msg.timeLimit,
+        placedPieces: [],
+        gameState: DuelGameState.countdown,
+      );
+    }
+    else if (msg.puzzleTriple != null) {
+      try {
+        final triple = msg.puzzleTriple!;
+        print('[DUEL-ISO] Génération puzzle: $triple');
+        final plateau = _generatePlateauFromTriple(triple);
+        print('[DUEL-ISO] ✅ Plateau créé: ${plateau.width}×${plateau.height}');
+
+        // ✅ AJOUTER LE PLATEAU AU STATE
+        state = state.copyWith(
+          plateau: plateau,
+          timeRemaining: msg.timeLimit,
+          placedPieces: [],
+          gameState: DuelGameState.countdown,
+        );
+      } catch (e) {
+        print('[DUEL-ISO] ❌ ERREUR: $e');
+      }
+    }
+  }
+
+  void _handleGameState(GameStateMessage msg) {
+    state = state.copyWith(
+      timeRemaining: msg.timeRemaining,
+      placedPieces: msg.placedPieces
+          .map((p) => DuelIsometryPlacedPiece.fromJson(p))
+          .toList(),
+    );
+  }
+
+  void _handlePiecePlaced(PiecePlacedMessage msg) {
+    print('[DUEL] ✅ Pièce placée: ${msg.pieceId} par ${msg.ownerName}');
+
+    final newPiece = DuelIsometryPlacedPiece(
+      pieceId: msg.pieceId,
+      x: msg.x,
+      y: msg.y,
+      orientation: msg.orientation,
+      ownerId: msg.ownerId,
+      ownerName: msg.ownerName,
+      timestamp: msg.timestamp,
     );
 
     state = state.copyWith(
@@ -224,165 +481,37 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
     );
   }
 
-  // ============================================================
-  // ACTIONS PUBLIQUES - GAMEPLAY
-  // ============================================================
+  void _handlePlacementRejected(PlacementRejectedMessage msg) {
+    print('[DUEL] ❌ Placement refusé: ${msg.reason}');
 
-  /// Signaler que le joueur est prêt
-  void setReady() {
-    _sendMessage(PlayerReadyMessage());
-  }
+    state = state.copyWith(
+      errorMessage: msg.reasonText,
+    );
 
-  /// Mettre à jour la progression locale (pour sync avec serveur)
-  void updateLocalProgress({
-    required int placedPieces,
-    required int isometryCount,
-  }) {
-    _sendMessage(ProgressMessage(
-      placedPieces: placedPieces,
-      isometryCount: isometryCount,
-    ));
-  }
-
-  void _cleanup() {
-    _elapsedTimer?.cancel();
-    _messageSubscription?.cancel();
-    _channel?.sink.close();
-    _messageSubscription = null;
-    _channel = null;
-    _roundStartTime = null;
-  }
-
-  /// Connexion WebSocket commune
-  Future<bool> _connectToRoom(
-      String roomCode,
-      String playerName, {
-        required bool isCreator,
-      }) async {
-    final wsUrl = '$kIsometryServerWsUrl/room/$roomCode/ws';
-    print('[DUEL-ISO] 🔌 Connexion WebSocket: $wsUrl');
-
-    try {
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-
-      // Attendre que la connexion soit établie
-      await _channel!.ready;
-
-      // S'abonner aux messages
-      _messageSubscription = _channel!.stream.listen(
-        _onRawMessage,
-        onError: (error) {
-          print('[DUEL-ISO] ❌ WebSocket error: $error');
-          state = state.copyWith(
-            connectionState: DuelIsometryConnectionState.error,
-            errorMessage: 'Connexion perdue',
-          );
-        },
-        onDone: () {
-          print('[DUEL-ISO] WebSocket fermé');
-          state = state.copyWith(
-            connectionState: DuelIsometryConnectionState.disconnected,
-          );
-        },
-      );
-
-      // Envoyer le message approprié
-      if (isCreator) {
-        _sendMessage(CreateRoomMessage(playerName: playerName));
-      } else {
-        _sendMessage(JoinRoomMessage(roomCode: roomCode, playerName: playerName));
+    Future.delayed(const Duration(seconds: 2), () {
+      if (state.errorMessage == msg.reasonText) {
+        state = state.copyWith(clearErrorMessage: true);
       }
-
-      state = state.copyWith(
-        roomCode: roomCode,
-        gameState: DuelIsometryGameState.waiting,
-        connectionState: DuelIsometryConnectionState.connected,
-      );
-
-      return true;
-    } catch (e) {
-      print('[DUEL-ISO] ❌ Erreur connexion WebSocket: $e');
-      state = state.copyWith(
-        connectionState: DuelIsometryConnectionState.error,
-        errorMessage: 'Impossible de se connecter',
-      );
-      return false;
-    }
-  }
-
-  void _handleCountdown(CountdownMessage msg) {
-    print('[DUEL-ISO] ⏱️ Countdown: ${msg.value}');
-
-    if (msg.value == 0) {
-      state = state.copyWith(
-        gameState: DuelIsometryGameState.playing,
-        countdown: null,
-      );
-      _startElapsedTimer();
-    } else {
-      state = state.copyWith(countdown: msg.value);
-    }
-  }
-
-  void _handleError(ErrorMessage msg) {
-    print('[DUEL-ISO] ❌ Erreur serveur: ${msg.code} - ${msg.message}');
-
-    state = state.copyWith(
-      errorMessage: msg.message,
-    );
-  }
-
-  void _handleMatchResult(MatchResultMessage msg) {
-    print('[DUEL-ISO] 🎊 Match terminé ! Gagnant: ${msg.winnerId ?? "égalité"}');
-
-    final localId = state.localPlayer?.id ?? '';
-    final opponentId = state.opponent?.id ?? '';
-
-    final localData = msg.players[localId] as Map<String, dynamic>? ?? {};
-    final opponentData = msg.players[opponentId] as Map<String, dynamic>? ?? {};
-
-    state = state.copyWith(
-      gameState: DuelIsometryGameState.matchEnded,
-      localScore: localData['score'] as int? ?? state.localScore,
-      opponentScore: opponentData['score'] as int? ?? state.opponentScore,
-    );
-  }
-
-  void _handleOpponentProgress(OpponentProgressMessage msg) {
-    state = state.copyWith(
-      opponentPlacedPieces: msg.placedPieces,
-      opponentIsometries: msg.isometryCount,
-    );
-  }
-
-  void _handlePlayerCompleted(PlayerCompletedMessage msg) {
-    print('[DUEL-ISO] 🏁 Adversaire a terminé ! Iso: ${msg.isometryCount}');
-
-    state = state.copyWith(
-      opponentCompleted: true,
-      opponentIsometries: msg.isometryCount,
-      opponentTimeMs: msg.completionTime,
-    );
+    });
   }
 
   void _handlePlayerJoined(PlayerJoinedMessage msg) {
-    print('[DUEL-ISO] 👤 Joueur rejoint: ${msg.playerName}');
+    print('[DUEL] 👤 Joueur rejoint: ${msg.playerName}');
 
     if (msg.playerId != state.localPlayer?.id) {
       state = state.copyWith(
-        opponent: DuelIsometryPlayer(id: msg.playerId, name: msg.playerName),
+        opponent: DuelPlayer(id: msg.playerId, name: msg.playerName),
       );
     }
   }
 
   void _handlePlayerLeft(PlayerLeftMessage msg) {
-    print('[DUEL-ISO] 👤 Joueur parti: ${msg.playerId}');
+    print('[DUEL] 👤 Joueur parti: ${msg.playerId}');
 
     if (msg.playerId == state.opponent?.id) {
-      if (state.gameState == DuelIsometryGameState.playing) {
-        // Victoire par forfait
+      if (state.isPlaying) {
         state = state.copyWith(
-          gameState: DuelIsometryGameState.roundEnded,
+          gameState: DuelGameState.ended,
           clearOpponent: true,
         );
       } else {
@@ -391,125 +520,66 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
     }
   }
 
-  void _handlePuzzleReady(PuzzleReadyMessage msg) {
-    print('[DUEL-ISO] 🧩 Puzzle prêt: Round ${msg.roundNumber}, ${msg.pieceCount} pièces, seed=${msg.seed}');
-
-    // GÉNÉRATION CÔTÉ CLIENT avec le seed du serveur
-    final puzzle = IsometryPuzzle.generate(
-      width: msg.pieceCount,  // width = nombre de pièces
-      height: 5,              // hauteur fixe
-      seed: msg.seed,
-    );
-
-    print('[DUEL-ISO] 🧩 Puzzle généré: ${puzzle.pieceCount} pièces, optimal=${puzzle.totalMinIsometries}');
-
-    state = state.copyWith(
-      puzzle: puzzle,
-      roundNumber: msg.roundNumber,
-      totalRounds: msg.totalRounds,
-      optimalIsometries: puzzle.totalMinIsometries,
-      placedPieces: [],
-      opponentPlacedPieces: 0,
-      opponentIsometries: 0,
-      localCompleted: false,
-      opponentCompleted: false,
-      gameState: DuelIsometryGameState.countdown,
-    );
-  }
-
   void _handleRoomCreated(RoomCreatedMessage msg) {
-    print('[DUEL-ISO] ✅ Room confirmée: ${msg.roomCode}');
+    print('[DUEL] ✅ Room confirmée: ${msg.roomCode}');
 
     state = state.copyWith(
       roomCode: msg.roomCode,
-      localPlayer: DuelIsometryPlayer(
+      localPlayer: DuelPlayer(
         id: msg.playerId,
         name: _localPlayerName ?? 'Joueur',
       ),
-      gameState: DuelIsometryGameState.waiting,
+      gameState: DuelGameState.waiting,
     );
   }
 
+
   void _handleRoomJoined(RoomJoinedMessage msg) {
-    print('[DUEL-ISO] ✅ Room rejointe: ${msg.roomCode}');
+    print('[DUEL] ✅ Room rejointe: ${msg.roomCode}');
 
     state = state.copyWith(
       roomCode: msg.roomCode,
-      localPlayer: DuelIsometryPlayer(
+      localPlayer: DuelPlayer(
         id: msg.playerId,
         name: _localPlayerName ?? 'Joueur',
       ),
       opponent: msg.opponentId != null
-          ? DuelIsometryPlayer(
-        id: msg.opponentId!,
-        name: msg.opponentName ?? 'Adversaire',
-      )
+          ? DuelPlayer(id: msg.opponentId!, name: msg.opponentName ?? 'Adversaire')
           : null,
-      gameState: DuelIsometryGameState.waiting,
+      gameState: DuelGameState.waiting,
     );
   }
 
-  void _handleRoundResult(RoundResultMessage msg) {
-    print('[DUEL-ISO] 🏆 Round ${msg.roundNumber} terminé ! Gagnant: ${msg.winnerId ?? "égalité"}');
+  // ============================================================
+  // GESTION CONNEXION
+  // ============================================================
 
-    _elapsedTimer?.cancel();
+  void _onConnectionStateChange(WebSocketConnectionState wsState) {
+    print('[DUEL] État connexion WS: $wsState');
 
-    final isLocalWinner = msg.winnerId == state.localPlayer?.id;
-    final localId = state.localPlayer?.id ?? '';
-    final opponentId = state.opponent?.id ?? '';
+    final connectionState = switch (wsState) {
+      WebSocketConnectionState.disconnected => DuelConnectionState.disconnected,
+      WebSocketConnectionState.connecting => DuelConnectionState.connecting,
+      WebSocketConnectionState.connected => DuelConnectionState.connected,
+      WebSocketConnectionState.reconnecting => DuelConnectionState.reconnecting,
+      WebSocketConnectionState.error => DuelConnectionState.error,
+    };
 
-    // Extraire les stats depuis la map players
-    final localData = msg.players[localId] as Map<String, dynamic>? ?? {};
-    final opponentData = msg.players[opponentId] as Map<String, dynamic>? ?? {};
+    state = state.copyWith(connectionState: connectionState);
 
-    final result = RoundResult(
-      winnerId: msg.winnerId,
-      localIsometries: localData['isometryCount'] as int? ?? state.localIsometries,
-      localTimeMs: localData['completionTime'] as int? ?? state.localTimeMs,
-      opponentIsometries: opponentData['isometryCount'] as int? ?? state.opponentIsometries,
-      opponentTimeMs: opponentData['completionTime'] as int? ?? state.opponentTimeMs,
-      optimalIsometries: state.optimalIsometries,
-    );
-
-    // Mettre à jour les scores depuis la map
-    final localScore = localData['score'] as int? ?? state.localScore;
-    final opponentScore = opponentData['score'] as int? ?? state.opponentScore;
-
-    state = state.copyWith(
-      gameState: DuelIsometryGameState.roundEnded,
-      roundResult: result,
-      localScore: localScore,
-      opponentScore: opponentScore,
-    );
-  }
-
-  void _handleRoundStart(RoundStartMessage msg) {
-    print('[DUEL-ISO] 🎮 Round ${msg.roundNumber} commence !');
-
-    _roundStartTime = DateTime.now();
-    state = state.copyWith(
-      gameState: DuelIsometryGameState.playing,
-      elapsedTime: 0,
-    );
-    _startElapsedTimer();
+    if (wsState == WebSocketConnectionState.error && state.isPlaying) {
+      state = state.copyWith(
+        errorMessage: 'Connexion perdue avec le serveur',
+      );
+    }
   }
 
   // ============================================================
   // TRAITEMENT DES MESSAGES SERVEUR
   // ============================================================
 
-  void _onRawMessage(dynamic rawData) {
-    try {
-      final message = ServerMessage.decode(rawData as String);
-      _onServerMessage(message);
-    } catch (e) {
-      print('[DUEL-ISO] ❌ Erreur parsing message: $e');
-      print('[DUEL-ISO] Raw data: $rawData');
-    }
-  }
-
   void _onServerMessage(ServerMessage message) {
-    print('[DUEL-ISO] 📨 Message serveur: ${message.type}');
+    print('[DUEL] Message serveur: ${message.type}');
 
     switch (message) {
       case RoomCreatedMessage msg:
@@ -520,47 +590,22 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
         _handlePlayerJoined(msg);
       case PlayerLeftMessage msg:
         _handlePlayerLeft(msg);
-      case PuzzleReadyMessage msg:
-        _handlePuzzleReady(msg);
+      case GameStartMessage msg:
+        _handleGameStart(msg);
       case CountdownMessage msg:
         _handleCountdown(msg);
-      case RoundStartMessage msg:
-        _handleRoundStart(msg);
-      case OpponentProgressMessage msg:
-        _handleOpponentProgress(msg);
-      case PlayerCompletedMessage msg:
-        _handlePlayerCompleted(msg);
-      case RoundResultMessage msg:
-        _handleRoundResult(msg);
-      case MatchResultMessage msg:
-        _handleMatchResult(msg);
+      case PiecePlacedMessage msg:
+        _handlePiecePlaced(msg);
+      case PlacementRejectedMessage msg:
+        _handlePlacementRejected(msg);
+      case GameStateMessage msg:
+        _handleGameState(msg);
+      case GameEndMessage msg:
+        _handleGameEnd(msg);
       case ErrorMessage msg:
         _handleError(msg);
       default:
-        print('[DUEL-ISO] Message non géré: ${message.type}');
-    }
-  }
-
-  // _buildPuzzleFromMessage n'est plus nécessaire car on utilise IsometryPuzzle.generate()
-
-  PieceConfiguration _positionIndexToConfig(int positionIndex) {
-    if (positionIndex < 4) {
-      return PieceConfiguration(positionIndex, false);
-    } else if (positionIndex < 8) {
-      return PieceConfiguration(positionIndex - 4, true);
-    }
-    return PieceConfiguration(positionIndex % 4, positionIndex >= 4);
-  }
-
-  // ============================================================
-  // HELPERS
-  // ============================================================
-
-  void _sendMessage(ClientMessage message) {
-    if (_channel != null) {
-      _channel!.sink.add(message.encode());
-    } else {
-      print('[DUEL-ISO] ⚠️ WebSocket non connecté, message ignoré');
+        print('[DUEL] Message non géré: ${message.type}');
     }
   }
 
@@ -568,14 +613,13 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
   // TIMER LOCAL
   // ============================================================
 
-  void _startElapsedTimer() {
-    _elapsedTimer?.cancel();
-    _roundStartTime = DateTime.now();
-
-    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_roundStartTime != null) {
-        final elapsed = DateTime.now().difference(_roundStartTime!).inSeconds;
-        state = state.copyWith(elapsedTime: elapsed);
+  void _startLocalTimer() {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (state.timeRemaining != null && state.timeRemaining! > 0) {
+        state = state.copyWith(timeRemaining: state.timeRemaining! - 1);
+      } else if (state.timeRemaining == 0) {
+        _countdownTimer?.cancel();
       }
     });
   }
