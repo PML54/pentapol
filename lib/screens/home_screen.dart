@@ -10,7 +10,7 @@ import 'settings_screen.dart';
 import 'solutions_browser_screen.dart';
 import '../duel/screens/duel_home_screen.dart';
 import '../duel_isometry/screens/duel_isometry_home_screen.dart';
-
+import '../duel_isometry/screens/duel_isometry_game_screen.dart';
 import '../pentoscope/screens/pentoscope_menu_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -119,7 +119,12 @@ class HomeScreen extends ConsumerWidget {
               );
             },
           ),
-
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/isopento_menu');
+            },
+            child: const Text('isopento'),
+          ),
           const SizedBox(height: 16),
 
           // Mode Duel Isométries - NOUVEAU

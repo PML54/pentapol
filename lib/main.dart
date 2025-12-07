@@ -1,4 +1,4 @@
-// Modified: 2025-12-01 01:00:00
+// Modified: 2025-12-06 16:00
 // lib/main.dart
 // Version adaptée avec pré-chargement des solutions BigInt
 
@@ -7,8 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/pentomino_game_screen.dart';
+import 'duel_isometry/screens/duel_isometry_game_screen.dart';
+
 import 'services/solution_matcher.dart';
 import 'services/pentapol_solutions_loader.dart';
+
+
+import 'isopento/screens/isopento_game_screen.dart';
+import 'isopento/screens/isopento_menu_screen.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,9 +56,15 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       home: const HomeScreen(),
+
       routes: {
         '/game': (context) => const PentominoGameScreen(),
+        '/duel_isometry_game': (context) => const DuelIsometryGameScreen(),
+            '/isopento_menu': (context) => const IsopentoMenuScreen(),
+
+         '/isopento_game': (context) => const IsopentoGameScreen(),
       },
+
     );
   }
 }

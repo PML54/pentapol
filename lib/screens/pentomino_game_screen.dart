@@ -400,7 +400,9 @@ class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
       WidgetRef ref,
       state,
       notifier,
-      ) {
+      )
+  {
+    debugPrint("🔥 _buildPortraitLayout CALLED");
     return Column(
       children: [
         // Plateau de jeu

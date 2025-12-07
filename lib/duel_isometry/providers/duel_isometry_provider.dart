@@ -389,19 +389,7 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
     }
   }
 
-  void _handleCountdown(CountdownMessage msg) {
-    print('[DUEL] ⏱️ Countdown: ${msg.value}');
 
-    if (msg.value == 0) {
-      state = state.copyWith(
-        gameState: DuelGameState.playing,
-        clearCountdown: true,
-      );
-      _startLocalTimer();
-    } else {
-      state = state.copyWith(countdown: msg.value);
-    }
-  }
 
   void _handleError(ErrorMessage msg) {
     print('[DUEL] ❌ Erreur serveur: ${msg.code} - ${msg.message}');
@@ -425,42 +413,56 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
   void _handleGameStart(GameStartMessage msg) {
     print('[DUEL-ISO] 🎮 Partie commence !');
 
-    if (msg.solutionId != null) {
-      // Duel classique
-      state = state.copyWith(
-        solutionId: msg.solutionId,
-        timeRemaining: msg.timeLimit,
-        placedPieces: [],
-        gameState: DuelGameState.countdown,
-      );
-    }
-    else if (msg.puzzleTriple != null) {
+    // Étape 1: Récupérer la triplette du serveur
+    if (msg.puzzleTriple != null) {
       try {
         final triple = msg.puzzleTriple!;
-        print('[DUEL-ISO] Génération puzzle: $triple');
-        final plateau = _generatePlateauFromTriple(triple);
-        print('[DUEL-ISO] ✅ Plateau créé: ${plateau.width}×${plateau.height}');
+        print('[DUEL-ISO] Reçu puzzleTriple: $triple');
 
-        // ✅ AJOUTER LE PLATEAU AU STATE
+        // Étape 2: Générer le plateau à partir de la triplette
+        final plateau = _generatePlateauFromTriple(triple);
+        print('[DUEL-ISO] ✅ Plateau généré: ${plateau.width}×${plateau.height}');
+
+        // Étape 3: Mettre à jour l'état
         state = state.copyWith(
-          plateau: plateau,
-          timeRemaining: msg.timeLimit,
-          placedPieces: [],
-          gameState: DuelGameState.countdown,
+          plateau: plateau,                      // ← Plateau créé
+          timeRemaining: msg.timeLimit ?? 180,  // ← Temps (180s par défaut)
+          placedPieces: [],                      // ← Aucune pièce au départ
+          gameState: DuelGameState.playing,      // ← DIRECTEMENT playing (pas de countdown)
         );
+
+        print('[DUEL-ISO] ✅ État updated: plateau OK + playing');
+
+        // Étape 4: Lancer le timer local (décompte 180s → 0s)
+        _startLocalTimer();
+        print('[DUEL-ISO] ✅ Timer lancé');
+
       } catch (e) {
-        print('[DUEL-ISO] ❌ ERREUR: $e');
+        print('[DUEL-ISO] ❌ ERREUR génération plateau: $e');
+        state = state.copyWith(
+          errorMessage: 'Erreur: $e',
+          connectionState: DuelConnectionState.error,
+        );
       }
+    } else {
+      print('[DUEL-ISO] ⚠️ Pas de puzzleTriple reçu');
+      state = state.copyWith(
+        errorMessage: 'Pas de puzzle reçu du serveur',
+      );
     }
   }
 
   void _handleGameState(GameStateMessage msg) {
+    // ✅ IMPORTANT: Préserver le plateau!
     state = state.copyWith(
       timeRemaining: msg.timeRemaining,
       placedPieces: msg.placedPieces
           .map((p) => DuelIsometryPlacedPiece.fromJson(p))
           .toList(),
+      // Le plateau reste inchangé si pas spécifié
     );
+
+    print('[DUEL-ISO] ✅ GameState reçu, plateau: ${state.plateau?.width}×${state.plateau?.height}');
   }
 
   void _handlePiecePlaced(PiecePlacedMessage msg) {
@@ -592,8 +594,7 @@ class DuelIsometryNotifier extends Notifier<DuelIsometryState> {
         _handlePlayerLeft(msg);
       case GameStartMessage msg:
         _handleGameStart(msg);
-      case CountdownMessage msg:
-        _handleCountdown(msg);
+
       case PiecePlacedMessage msg:
         _handlePiecePlaced(msg);
       case PlacementRejectedMessage msg:

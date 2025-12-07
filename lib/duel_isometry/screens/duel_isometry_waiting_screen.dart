@@ -3,8 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/duel_isometry_provider.dart';
-import '../widgets/duel_isometry_plateau_widget.dart';
+import '../widgets/duel_isometry_plateau.dart';
 import '../models/duel_isometry_state.dart';
+import 'duel_isometry_game_screen.dart';
 class DuelIsometryWaitingScreen extends ConsumerWidget {
   const DuelIsometryWaitingScreen({super.key});
 
@@ -12,11 +13,19 @@ class DuelIsometryWaitingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(duelIsometryProvider);
 
+
     // Si le plateau est prêt, afficher le jeu au lieu d'attendre
     if (state.plateau != null &&
         (state.gameState == DuelGameState.countdown ||
             state.gameState == DuelGameState.playing)) {
-      return DuelIsometryGameScreenContent(state: state);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DuelIsometryGameScreen()),
+        );
+      });
+
+
     }
 
     return WillPopScope(
@@ -81,86 +90,3 @@ class DuelIsometryWaitingScreen extends ConsumerWidget {
   }
 }
 
-/// Affichage du jeu une fois que le plateau est prêt
-class DuelIsometryGameScreenContent extends StatelessWidget {
-  final DuelIsometryState state;
-
-  const DuelIsometryGameScreenContent({
-    required this.state,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final plateau = state.plateau;
-    if (plateau == null) {
-      return const Scaffold(
-        body: Center(child: Text('Erreur: pas de plateau')),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Duel Isométries'),
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'Temps: ${state.timeRemaining ?? 180}s',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Affichage du plateau Pentoscope
-          Expanded(
-            child: Center(
-              child: DuelIsometryPlateauWidget(plateau: plateau),
-            ),
-          ),
-
-          // Infos joueurs
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    Text(
-                      state.localPlayer?.name ?? 'Moi',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Score: ${state.localScore}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    Text(
-                      state.opponent?.name ?? 'Adversaire',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Score: ${state.opponentScore}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

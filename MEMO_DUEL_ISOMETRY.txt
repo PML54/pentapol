@@ -1,0 +1,209 @@
+═══════════════════════════════════════════════════════════════════
+MEMO - DUEL ISOMETRIES - STATE & NEXT STEPS
+Date: 2025-12-05
+═══════════════════════════════════════════════════════════════════
+
+## 🎯 OBJECTIF GLOBAL
+Créer un mode "Duel Isométries" où 2 joueurs reconstituisent 
+un même puzzle 5×5 (ou 4×5, 3×5) avec des pièces pentomino.
+
+Architecture:
+- Serveur: Chef d'orchestre (synchronise)
+- Clients: Musiciens (génèrent plateaux + jouent)
+
+═══════════════════════════════════════════════════════════════════
+
+## ✅ CE QUI MARCHE
+
+1. **CRÉATION**
+   - Écran avec sélecteur taille (3×5, 4×5, 5×5) ✅
+   - Génération triplette: (taille, configIndex, solutionNum) ✅
+   - POST /room/create avec triplette ✅
+
+2. **SERVEUR CLOUDFLARE**
+   - Route vers DUEL_ISOMETRY_ROOM ✅
+   - Stocke triplette via /init ✅
+   - Broadcast aux 2 joueurs via WebSocket ✅
+   - duel-isometry-room.ts: 200 lignes, complet ✅
+
+3. **CLIENTS**
+   - Master voit plateau 5×5 ✅
+   - Guest rejoint, reçoit triplette ✅
+   - Guest génère plateau identique via PentoscopeSolver ✅
+   - Guest voit plateau 5×5 ✅
+
+4. **SYNCHRONISATION**
+   - Messages WebSocket fonctionnent ✅
+   - État partagé via provider ✅
+
+═══════════════════════════════════════════════════════════════════
+
+## ❌ CE QUI MANQUE - PRIORITÉ
+
+### 1. SLIDERS & INTERACTIONS (CRITIQUE)
+   - Importer/adapter duel/widgets/duel_piece_slider.dart
+   - Adapter pour grille 5×5 (au lieu de 6×10)
+   - Détection collision avec autres pièces
+   - Feedback visuel (couleurs, highlights)
+   
+   Fichiers à adapter:
+   - ~/StudioProjects/pentapol/lib/duel/widgets/duel_piece_slider.dart
+   - ~/StudioProjects/pentapol/lib/duel_isometry/widgets/
+
+### 2. VALIDATION PLACEMENTS
+   - Créer DuelIsometryValidator
+   - Valider que pièce ne sort pas grille
+   - Valider pas d'overlap avec autres pièces
+   - Envoyer au serveur via WebSocket
+   
+   Message: { type: "placePiece", pieceId, x, y, orientation }
+
+### 3. COUNTDOWN AVANT JEU
+   - Quand gameStart reçu: afficher 3, 2, 1
+   - Passer gameState à "playing" à 0
+   - Activer sliders une fois playing
+
+### 4. FIN DE JEU
+   - Détection plateau complètement rempli
+   - Arrêter le temps
+   - Afficher gagnant / scoreboards
+   - Message gameEnd au serveur
+
+═══════════════════════════════════════════════════════════════════
+
+## 📁 FICHIERS CLÉS
+
+### Flutter (~/StudioProjects/pentapol/lib/)
+
+duel_isometry/
+  ├── screens/
+  │   ├── duel_isometry_create_screen.dart (CREATE - complet ✅)
+  │   ├── duel_isometry_join_screen.dart (JOIN - complet ✅)
+  │   ├── duel_isometry_waiting_screen.dart (AFFICHE PLATEAU ✅)
+  │   ├── duel_isometry_game_screen.dart (TODO - créer/adapter)
+  │   └── duel_isometry_home_screen.dart (MENU - complet ✅)
+  │
+  ├── models/
+  │   ├── duel_isometry_state.dart (avec plateau ✅)
+  │   └── duel_isometry_messages.dart (parsing messages ✅)
+  │
+  ├── providers/
+  │   ├── duel_isometry_provider.dart (core logic ✅)
+  │   ├── _generatePlateauFromTriple() (SOLVER ✅)
+  │   └── _handleGameStart() (génère plateau ✅)
+  │
+  └── widgets/
+      ├── duel_isometry_plateau_widget.dart (AFFICHE GRILLE ✅)
+      ├── duel_isometry_piece_slider.dart (TODO - créer)
+      └── ...
+
+pentoscope/
+  ├── pentoscope_data.dart (1084 configs: 3×5, 4×5, 5×5 ✅)
+  ├── pentoscope_solver.dart (BACKTRACKING ✅)
+  └── pentoscope_generator.dart (genère configs aléatoires ✅)
+
+models/
+  ├── plateau.dart (grid[y][x] = pieceId ✅)
+  └── pentominos.dart (12 pièces + orientations ✅)
+
+### Serveur TypeScript (~/StudioProjects/pentapol-server/src/)
+
+index.ts
+  - POST /room/create: reçoit triplette ✅
+  - GET /room/:code/exists ✅
+  - WebSocket routing ✅
+
+duel-isometry-room.ts (COMPLET)
+  - Class DuelIsometryRoom (Durable Object)
+  - handleCreateRoom() ✅
+  - handleJoinRoom() + broadcast triplette ✅
+  - startGame() ✅
+  - handlePlacePiece() ✅
+  - broadcast() ✅
+
+═══════════════════════════════════════════════════════════════════
+
+## 🔧 NEXT SESSION ROADMAP
+
+### PHASE 1: INPUT (1-2h)
+- Adapter sliders pour grille 5×5
+- Implémenter DuelIsometryValidator
+- Tester placements locaux
+
+### PHASE 2: SYNC (1h)
+- Envoyer placements au serveur via "placePiece"
+- Serveur broadcast à l'autre joueur
+- Les 2 voient placements en temps réel
+
+### PHASE 3: GAME FLOW (1-2h)
+- Countdown avant démarrage
+- Disable sliders avant countdown
+- Détection fin de jeu
+- Affichage résultats
+
+### PHASE 4: POLISH (30min)
+- Animations
+- Sounds
+- Erreurs gracieuses
+
+═══════════════════════════════════════════════════════════════════
+
+## 🐛 BUGS CONNUS
+
+Aucun connu actuellement !
+
+═══════════════════════════════════════════════════════════════════
+
+## 📝 COMMANDES UTILES
+
+Flutter:
+```bash
+cd ~/StudioProjects/pentapol
+flutter analyze 2>&1 | grep "error •" | wc -l
+flutter run
+```
+
+Serveur:
+```bash
+cd ~/StudioProjects/pentapol-server
+wrangler deploy
+wrangler tail
+```
+
+═══════════════════════════════════════════════════════════════════
+
+## 🎯 LOGS À CHERCHER
+
+Master crée:
+  [DUEL-ISO] Triple: taille=2, config=..., solution=...
+  [DUEL-ISO] Plateau créé: 5×5
+
+Guest rejoint:
+  [DUEL-ISO] Génération puzzle
+  [DUEL-ISO] ✅ Plateau créé: 5×5
+
+Serveur:
+  [DUEL-ISO roomCode] Triple stockée
+  (pas beaucoup de logs, c'est normal)
+
+═══════════════════════════════════════════════════════════════════
+
+## 💡 NOTES ARCH
+
+- PentoscopeSolver: backtracking, trouve Solution rapidement (<100ms)
+- Plateau: List<List<int>> grid[y][x] = pieceId (0=libre)
+- State: duel_isometry_provider.notifier pour mettre à jour
+- WebSocket: JSON messages avec types string
+- Cloudflare Workers: 2 Durable Objects (DUEL_ROOM + DUEL_ISOMETRY_ROOM)
+
+═══════════════════════════════════════════════════════════════════
+
+## 🚀 QUICK START PROCHAINE FOIS
+
+1. Ouvrir ce mémo
+2. Adapter duel_piece_slider.dart
+3. Implémenter placePiece message
+4. Tester sur 2 iPhones
+5. Affiner UX
+
+═══════════════════════════════════════════════════════════════════
