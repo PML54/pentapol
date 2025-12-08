@@ -5,17 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'screens/home_screen.dart';
-import 'screens/pentomino_game_screen.dart';
-import 'duel_isometry/screens/duel_isometry_game_screen.dart';
-
-import 'services/solution_matcher.dart';
-import 'services/pentapol_solutions_loader.dart';
-
-
 import 'isopento/screens/isopento_game_screen.dart';
 import 'isopento/screens/isopento_menu_screen.dart';
-
+import 'screens/home_screen.dart';
+import 'screens/pentomino_game_screen.dart';
+import 'services/pentapol_solutions_loader.dart';
+import 'services/solution_matcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,12 +54,9 @@ class MyApp extends StatelessWidget {
 
       routes: {
         '/game': (context) => const PentominoGameScreen(),
-        '/duel_isometry_game': (context) => const DuelIsometryGameScreen(),
-            '/isopento_menu': (context) => const IsopentoMenuScreen(),
-
-         '/isopento_game': (context) => const IsopentoGameScreen(),
+        '/isopento_menu': (context) => const IsopentoMenuScreen(),
+        '/isopento_game': (context) => const IsopentoGameScreen(),
       },
-
     );
   }
 }

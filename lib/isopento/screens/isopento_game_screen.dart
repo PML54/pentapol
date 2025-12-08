@@ -1,4 +1,6 @@
-// lib/pentoscope/screens/pentoscope_game_screen.dart
+// lib/isopento/screens/isopento_game_screen.dart
+// CLAUDE MOD: 12080450 (8 décembre 04h50)
+// Modifications: Icones 56px + AppBar vide (pas de sélection) + Supprimer actions paysage (pas sélection) + Croix rouge retour + Inverser symétries H↔V en paysage
 // Écran de jeu Isopento - calqué sur pentomino_game_screen.dart
 // MODIFICATION: Drag vers slider = retirer la pièce
 
@@ -43,14 +45,16 @@ class IsopentoGameScreen extends ConsumerWidget {
         child: AppBar(
           toolbarHeight: 56.0,
           backgroundColor: Colors.white,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+          leading: isInTransformMode
+              ? IconButton(
+            icon: Icon(Icons.close, color: Colors.red.shade700, size: 56),
             onPressed: () => Navigator.pop(context),
-          ),
+          )
+              : null,  // ← Pas de bouton retour quand pas de sélection
           title: null, // PAS DE TITRE
           actions: isInTransformMode
-              ? _buildTransformActions(state, notifier, settings)
-              : _buildGeneralActions(state, notifier),
+              ? _buildTransformActions(state, notifier, settings, isLandscape: false)
+              : [],  // ← Pas d'actions quand pas de sélection
         ),
       ),
       body: Stack(
@@ -60,7 +64,7 @@ class IsopentoGameScreen extends ConsumerWidget {
               final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
               if (isLandscape) {
-                return _buildLandscapeLayout(context, ref, state, notifier, settings, isInTransformMode);
+                return _buildLandscapeLayout(context, ref, state, notifier, settings, isInTransformMode, isLandscape);
               } else {
                 return _buildPortraitLayout(context, ref, state, notifier);
               }
@@ -72,11 +76,12 @@ class IsopentoGameScreen extends ConsumerWidget {
   }
 
   /// Actions en mode TRANSFORMATION (pièce sélectionnée)
-  List<Widget> _buildTransformActions(IsopentoState state, IsopentoNotifier notifier, settings) {
+  /// En paysage, les symétries H ↔ V sont inversées (affichage tourné -90°)
+  List<Widget> _buildTransformActions(IsopentoState state, IsopentoNotifier notifier, settings, {bool isLandscape = false}) {
     return [
       // Rotation anti-horaire
       IconButton(
-        icon: Icon(GameIcons.isometryRotation.icon, size: settings.ui.iconSize),
+        icon: Icon(GameIcons.isometryRotation.icon, size: 56),
         onPressed: () {
           HapticFeedback.selectionClick();
           notifier.applyIsometryRotation();
@@ -87,7 +92,7 @@ class IsopentoGameScreen extends ConsumerWidget {
 
       // Rotation horaire
       IconButton(
-        icon: Icon(GameIcons.isometryRotationCW.icon, size: settings.ui.iconSize),
+        icon: Icon(GameIcons.isometryRotationCW.icon, size: 56),
         onPressed: () {
           HapticFeedback.selectionClick();
           notifier.applyIsometryRotationCW();
@@ -96,23 +101,33 @@ class IsopentoGameScreen extends ConsumerWidget {
         color: GameIcons.isometryRotationCW.color,
       ),
 
-      // Symétrie horizontale
+      // Symétrie horizontale (inversée en paysage)
       IconButton(
-        icon: Icon(GameIcons.isometrySymmetryH.icon, size: settings.ui.iconSize),
+        icon: Icon(GameIcons.isometrySymmetryH.icon, size: 56),
         onPressed: () {
           HapticFeedback.selectionClick();
-          notifier.applyIsometrySymmetryH();
+          // En paysage: affichage tourné -90°, donc H et V sont inversées
+          if (isLandscape) {
+            notifier.applyIsometrySymmetryV();  // ← Appeler V au lieu de H
+          } else {
+            notifier.applyIsometrySymmetryH();
+          }
         },
         tooltip: GameIcons.isometrySymmetryH.tooltip,
         color: GameIcons.isometrySymmetryH.color,
       ),
 
-      // Symétrie verticale
+      // Symétrie verticale (inversée en paysage)
       IconButton(
-        icon: Icon(GameIcons.isometrySymmetryV.icon, size: settings.ui.iconSize),
+        icon: Icon(GameIcons.isometrySymmetryV.icon, size: 56),
         onPressed: () {
           HapticFeedback.selectionClick();
-          notifier.applyIsometrySymmetryV();
+          // En paysage: affichage tourné -90°, donc H et V sont inversées
+          if (isLandscape) {
+            notifier.applyIsometrySymmetryH();  // ← Appeler H au lieu de V
+          } else {
+            notifier.applyIsometrySymmetryV();
+          }
         },
         tooltip: GameIcons.isometrySymmetryV.tooltip,
         color: GameIcons.isometrySymmetryV.color,
@@ -121,7 +136,7 @@ class IsopentoGameScreen extends ConsumerWidget {
       // Supprimer (uniquement si pièce placée sélectionnée)
       if (state.selectedPlacedPiece != null)
         IconButton(
-          icon: Icon(GameIcons.removePiece.icon, size: settings.ui.iconSize),
+          icon: Icon(GameIcons.removePiece.icon, size: 56),
           onPressed: () {
             HapticFeedback.mediumImpact();
             notifier.removePlacedPiece(state.selectedPlacedPiece!);
@@ -283,6 +298,7 @@ class IsopentoGameScreen extends ConsumerWidget {
       IsopentoNotifier notifier,
       settings,
       bool isInTransformMode,
+      bool isLandscape,
       ) {
     return Row(
       children: [
@@ -296,7 +312,7 @@ class IsopentoGameScreen extends ConsumerWidget {
           children: [
             // Slider d'actions verticales
             Container(
-              width: 44,
+              width: 72,  // ← Augmenté de 44 à 72 pour les icones 56px
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -310,26 +326,10 @@ class IsopentoGameScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: isInTransformMode
-                    ? _buildTransformActions(state, notifier, settings)
-                    : [
-                  // Reset en mode général
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () {
-                      HapticFeedback.mediumImpact();
-                      notifier.reset();
-                    },
-                    tooltip: 'Recommencer',
-                  ),
-                  // Retour
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
-                    tooltip: 'Retour',
-                  ),
-                ],
-              ),
-            ),
+                    ? _buildTransformActions(state, notifier, settings, isLandscape: true)  // ← Passer isLandscape: true
+                    : [],  // ← VIDE quand pas de sélection (plus de refresh/retour)
+              ),  // ← Fermer Column
+            ),  // ← Fermer Container
 
             // Slider de pièces vertical avec DragTarget
             _buildSliderWithDragTarget(

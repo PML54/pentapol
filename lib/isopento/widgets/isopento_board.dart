@@ -1,6 +1,6 @@
-// lib/pentoscope/widgets/pentoscope_board.dart
+// lib/isopento/widgets/isopento_board.dart
 // Plateau Isopento - calqué sur game_board.dart
-// v2: Support du snap visuel
+// MODIFIÉ: Affiche la solution en semi-transparent + pièces joueur en opaque
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -209,20 +209,31 @@ class IsopentoBoard extends ConsumerWidget {
       int logicalY,
       bool isLandscape,
       ) {
-    final cellValue = state.plateau.getCell(logicalX, logicalY);
+    // ✅ AFFICHER LA SOLUTION EN SEMI-TRANSPARENT
+    final solutionValue = state.solutionPlateau.getCell(logicalX, logicalY);
+    final placedValue = state.plateau.getCell(logicalX, logicalY);
 
     Color cellColor;
     String cellText = '';
     bool isOccupied = false;
 
-    if (cellValue == -1) {
+    // D'abord: solution en arrière-plan semi-transparent (25% opacité)
+    if (solutionValue != 0 && solutionValue != -1) {
+      cellColor = settings.ui.getPieceColor(solutionValue).withOpacity(0.25);
+      cellText = solutionValue.toString();
+    } else if (solutionValue == -1) {
       cellColor = Colors.grey.shade800;
-    } else if (cellValue == 0) {
-      cellColor = Colors.grey.shade300;
     } else {
-      cellColor = settings.ui.getPieceColor(cellValue);
-      cellText = cellValue.toString();
+      cellColor = Colors.grey.shade300;
+    }
+
+    // Ensuite: pièce du joueur en opaque par-dessus (surcharge la solution)
+    if (placedValue != 0) {
+      cellColor = settings.ui.getPieceColor(placedValue);
+      cellText = placedValue.toString();
       isOccupied = true;
+    } else if (placedValue == -1) {
+      cellColor = Colors.grey.shade800;
     }
 
     bool isSelected = false;
@@ -246,13 +257,12 @@ class IsopentoBoard extends ConsumerWidget {
 
         if (pieceX == logicalX && pieceY == logicalY) {
           isSelected = true;
-
-          if (state.selectedCellInPiece != null) {
-            isReferenceCell = (localX == state.selectedCellInPiece!.x &&
-                localY == state.selectedCellInPiece!.y);
+          if (logicalX == selectedPiece.gridX + (state.selectedCellInPiece?.x ?? 0) &&
+              logicalY == selectedPiece.gridY + (state.selectedCellInPiece?.y ?? 0)) {
+            isReferenceCell = true;
           }
 
-          if (cellValue == 0) {
+          if (placedValue == 0) {
             cellColor = settings.ui.getPieceColor(selectedPiece.piece.id);
             cellText = selectedPiece.piece.id.toString();
             isOccupied = true;
@@ -397,7 +407,7 @@ class IsopentoBoard extends ConsumerWidget {
         },
         child: cellWidget,
       );
-    } else if (!isOccupied && state.selectedPiece != null && cellValue == 0) {
+    } else if (!isOccupied && state.selectedPiece != null && placedValue == 0) {
       // Case vide avec pièce sélectionnée : annuler sélection
       cellWidget = GestureDetector(
         onTap: () {
@@ -424,6 +434,28 @@ class IsopentoBoard extends ConsumerWidget {
 
   void _showVictoryDialog(BuildContext context, WidgetRef ref) {
     final state = ref.read(isopentoProvider);
+    final notifier = ref.read(isopentoProvider.notifier);
+
+    // ✅ CALCULER NOTE ISOMÉTRIES
+    int totalPlayerIsometries = 0;
+    int totalMinimalIsometries = 0;
+
+    for (final placed in state.placedPieces) {
+      totalPlayerIsometries += placed.isometriesUsed;
+
+      // Calculer minimal pour cette pièce
+      final minimal = notifier.calculateMinimalIsometries(
+        placed.piece,
+        placed.positionIndex,
+      );
+      totalMinimalIsometries += minimal;
+    }
+
+    // Note sur 20 (en double, puis convertir en String)
+    final noteIsometries = totalMinimalIsometries == 0
+        ? 20.0
+        : (totalMinimalIsometries / totalPlayerIsometries) * 20;
+    final noteStr = noteIsometries.toStringAsFixed(1);
 
     showDialog(
       context: context,
@@ -449,14 +481,21 @@ class IsopentoBoard extends ConsumerWidget {
                     children: [
                       const Icon(Icons.emoji_events, color: Colors.amber, size: 24),
                       const SizedBox(width: 8),
-                      Text(
-                        'Bravo ! ${state.puzzle?.size.label}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('Isométries: ${state.isometryCount}  Translations: ${state.translationCount}'),
+              //    Text('Translations: ${state.translationCount}'),
+                  const SizedBox(height: 8),
+                  // ✅ AFFICHER NOTE ISOMÉTRIES
+                  Text(
+                    'Isométries: $noteStr/20',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.blue,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisSize: MainAxisSize.min,

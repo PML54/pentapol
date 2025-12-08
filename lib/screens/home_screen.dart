@@ -5,13 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../duel/screens/duel_home_screen.dart';
+import '../pentoscope/screens/pentoscope_menu_screen.dart';
 import 'pentomino_game_screen.dart';
 import 'settings_screen.dart';
 import 'solutions_browser_screen.dart';
-import '../duel/screens/duel_home_screen.dart';
-import '../duel_isometry/screens/duel_isometry_home_screen.dart';
-import '../duel_isometry/screens/duel_isometry_game_screen.dart';
-import '../pentoscope/screens/pentoscope_menu_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -46,18 +44,12 @@ class HomeScreen extends ConsumerWidget {
                 SizedBox(height: 16),
                 Text(
                   'Pentapol',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Puzzles de pentominos',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ],
             ),
@@ -75,9 +67,7 @@ class HomeScreen extends ConsumerWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const PentominoGameScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const PentominoGameScreen()),
               );
             },
           ),
@@ -94,9 +84,7 @@ class HomeScreen extends ConsumerWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const PentoscopeMenuScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const PentoscopeMenuScreen()),
               );
             },
           ),
@@ -113,9 +101,7 @@ class HomeScreen extends ConsumerWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const DuelHomeScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const DuelHomeScreen()),
               );
             },
           ),
@@ -126,24 +112,6 @@ class HomeScreen extends ConsumerWidget {
             child: const Text('isopento'),
           ),
           const SizedBox(height: 16),
-
-          // Mode Duel Isométries - NOUVEAU
-          _buildMenuCard(
-            context: context,
-            title: 'Duel Isométries',
-            subtitle: 'Reconstruisez la cible avec le moins de transformations',
-            icon: Icons.rotate_90_degrees_ccw,
-            color: Colors.purple,
-            badge: 'NOUVEAU',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DuelIsometryHomeScreen(),
-                ),
-              );
-            },
-          ),
 
           const SizedBox(height: 16),
 
@@ -194,10 +162,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   const Text(
                     'Statistiques',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   _buildStatRow('Parties jouées', '0'),
@@ -236,7 +201,9 @@ class HomeScreen extends ConsumerWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: enabled ? color.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                  color: enabled
+                      ? color.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -302,7 +269,9 @@ class HomeScreen extends ConsumerWidget {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: enabled ? Colors.grey : Colors.grey.withValues(alpha: 0.3),
+                color: enabled
+                    ? Colors.grey
+                    : Colors.grey.withValues(alpha: 0.3),
               ),
             ],
           ),
@@ -317,16 +286,10 @@ class HomeScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14),
-          ),
+          Text(label, style: const TextStyle(fontSize: 14)),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ],
       ),

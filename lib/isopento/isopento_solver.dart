@@ -5,7 +5,7 @@
 import '../models/pentominos.dart';
 
 /// Résultat d'un placement de pièce
-class PentoscopePlacement {
+class IsopentoPlacement {
   final int pieceIndex;
   final int pieceId;
   final int orientation;
@@ -13,7 +13,7 @@ class PentoscopePlacement {
   final int offsetY;
   final List<int> occupiedCells; // Indices linéaires des cases occupées
 
-  PentoscopePlacement({
+  IsopentoPlacement({
     required this.pieceIndex,
     required this.pieceId,
     required this.orientation,
@@ -27,16 +27,16 @@ class PentoscopePlacement {
       'Pièce $pieceId (idx=$pieceIndex), orient=$orientation → cells=$occupiedCells';
 }
 
-/// Plateau simple pour Pentoscope (sans dépendance au Plateau principal)
-class PentoscopeBoard {
+/// Plateau simple pour Isopento (sans dépendance au Plateau principal)
+class IsopentoBoard {
   final int width;
   final int height;
   final List<List<int>> grid; // 0 = libre, >0 = pieceId
 
-  PentoscopeBoard({required this.width, required this.height})
+  IsopentoBoard({required this.width, required this.height})
       : grid = List.generate(height, (_) => List.filled(width, 0));
 
-  PentoscopeBoard._copy(this.width, this.height, this.grid);
+  IsopentoBoard._copy(this.width, this.height, this.grid);
 
   int get totalCells => width * height;
 
@@ -50,8 +50,8 @@ class PentoscopeBoard {
 
   bool isFree(int x, int y) => getCell(x, y) == 0;
 
-  PentoscopeBoard copy() {
-    return PentoscopeBoard._copy(
+  IsopentoBoard copy() {
+    return IsopentoBoard._copy(
       width,
       height,
       grid.map((row) => List<int>.from(row)).toList(),
@@ -65,28 +65,28 @@ class PentoscopeBoard {
   (int, int) cellCoords(int index) => (index % width, index ~/ width);
 }
 
-/// Solver paramétré pour Pentoscope
-class PentoscopeSolver {
+/// Solver paramétré pour Isopento
+class IsopentoSolver {
   final int width;
   final int height;
   final List<Pento> pieces;
   final int maxSeconds;
 
-  late PentoscopeBoard _board;
+  late IsopentoBoard _board;
   late List<bool> _piecesUsed;
   late DateTime _startTime;
-  late List<PentoscopePlacement> _history;
+  late List<IsopentoPlacement> _history;
 
   int _attemptCount = 0;
   bool _shouldStop = false;
 
-  PentoscopeSolver({
+  IsopentoSolver({
     required this.width,
     required this.height,
     required this.pieces,
     this.maxSeconds = 30,
   }) {
-    _board = PentoscopeBoard(width: width, height: height);
+    _board = IsopentoBoard(width: width, height: height);
     _piecesUsed = List.filled(pieces.length, false);
     _history = [];
   }
@@ -98,7 +98,7 @@ class PentoscopeSolver {
   }
 
   /// Trouve une solution et la retourne
-  List<PentoscopePlacement>? findSolution() {
+  List<IsopentoPlacement>? findSolution() {
     _reset();
     if (_backtrack()) {
       return List.from(_history);
@@ -119,7 +119,7 @@ class PentoscopeSolver {
   }
 
   void _reset() {
-    _board = PentoscopeBoard(width: width, height: height);
+    _board = IsopentoBoard(width: width, height: height);
     _piecesUsed = List.filled(pieces.length, false);
     _history = [];
     _attemptCount = 0;
@@ -165,7 +165,7 @@ class PentoscopeSolver {
           _place(shape, targetX, targetY, piece.id);
           _piecesUsed[pieceIndex] = true;
 
-          _history.add(PentoscopePlacement(
+          _history.add(IsopentoPlacement(
             pieceIndex: pieceIndex,
             pieceId: piece.id,
             orientation: orientation,

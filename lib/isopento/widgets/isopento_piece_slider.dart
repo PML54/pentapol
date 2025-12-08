@@ -1,5 +1,6 @@
-// lib/pentoscope/widgets/pentoscope_piece_slider.dart
+// lib/isopento/widgets/isopento_piece_slider.dart
 // Slider de pièces Isopento - calqué sur piece_slider.dart
+// FIXÉ: Utilise DraggablePieceWidget pour que le drag fonctionne
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

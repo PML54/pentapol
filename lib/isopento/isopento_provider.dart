@@ -1,6 +1,6 @@
-// lib/pentoscope/pentoscope_provider.dart
+// lib/isopento/providers/isopento_provider.dart
 // Provider Isopento - calqué sur pentomino_game_provider
-// CORRIGÉ: Bug de disparition des pièces (sync plateau/placedPieces)
+// MODIFIÉ: Ajout de solutionPlateau pour afficher la solution en semi-transparent
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,14 +10,200 @@ import '../models/point.dart';
 import '../services/isometry_transforms.dart';
 import '../services/shape_recognizer.dart';
 import 'isopento_generator.dart';
+import 'isopento_solver.dart';
 
 // ============================================================================
 // ÉTAT
 // ============================================================================
 
-final isopentoProvider = NotifierProvider<IsopentoNotifier, IsopentoState>(
-  IsopentoNotifier.new,
-);
+/// Pièce placée sur le plateau Isopento
+class IsopentoPlacedPiece {
+  final Pento piece;
+  final int positionIndex;
+  final int gridX;
+  final int gridY;
+  final int isometriesUsed;
+
+  const IsopentoPlacedPiece({
+    required this.piece,
+    required this.positionIndex,
+    required this.gridX,
+    required this.gridY,
+    required this.isometriesUsed,
+  });
+
+  IsopentoPlacedPiece copyWith({
+    Pento? piece,
+    int? positionIndex,
+    int? gridX,
+    int? gridY,
+    int? isometriesUsed,
+  }) {
+    return IsopentoPlacedPiece(
+      piece: piece ?? this.piece,
+      positionIndex: positionIndex ?? this.positionIndex,
+      gridX: gridX ?? this.gridX,
+      gridY: gridY ?? this.gridY,
+      isometriesUsed: isometriesUsed ?? this.isometriesUsed,
+    );
+  }
+
+  /// Coordonnées absolues des cellules occupées (normalisées)
+  Iterable<Point> get absoluteCells sync* {
+    final position = piece.positions[positionIndex];
+
+// Trouver le décalage minimum pour normaliser
+    int minLocalX = 5, minLocalY = 5;
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      if (localX < minLocalX) minLocalX = localX;
+      if (localY < minLocalY) minLocalY = localY;
+    }
+
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5 - minLocalX;
+      final localY = (cellNum - 1) ~/ 5 - minLocalY;
+      yield Point(gridX + localX, gridY + localY);
+    }
+  }
+}
+
+/// État du jeu Isopento
+class IsopentoState {
+  final IsopentoPuzzle? puzzle;
+  final Plateau plateau;
+  final Plateau solutionPlateau;
+  final List<Pento> availablePieces;
+  final List<IsopentoPlacedPiece> placedPieces;
+
+// Sélection pièce du slider
+  final Pento? selectedPiece;
+  final int selectedPositionIndex;
+  final Map<int, int> piecePositionIndices;
+
+// Sélection pièce placée
+  final IsopentoPlacedPiece? selectedPlacedPiece;
+  final Point? selectedCellInPiece; // Mastercase
+
+// Preview
+  final int? previewX;
+  final int? previewY;
+  final bool isPreviewValid;
+
+// État du jeu
+  final bool isComplete;
+  final int isometryCount;
+  final int translationCount;
+  final bool isSnapped;
+
+  const IsopentoState({
+    this.puzzle,
+    required this.plateau,
+    required this.solutionPlateau,
+    this.availablePieces = const [],
+    this.placedPieces = const [],
+    this.selectedPiece,
+    this.selectedPositionIndex = 0,
+    this.piecePositionIndices = const {},
+    this.selectedPlacedPiece,
+    this.selectedCellInPiece,
+    this.previewX,
+    this.previewY,
+    this.isPreviewValid = false,
+    this.isComplete = false,
+    this.isometryCount = 0,
+    this.translationCount = 0,
+    this.isSnapped = false,
+  });
+
+  factory IsopentoState.initial() {
+    final empty = Plateau.allVisible(5, 5);
+    return IsopentoState(
+      plateau: empty,
+      solutionPlateau: empty,
+    );
+  }
+
+  int getPiecePositionIndex(int pieceId) {
+    return piecePositionIndices[pieceId] ?? 0;
+  }
+
+  bool canPlacePiece(Pento piece, int positionIndex, int gridX, int gridY) {
+    final position = piece.positions[positionIndex];
+
+// Trouver le décalage minimum pour normaliser la forme
+    int minLocalX = 5, minLocalY = 5;
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      if (localX < minLocalX) minLocalX = localX;
+      if (localY < minLocalY) minLocalY = localY;
+    }
+
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5 - minLocalX; // Normalisé
+      final localY = (cellNum - 1) ~/ 5 - minLocalY; // Normalisé
+      final x = gridX + localX;
+      final y = gridY + localY;
+
+      if (x < 0 || x >= plateau.width || y < 0 || y >= plateau.height) {
+        return false;
+      }
+
+      final cellValue = plateau.getCell(x, y);
+      if (cellValue != 0) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  IsopentoState copyWith({
+    IsopentoPuzzle? puzzle,
+    Plateau? plateau,
+    Plateau? solutionPlateau,
+    List<Pento>? availablePieces,
+    List<IsopentoPlacedPiece>? placedPieces,
+    Pento? selectedPiece,
+    bool clearSelectedPiece = false,
+    int? selectedPositionIndex,
+    Map<int, int>? piecePositionIndices,
+    IsopentoPlacedPiece? selectedPlacedPiece,
+    bool clearSelectedPlacedPiece = false,
+    Point? selectedCellInPiece,
+    bool clearSelectedCellInPiece = false,
+    int? previewX,
+    int? previewY,
+    bool? isPreviewValid,
+    bool clearPreview = false,
+    bool? isComplete,
+    int? isometryCount,
+    int? translationCount,
+    bool? isSnapped,
+  }) {
+    return IsopentoState(
+      puzzle: puzzle ?? this.puzzle,
+      plateau: plateau ?? this.plateau,
+      solutionPlateau: solutionPlateau ?? this.solutionPlateau,
+      availablePieces: availablePieces ?? this.availablePieces,
+      placedPieces: placedPieces ?? this.placedPieces,
+      selectedPiece: clearSelectedPiece ? null : (selectedPiece ?? this.selectedPiece),
+      selectedPositionIndex: selectedPositionIndex ?? this.selectedPositionIndex,
+      piecePositionIndices: piecePositionIndices ?? this.piecePositionIndices,
+      selectedPlacedPiece: clearSelectedPlacedPiece ? null : (selectedPlacedPiece ?? this.selectedPlacedPiece),
+      selectedCellInPiece: clearSelectedCellInPiece ? null : (selectedCellInPiece ?? this.selectedCellInPiece),
+      previewX: clearPreview ? null : (previewX ?? this.previewX),
+      previewY: clearPreview ? null : (previewY ?? this.previewY),
+      isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid),
+      isComplete: isComplete ?? this.isComplete,
+      isometryCount: isometryCount ?? this.isometryCount,
+      translationCount: translationCount ?? this.translationCount,
+      isSnapped: isSnapped ?? this.isSnapped,
+    );
+  }
+}
 
 // ============================================================================
 // PROVIDER
@@ -28,46 +214,60 @@ enum IsopentoDifficulty { easy, random, hard }
 class IsopentoNotifier extends Notifier<IsopentoState> {
   late final IsopentoGenerator _generator;
 
-  // ==========================================================================
-// ISOMÉTRIES (fonctionne sur pièce slider ET pièce placée)
-// ==========================================================================
-
-  void applyIsometryRotation() {
-    if (state.selectedPlacedPiece != null) {
-      _applyPlacedPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 1));
-    } else if (state.selectedPiece != null) {
-      _applySliderPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 1));
-    }
-  }
-
-void applyIsometryRotationCW() {
-    if (state.selectedPlacedPiece != null) {
-      _applyPlacedPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 3));
-    } else if (state.selectedPiece != null) {
-      _applySliderPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 3));
-    }
-  }
-
-void applyIsometrySymmetryH() {
-    if (state.selectedPlacedPiece != null) {
-      _applyPlacedPieceSymmetryH();
-    } else if (state.selectedPiece != null) {
-      _applySliderPieceSymmetryH();
-    }
-  }
-
-void applyIsometrySymmetryV() {
-    if (state.selectedPlacedPiece != null) {
-      _applyPlacedPieceSymmetryV();
-    } else if (state.selectedPiece != null) {
-      _applySliderPieceSymmetryV();
-    }
-  }
-
   @override
   IsopentoState build() {
     _generator = IsopentoGenerator();
     return IsopentoState.initial();
+  }
+
+// ==========================================================================
+// DÉMARRAGE
+// ==========================================================================
+
+  void startPuzzle(IsopentoSize size, {IsopentoDifficulty difficulty = IsopentoDifficulty.random}) {
+    final puzzle = switch (difficulty) {
+      IsopentoDifficulty.easy => _generator.generateEasy(size),
+      IsopentoDifficulty.hard => _generator.generateHard(size),
+      IsopentoDifficulty.random => _generator.generate(size),
+    };
+
+    final pieces = puzzle.pieceIds
+        .map((id) => pentominos.firstWhere((p) => p.id == id))
+        .toList();
+
+// ✅ GÉNÉRER LA SOLUTION AVEC LE SOLVER
+    final solutionPlateau = _generateSolutionPlateau(size, pieces);
+
+// Plateau VIDE pour le joueur
+    final emptyPlateau = Plateau.allVisible(size.width, size.height);
+
+    state = IsopentoState(
+      puzzle: puzzle,
+      plateau: emptyPlateau,
+      solutionPlateau: solutionPlateau,
+      availablePieces: pieces,
+      placedPieces: [],
+      piecePositionIndices: {},
+      isComplete: false,
+      isometryCount: 0,
+      translationCount: 0,
+    );
+  }
+
+// ==========================================================================
+// SÉLECTION PIÈCE (SLIDER)
+// ==========================================================================
+
+  void selectPiece(Pento piece) {
+    final positionIndex = state.getPiecePositionIndex(piece.id);
+    final defaultCell = _calculateDefaultCell(piece, positionIndex);
+
+    state = state.copyWith(
+      selectedPiece: piece,
+      selectedPositionIndex: positionIndex,
+      clearSelectedPlacedPiece: true,
+      selectedCellInPiece: defaultCell,
+    );
   }
 
 // ==========================================================================
@@ -102,11 +302,7 @@ void applyIsometrySymmetryV() {
     }
   }
 
-  void clearPreview() {
-    state = state.copyWith(clearPreview: true);
-  }
-
-void cycleToNextOrientation() {
+  void cycleToNextOrientation() {
     if (state.selectedPiece == null) return;
 
     final piece = state.selectedPiece!;
@@ -123,87 +319,7 @@ void cycleToNextOrientation() {
     );
   }
 
-  IsopentoPlacedPiece? getPlacedPieceAt(int x, int y) {
-    for (final placed in state.placedPieces) {
-      for (final cell in placed.absoluteCells) {
-        if (cell.x == x && cell.y == y) {
-          return placed;
-        }
-      }
-    }
-    return null;
-  }
-
-void removePlacedPiece(IsopentoPlacedPiece placed) {
-    final newPlateau = Plateau.allVisible(state.plateau.width, state.plateau.height);
-
-    for (final p in state.placedPieces) {
-      if (p.piece.id == placed.piece.id) continue;
-      for (final cell in p.absoluteCells) {
-        newPlateau.setCell(cell.x, cell.y, p.piece.id);
-      }
-    }
-
-    final newPlaced = state.placedPieces.where((p) => p.piece.id != placed.piece.id).toList();
-    final newAvailable = [...state.availablePieces, placed.piece];
-
-    state = state.copyWith(
-      plateau: newPlateau,
-      placedPieces: newPlaced,
-      availablePieces: newAvailable,
-      clearSelectedPiece: true,
-      clearSelectedPlacedPiece: true,
-      clearSelectedCellInPiece: true,
-      isComplete: false,
-    );
-  }
-
-  // ==========================================================================
-// RESET - génère un nouveau puzzle
 // ==========================================================================
-
-  void reset() {
-    final puzzle = state.puzzle;
-    if (puzzle == null) return;
-
-// Générer un nouveau puzzle avec la même taille
-    final newPuzzle = _generator.generate(puzzle.size);
-
-    final pieces = newPuzzle.pieceIds
-        .map((id) => pentominos.firstWhere((p) => p.id == id))
-        .toList();
-
-    final plateau = Plateau.allVisible(newPuzzle.size.width, newPuzzle.size.height);
-
-    state = IsopentoState(
-      puzzle: newPuzzle,
-      plateau: plateau,
-      availablePieces: pieces,
-      placedPieces: [],
-      piecePositionIndices: {},
-      isComplete: false,
-      isometryCount: 0,
-      translationCount: 0,
-    );
-  }
-
-// ==========================================================================
-// SÉLECTION PIÈCE (SLIDER)
-// ==========================================================================
-
-  void selectPiece(Pento piece) {
-    final positionIndex = state.getPiecePositionIndex(piece.id);
-    final defaultCell = _calculateDefaultCell(piece, positionIndex);
-
-    state = state.copyWith(
-      selectedPiece: piece,
-      selectedPositionIndex: positionIndex,
-      clearSelectedPlacedPiece: true,
-      selectedCellInPiece: defaultCell,
-    );
-  }
-
-  // ==========================================================================
 // SÉLECTION PIÈCE PLACÉE (avec mastercase)
 // ==========================================================================
 
@@ -231,36 +347,58 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
     );
   }
 
-  // ==========================================================================
-// DÉMARRAGE
-// ==========================================================================
-
-  void startPuzzle(IsopentoSize size, {IsopentoDifficulty difficulty = IsopentoDifficulty.random}) {
-    final puzzle = switch (difficulty) {
-      IsopentoDifficulty.easy => _generator.generateEasy(size),
-      IsopentoDifficulty.hard => _generator.generateHard(size),
-      IsopentoDifficulty.random => _generator.generate(size),
-    };
-
-    final pieces = puzzle.pieceIds
-        .map((id) => pentominos.firstWhere((p) => p.id == id))
-        .toList();
-
-    final plateau = Plateau.allVisible(size.width, size.height);
-
-    state = IsopentoState(
-      puzzle: puzzle,
-      plateau: plateau,
-      availablePieces: pieces,
-      placedPieces: [],
-      piecePositionIndices: {},
-      isComplete: false,
-      isometryCount: 0,
-      translationCount: 0,
-    );
+  IsopentoPlacedPiece? getPlacedPieceAt(int x, int y) {
+    for (final placed in state.placedPieces) {
+      for (final cell in placed.absoluteCells) {
+        if (cell.x == x && cell.y == y) {
+          return placed;
+        }
+      }
+    }
+    return null;
   }
 
-  // ==========================================================================
+// ==========================================================================
+// PREVIEW
+// ==========================================================================
+
+  void updatePreview(int gridX, int gridY) {
+    if (state.selectedPiece == null) {
+      if (state.previewX != null || state.previewY != null) {
+        state = state.copyWith(clearPreview: true);
+      }
+      return;
+    }
+
+    final piece = state.selectedPiece!;
+    final positionIndex = state.selectedPositionIndex;
+
+    int anchorX = gridX;
+    int anchorY = gridY;
+
+    if (state.selectedCellInPiece != null) {
+      anchorX = gridX - state.selectedCellInPiece!.x;
+      anchorY = gridY - state.selectedCellInPiece!.y;
+    }
+
+    final isValid = state.canPlacePiece(piece, positionIndex, anchorX, anchorY);
+
+    if (state.previewX != anchorX ||
+        state.previewY != anchorY ||
+        state.isPreviewValid != isValid) {
+      state = state.copyWith(
+        previewX: anchorX,
+        previewY: anchorY,
+        isPreviewValid: isValid,
+      );
+    }
+  }
+
+  void clearPreview() {
+    state = state.copyWith(clearPreview: true);
+  }
+
+// ==========================================================================
 // PLACEMENT
 // ==========================================================================
 
@@ -301,6 +439,7 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       positionIndex: positionIndex,
       gridX: anchorX,
       gridY: anchorY,
+      isometriesUsed: state.isometryCount,  // ← SAUVEGARDER les isométries
     );
 
     for (final cell in newPlaced.absoluteCells) {
@@ -340,48 +479,73 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       clearPreview: true,
       isComplete: isComplete,
       translationCount: newTranslationCount,
+      isometryCount: 0,  // ← RÉINITIALISER pour la prochaine pièce
     );
 
     return true;
   }
 
-// ==========================================================================
-// PREVIEW
-// ==========================================================================
+  void removePlacedPiece(IsopentoPlacedPiece placed) {
+    final newPlateau = Plateau.allVisible(state.plateau.width, state.plateau.height);
 
-  void updatePreview(int gridX, int gridY) {
-    if (state.selectedPiece == null) {
-      if (state.previewX != null || state.previewY != null) {
-        state = state.copyWith(clearPreview: true);
+    for (final p in state.placedPieces) {
+      if (p.piece.id == placed.piece.id) continue;
+      for (final cell in p.absoluteCells) {
+        newPlateau.setCell(cell.x, cell.y, p.piece.id);
       }
-      return;
     }
 
-    final piece = state.selectedPiece!;
-    final positionIndex = state.selectedPositionIndex;
+    final newPlaced = state.placedPieces.where((p) => p.piece.id != placed.piece.id).toList();
+    final newAvailable = [...state.availablePieces, placed.piece];
 
-    int anchorX = gridX;
-    int anchorY = gridY;
+    state = state.copyWith(
+      plateau: newPlateau,
+      placedPieces: newPlaced,
+      availablePieces: newAvailable,
+      clearSelectedPiece: true,
+      clearSelectedPlacedPiece: true,
+      clearSelectedCellInPiece: true,
+      isComplete: false,
+    );
+  }
 
-    if (state.selectedCellInPiece != null) {
-      anchorX = gridX - state.selectedCellInPiece!.x;
-      anchorY = gridY - state.selectedCellInPiece!.y;
-    }
+// ==========================================================================
+// ISOMÉTRIES (fonctionne sur pièce slider ET pièce placée)
+// ==========================================================================
 
-    final isValid = state.canPlacePiece(piece, positionIndex, anchorX, anchorY);
-
-    if (state.previewX != anchorX ||
-        state.previewY != anchorY ||
-        state.isPreviewValid != isValid) {
-      state = state.copyWith(
-        previewX: anchorX,
-        previewY: anchorY,
-        isPreviewValid: isValid,
-      );
+  void applyIsometryRotation() {
+    if (state.selectedPlacedPiece != null) {
+      _applyPlacedPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 1));
+    } else if (state.selectedPiece != null) {
+      _applySliderPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 1));
     }
   }
 
-  // ==========================================================================
+  void applyIsometryRotationCW() {
+    if (state.selectedPlacedPiece != null) {
+      _applyPlacedPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 3));
+    } else if (state.selectedPiece != null) {
+      _applySliderPieceIsometry((coords, cx, cy) => rotateAroundPoint(coords, cx, cy, 3));
+    }
+  }
+
+  void applyIsometrySymmetryH() {
+    if (state.selectedPlacedPiece != null) {
+      _applyPlacedPieceSymmetryH();
+    } else if (state.selectedPiece != null) {
+      _applySliderPieceSymmetryH();
+    }
+  }
+
+  void applyIsometrySymmetryV() {
+    if (state.selectedPlacedPiece != null) {
+      _applyPlacedPieceSymmetryV();
+    } else if (state.selectedPiece != null) {
+      _applySliderPieceSymmetryV();
+    }
+  }
+
+// ==========================================================================
 // CORRECTION 2: _applyPlacedPieceIsometry - sync placedPieces
 // ==========================================================================
 
@@ -415,6 +579,7 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       positionIndex: match.positionIndex,
       gridX: match.gridX,
       gridY: match.gridY,
+      isometriesUsed: selectedPiece.isometriesUsed,  // ← Garder la même
     );
 
 // 7. Nouvelle mastercase
@@ -431,6 +596,41 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: match.positionIndex,
       selectedCellInPiece: newSelectedCell,
+      isometryCount: state.isometryCount + 1,
+    );
+  }
+
+  void _applySliderPieceIsometry(
+      List<List<int>> Function(List<List<int>>, int, int) transform,
+      ) {
+    final piece = state.selectedPiece!;
+    final currentIndex = state.selectedPositionIndex;
+
+// 1. Coordonnées actuelles
+    final currentCoords = piece.cartesianCoords[currentIndex];
+
+// 2. Centre de rotation
+    final refX = (state.selectedCellInPiece?.x ?? 0);
+    final refY = (state.selectedCellInPiece?.y ?? 0);
+
+// 3. Appliquer la transformation
+    final transformedCoords = transform(currentCoords, refX, refY);
+
+// 4. Reconnaître
+    final match = recognizeShape(transformedCoords);
+    if (match == null || match.piece.id != piece.id) return;
+
+// 5. Sauvegarder
+    final newIndices = Map<int, int>.from(state.piecePositionIndices);
+    newIndices[piece.id] = match.positionIndex;
+
+// 6. Recalculer la mastercase pour la nouvelle orientation
+    final newCell = _calculateDefaultCell(piece, match.positionIndex);
+
+    state = state.copyWith(
+      selectedPositionIndex: match.positionIndex,
+      piecePositionIndices: newIndices,
+      selectedCellInPiece: newCell,
       isometryCount: state.isometryCount + 1,
     );
   }
@@ -457,6 +657,7 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       positionIndex: match.positionIndex,
       gridX: match.gridX,
       gridY: match.gridY,
+      isometriesUsed: selectedPiece.isometriesUsed,  // ← Garder la même
     );
 
     final centerX = axisX;
@@ -499,6 +700,7 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       positionIndex: match.positionIndex,
       gridX: match.gridX,
       gridY: match.gridY,
+      isometriesUsed: selectedPiece.isometriesUsed,  // ← Garder la même
     );
 
     final centerX = selectedPiece.gridX + refX;
@@ -515,41 +717,6 @@ void removePlacedPiece(IsopentoPlacedPiece placed) {
       selectedPlacedPiece: transformedPiece,
       selectedPositionIndex: match.positionIndex,
       selectedCellInPiece: newSelectedCell,
-      isometryCount: state.isometryCount + 1,
-    );
-  }
-
-void _applySliderPieceIsometry(
-      List<List<int>> Function(List<List<int>>, int, int) transform,
-      ) {
-    final piece = state.selectedPiece!;
-    final currentIndex = state.selectedPositionIndex;
-
-// 1. Coordonnées actuelles
-    final currentCoords = piece.cartesianCoords[currentIndex];
-
-// 2. Centre de rotation
-    final refX = (state.selectedCellInPiece?.x ?? 0);
-    final refY = (state.selectedCellInPiece?.y ?? 0);
-
-// 3. Appliquer la transformation
-    final transformedCoords = transform(currentCoords, refX, refY);
-
-// 4. Reconnaître
-    final match = recognizeShape(transformedCoords);
-    if (match == null || match.piece.id != piece.id) return;
-
-// 5. Sauvegarder
-    final newIndices = Map<int, int>.from(state.piecePositionIndices);
-    newIndices[piece.id] = match.positionIndex;
-
-// 6. Recalculer la mastercase pour la nouvelle orientation
-    final newCell = _calculateDefaultCell(piece, match.positionIndex);
-
-    state = state.copyWith(
-      selectedPositionIndex: match.positionIndex,
-      piecePositionIndices: newIndices,
-      selectedCellInPiece: newCell,
       isometryCount: state.isometryCount + 1,
     );
   }
@@ -580,7 +747,7 @@ void _applySliderPieceIsometry(
     );
   }
 
-  // Symétrie V sur pièce slider
+// Symétrie V sur pièce slider
   void _applySliderPieceSymmetryV() {
     final piece = state.selectedPiece!;
     final currentIndex = state.selectedPositionIndex;
@@ -624,6 +791,25 @@ void _applySliderPieceIsometry(
     return Point(rawX - minX, rawY - minY);
   }
 
+  List<List<int>> _extractAbsoluteCoords(IsopentoPlacedPiece piece) {
+    final position = piece.piece.positions[piece.positionIndex];
+
+// Normaliser
+    int minLocalX = 5, minLocalY = 5;
+    for (final cellNum in position) {
+      final localX = (cellNum - 1) % 5;
+      final localY = (cellNum - 1) ~/ 5;
+      if (localX < minLocalX) minLocalX = localX;
+      if (localY < minLocalY) minLocalY = localY;
+    }
+
+    return position.map((cellNum) {
+      final localX = (cellNum - 1) % 5 - minLocalX;
+      final localY = (cellNum - 1) ~/ 5 - minLocalY;
+      return [piece.gridX + localX, piece.gridY + localY];
+    }).toList();
+  }
+
   bool _canPlacePieceAt(ShapeMatch match, IsopentoPlacedPiece? excludePiece) {
     final position = match.piece.positions[match.positionIndex];
 
@@ -655,201 +841,166 @@ void _applySliderPieceIsometry(
     return true;
   }
 
-List<List<int>> _extractAbsoluteCoords(IsopentoPlacedPiece piece) {
-    final position = piece.piece.positions[piece.positionIndex];
+// ==========================================================================
+// SOLUTION GENERATOR - Génère une solution avec le solver
+// ==========================================================================
 
-// Normaliser
-    int minLocalX = 5, minLocalY = 5;
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      if (localX < minLocalX) minLocalX = localX;
-      if (localY < minLocalY) minLocalY = localY;
-    }
-
-    return position.map((cellNum) {
-      final localX = (cellNum - 1) % 5 - minLocalX;
-      final localY = (cellNum - 1) ~/ 5 - minLocalY;
-      return [piece.gridX + localX, piece.gridY + localY];
-    }).toList();
-  }
-}
-
-/// Pièce placée sur le plateau Isopento
-class IsopentoPlacedPiece {
-  final Pento piece;
-  final int positionIndex;
-  final int gridX;
-  final int gridY;
-
-  const IsopentoPlacedPiece({
-    required this.piece,
-    required this.positionIndex,
-    required this.gridX,
-    required this.gridY,
-  });
-
-  /// Coordonnées absolues des cellules occupées (normalisées)
-  Iterable<Point> get absoluteCells sync* {
-    final position = piece.positions[positionIndex];
-
-// Trouver le décalage minimum pour normaliser
-    int minLocalX = 5, minLocalY = 5;
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      if (localX < minLocalX) minLocalX = localX;
-      if (localY < minLocalY) minLocalY = localY;
-    }
-
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5 - minLocalX;
-      final localY = (cellNum - 1) ~/ 5 - minLocalY;
-      yield Point(gridX + localX, gridY + localY);
-    }
-  }
-
-  IsopentoPlacedPiece copyWith({
-    Pento? piece,
-    int? positionIndex,
-    int? gridX,
-    int? gridY,
-  }) {
-    return IsopentoPlacedPiece(
-      piece: piece ?? this.piece,
-      positionIndex: positionIndex ?? this.positionIndex,
-      gridX: gridX ?? this.gridX,
-      gridY: gridY ?? this.gridY,
+  /// Génère un plateau avec une solution trouvée par le solver
+  Plateau _generateSolutionPlateau(IsopentoSize size, List<Pento> pieces) {
+    final solver = IsopentoSolver(
+      width: size.width,
+      height: size.height,
+      pieces: pieces,
+      maxSeconds: 5,
     );
-  }
-}
 
-/// État du jeu Isopento
-class IsopentoState {
-  final IsopentoPuzzle? puzzle;
-  final Plateau plateau;
-  final List<Pento> availablePieces;
-  final List<IsopentoPlacedPiece> placedPieces;
+    final solution = solver.findSolution();
 
-// Sélection pièce du slider
-  final Pento? selectedPiece;
-  final int selectedPositionIndex;
-  final Map<int, int> piecePositionIndices;
+    // Créer le plateau avec la solution
+    final plateau = Plateau.allVisible(size.width, size.height);
 
-// Sélection pièce placée
-  final IsopentoPlacedPiece? selectedPlacedPiece;
-  final Point? selectedCellInPiece; // Mastercase
+    if (solution != null) {
+      for (final placement in solution) {
+        final piece = pieces.firstWhere((p) => p.id == placement.pieceId);
+        final shape = piece.positions[placement.orientation];
 
-// Preview
-  final int? previewX;
-  final int? previewY;
-  final bool isPreviewValid;
+        // Placer la pièce sur le plateau
+        final minShapeCell = shape.reduce((a, b) => a < b ? a : b);
+        final shapeAnchorX = (minShapeCell - 1) % 5;
+        final shapeAnchorY = (minShapeCell - 1) ~/ 5;
 
-// État du jeu
-  final bool isComplete;
-  final int isometryCount;
-  final int translationCount;
-  final bool isSnapped;
+        final offsetX = (placement.offsetX - shapeAnchorX).toInt();
+        final offsetY = (placement.offsetY - shapeAnchorY).toInt();
 
-  const IsopentoState({
-    this.puzzle,
-    required this.plateau,
-    this.availablePieces = const [],
-    this.placedPieces = const [],
-    this.selectedPiece,
-    this.selectedPositionIndex = 0,
-    this.piecePositionIndices = const {},
-    this.selectedPlacedPiece,
-    this.selectedCellInPiece,
-    this.previewX,
-    this.previewY,
-    this.isPreviewValid = false,
-    this.isComplete = false,
-    this.isometryCount = 0,
-    this.translationCount = 0,
-    this.isSnapped = false,
-  });
-
-  factory IsopentoState.initial() {
-    return IsopentoState(
-      plateau: Plateau.allVisible(5, 5),
-    );
-  }
-
-  bool canPlacePiece(Pento piece, int positionIndex, int gridX, int gridY) {
-    final position = piece.positions[positionIndex];
-
-// Trouver le décalage minimum pour normaliser la forme
-    int minLocalX = 5, minLocalY = 5;
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      if (localX < minLocalX) minLocalX = localX;
-      if (localY < minLocalY) minLocalY = localY;
-    }
-
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5 - minLocalX; // Normalisé
-      final localY = (cellNum - 1) ~/ 5 - minLocalY; // Normalisé
-      final x = gridX + localX;
-      final y = gridY + localY;
-
-      if (x < 0 || x >= plateau.width || y < 0 || y >= plateau.height) {
-        return false;
-      }
-
-      final cellValue = plateau.getCell(x, y);
-      if (cellValue != 0) {
-        return false;
+        for (final shapeCell in shape) {
+          final sx = (shapeCell - 1) % 5;
+          final sy = (shapeCell - 1) ~/ 5;
+          plateau.setCell(sx + offsetX, sy + offsetY, placement.pieceId);
+        }
       }
     }
 
-    return true;
+    return plateau;
   }
 
-  IsopentoState copyWith({
-    IsopentoPuzzle? puzzle,
-    Plateau? plateau,
-    List<Pento>? availablePieces,
-    List<IsopentoPlacedPiece>? placedPieces,
-    Pento? selectedPiece,
-    bool clearSelectedPiece = false,
-    int? selectedPositionIndex,
-    Map<int, int>? piecePositionIndices,
-    IsopentoPlacedPiece? selectedPlacedPiece,
-    bool clearSelectedPlacedPiece = false,
-    Point? selectedCellInPiece,
-    bool clearSelectedCellInPiece = false,
-    int? previewX,
-    int? previewY,
-    bool? isPreviewValid,
-    bool clearPreview = false,
-    bool? isComplete,
-    int? isometryCount,
-    int? translationCount,
-    bool? isSnapped,
-  }) {
-    return IsopentoState(
-      puzzle: puzzle ?? this.puzzle,
-      plateau: plateau ?? this.plateau,
-      availablePieces: availablePieces ?? this.availablePieces,
-      placedPieces: placedPieces ?? this.placedPieces,
-      selectedPiece: clearSelectedPiece ? null : (selectedPiece ?? this.selectedPiece),
-      selectedPositionIndex: selectedPositionIndex ?? this.selectedPositionIndex,
-      piecePositionIndices: piecePositionIndices ?? this.piecePositionIndices,
-      selectedPlacedPiece: clearSelectedPlacedPiece ? null : (selectedPlacedPiece ?? this.selectedPlacedPiece),
-      selectedCellInPiece: clearSelectedCellInPiece ? null : (selectedCellInPiece ?? this.selectedCellInPiece),
-      previewX: clearPreview ? null : (previewX ?? this.previewX),
-      previewY: clearPreview ? null : (previewY ?? this.previewY),
-      isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid),
-      isComplete: isComplete ?? this.isComplete,
-      isometryCount: isometryCount ?? this.isometryCount,
-      translationCount: translationCount ?? this.translationCount,
-      isSnapped: isSnapped ?? this.isSnapped,
+// ==========================================================================
+// CALCUL MINIMAL ISOMÉTRIES - BFS pour score
+// ==========================================================================
+
+  /// Calcule le nombre MINIMAL d'isométries pour placer une pièce
+  /// en cherchant le chemin optimal depuis orientation initiale
+  int calculateMinimalIsometries(Pento piece, int targetPositionIndex) {
+    final initialPosition = 0;  // Orientation initiale
+
+    if (initialPosition == targetPositionIndex) {
+      return 0;  // Pas d'isométries nécessaires
+    }
+
+    // Queue BFS
+    final queue = <(int position, int steps)>[];
+    final visited = <int>{initialPosition};
+
+    queue.add((initialPosition, 0));
+
+    while (queue.isNotEmpty) {
+      final (currentPos, steps) = queue.removeAt(0);
+
+      // Essayer les 4 isométries
+      for (int i = 1; i <= 4; i++) {
+        int nextPos = currentPos;
+
+        switch (i) {
+          case 1:  // Rotation CCW
+            nextPos = (currentPos + 1) % piece.numPositions;
+          case 2:  // Rotation CW
+            nextPos = (currentPos + piece.numPositions - 1) % piece.numPositions;
+          case 3:  // Symétrie H
+            nextPos = _findSymmetryHPosition(piece, currentPos) ?? currentPos;
+          case 4:  // Symétrie V
+            nextPos = _findSymmetryVPosition(piece, currentPos) ?? currentPos;
+        }
+
+        if (nextPos == targetPositionIndex) {
+          return steps + 1;
+        }
+
+        if (!visited.contains(nextPos)) {
+          visited.add(nextPos);
+          queue.add((nextPos, steps + 1));
+        }
+      }
+    }
+
+    return piece.numPositions;
+  }
+
+  /// Helper pour trouver symétrie H
+  int? _findSymmetryHPosition(Pento piece, int currentPos) {
+    try {
+      final currentCoords = piece.cartesianCoords[currentPos];
+      final flipped = flipVertical(currentCoords, 0);
+      final match = recognizeShape(flipped);
+
+      if (match?.piece.id == piece.id) {
+        return match?.positionIndex;
+      }
+    } catch (e) {
+      // Symétrie non trouvée
+    }
+    return null;
+  }
+
+  /// Helper pour trouver symétrie V
+  int? _findSymmetryVPosition(Pento piece, int currentPos) {
+    try {
+      final currentCoords = piece.cartesianCoords[currentPos];
+      final flipped = flipHorizontal(currentCoords, 0);
+      final match = recognizeShape(flipped);
+
+      if (match?.piece.id == piece.id) {
+        return match?.positionIndex;
+      }
+    } catch (e) {
+      // Symétrie non trouvée
+    }
+    return null;
+  }
+
+// ==========================================================================
+// RESET - génère un nouveau puzzle
+// ==========================================================================
+
+  void reset() {
+    final puzzle = state.puzzle;
+    if (puzzle == null) return;
+
+// Générer un nouveau puzzle avec la même taille
+    final newPuzzle = _generator.generate(puzzle.size);
+
+    final pieces = newPuzzle.pieceIds
+        .map((id) => pentominos.firstWhere((p) => p.id == id))
+        .toList();
+
+// Générer la solution avec le solver
+    final newSolutionPlateau = _generateSolutionPlateau(newPuzzle.size, pieces);
+
+// Plateau VIDE pour le joueur
+    final emptyPlateau = Plateau.allVisible(newPuzzle.size.width, newPuzzle.size.height);
+
+    state = IsopentoState(
+      puzzle: newPuzzle,
+      plateau: emptyPlateau,
+      solutionPlateau: newSolutionPlateau,
+      availablePieces: pieces,
+      placedPieces: [],
+      piecePositionIndices: {},
+      isComplete: false,
+      isometryCount: 0,
+      translationCount: 0,
     );
   }
-
-  int getPiecePositionIndex(int pieceId) {
-    return piecePositionIndices[pieceId] ?? 0;
-  }
 }
+
+final isopentoProvider = NotifierProvider<IsopentoNotifier, IsopentoState>(
+  IsopentoNotifier.new,
+);
