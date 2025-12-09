@@ -1,4 +1,5 @@
-// lib/pentoscope/pentoscope_data.dart
+// lib/isopento/isopento_data.dart
+// Modified: 2512090930
 // Généré automatiquement - Ne pas modifier
 // IDs: 1=X, 2=P, 3=T, 4=F, 5=Y, 6=V, 7=U, 8=L, 9=N, 10=W, 11=Z, 12=I
 

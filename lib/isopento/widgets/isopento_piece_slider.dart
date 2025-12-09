@@ -1,5 +1,5 @@
 // lib/isopento/widgets/isopento_piece_slider.dart
-// Slider de pièces Isopento - calqué sur piece_slider.dart
+// Modified: 2512091030
 // FIXÉ: Utilise DraggablePieceWidget pour que le drag fonctionne
 
 import 'package:flutter/material.dart';
@@ -54,7 +54,8 @@ class IsopentoPieceSlider extends ConsumerWidget {
       IsopentoState state,
       settings,
       bool isLandscape,
-      ) {
+      )
+  {
     int positionIndex = state.selectedPiece?.id == piece.id
         ? state.selectedPositionIndex
         : state.getPiecePositionIndex(piece.id);

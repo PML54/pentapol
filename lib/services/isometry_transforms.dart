@@ -1,5 +1,5 @@
 // lib/services/isometry_transforms.dart
-// Bibliothèque de transformations isométriques pour coordonnées cartésiennes
+// Modified: 2512092100
 
 /// Applique une rotation autour d'un point P0
 ///

@@ -1,5 +1,5 @@
-// Modified: 2025-11-20 (cartesianCoords corrigées)
-// Généré automatiquement - Ne pas modifier manuellement les données
+// lib/models/pentominos.dart
+// Modified: 2512092000
 // Pentominos avec numéros de cases sur grille 5×5
 // Numérotation: ligne 1 (bas) = cases 1-5, ligne 2 = cases 6-10, etc.
 // Les positions préservent l'ordre géométrique des cellules pour le tracking

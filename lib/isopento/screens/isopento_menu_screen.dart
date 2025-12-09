@@ -1,4 +1,6 @@
-// lib/pentoscope/screens/pentoscope_menu_screen.dart
+// lib/isopento/screens/isopento_menu_screen.dart
+// Modified: 2512091028
+// Menu principal Isopento - syntaxe corrigée
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,13 +25,16 @@ class _IsopentoMenuScreenState extends ConsumerState<IsopentoMenuScreen> {
       appBar: AppBar(
         title: const Text('Isopento'),
         centerTitle: true,
+        elevation: 0,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              // Titre
               const Text(
                 'Mini-Puzzles Pentominos',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -41,43 +46,72 @@ class _IsopentoMenuScreenState extends ConsumerState<IsopentoMenuScreen> {
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
 
-              // Sélection de la taille
-              const Text(
-                'Taille du plateau',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              // SECTION TAILLE
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Taille du plateau',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSizeOption(IsopentoSize.size3x5, '3 × 5'),
+                  const SizedBox(height: 8),
+                  _buildSizeOption(IsopentoSize.size4x5, '4 × 5'),
+                  const SizedBox(height: 8),
+                  _buildSizeOption(IsopentoSize.size5x5, '5 × 5'),
+                ],
               ),
-              const SizedBox(height: 12),
-              _buildSizeSelector(),
 
-              const SizedBox(height: 24),
-
-              // Sélection de la difficulté
-              const Text(
-                'Difficulté',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              // SECTION DIFFICULTÉ
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Difficulté',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDifficultyOption(
+                    IsopentoDifficulty.easy,
+                    '😊 Facile',
+                    Colors.green,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDifficultyOption(
+                    IsopentoDifficulty.random,
+                    '🔀 Aléatoire',
+                    Colors.blue,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDifficultyOption(
+                    IsopentoDifficulty.hard,
+                    '🔥 Difficile',
+                    Colors.orange,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              _buildDifficultySelector(),
 
-              const Spacer(),
-
-              // Bouton Jouer
+              // BOUTON JOUER
               ElevatedButton(
-                onPressed: _startGame,
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
+                onPressed: _startGame,
                 child: const Text(
                   'Jouer',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -85,122 +119,96 @@ class _IsopentoMenuScreenState extends ConsumerState<IsopentoMenuScreen> {
     );
   }
 
-  Widget _buildSizeSelector() {
-    return Row(
-      children: IsopentoSize.values.map((size) {
-        final isSelected = size == _selectedSize;
-        final stats = IsopentoGenerator().getStats(size);
+  Widget _buildSizeOption(IsopentoSize size, String label) {
+    final isSelected = _selectedSize == size;
+    final stats = IsopentoGenerator().getStats(size);
 
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedSize = size),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Theme.of(context).primaryColor : Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey[300]!,
-                  width: 2,
-                ),
-              ),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedSize = size;
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    size.label,
+                    label,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${size.numPieces} pièces',
+                    '${size.numPieces} pièces • ${stats.configCount} configs',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isSelected ? Colors.white70 : Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    '${stats.configCount} configs',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isSelected ? Colors.white60 : Colors.grey[500],
+                      color: isSelected
+                          ? Colors.white70
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      }).toList(),
+            Icon(
+              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: isSelected ? Colors.white : Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildDifficultySelector() {
-    return Row(
-      children: [
-        _buildDifficultyButton(
-          IsopentoDifficulty.easy,
-          'Facile',
-          Icons.sentiment_satisfied,
-          Colors.green,
-        ),
-        const SizedBox(width: 8),
-        _buildDifficultyButton(
-          IsopentoDifficulty.random,
-          'Aléatoire',
-          Icons.shuffle,
-          Colors.blue,
-        ),
-        const SizedBox(width: 8),
-        _buildDifficultyButton(
-          IsopentoDifficulty.hard,
-          'Difficile',
-          Icons.local_fire_department,
-          Colors.orange,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDifficultyButton(
+  Widget _buildDifficultyOption(
       IsopentoDifficulty difficulty,
       String label,
-      IconData icon,
       Color color,
       ) {
-    final isSelected = difficulty == _selectedDifficulty;
+    final isSelected = _selectedDifficulty == difficulty;
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedDifficulty = difficulty),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.15) : Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? color : Colors.grey[300]!,
-              width: 2,
-            ),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDifficulty = difficulty;
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 2,
           ),
-          child: Column(
-            children: [
-              Icon(icon, color: isSelected ? color : Colors.grey[500], size: 28),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? color : Colors.grey[600],
-                ),
-              ),
-            ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : Colors.grey.shade700,
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );

@@ -1,10 +1,9 @@
 // lib/isopento/isopento_generator.dart
+// Modified: 2512091005
 // Générateur de puzzles Isopento utilisant les données pré-calculées
 
 import 'dart:math';
 import 'isopento_data.dart';
-
-// Remplacer dans isopento_generator.dart
 
 /// Tailles de plateau disponibles
 enum IsopentoSize {
@@ -12,7 +11,7 @@ enum IsopentoSize {
   size4x5(1, 5, 4, 4, '4×5'),
   size5x5(2, 5, 5, 5, '5×5');
 
-  final int dataIndex;  // ← renommé
+  final int dataIndex;
   final int width;
   final int height;
   final int numPieces;
@@ -22,6 +21,7 @@ enum IsopentoSize {
 
   int get area => width * height;
 }
+
 /// Configuration d'un puzzle Isopento
 class IsopentoPuzzle {
   final IsopentoSize size;

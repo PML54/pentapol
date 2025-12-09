@@ -1,4 +1,5 @@
-// lib/pentoscope/pentoscope_solver.dart
+// lib/isopento/isopento_solver.dart
+// Modified: 2512091000
 // Solver paramétré pour mini-plateaux (3×5, 4×5, 5×5)
 // Copie adaptée de pentomino_solver.dart - AUCUN impact sur le mode 6×10
 

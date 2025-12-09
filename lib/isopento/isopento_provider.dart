@@ -1,5 +1,5 @@
-// lib/isopento/providers/isopento_provider.dart
-// Provider Isopento - calqué sur pentomino_game_provider
+// lib/isopento/isopento_provider.dart
+// Modified: 2512091015
 // MODIFIÉ: Ajout de solutionPlateau pour afficher la solution en semi-transparent
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

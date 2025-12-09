@@ -1,5 +1,5 @@
 // lib/isopento/widgets/isopento_board.dart
-// Plateau Isopento - calqué sur game_board.dart
+// Modified: 2512091035
 // MODIFIÉ: Affiche la solution en semi-transparent + pièces joueur en opaque
 
 import 'package:flutter/material.dart';
@@ -485,7 +485,7 @@ class IsopentoBoard extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-              //    Text('Translations: ${state.translationCount}'),
+                  //    Text('Translations: ${state.translationCount}'),
                   const SizedBox(height: 8),
                   // ✅ AFFICHER NOTE ISOMÉTRIES
                   Text(

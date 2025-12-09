@@ -1,5 +1,5 @@
 // lib/services/shape_recognizer.dart
-// Service de reconnaissance de formes de pentominos
+// Modified: 2512092105
 
 import 'package:pentapol/models/pentominos.dart';
 
