@@ -1607,7 +1607,7 @@ final color = GameColors.masterCellBorderColor;
 
 - **CODE_STANDARDS.md** : Standards de code
 
-- **CLEANUP_RACE_SYSTEM.md** : Historique suppression système Race
+- **olddoc/** : archives documentation — `CLEANUP_RACE_SYSTEM.md`, `MAJ_DOCUMENTATION.md`, `SUMMARY_CLEANUP.md` (nettoyage système Race, déc. 2025)
 
 ---
 

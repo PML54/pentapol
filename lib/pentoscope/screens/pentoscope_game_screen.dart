@@ -1,7 +1,7 @@
 // lib/pentoscope/screens/pentoscope_game_screen.dart
 // Modified: 2604221500
-// Icône solo (person) pour bouton nouvelle partie
-// CHANGEMENTS: (1) Icons.sports_esports → Icons.person ligne 166
+// Dialogue bilan enrichi : déplacements, suppressions, score %
+// CHANGEMENTS: (1) _showCompletionDialog: score minIsometries+numPieces / isométries+transl+delete, (2) rows déplacements et suppressions ajoutées
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -894,6 +894,18 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final ss = (seconds % 60).toString().padLeft(2, '0');
     final timeStr = '$mm:$ss';
 
+    final numPieces = state.puzzle?.pieceIds.length ?? 0;
+    final minTotal = state.minIsometries + numPieces;
+    final realTotal = state.isometryCount + state.translationCount + state.deleteCount;
+    final scorePercent = realTotal > 0
+        ? (minTotal / realTotal * 100).clamp(0.0, 100.0).round()
+        : 100;
+    final scoreColor = scorePercent >= 80
+        ? Colors.green
+        : scorePercent >= 50
+            ? Colors.orange
+            : Colors.red;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -914,10 +926,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             _BilanRow(icon: Icons.timer_outlined, label: 'Temps', value: timeStr),
             const SizedBox(height: 12),
             _BilanRow(icon: Icons.rotate_right, label: 'Isométries', value: '${state.isometryCount}'),
+            const SizedBox(height: 12),
+            _BilanRow(icon: Icons.open_with, label: 'Déplacements', value: '${state.translationCount}'),
+            if (state.deleteCount > 0) ...[
+              const SizedBox(height: 12),
+              _BilanRow(icon: Icons.delete_outline, label: 'Suppressions', value: '${state.deleteCount}', valueColor: Colors.orange),
+            ],
             if (state.hintCount > 0) ...[
               const SizedBox(height: 12),
               _BilanRow(icon: Icons.lightbulb, label: 'Indices', value: '${state.hintCount}', valueColor: Colors.orange),
             ],
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 4),
+            _BilanRow(icon: Icons.stars, label: 'Score', value: '$scorePercent %', valueColor: scoreColor),
           ],
         ),
         actions: [
