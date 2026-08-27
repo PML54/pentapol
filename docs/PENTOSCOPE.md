@@ -1,8 +1,12 @@
 # Pentoscope - Documentation Technique
 
+> Mis à jour le 2026-08-27 : fusion de `PentoscopePlacedPiece` dans
+> `common/PlacedPiece`, et correction du nombre de pièces (3 à 10, et non 3 à 8 —
+> voir l'enum `PentoscopeSize`, de `size3x5` à `size10x5`).
+
 ## Vue d'ensemble
 
-**Pentoscope** est un mode de jeu de mini-puzzles pentominos à taille variable. Contrairement au mode Classical (plateau fixe 6×10, 12 pièces, 9356 solutions pré-calculées), Pentoscope génère dynamiquement des puzzles avec un nombre configurable de pièces (3 à 8) sur des plateaux de dimensions variables.
+**Pentoscope** est un mode de jeu de mini-puzzles pentominos à taille variable. Contrairement au mode Classical (plateau fixe 6×10, 12 pièces, 9356 solutions pré-calculées), Pentoscope génère dynamiquement des puzzles avec un nombre configurable de pièces (3 à 10) sur des plateaux de dimensions variables.
 
 ### Caractéristiques principales
 
@@ -150,9 +154,9 @@ Gestionnaire d'état Riverpod pour le jeu Pentoscope.
 | `puzzle` | `PentoscopePuzzle?` | Configuration du puzzle actuel |
 | `plateau` | `Plateau` | Grille de jeu |
 | `availablePieces` | `List<Pento>` | Pièces dans le slider |
-| `placedPieces` | `List<PentoscopePlacedPiece>` | Pièces placées sur le plateau |
+| `placedPieces` | `List<PlacedPiece>` | Pièces placées sur le plateau |
 | `selectedPiece` | `Pento?` | Pièce sélectionnée (slider) |
-| `selectedPlacedPiece` | `PentoscopePlacedPiece?` | Pièce placée sélectionnée |
+| `selectedPlacedPiece` | `PlacedPiece?` | Pièce placée sélectionnée |
 | `selectedPositionIndex` | `int` | Index de rotation/orientation |
 | `selectedCellInPiece` | `Point?` | Mastercase (point de référence drag) |
 | `previewX`, `previewY` | `int?` | Position de la prévisualisation |
@@ -180,13 +184,13 @@ Future<void> startPuzzle(
 void selectPiece(Pento piece)
 
 // Sélectionner une pièce placée sur le plateau
-void selectPlacedPiece(PentoscopePlacedPiece placed, int absoluteX, int absoluteY)
+void selectPlacedPiece(PlacedPiece placed, int absoluteX, int absoluteY)
 
 // Tenter de placer la pièce sélectionnée
 bool tryPlacePiece(int gridX, int gridY)
 
 // Retirer une pièce du plateau
-void removePlacedPiece(PentoscopePlacedPiece placed)
+void removePlacedPiece(PlacedPiece placed)
 
 // Annuler la sélection
 void cancelSelection()
@@ -207,21 +211,32 @@ void updatePreview(int gridX, int gridY)
 Future<void> reset()
 ```
 
-### 4. PentoscopePlacedPiece
+### 4. PlacedPiece
 
-Représente une pièce placée sur le plateau Pentoscope.
+Représente une pièce placée sur le plateau. **Classe partagée** avec le mode
+classique : elle est définie dans `lib/common/placed_piece.dart`, pas dans Pentoscope.
 
 ```dart
-class PentoscopePlacedPiece {
+class PlacedPiece {
   final Pento piece;          // Référence à la pièce
-  final int positionIndex;    // Index de position (rotation)
+  final int positionIndex;    // Index d'orientation (0..numOrientations-1)
   final int gridX;            // Ancre X sur le plateau
   final int gridY;            // Ancre Y sur le plateau
+  final int isometriesUsed;   // Isométries appliquées (défaut 0)
 
   /// Coordonnées absolues des 5 cellules occupées (normalisées)
-  Iterable<Point> get absoluteCells
+  Iterable<Point> get absoluteCells;
 }
 ```
+
+> Jusqu'au 2026-08-27, Pentoscope avait sa propre classe `PentoscopePlacedPiece`,
+> identique à celle-ci sur ses quatre premiers champs et sur `absoluteCells`. Les deux
+> ont été fusionnées.
+>
+> ⚠️ **Ne pas appeler `getOccupiedCells()` depuis Pentoscope.** Les bornes du plateau
+> 6×10 y sont écrites en dur : sur un plateau de largeur ≠ 6, la méthode écarte
+> silencieusement des cases et renvoie un résultat faux. Utiliser `absoluteCells`,
+> qui ne présume rien des dimensions.
 
 ---
 
@@ -241,7 +256,7 @@ Le score (0-20) mesure l'efficacité des isométries :
 
 ```dart
 int _calculateScore(
-  List<PentoscopePlacedPiece> placedPieces,
+  List<PlacedPiece> placedPieces,
   Solution solution,
   int actualIsometries,
 ) {
@@ -316,7 +331,7 @@ Slider de pièces avec :
 | Aspect | Classical | Pentoscope |
 |--------|-----------|------------|
 | Plateau | Fixe 6×10 | Variable (3×5 à 8×5) |
-| Pièces | 12 | 3 à 8 |
+| Pièces | 12 | 3 à 10 |
 | Solutions | 9356 pré-calculées | Générées dynamiquement |
 | Solveur | BigInt matching | Backtracking optimisé |
 | Optimisations | N/A (lookup) | Smallest Cell First + Pruning |

@@ -1,5 +1,8 @@
 # Mémo : Gestion des déplacements de pièces dans Pentoscope
 
+> Mis à jour le 2026-08-27 : `PentoscopePlacedPiece` a été fusionné dans
+> `common/PlacedPiece`, classe désormais partagée avec le mode classique.
+
 ## Vue d'ensemble
 
 Le système de déplacement utilise un mécanisme de **drag & drop** avec **snapping** vers les positions valides pré-calculées.
@@ -60,7 +63,7 @@ Le système de déplacement utilise un mécanisme de **drag & drop** avec **snap
 │  7. tryPlacePiece()                                             │
 │     ├─ Calcule anchorX = doigt - mastercase                     │
 │     ├─ Vérifie canPlacePiece()                                  │
-│     ├─ Crée PentoscopePlacedPiece                               │
+│     ├─ Crée PlacedPiece                                         │
 │     ├─ Met à jour plateau, placedPieces, availablePieces        │
 │     └─ Vérifie isComplete                                       │
 └─────────────────────────────────────────────────────────────────┘
@@ -107,7 +110,7 @@ Le système de déplacement utilise un mécanisme de **drag & drop** avec **snap
 | Champ | Type | Description |
 |-------|------|-------------|
 | `selectedPiece` | `Pento?` | Pièce actuellement sélectionnée |
-| `selectedPlacedPiece` | `PentoscopePlacedPiece?` | Si pièce vient du plateau |
+| `selectedPlacedPiece` | `PlacedPiece?` | Si pièce vient du plateau |
 | `selectedPositionIndex` | `int` | Orientation actuelle de la pièce |
 | `selectedCellInPiece` | `Point?` | Mastercase (cellule cliquée) |
 | `validPlacements` | `List<Point>` | Positions d'ancre valides |
