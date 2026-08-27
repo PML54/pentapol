@@ -17,6 +17,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
+import 'package:pentapol/common/transformation_result.dart';
+export 'package:pentapol/common/transformation_result.dart';
 import 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/piece_manipulation_state.dart';
 export 'package:pentapol/common/view_orientation.dart';
@@ -42,11 +44,8 @@ final pentoscopeProvider =
 
 enum PentoscopeDifficulty { easy, random, hard }
 
-enum TransformationResult {
-  success,      // Transformation réussie sans ajustement
-  recentered,   // Transformation réussie avec recentrage
-  impossible,   // Transformation impossible
-}
+// TransformationResult vit désormais dans common/transformation_result.dart,
+// ré-exporté ci-dessus pour que les imports existants continuent de fonctionner.
 
 class PentoscopeNotifier extends Notifier<PentoscopeState> 
     with PentominoGameMixin {

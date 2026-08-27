@@ -136,11 +136,18 @@ marche — aucune ne demande un « big bang ».
 `PentoscopePlacedPiece` fusionné dans `common/PlacedPiece` (commit `1b97e82`).
 C'est ce qui a rendu le noyau d'état commun possible.
 
-### Étape 1 — extraire le noyau d'état commun
+### Étape 1 — extraire le noyau d'état commun ✅ FAIT le 2026-08-27
 
-Créer dans `common/` un objet de valeur portant les 15 champs partagés — appelons-le
-`PieceManipulationState`. `PentominoGameState` et `PentoscopeState` le contiennent au
-lieu de déclarer ces champs, et conservent leurs champs propres.
+**Réalisée autrement que prévu.** Le plan proposait un objet de valeur imbriqué ; mesure
+faite avant d'écrire, les 15 champs sont lus à **≈ 407 endroits** dans `lib/`, qu'il
+aurait fallu réécrire en `state.pieces.<champ>`. Retenu à la place : une **interface
+abstraite** `common/piece_manipulation_state.dart`, que les deux états implémentent. Les
+champs `final` existants la satisfont automatiquement — **aucun site d'appel modifié**, et
+le compilateur garantit désormais que les deux états restent alignés.
+
+Obstacle découvert au passage : `ViewOrientation` était déclaré **deux fois**, en deux
+types distincts pour Dart. Unifié dans `common/view_orientation.dart`, ré-exporté par les
+deux anciens hôtes.
 
 - **Critère de fin** : les deux états compilent, les 15 champs ne sont plus déclarés
   qu'une fois, l'application se comporte à l'identique.
@@ -149,17 +156,40 @@ lieu de déclarer ces champs, et conservent leurs champs propres.
   compilateur les signale tous ; rien ne peut passer silencieusement.
 - **Taille** : la plus grosse en nombre de lignes touchées, la plus faible en réflexion.
 
-### Étape 2 — aligner les 6 signatures divergentes
+### Étape 2 — aligner les signatures divergentes ✅ FAIT le 2026-08-27
 
-Choisir un type de retour unique pour les 4 isométries. `TransformationResult`
-(pentoscope) est plus riche que `void` (classical) : l'aligner vers le haut, quitte à ce
-que classical ignore le résultat au début. Idem pour `reset` : `Future<void>` des deux
-côtés.
+`TransformationResult` (enum `success` / `recentered` / `impossible`) déplacé de
+`pentoscope_provider.dart` vers `common/transformation_result.dart`, ré-exporté par
+l'ancien hôte. Les 4 `applyIsometry*` du mode classique le renvoient désormais au lieu
+de `void`.
 
-- **Critère de fin** : les 28 méthodes communes ont des signatures identiques, `build`
-  excepté — il retourne l'état du module, c'est normal et définitif.
-- **Risque** : faible. Peu de sites d'appel, changements localisés.
-- **Préalable** : aucun. Peut se faire avant l'étape 1 si tu préfères commencer petit.
+Sur 31 sites d'appel des isométries, **4 seulement consomment le résultat**, tous côté
+Pentoscope. Les 27 autres ignorent la valeur : le changement leur est transparent.
+
+**Le mode classique ne renvoie que `success`.** Ses helpers
+(`_applyRotationToPlacedPiece`, `_applySymmetryToPlacedPiece`) n'ont, vérification faite,
+**aucun chemin d'échec** : ils sortent sans rien faire quand la transformation ne change
+rien, sans le signaler. L'alignement porte donc sur le **type**, pas sur la sémantique —
+celle-ci relève de l'étape 3, quand les corps fusionneront. C'est documenté sur l'enum
+lui-même, pour que personne ne se fie à un `success` venant du mode classique.
+
+#### Décision : `reset` et `build` ne sont PAS alignés
+
+Le plan initial prévoyait d'aligner `reset` sur `Future<void>` des deux côtés. **Écarté
+après examen**, pour deux raisons :
+
+- Le `reset()` du mode classique est **réellement synchrone** — arrêt du chrono,
+  réinitialisation de l'état, comptage des solutions. Celui de Pentoscope est
+  `Future<void>` parce qu'il **régénère un puzzle**, ce qui est asynchrone par nature.
+  Forcer `Future<void>` sur classical produirait un `async` de façade, sans bénéfice.
+- `reset` et `build` relèvent du **cycle de vie**, pas de la manipulation des pièces.
+  Ils sortent du périmètre de ce plan.
+
+Divergence légitime, donc conservée. Il reste 0 signature divergente **dans le périmètre
+des pièces**.
+
+- **Critère de fin atteint** : les méthodes de manipulation des pièces ont des signatures
+  identiques dans les deux providers.
 
 ### Étape 3 — remonter les méthodes dans le mixin, par famille
 

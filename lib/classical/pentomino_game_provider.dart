@@ -1,3 +1,7 @@
+// Modified: 2026-08-27 20:39 — étape 2 du plan d'unification : les 4 applyIsometry* renvoient
+//           TransformationResult au lieu de void, comme côté Pentoscope. Le mode
+//           classique ne renvoie que success (aucun chemin d'échec dans ses helpers) :
+//           l'alignement porte sur le type, pas encore sur la sémantique.
 // lib/classical/pentomino_game_provider.dart
 // Modified: 2604221200
 // Refactor: absoluteCells remplace boucles cellNum manuelles, print→debugPrint
@@ -10,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/classical/pentomino_game_state.dart';
 
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/transformation_result.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
@@ -68,7 +73,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
 
   /// Applique une rotation 90° horaire
-  void applyIsometryRotationCW() {
+  TransformationResult applyIsometryRotationCW() {
     debugPrint(
       "ISO: RotCW (view=${state.viewOrientation}) idx=${state.selectedPositionIndex} piece=${state.selectedPiece?.id} placed=${state.selectedPlacedPiece?.piece.id}",
     );
@@ -76,15 +81,16 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     // Pour les pièces placées, appliquer une rotation spécifique
     if (state.selectedPlacedPiece != null) {
       _applyRotationToPlacedPiece(isClockwise: true);
-      return;
+      return TransformationResult.success;
     }
 
     // Pour les pièces du slider, rotation normale
     _applyIsoUsingLookup((p, idx) => p.rotationCW(idx));
+    return TransformationResult.success;
   }
 
   /// Applique une rotation 90° anti-horaire
-  void applyIsometryRotationTW() {
+  TransformationResult applyIsometryRotationTW() {
     debugPrint(
       "ISO: RotTW (view=${state.viewOrientation}) idx=${state.selectedPositionIndex} piece=${state.selectedPiece?.id} placed=${state.selectedPlacedPiece?.piece.id}",
     );
@@ -92,15 +98,16 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     // Pour les pièces placées, appliquer une rotation spécifique
     if (state.selectedPlacedPiece != null) {
       _applyRotationToPlacedPiece(isClockwise: false);
-      return;
+      return TransformationResult.success;
     }
 
     // Pour les pièces du slider, rotation normale
     _applyIsoUsingLookup((p, idx) => p.rotationTW(idx));
+    return TransformationResult.success;
   }
 
   /// Applique une symétrie (H/V swap en paysage)
-  void applyIsometrySymmetryH() {
+  TransformationResult applyIsometrySymmetryH() {
     debugPrint(
       "ISO: SymH (view=${state.viewOrientation}) idx=${state.selectedPositionIndex} piece=${state.selectedPiece?.id} placed=${state.selectedPlacedPiece?.piece.id}",
     );
@@ -115,7 +122,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
         // Comportement classique si pas de mastercase
         _applySymmetryToPlacedPiece(isHorizontal: true);
       }
-      return;
+      return TransformationResult.success;
     }
 
     // Pour les pièces du slider, comportement classique
@@ -124,10 +131,11 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     } else {
       _applyIsoUsingLookup((p, idx) => p.symmetryH(idx));
     }
+    return TransformationResult.success;
   }
 
   /// Applique une symétrie verticale (V/H swap en paysage)
-  void applyIsometrySymmetryV() {
+  TransformationResult applyIsometrySymmetryV() {
     debugPrint(
       "ISO: SymV (view=${state.viewOrientation}) idx=${state.selectedPositionIndex} piece=${state.selectedPiece?.id} placed=${state.selectedPlacedPiece?.piece.id}",
     );
@@ -142,7 +150,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
         // Comportement classique si pas de mastercase
         _applySymmetryToPlacedPiece(isHorizontal: false);
       }
-      return;
+      return TransformationResult.success;
     }
 
     // Pour les pièces du slider, comportement classique
@@ -151,6 +159,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     } else {
       _applyIsoUsingLookup((p, idx) => p.symmetryV(idx));
     }
+    return TransformationResult.success;
   }
   // ========================================================================
   // 🆕 GESTION ORIENTATION + ISOMÉTRIES LOOKUP (Pentoscope approach)
