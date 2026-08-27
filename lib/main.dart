@@ -1,5 +1,8 @@
-// Modified: 2025-12-06 16:00 → 251226 (Avec numérotation)
+// Modified: 2026-08-27 — suppression de la course au démarrage (P4) : le chargement des
+//           solutions passe du Future.microtask non attendu au solutionsReadyProvider,
+//           amorcé ici et observé par PentominoGameScreen.
 // lib/main.dart
+// Historique: 2025-12-06 16:00 → 251226 (Avec numérotation)
 // Version adaptée avec pré-chargement des solutions BigInt + Numérotation
 
 import 'package:flutter/material.dart';
@@ -8,36 +11,13 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 
+import 'package:pentapol/providers/solutions_provider.dart';
 import 'package:pentapol/screens/home_screen.dart';
-import 'package:pentapol/services/pentapol_solutions_loader.dart';
-import 'package:pentapol/services/solution_matcher.dart';
 import 'package:pentapol/classical/pentomino_game_screen.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✨ PRÉ-CHARGEMENT des solutions en arrière-plan
-  debugPrint('🔄 Pré-chargement des solutions pentomino (BigInt)...');
-
-  Future.microtask(() async {
-    final startTime = DateTime.now();
-    try {
-      // 1) Charger et décoder les solutions normalisées depuis le .bin
-      final solutionsBigInt = await loadNormalizedSolutionsAsBigInt();
-
-      // 2) Initialiser le matcher global avec ces solutions
-      solutionMatcher.initWithBigIntSolutions(solutionsBigInt);
-
-      final duration = DateTime.now().difference(startTime).inMilliseconds;
-      final count = solutionMatcher.totalSolutions;
-      debugPrint('✅ $count solutions BigInt chargées en ${duration}ms');
-    } catch (e, st) {
-      debugPrint('❌ Erreur lors du pré-chargement des solutions: $e');
-      debugPrint('$st');
-    }
-  });
-
   runApp(const ProviderScope(child: PentapolApp()));
 }
 
@@ -54,6 +34,13 @@ class _PentapolAppState extends ConsumerState<PentapolApp> {
   @override
   void initState() {
     super.initState();
+
+    // Amorce le chargement des 9356 solutions SANS l'attendre : Pentoscope utilise
+    // PentoscopeSolver et n'en a pas besoin, il ne doit pas être ralenti au démarrage.
+    // PentominoGameScreen observe ce même provider et refuse de monter le jeu tant
+    // qu'il n'est pas résolu — c'est ce qui supprime la course (défaut P4).
+    ref.read(solutionsReadyProvider);
+
     _initializeApp();
   }
 

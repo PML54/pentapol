@@ -1,3 +1,6 @@
+// Modified: 2026-08-27 — correction de la table des lettres de pièces dans l'en-tête
+//           (colonne « Pièce » fausse sur 8 lignes) ; commentaires uniquement,
+//           aucun code modifié. Voir docs/ANALYSE_STOCKAGE_POSITIONS.md §D2.
 // lib/services/solution_matcher.dart
 // =============================================================================
 // SERVICE DE GESTION DES SOLUTIONS PENTOMINOS 6×10
@@ -68,22 +71,30 @@
 //
 // Chaque pentomino a un code unique sur 6 bits :
 //
-//   ┌──────────┬────────┬────────────┐
-//   │  Pièce   │  bit6  │  Binaire   │
-//   ├──────────┼────────┼────────────┤
-//   │  X (1)   │    7   │  0b000111  │
-//   │  F (2)   │   11   │  0b001011  │
-//   │  T (3)   │   19   │  0b010011  │
-//   │  W (4)   │   35   │  0b100011  │
-//   │  Z (5)   │   13   │  0b001101  │
-//   │  U (6)   │   21   │  0b010101  │
-//   │  V (7)   │   37   │  0b100101  │
-//   │  Y (8)   │   25   │  0b011001  │
-//   │  N (9)   │   41   │  0b101001  │
-//   │  P (10)  │   49   │  0b110001  │
-//   │  L (11)  │   14   │  0b001110  │
-//   │  I (12)  │   22   │  0b010110  │
-//   └──────────┴────────┴────────────┘
+//   ┌──────────┬────────┬────────────┬─────────────────────┐
+//   │  Pièce   │  bit6  │  Binaire   │  Forme (baseShape)  │
+//   ├──────────┼────────┼────────────┼─────────────────────┤
+//   │  X (1)   │    7   │  0b000111  │  .#. / ### / .#.    │
+//   │  P (2)   │   11   │  0b001011  │  ## / ## / .#       │
+//   │  T (3)   │   19   │  0b010011  │  ..# / ### / ..#    │
+//   │  F (4)   │   35   │  0b100011  │  .## / ##. / .#.    │
+//   │  Y (5)   │   13   │  0b001101  │  .# / .# / ## / .#  │
+//   │  V (6)   │   21   │  0b010101  │  ..# / ..# / ###    │
+//   │  U (7)   │   37   │  0b100101  │  #.# / ###          │
+//   │  L (8)   │   25   │  0b011001  │  ...# / ####        │
+//   │  N (9)   │   41   │  0b101001  │  ..## / ###.        │
+//   │  Z (10)  │   49   │  0b110001  │  ..# / ### / #..    │
+//   │  W (11)  │   14   │  0b001110  │  ..# / .## / ##.    │
+//   │  I (12)  │   22   │  0b010110  │  # / # / # / # / #  │
+//   └──────────┴────────┴────────────┴─────────────────────┘
+//
+// CORRECTION (27/08/2026) : la colonne « Pièce » de cette table était fausse sur
+// 8 lignes (id 2, 4, 5, 6, 7, 8, 10, 11). Les lettres ci-dessus sont reconstruites
+// depuis les `baseShape` réels de pentominos.dart ; contrôle par la somme des
+// orientations fixes : 1+8+4+8+8+4+4+8+8+4+4+2 = 63, valeur canonique des
+// 12 pentominos. Les codes bit6 et le binaire étaient corrects et sont inchangés.
+// Aucun impact fonctionnel : le code ne manipule que des `id` et des `bit6`.
+// Voir docs/PIECES_ENCODING.md et docs/ANALYSE_STOCKAGE_POSITIONS.md.
 //
 // =============================================================================
 // ALGORITHME DE COMPATIBILITÉ

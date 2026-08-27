@@ -2,17 +2,27 @@
 
 ## La grille 5×5 de référence
 
-Chaque pentomino est défini sur une **grille de référence 5×5** de 25 cases numérotées de 1 à 25. La numérotation part du **bas gauche**, ligne par ligne de bas en haut :
+Chaque pentomino est défini sur une **grille de référence 5×5** de 25 cases numérotées de 1 à 25. La numérotation part du **haut gauche**, ligne par ligne de haut en bas :
 
 ```
-Ligne 5 (haut)  : 21  22  23  24  25
-Ligne 4         : 16  17  18  19  20
-Ligne 3         : 11  12  13  14  15
-Ligne 2         :  6   7   8   9  10
-Ligne 1 (bas)   :  1   2   3   4   5
+Ligne 0 (haut)  :  1   2   3   4   5
+Ligne 1         :  6   7   8   9  10
+Ligne 2         : 11  12  13  14  15
+Ligne 3         : 16  17  18  19  20
+Ligne 4 (bas)   : 21  22  23  24  25
 ```
 
-> La numérotation croît vers la droite et vers le haut. La case 1 est en bas à gauche, la case 25 en haut à droite.
+> La numérotation croît vers la droite et vers le bas. La case 1 est en **haut à gauche**, la case 25 en bas à droite. C'est la **convention écran** (y vers le bas), la même que celle des `cartesianCoords` et du plateau 6×10 — une seule convention dans tout le projet.
+>
+> Conversion : `x = (cellNum - 1) % 5`, `y = (cellNum - 1) ~/ 5`.
+
+> **Correction (27/08/2026).** Ce paragraphe affirmait auparavant que la case 1 était en
+> bas à gauche et que la numérotation croissait vers le haut. C'était faux, et cela
+> contredisait la section « plateau 6×10 » du même document. Vérifié mécaniquement :
+> pour les **63 orientations** de `pentominos.dart`, la conversion
+> `(x, y) = ((c−1)%5, (c−1)~/5)` reproduit les `cartesianCoords` **63 fois sur 63** ;
+> l'hypothèse « bas gauche » n'en reproduit qu'**1 sur 63** (la pièce X, symétrique,
+> qui satisfait les deux).
 
 Chaque pièce est définie par son `baseShape` : la liste des 5 numéros de cases occupées dans son orientation de référence.
 
@@ -32,20 +42,30 @@ Cases 6, 7, 8 forment la ligne centrale, cases 2 et 12 les extensions verticales
 
 Chaque pièce reçoit un **code entier sur 6 bits** (`bit6`) qui lui est unique. Ce code est utilisé pour encoder les solutions du plateau 6×10 sous forme de BigInt compact.
 
-| Pièce | ID | bit6 | binaire     | Orientations |
-|-------|----|------|-------------|--------------|
-| X     |  1 |  7   | `0b000111`  | 1            |
-| F     |  2 | 11   | `0b001011`  | 8            |
-| T     |  3 | 19   | `0b010011`  | 4            |
-| Y     |  4 | 35   | `0b100011`  | 8            |
-| V     |  5 | 13   | `0b001101`  | 8            |
-| U     |  6 | 21   | `0b010101`  | 4            |
-| Z     |  7 | 37   | `0b100101`  | 4            |
-| L     |  8 | 25   | `0b011001`  | 8            |
-| N     |  9 | 41   | `0b101001`  | 8            |
-| W     | 10 | 49   | `0b110001`  | 4            |
-| S/Z2  | 11 | 14   | `0b001110`  | 4            |
-| I     | 12 | 22   | `0b010110`  | 2            |
+| Pièce | ID | bit6 | binaire     | Orientations | Forme (depuis `baseShape`) |
+|-------|----|------|-------------|--------------|----------------------------|
+| X     |  1 |  7   | `0b000111`  | 1            | `.#.` / `###` / `.#.`      |
+| P     |  2 | 11   | `0b001011`  | 8            | `##` / `##` / `.#`         |
+| T     |  3 | 19   | `0b010011`  | 4            | `..#` / `###` / `..#`      |
+| F     |  4 | 35   | `0b100011`  | 8            | `.##` / `##.` / `.#.`      |
+| Y     |  5 | 13   | `0b001101`  | 8            | `.#` / `.#` / `##` / `.#`  |
+| V     |  6 | 21   | `0b010101`  | 4            | `..#` / `..#` / `###`      |
+| U     |  7 | 37   | `0b100101`  | 4            | `#.#` / `###`              |
+| L     |  8 | 25   | `0b011001`  | 8            | `...#` / `####`            |
+| N     |  9 | 41   | `0b101001`  | 8            | `..##` / `###.`            |
+| Z     | 10 | 49   | `0b110001`  | 4            | `..#` / `###` / `#..`      |
+| W     | 11 | 14   | `0b001110`  | 4            | `..#` / `.##` / `##.`      |
+| I     | 12 | 22   | `0b010110`  | 2            | `#` / `#` / `#` / `#` / `#`|
+
+> **Correction (analyse du 27/08/2026).** La colonne « Pièce » de ce tableau était fausse
+> sur 7 lignes (ID 2, 4, 5, 6, 7, 10, 11). Les lettres ci-dessus sont reconstruites
+> depuis les `baseShape` réels de `pentominos.dart`. Contrôle : la somme des
+> orientations vaut 1+8+4+8+8+4+4+8+8+4+4+2 = **63**, nombre canonique de pentominos
+> fixes — la table est cohérente. Les colonnes `ID`, `bit6`, `binaire` et
+> `Orientations` étaient, elles, correctes et sont inchangées.
+>
+> ⚠️ La table de l'en-tête de `lib/services/solution_matcher.dart` porte une **troisième**
+> version, également fausse, et n'a pas encore été corrigée.
 
 Les codes bit6 vont de 7 à 49. Aucun code n'est 0 (réservé pour "case vide") ni ne dépasse 63 (6 bits max).
 
@@ -84,15 +104,31 @@ pièce 7  = 0b0111
 0b0111 & 0b0011 == 0b0011  ←  faux positif : on "verrait" la pièce 3 là où il y a la pièce 7
 ```
 
-**Pourquoi 6 bits minimum ?** Il faut `C(n, 3) ≥ 12` pour avoir 12 codes distincts à poids 3 :
+**Pourquoi 6 bits minimum ?** Le raisonnement se fait en deux temps.
 
-| n bits | C(n, 3) | Assez pour 12 pièces ? |
-|--------|---------|------------------------|
-| 4      | 4       | Non                    |
-| 5      | 10      | Non                    |
-| **6**  | **20**  | **Oui** (8 codes libres)|
+*Si on impose un poids constant de 3*, il faut `C(n, 3) ≥ 12`. Mais cet argument est
+incomplet : il présuppose le poids constant. Un lecteur peut objecter qu'un code
+**mixte** sur 5 bits (quelques codes de poids 2, quelques-uns de poids 3, en évitant
+les inclusions à la main) pourrait suffire.
 
-6 est le minimum pour lequel `C(n, 3) ≥ 12`. Le choix de 6 bits est donc contraint par cette combinatoire, pas par la taille de l'espace de valeurs.
+C'est le **théorème de Sperner** qui ferme cette porte : dans le treillis booléen `B_n`,
+*aucune* antichaîne — uniforme ou mixte — ne dépasse `C(n, ⌊n/2⌋) `éléments.
+
+| n bits | `C(n, 3)` | Borne de Sperner `C(n, ⌊n/2⌋)` — **toute** antichaîne | 12 codes possibles ? |
+|--------|-----------|--------------------------------------------------------|----------------------|
+| 4      | 4         | **6**                                                    | Non                  |
+| 5      | 10        | **10**                                                   | Non                  |
+| **6**  | **20**    | **20**                                                   | **Oui** (8 codes libres) |
+
+6 bits est donc le minimum **absolu**, pas seulement le minimum à poids constant.
+Voir `docs/ANALYSE_STOCKAGE_POSITIONS.md`, annexe « Fondement combinatoire », pour
+l'énoncé complet, la preuve (inégalité LYM) et la liste des 8 codes libres.
+
+*Nuance :* le poids constant est une condition **suffisante**, pas nécessaire. Une
+famille de poids 4 (15 codes) ou de poids 2 (15 codes) marcherait aussi. Le poids 3
+n'est pas obligatoire — c'est simplement la couche la plus large de `B₆` (20 codes),
+donc celle qui laisse le plus de marge. Ce qui casse la propriété, c'est de **mélanger**
+les poids : `0b001111 & 0b000111 == 0b000111` réintroduit un faux positif.
 
 ---
 
@@ -104,8 +140,8 @@ Le champ `orientations` contient, pour chaque orientation de la pièce, la liste
 ```dart
 numOrientations: 2,
 orientations: [
-  [1, 6, 11, 16, 21],   // Vertical : colonne gauche de bas en haut
-  [5, 4,  3,  2,  1],   // Horizontal : ligne basse de droite à gauche
+  [1, 6, 11, 16, 21],   // Vertical : colonne gauche, de haut en bas
+  [5, 4,  3,  2,  1],   // Horizontal : ligne haute, de droite à gauche
 ],
 ```
 
@@ -117,17 +153,17 @@ X .  .  .  .
 X .  .  .  .
 X .  .  .  .
 ```
-Cases 1, 6, 11, 16, 21 = colonne gauche entière.
+Cases 1, 6, 11, 16, 21 = colonne gauche entière (case 1 en haut).
 
 Orientation 1 (horizontal) :
 ```
-. .  .  .  .
-. .  .  .  .
-. .  .  .  .
-. .  .  .  .
 X X  X  X  X
+. .  .  .  .
+. .  .  .  .
+. .  .  .  .
+. .  .  .  .
 ```
-Cases 5, 4, 3, 2, 1 = ligne basse de droite à gauche (l'ordre des cellules est inversé pour la cohérence du tracking).
+Cases 5, 4, 3, 2, 1 = **ligne du haut**, parcourue de droite à gauche (l'ordre des cellules est inversé pour la cohérence du tracking).
 
 ---
 

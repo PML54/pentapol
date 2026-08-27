@@ -1,6 +1,8 @@
+// Modified: 2026-08-27 — garde d'initialisation : le jeu n'est plus monté avant que les
+//           9356 solutions soient chargées (défaut P4). L'ancien widget devient
+//           _PentominoGameBody ; PentominoGameScreen est désormais la garde.
 // lib/classical/pentomino_game_screen.dart
-// Modified: 251226120030
-// Démarrage du timer à la première pièce touchée
+// Historique: 251226120030 — Démarrage du timer à la première pièce touchée
 // CHANGEMENTS: (1) Variable _timerStarted ligne 34, (2) Logique dans build() lignes 49-54, (3) initState() réduit à reset() seul, (4) Démarrage au premier touch sans listener
 
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/config/ui_sizes_config.dart';
 import 'package:pentapol/providers/settings_provider.dart';
+import 'package:pentapol/providers/solutions_provider.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/game_mode/piece_slider.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/action_slider.dart'
     show ActionSlider, getCompatibleSolutionsIncludingSelected;
@@ -27,14 +30,78 @@ import 'package:pentapol/services/solution_matcher.dart' show SolutionInfo;
 
 
 
-class PentominoGameScreen extends ConsumerStatefulWidget {
+/// Écran du mode classique — **garde d'initialisation**.
+///
+/// Le mode classique dépend de `solutionMatcher`, chargé de façon asynchrone au
+/// démarrage via [solutionsReadyProvider]. Sans cette garde, entrer dans l'écran
+/// avant la fin du chargement fait lever un `StateError` à
+/// `countPossibleSolutions()` ; l'erreur est attrapée plus bas et convertie en
+/// `null`, si bien que le compteur de solutions disparaît de l'interface **sans
+/// aucun message**. C'est le défaut P4 de docs/ANALYSE_STOCKAGE_POSITIONS.md.
+///
+/// La garde est placée ici, et non dans le provider de jeu, pour deux raisons :
+/// c'est le point d'entrée unique du mode classique (les 4 chemins de navigation
+/// y passent), et cela laisse `pentominoGameProvider` synchrone — ses points
+/// d'appel dans les widgets ne changent pas.
+class PentominoGameScreen extends ConsumerWidget {
   const PentominoGameScreen({super.key});
 
   @override
-  ConsumerState<PentominoGameScreen> createState() => _PentominoGameScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(solutionsReadyProvider).when(
+          data: (_) => const _PentominoGameBody(),
+          loading: () => const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Chargement des solutions...'),
+                ],
+              ),
+            ),
+          ),
+          error: (error, stackTrace) => Scaffold(
+            appBar: AppBar(title: const Text('Erreur')),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Impossible de charger les solutions du plateau 6×10.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('$error', textAlign: TextAlign.center),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(solutionsReadyProvider),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+  }
 }
 
-class _PentominoGameScreenState extends ConsumerState<PentominoGameScreen> {
+/// Contenu réel du mode classique. Monté uniquement lorsque
+/// [solutionsReadyProvider] a résolu — voir [PentominoGameScreen].
+class _PentominoGameBody extends ConsumerStatefulWidget {
+  const _PentominoGameBody({super.key});
+
+  @override
+  ConsumerState<_PentominoGameBody> createState() => _PentominoGameScreenState();
+}
+
+class _PentominoGameScreenState extends ConsumerState<_PentominoGameBody> {
 
   late bool _timerStarted;
   bool _completionProcessed = false;  // ✨ Flag pour ne pas répéter
