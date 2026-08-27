@@ -59,3 +59,5 @@ app.*.map.json
 *.apk
 *.ipa
 *.aab
+# Worktrees créés par les sessions Claude Code (copies locales du dépôt)
+.claude/worktrees/
