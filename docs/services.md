@@ -1,437 +1,217 @@
-# MODELS - Documentation des modèles partagés
+# SERVICES — Documentation de `lib/services/`
 
-Modèles réutilisables utilisés par **Isopento** et d'autres modules (Pentapol, Pentoscope, etc.).
+> **Écrit le 2026-08-27 à partir des sources.** Le fichier précédent portant ce nom
+> était un doublon octet pour octet de `docs/models.md` (même somme MD5) : la
+> documentation des services n'existait pas. Celle-ci la remplace.
 
-## 📋 Manifest des fichiers
+`lib/services/` contient quatre fichiers, qui forment la chaîne de traitement des
+solutions du plateau 6×10 — du fichier binaire jusqu'au compteur affiché à l'écran.
 
-| Fichier | Chemin | Modified | Lignes | Statut |
-|---------|--------|----------|--------|--------|
-| pentominos.dart | lib/models/pentominos.dart | 2512092000 | 390 | ✅ |
-| plateau.dart | lib/models/plateau.dart | 2512091506 | 65 | ✅ |
-| point.dart | lib/models/point.dart | 2512091506 | 22 | ✅ |
-
-**Format timestamp** : YYMMDDHHM (année-mois-jour-heure-minute)
-
-**Total** : 3 fichiers, ~477 lignes de code production
-
----
-
-## 📝 En-têtes standardisés
-
-```dart
-// Format standard pour tous les models:
-// lib/models/[model].dart
-// Modified: YYMMDDHHM
 ```
+assets/data/solutions_6x10_normalisees.bin
+        │
+        │  pentapol_solutions_loader.dart      dépaquetage 6 bits → List<BigInt>
+        ▼
+      2339 solutions canoniques
+        │
+        │  solution_matcher.dart               expansion ×4 → 9356, matching, décodage
+        ▼
+      9356 solutions en mémoire
+        ▲
+        │  plateau_solution_counter.dart       extension sur Plateau : masques + comptage
+        │
+   état du plateau de jeu
 
-### Headers détaillés
-
-**pentominos.dart**
-```dart
-// lib/models/pentominos.dart
-// Modified: 2512092000
-// Pentominos avec numéros de cases sur grille 5×5
-// Numérotation: ligne 1 (bas) = cases 1-5, ligne 2 = cases 6-10, etc.
-// Les orientations préservent l'ordre géométrique des cellules pour le tracking
-```
-
-**plateau.dart**
-```dart
-// lib/models/plateau.dart
-// Modified: 2512091506
-// Grille générique pour représenter plateaux de jeu
-// Utilisé par isopento, pentomino_game, pentoscope, etc.
-```
-
-**point.dart**
-```dart
-// lib/models/point.dart
-// Modified: 2512091506
-// Classe simple pour représenter coordonnées (x, y) sur un plateau
-// Immutable avec equality et hashCode
+   pentomino_solver.dart                       backtracking — INACTIF dans l'app
 ```
 
 ---
 
-## 🔄 Historique des modifications
+## `pentapol_solutions_loader.dart` — 66 lignes
 
-| Timestamp | Fichier | Modification |
-|-----------|---------|--------------|
-| 2512091506 | plateau.dart | Headers correction + copie |
-| 2512091506 | point.dart | Headers correction + copie |
-| 2512092000 | pentominos.dart | Headers correction + copie |
+Chargement et dépaquetage du fichier binaire des solutions canoniques.
+
+### API publique
+
+```dart
+Future<List<BigInt>> loadNormalizedSolutionsAsBigInt()
+```
+
+Charge `assets/data/solutions_6x10_normalisees.bin` et retourne les **2339** solutions
+canoniques sous forme de `BigInt` de 360 bits.
+
+### Format lu
+
+- 45 octets par solution (60 cases × 6 bits = 360 bits, multiple exact de 8)
+- bits lus du **poids fort au poids faible**, case 0 en tête
+- la taille du fichier doit être un multiple de 45, sinon `StateError`
+
+### Importé par
+
+`providers/solutions_provider.dart` uniquement.
 
 ---
 
-## Modèles détaillés
+## `solution_matcher.dart` — 787 lignes
 
-### 1. Pento (pentominos.dart)
+Cœur du mode classique. Expose un **singleton global** `solutionMatcher`.
 
-**Rôle** : Représente un pentomino (pièce de 5 cellules) avec tous ses états géométriques.
+### `SolutionMatcher`
 
-**Classe unique** : `Pento` (const, immutable)
+| Membre | Rôle |
+|---|---|
+| `initWithBigIntSolutions(List<BigInt>)` | reçoit les 2339 canoniques, génère les 4 variantes de chacune → 9356. Idempotent : un second appel est ignoré. |
+| `totalSolutions` | 9356 une fois initialisé, 0 sinon |
+| `allSolutions` | liste immuable des 9356 `BigInt` |
+| `countCompatibleFromBigInts(pieces, mask)` | nombre de solutions compatibles |
+| `getCompatibleSolutionsFromBigInts(pieces, mask)` | les `BigInt` compatibles |
+| `getCompatibleSolutionIndices(pieces, mask)` | leurs indices (0–9355) |
+| `findSolutionIndex(BigInt)` | indice d'une solution complète exacte, −1 sinon |
+| `getSolutionByIndex(int)` | une solution par son indice, `null` hors bornes |
+| `solutionToPlacedPieces(BigInt)` | reconstruit les 12 `PlacedPiece` |
+| `getPlacedPiecesByIndex(int)` | raccourci des deux précédentes |
 
-**Propriétés essentielles** :
-
-```dart
-final int id;                             // 1-12 (identifiant unique)
-final int size;                           // Toujours 5 (pentomino = 5 cellules)
-final List<List<int>> orientations;          // Toutes les orientations distinctes
-final List<List<List<int>>> cartesianCoords; // Coords (x,y) normalisées par orientation
-final int numOrientations;                   // Nombre d'orientations distinctes
-final List<int> baseShape;                // Cellules de référence (ordre géométrique)
-final int bit6;                           // Code binaire unique (6 bits, 0..63)
-```
-
-**Concepts clés** :
-
-**Grille interne 5×5** :
-- Chaque pentomino encodé dans grille 5×5 (cellules 1-25)
-- Numérotation : ligne 1 (bas) = 1-5, ligne 2 = 6-10, etc.
-- Conversion : `x = (cellNum - 1) % 5`, `y = (cellNum - 1) ~/ 5`
-
-**Orientations** :
-- Chaque pento peut avoir 1-8 orientations distinctes
-- Stockées dans `orientations[0..numOrientations-1]`
-- Ordre géométrique préservé pour tracking cellule-lettre (A-E)
-
-**Lettres géométriques (A-E)** :
-- Chaque cellule du pento identifiée par lettre fixe
-- Basée sur ordre dans `baseShape`
-- Invariante entre orientations grâce à préservation ordre géométrique
-
-**Méthodes publiques** :
+### Le test de compatibilité
 
 ```dart
-String getLetter(int cellNum)
-→ Retourne lettre A-E pour une cellule donnée (globale)
-
-String getLetterForPosition(int positionIndex, int cellNum)
-→ Retourne lettre A-E pour une cellule dans une orientation spécifique
-
-int findRotation90(int currentPositionIndex)
-→ Trouve index orientation après rotation 90° CCW
-→ Retourne -1 si symétrique (pas de nouvelle orientation)
-
-int findSymmetryH(int currentPositionIndex)
-→ Trouve index orientation après symétrie horizontale
-→ Retourne -1 si non trouvée
-
-int findSymmetryV(int currentPositionIndex)
-→ Trouve index orientation après symétrie verticale
-→ Retourne -1 si non trouvée
+(solution & maskBits) == piecesBits
 ```
 
-**Méthodes privées (isométries)** :
+Une seule opération sur 360 bits remplace 60 comparaisons de cases. `mask` porte
+`0x3F` sur chaque case occupée, ce qui efface de la solution tout ce que le joueur n'a
+pas encore posé — c'est ce qui rend le test valable sur un plateau partiel.
 
-```dart
-List<List<int>> _rotate90Coords(coords)     → (x,y) → (-y, x)
-List<List<int>> _flipHCoords(coords)        → (x,y) → (-x, y)
-List<List<int>> _flipVCoords(coords)        → (x,y) → (x, -y)
-List<List<int>> _positionToCoordsNormalized(posIdx)
-→ Convertit position 1-25 en coords (x,y) normalisées [0..3]
-bool _coordsEqual(coords1, coords2)         → Comparaison normalisées
-int _findTransformedPosition(posIdx, transform)
-→ Générique pour trouver position transformée
+Le balayage est **linéaire sur les 9356**, sans index ni sortie anticipée.
+
+### Les 4 variantes et la numérotation
+
+```
+index = canonicalIndex × 4 + variantType
+
+variantType  0 : identité      2 : miroir horizontal
+             1 : rotation 180° 3 : miroir vertical
 ```
 
-**Normalisation** :
-- Toutes les comparaisons utilisent coordonnées normalisées (min=0)
-- Tri alphabétique pour comparaison robuste
-- Permet détection orientations malgré décalages
+`SolutionInfo(index)` expose `canonicalIndex` (= `index ~/ 4`), `variantType`
+(= `index % 4`) et `variantName` en français.
 
-**Data : 12 pentominos** :
-```dart
-final List<Pento> pentominos = [
-  // 12 pièces avec :
-  // - id: 1-12
-  // - numOrientations: 1-8 (dépend symétries)
-  // - orientations: liste des orientations (cellules 1-25)
-  // - cartesianCoords: coords (x,y) normalisées pour chaque orientation
-  // - baseShape: ordre géométrique de référence
-  // - bit6: code unique pour bitmask
-]
-```
+L'expansion ×4 est exacte : **aucune** solution du 6×10 n'est symétrique, donc
+2339 × 4 = 9356 sans collision (vérifié par exécution).
 
-**Utilisé par** :
-- isopento_solver.dart : validation placement, isométries
-- isopento_provider.dart : sélection, transformation pièces
-- isopento_piece_slider.dart : affichage pièces
-- isopento_board.dart : rendu, interactions
+### Reconstruction `BigInt` → `PlacedPiece`
+
+Décodage en 60 codes, regroupement par `bit6` (donc par pièce), puis pour chaque
+groupe : coin haut-gauche du rectangle englobant → `gridX, gridY`, et comparaison des
+cases normalisées aux `cartesianCoords` → `positionIndex`.
+
+> Défaut connu : si aucune orientation ne correspond, `positionIndex` retombe
+> silencieusement sur 0 — la pièce est reconstruite avec une **forme différente** de
+> celle de la solution, sans erreur.
+
+### Importé par
+
+5 fichiers : les providers classique et Pentoscope MP, `plateau_solution_counter`,
+`solutions_browser_screen`, `action_slider`.
 
 ---
 
-### 2. Plateau (plateau.dart)
+## `plateau_solution_counter.dart` — 135 lignes
 
-**Rôle** : Grille générique pour représenter état d'un plateau de jeu.
-
-**Classe unique** : `Plateau` (immutable)
-
-**Propriétés** :
+Extension sur `Plateau` qui fait le pont entre l'état de jeu et le matcher.
 
 ```dart
-final int width;              // Largeur plateau (3, 4, 5, 6, 10, etc.)
-final int height;             // Hauteur plateau
-final List<List<int>> grid;   // Grille 2D (height × width)
-                              // -1 = invisible/off-board
-                              //  0 = visible/libre
-                              // >0 = occupée par pièce (id)
-```
-
-**Valeurs cellules** :
-
-| Valeur | Signification |
-|--------|--------------|
-| -1 | Invisible / hors plateau / blocked |
-| 0 | Visible et libre |
-| 1-12 | Occupée par pièce (id pentomino) |
-
-**Factories (constructeurs)** :
-
-```dart
-Plateau.empty(int width, int height)
-→ Grille remplie de -1 (tout invisible)
-
-Plateau.allVisible(int width, int height)
-→ Grille remplie de 0 (tout visible et libre)
-
-Plateau({width, height, grid})
-→ Constructeur principal (grid fourni)
-```
-
-**Méthodes utilitaires** :
-
-```dart
-int get numVisibleCells
-→ Compte cellules visibles (>= 0)
-
-int get numFreeCells
-→ Compte cellules libres (== 0)
-
-bool isInBounds(int x, int y)
-→ Vérifie si (x, y) est dans le plateau
-
-int getCell(int x, int y)
-→ Retourne valeur cellule (ou -1 si hors bounds)
-
-void setCell(int x, int y, int value)
-→ Modifie valeur cellule (si in bounds)
-
-Plateau copy()
-→ Crée copie profonde (grille clonée)
-```
-
-**Utilisé par** :
-
-- isopento_solver.dart : placement validation, backtracking
-- isopento_provider.dart : state plateau joueur, solutionPlateau
-- isopento_board.dart : affichage grille + pièces
-- pentomino_game : plateau 6×10
-- pentoscope : plateaux mini (3×5, 4×5, 5×5)
-
-**Exemple Isopento** :
-
-```dart
-// Créer plateau vierge 3×5
-final plateau = Plateau.allVisible(5, 3);
-
-// Placer pièce 2 aux coords (1, 1)
-plateau.setCell(1, 1, 2);
-plateau.setCell(2, 1, 2);
-plateau.setCell(1, 2, 2);
-
-// Vérifier placement
-if (plateau.getCell(1, 1) != 0) {
-  print('Case occupée');
-}
-
-// Copie pour validation backtracking
-final backup = plateau.copy();
-```
-
----
-
-### 3. Point (point.dart)
-
-**Rôle** : Représente coordonnées (x, y) sur un plateau. Immutable avec equality.
-
-**Classe unique** : `Point`
-
-**Propriétés** :
-
-```dart
-final int x;    // Coordonnée X
-final int y;    // Coordonnée Y
-```
-
-**Caractéristiques** :
-
-- ✅ **Immutable** : const constructor
-- ✅ **Equality** : `operator ==` compare x et y
-- ✅ **Hashable** : `get hashCode` pour utilisation dans Map/Set
-- ✅ **Printable** : `toString()` retourne "(x, y)"
-
-**Méthodes** :
-
-```dart
-const Point(int x, int y)
-→ Constructeur
-
-bool operator ==(Object other)
-→ Equality par valeur (x et y)
-
-int get hashCode
-→ Hash pour collections
-
-String toString()
-→ "(x, y)"
-```
-
-**Equality / Hashcode** :
-
-```dart
-Point(1, 2) == Point(1, 2)  // true
-Point(1, 2) == Point(2, 1)  // false
-Point(1, 2).hashCode == Point(1, 2).hashCode  // true (même logique)
-
-// Utilisable dans Set, Map, List.contains()
-Set<Point> visited = {Point(0, 0), Point(1, 1)};
-if (visited.contains(Point(0, 0))) { ... }  // O(1) lookup
-```
-
-**Utilisé par** :
-
-- isopento_provider.dart : selectedCellInPiece (mastercase)
-- isopento_board.dart : interactions drag, preview
-- Tous les modules UI pour coordonnées
-
-**Exemple** :
-
-```dart
-// Sélection mastercase
-final cell = Point(2, 1);  // x=2, y=1
-
-// Comparaison
-if (cell == Point(2, 1)) {
-  print('Mastercase au même endroit');
-}
-
-// Collections
-List<Point> route = [Point(0, 0), Point(1, 0), Point(2, 0)];
-if (route.contains(Point(1, 0))) {
-  print('Passage par (1, 0)');
+extension PlateauSolutionCounter on Plateau {
+  int?       countPossibleSolutions()
+  List<BigInt> getCompatibleSolutionsBigInt()
+  List<int>  getCompatibleSolutionIndices()
+  int        findExactSolutionIndex()
 }
 ```
 
+Chaque méthode reconstruit les deux masques `BigInt` depuis la grille, puis délègue au
+singleton `solutionMatcher`.
+
+### Contrat de retour
+
+Toutes les erreurs sont **attrapées et converties** : `null` ou liste vide pour les
+trois premières, `−1` pour la dernière. Aucune exception ne remonte à l'appelant.
+C'est commode mais silencieux : un échec ressemble à un plateau sans solution.
+
+### Deux limites à connaître
+
+- **Plateau 6×10 uniquement.** Toute autre dimension lève un `StateError`, aussitôt
+  attrapé → `null`.
+- **Cases masquées non gérées.** `Plateau.getCell` peut renvoyer `-1` ; la méthode ne
+  traite que `0` et `1..12`, et un `-1` produit un `StateError` attrapé → `null`.
+  Latent tant que le mode classique n'utilise que `Plateau.allVisible`.
+
+### Duplication à résorber
+
+La classe privée `_PlateauBigIntMask` réimplémente, en moins complet, ce que fait déjà
+`common/bigint_plateau.dart` — lequel est orphelin. La bonne abstraction existe et
+n'est pas utilisée.
+
+### Importé par
+
+`classical/pentomino_game_provider.dart` et `screens/.../action_slider.dart`.
+
 ---
 
-## Relationships avec Isopento
+## `pentomino_solver.dart` — 840 lignes — ⚠ inactif dans l'application
 
+Solveur par backtracking pour un plateau et un jeu de pièces quelconques.
+
+### Statut
+
+Son seul importateur dans `lib/` est `utils/solution_collector.dart`, **lui-même
+orphelin**. Le solveur n'est donc atteint par aucun chemin d'exécution de l'app. Il
+n'est utilisé que par l'outil hors-ligne `tools/generate_6x10_solutions.dart`.
+
+À ne pas confondre avec `pentoscope/pentoscope_solver.dart`, classe **distincte et
+bien vivante**, qui génère les puzzles Pentoscope.
+
+### API
+
+```dart
+List<PlacementInfo>? findSolution(Plateau, List<Pento>)   // fonction libre
+bool                 hasSolution(Plateau, List<Pento>)    // fonction libre
+
+class PentominoSolver {
+  PentominoSolver({required plateau, required pieces});
+  factory PentominoSolver.fromIds({...});
+
+  bool  backtrack();
+  bool  areIsolatedRegionsValid();
+  bool  canAnyAvailablePieceFitRegion(List<Point> region);
+  int   findSmallestFreeCell();
+  List<PlacementInfo>? findNext();
+  Future<int>                      countAllSolutions({...});
+  Future<List<List<PlacementInfo>>> findAllSolutions({...});
+}
+
+class PlacementInfo { pieceIndex, occupiedCells, ... }
 ```
-Pento (12 pièces)
-  ├─ orientations[0..numOrientations] : List<int>
-  ├─ cartesianCoords[0..numOrientations] : List<List<int>>
-  └─ Méthodes isométries (rotation, symétries)
-     └─ Utilisées par isopento_provider pour calculs
 
-Plateau (grille)
-  ├─ grid[height][width] : List<List<int>>
-  ├─ plateau : état joueur
-  └─ solutionPlateau : solution de référence (semi-transparent)
-     └─ Utilisés par isopento_board pour affichage
+### Réserve importante
 
-Point (coordonnées)
-  └─ selectedCellInPiece : mastercase pour transformations
-     └─ Utilisé par isopento_provider pour drag/drop
-```
+Le fichier `tools/solutions_6x10_brutes.bin`, produit par cet outil, ne contenait que
+**8175 des 9356** solutions — un sous-ensemble strict, sans solution étrangère. La
+cause n'est pas élucidée : run interrompu, ou défaut de complétude de
+`findAllSolutions`. **Vérifier que le solveur en trouve bien 9356 avant toute
+régénération des solutions.**
 
 ---
 
-## Architecture Models
+## Ce qui n'est pas dans `lib/services/`
 
-**Immutabilité** :
-- ✅ Pento : const, propriétés finales
-- ✅ Plateau : const constructor, mais grid mutable (caveat)
-- ✅ Point : const, propriétés finales
+Deux composants qu'on s'attendrait à y trouver et qui vivent ailleurs :
 
-**Séparation responsabilités** :
-- **Pento** : géométrie pentomino + isométries
-- **Plateau** : grille générique (domaine d'application agnostique)
-- **Point** : coordonnées (utilitaire)
+- `common/bigint_plateau.dart` — représentation (pieces, mask) d'un plateau
+- `pentoscope/pentoscope_solver.dart` — le solveur réellement utilisé par le jeu
 
-**Dépendances** :
-```
-Point → aucune dépendance
-Plateau → aucune dépendance
-Pento → aucune dépendance
-```
+## Voir aussi
 
-→ Tous les trois indépendants, réutilisables
-
----
-
-## Notes d'implémentation
-
-### Pento
-
-**Grille 5×5 interne** :
-- Standard pour tous les pentominos
-- Permet normalisation cohérente
-- Conversion : `(cellNum - 1) % 5`, `(cellNum - 1) ~/ 5`
-
-**Ordre géométrique** :
-- `baseShape` et `orientations` conservent ordre cellules
-- Permet mapping stable cellule ↔ lettre (A-E)
-- Essentiel pour shape recognition
-
-**cartesianCoords pré-calculées** :
-- Évite recalcul à chaque comparaison
-- Normalisées (min=0) et triées
-- Utilisées par solver + provider
-
-### Plateau
-
-**Grille mutable** :
-- Bien que Plateau soit "const", grid est mutable (List)
-- Accepté pour performance (évite copies constantes)
-- Mais traiter comme immutable sauf contexte backtracking
-
-**Valeur -1 vs 0** :
-- -1 = invisible / off-board (mode 6×10 : zones bloquées)
-- 0 = visible libre (mode isopento : tout visible)
-- >0 = occupée par pièce
-
-### Point
-
-**Equality vs Identity** :
-- `==` basée sur valeur, pas identité
-- Permet `point1 == point2` même si objets différents
-- Hashcode cohérent pour collections
-
----
-
-## Checklist intégration
-
-- [ ] Headers standardisés YYMMDDHHM dans les 3 fichiers
-- [ ] Utilisation Pento.findRotation90/Symmetry cohérente
-- [ ] Plateau.copy() pour sauvegarde état backtracking
-- [ ] Point utilisé pour selectedCellInPiece (mastercase)
-- [ ] Conversion cellNum ↔ (x, y) correcte (0-based)
-- [ ] Normalization coords pour isométries robuste
-- [ ] Lettres A-E stables entre orientations
-
----
-
-## Améliorations possibles
-
-**Performance** :
-- Cache isométries (find*) si appelée souvent
-- BigInt plateau pour grilles > 32 cellules
-
-**Flexibilité** :
-- Plateau generic T au lieu de int (pour metadata)
-- Pento.scale() pour variantes (pentomino → hexomino)
-
-**Robustesse** :
-- Validation Pento à construction (orientations valides)
-- Plateau.validate() pour debug
+- `docs/ANALYSE_STOCKAGE_POSITIONS.md` — analyse détaillée de l'encodage, défauts,
+  vérifications exécutées, fondement combinatoire du code `bit6`
+- `docs/PIECES_ENCODING.md` — définition des pièces et des isométries
+- `docs/FONCTIONNEMENT.md` — documentation fonctionnelle de l'application
