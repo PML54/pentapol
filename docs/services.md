@@ -1,8 +1,9 @@
 # SERVICES — Documentation de `lib/services/`
 
 > **Écrit le 2026-08-27 à partir des sources.** Le fichier précédent portant ce nom
-> était un doublon octet pour octet de `docs/models.md` (même somme MD5) : la
-> documentation des services n'existait pas. Celle-ci la remplace.
+> était un doublon octet pour octet de `models.md` (même somme MD5) : la documentation
+> des services n'existait pas. Celle-ci la remplace. `models.md` a depuis été supprimé
+> — il reste récupérable dans l'historique git.
 
 `lib/services/` contient quatre fichiers, qui forment la chaîne de traitement des
 solutions du plateau 6×10 — du fichier binaire jusqu'au compteur affiché à l'écran.
