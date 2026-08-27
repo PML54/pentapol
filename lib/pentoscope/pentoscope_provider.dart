@@ -1,3 +1,6 @@
+// Modified: 2026-08-27 20:29 — étape 1 du plan d'unification : PentoscopeState implémente le
+//           contrat commun PieceManipulationState ; ViewOrientation déplacé dans
+//           common/ et ré-exporté d'ici. Aucun champ ni site d'appel modifié.
 // Modified: 2026-08-27 19:57 — fusion de PentoscopePlacedPiece dans common/PlacedPiece :
 //           classe locale supprimée, 19 références renommées. Aucun changement
 //           de comportement (aucune comparaison objet à objet dans ce fichier).
@@ -14,6 +17,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
+import 'package:pentapol/common/view_orientation.dart';
+import 'package:pentapol/common/piece_manipulation_state.dart';
+export 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
@@ -1891,7 +1897,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 }
 
 /// État du jeu Pentoscope
-class PentoscopeState {
+class PentoscopeState implements PieceManipulationState {
   /// Orientation "vue" (repère écran). Ne change pas la logique.
   /// Sert à interpréter des actions (ex: Sym H/V) en paysage.
   final ViewOrientation viewOrientation;
@@ -2096,4 +2102,5 @@ class PentoscopeState {
 /// Important: le provider reste en coordonnées logiques. Cette info sert
 /// uniquement à interpréter les actions utilisateur (ex: Sym H/V) pour que
 /// le ressenti soit cohérent en paysage.
-enum ViewOrientation { portrait, landscape }
+// ViewOrientation vit désormais dans common/view_orientation.dart,
+// ré-exporté ci-dessus pour que les imports existants continuent de fonctionner.

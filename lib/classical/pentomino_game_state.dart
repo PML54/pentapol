@@ -1,15 +1,21 @@
+// Modified: 2026-08-27 20:29 — étape 1 du plan d'unification : implémente le contrat commun
+//           PieceManipulationState ; ViewOrientation déplacé dans common/ et
+//           ré-exporté d'ici. Aucun champ ni site d'appel modifié.
 // Modified: 2025-12-01 (Snap intelligent ajouté)
 // lib/providers/pentomino_game_state.dart
 // État du jeu de pentominos (mode libre + mode tutoriel)
 
 import 'package:flutter/material.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/view_orientation.dart';
+import 'package:pentapol/common/piece_manipulation_state.dart';
+export 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
 
 /// État du jeu de pentominos
-class PentominoGameState {
+class PentominoGameState implements PieceManipulationState {
   final Plateau plateau;
   final List<Pento> availablePieces; // Pièces encore disponibles dans le slider
   final List<PlacedPiece> placedPieces; // Pièces déjà placées sur le plateau
@@ -285,4 +291,5 @@ class PentominoGameState {
 }
 
 /// Orientation de la vue (repère écran)
-enum ViewOrientation { portrait, landscape }
+// ViewOrientation vit désormais dans common/view_orientation.dart,
+// ré-exporté ci-dessus pour que les imports existants continuent de fonctionner.
