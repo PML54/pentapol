@@ -1,10 +1,11 @@
-// Modified: 2026-08-27 20:47 — deux changements du jour :
+// Modified: 2026-08-27 20:53 — deux changements du jour :
 //           (1) étape 2 du plan d'unification — les 4 applyIsometry* renvoient
 //               TransformationResult au lieu de void, comme côté Pentoscope. Le mode
 //               classique ne renvoie que success : aucun chemin d'échec dans ses
 //               helpers. L'alignement porte sur le type, pas encore sur la sémantique.
 //           (2) retrait de 3 méthodes privées orphelines (_calculateNewMasterCell,
-//               _canPlacePieceAt, _extractAbsoluteCoords), 48 lignes.
+//               _canPlacePieceAt, _extractAbsoluteCoords), 48 lignes, plus
+//               l'import shape_recognizer.dart qu'elles seules utilisaient.
 // lib/classical/pentomino_game_provider.dart
 // Historique: 2604221200 — Refactor: absoluteCells remplace boucles cellNum
 //             manuelles, print→debugPrint, ref.onDispose()
@@ -20,7 +21,7 @@ import 'package:pentapol/common/transformation_result.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
-import 'package:pentapol/common/shape_recognizer.dart';
+import 'package:pentapol/common/game_timer_mixin.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/services/plateau_solution_counter.dart' show PlateauSolutionCounter;
@@ -36,7 +37,11 @@ NotifierProvider<PentominoGameNotifier, PentominoGameState>(
 );
 
 class PentominoGameNotifier extends Notifier<PentominoGameState> 
-    with PentominoGameMixin {
+    with PentominoGameMixin, GameTimerMixin<PentominoGameState> {
+  @override
+  PentominoGameState stateWithElapsedSeconds(int elapsedSeconds) =>
+      state.copyWith(elapsedSeconds: elapsedSeconds);
+
   static const int _snapRadius = 2;
   
   // ============================================================================
@@ -66,8 +71,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     return state.selectedCellInPiece;
   }
 
-  Timer? _gameTimer;  // ✨ NOUVEAU
-  DateTime? _startTime;  // ✨ NOUVEAU
 
 
 
@@ -328,7 +331,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
   // ✨ AJOUT: Appelé quand le puzzle est complété (12 pièces placées)
   Future<void> onPuzzleCompleted() async {
-    _gameTimer?.cancel();  // Arrêter le timer
+    stopTimer(); // fin de partie : l'origine est conservée
 
     final elapsedSeconds = state.elapsedSeconds;
     final isometriesCount = state.isometriesCount;
@@ -587,10 +590,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     }
   }
 
-  int getElapsedSeconds() {
-    if (_startTime == null) return 0;
-    return DateTime.now().difference(_startTime!).inSeconds;
-  }
 
   /// Trouve la pièce placée à une position donnée
   PlacedPiece? getPlacedPieceAt(int gridX, int gridY) {
@@ -837,9 +836,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
   /// Réinitialise le jeu
   void reset() {
-    stopTimer();  // ✨ Arrêter le timer
-    _startTime = null;  // ✨ Réinitialiser
-    _gameTimer = null;  // ✨ Réinitialiser
+    resetTimer(); // nouvelle partie : le chrono repart de zéro
     final initialState = PentominoGameState.initial();
     final totalSolutions = Plateau.allVisible(6, 10).countPossibleSolutions();
     state = initialState.copyWith(solutionsCount: totalSolutions);
@@ -1148,22 +1145,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   // HIGHLIGHTS DE CASES
   // ============================================================
 
-  void startTimer() {
-    if (_startTime != null) return;
-    debugPrint('🚀 TIMER STARTED!');  // ← AJOUTER
-    _startTime = DateTime.now();
-    _gameTimer = Timer.periodic(Duration(milliseconds: 100), (_) {
-      // ✨ Mettre à jour elapsedSeconds
-      state = state.copyWith(
-        elapsedSeconds: getElapsedSeconds(),
-      );
-    });
-  }
 
-  void stopTimer() {
-    _gameTimer?.cancel();
-    _gameTimer = null;
-  }
 
   /// Tente de placer la pièce sélectionnée sur le plateau
   /// [gridX] et [gridY] sont les coordonnées où on lâche la pièce (position du doigt)
