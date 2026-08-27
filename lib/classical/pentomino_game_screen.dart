@@ -1,6 +1,8 @@
-// Modified: 2026-08-27 16:05 — garde d'initialisation : le jeu n'est plus monté avant que les
+// Modified: 2026-08-27 20:43 — garde d'initialisation : le jeu n'est plus monté avant que les
 //           9356 solutions soient chargées (défaut P4). L'ancien widget devient
 //           _PentominoGameBody ; PentominoGameScreen est désormais la garde.
+//           Retrait du super.key sur _PentominoGameBody : widget privé instancié en
+//           un seul point, la clé n'était jamais fournie (unused_element_parameter).
 // lib/classical/pentomino_game_screen.dart
 // Historique: 251226120030 — Démarrage du timer à la première pièce touchée
 // CHANGEMENTS: (1) Variable _timerStarted ligne 34, (2) Logique dans build() lignes 49-54, (3) initState() réduit à reset() seul, (4) Démarrage au premier touch sans listener
@@ -95,7 +97,7 @@ class PentominoGameScreen extends ConsumerWidget {
 /// Contenu réel du mode classique. Monté uniquement lorsque
 /// [solutionsReadyProvider] a résolu — voir [PentominoGameScreen].
 class _PentominoGameBody extends ConsumerStatefulWidget {
-  const _PentominoGameBody({super.key});
+  const _PentominoGameBody();
 
   @override
   ConsumerState<_PentominoGameBody> createState() => _PentominoGameScreenState();
