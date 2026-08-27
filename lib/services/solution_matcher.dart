@@ -1,4 +1,4 @@
-// Modified: 2026-08-27 — correction de la table des lettres de pièces dans l'en-tête
+// Modified: 2026-08-27 15:32 — correction de la table des lettres de pièces dans l'en-tête
 //           (colonne « Pièce » fausse sur 8 lignes) ; commentaires uniquement,
 //           aucun code modifié. Voir docs/ANALYSE_STOCKAGE_POSITIONS.md §D2.
 // lib/services/solution_matcher.dart

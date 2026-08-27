@@ -1,4 +1,4 @@
-// Modified: 2026-08-27 — création : expose le chargement des solutions 6×10 comme état
+// Modified: 2026-08-27 16:04 — création : expose le chargement des solutions 6×10 comme état
 //           observable Riverpod, pour supprimer la course au démarrage (défaut P4 de
 //           docs/ANALYSE_STOCKAGE_POSITIONS.md). Remplace le Future.microtask
 //           non attendu qui était dans main().

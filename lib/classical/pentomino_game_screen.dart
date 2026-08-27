@@ -1,4 +1,4 @@
-// Modified: 2026-08-27 — garde d'initialisation : le jeu n'est plus monté avant que les
+// Modified: 2026-08-27 16:05 — garde d'initialisation : le jeu n'est plus monté avant que les
 //           9356 solutions soient chargées (défaut P4). L'ancien widget devient
 //           _PentominoGameBody ; PentominoGameScreen est désormais la garde.
 // lib/classical/pentomino_game_screen.dart

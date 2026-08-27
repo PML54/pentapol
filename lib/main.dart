@@ -1,4 +1,4 @@
-// Modified: 2026-08-27 — suppression de la course au démarrage (P4) : le chargement des
+// Modified: 2026-08-27 16:04 — suppression de la course au démarrage (P4) : le chargement des
 //           solutions passe du Future.microtask non attendu au solutionsReadyProvider,
 //           amorcé ici et observé par PentominoGameScreen.
 // lib/main.dart
