@@ -478,7 +478,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
       // Mettre à jour l'état
       state = state.copyWith(
-        selectedPlacedPiece: transformedPiece,
+        selectedPlacedPiece: _keepOnBoard(transformedPiece),
         selectedPositionIndex: nextIndex,
         solutionsCount: solutionsCount,
       );
@@ -1445,6 +1445,52 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     }
   }
 
+
+  /// Ramène une pièce posée à l'intérieur du plateau après une isométrie.
+  ///
+  /// Une rotation ou une symétrie change l'empreinte de la pièce sans déplacer son
+  /// ancre : une pièce collée à un bord peut donc se retrouver partiellement hors
+  /// plateau, et s'afficher tronquée. Aucune des quatre méthodes d'isométrie ne
+  /// vérifiait les bornes — c'est la raison pour laquelle elles renvoyaient toujours
+  /// [TransformationResult.success].
+  ///
+  /// Le décalage appliqué est **minimal** : juste ce qu'il faut pour que toutes les
+  /// cellules rentrent. Le comportement s'aligne sur celui de Pentoscope, qui
+  /// recentre déjà (voir son `neededRecentering`).
+  ///
+  /// Ne vérifie **que les bornes**, pas les chevauchements avec d'autres pièces :
+  /// c'est le défaut signalé, et l'état `boardIsValid` continue de signaler le reste.
+  PlacedPiece _keepOnBoard(PlacedPiece piece) {
+    final cells = piece.absoluteCells.toList();
+    if (cells.isEmpty) return piece;
+
+    final w = state.plateau.width;
+    final h = state.plateau.height;
+    final minX = cells.map((c) => c.x).reduce(min);
+    final maxX = cells.map((c) => c.x).reduce(max);
+    final minY = cells.map((c) => c.y).reduce(min);
+    final maxY = cells.map((c) => c.y).reduce(max);
+
+    var dx = 0;
+    if (minX < 0) {
+      dx = -minX;
+    } else if (maxX >= w) {
+      dx = w - 1 - maxX;
+    }
+
+    var dy = 0;
+    if (minY < 0) {
+      dy = -minY;
+    } else if (maxY >= h) {
+      dy = h - 1 - maxY;
+    }
+
+    if (dx == 0 && dy == 0) return piece;
+
+    debugPrint('🧲 Recentrage après isométrie : décalage ($dx, $dy)');
+    return piece.copyWith(gridX: piece.gridX + dx, gridY: piece.gridY + dy);
+  }
+
   /// Applique une transformation isométrique via lookup
   void _applyIsoUsingLookup(int Function(Pento p, int idx) f) {
     final piece = state.selectedPiece;
@@ -1468,7 +1514,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     final sp = state.selectedPlacedPiece;
     if (sp != null) {
       state = state.copyWith(
-        selectedPlacedPiece: sp.copyWith(positionIndex: newIdx),
+        selectedPlacedPiece: _keepOnBoard(sp.copyWith(positionIndex: newIdx)),
       );
     }
   }
@@ -1646,7 +1692,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     // Mettre à jour l'état
     state = state.copyWith(
-      selectedPlacedPiece: transformedPiece,
+      selectedPlacedPiece: _keepOnBoard(transformedPiece),
       selectedPositionIndex: newIndex,
       selectedCellInPiece: _computeMastercaseForAbs(
         piece: piece,
@@ -1682,7 +1728,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     // Mettre à jour l'état
     state = state.copyWith(
-      selectedPlacedPiece: transformedPiece,
+      selectedPlacedPiece: _keepOnBoard(transformedPiece),
       selectedPositionIndex: newIndex,
       solutionsCount: solutionsCount,
     );
@@ -1753,7 +1799,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       );
 
       state = state.copyWith(
-        selectedPlacedPiece: transformedPiece,
+        selectedPlacedPiece: _keepOnBoard(transformedPiece),
         selectedPositionIndex: newIndex,
         selectedCellInPiece: _computeMastercaseForAbs(
           piece: piece,
@@ -1782,7 +1828,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     // Mettre à jour l'état
     state = state.copyWith(
-      selectedPlacedPiece: transformedPiece,
+      selectedPlacedPiece: _keepOnBoard(transformedPiece),
       selectedPositionIndex: newIndex,
       solutionsCount: solutionsCount,
     );

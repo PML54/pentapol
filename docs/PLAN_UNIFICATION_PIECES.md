@@ -209,6 +209,27 @@ chacune**, jamais toutes d'un coup :
 Commencer par **Chrono** et **Preview & drag** : corps déjà quasi identiques, gain
 immédiat, risque nul.
 
+> **Défaut corrigé, 2026-08-27 — une isométrie pouvait faire sortir la pièce du
+> plateau.** Signalé par Paul en mode classique : une rotation ou une symétrie change
+> l'empreinte de la pièce **sans déplacer son ancre**, si bien qu'une pièce collée à un
+> bord se retrouvait partiellement hors plateau et s'affichait tronquée.
+>
+> Cause exacte : les **quatre** méthodes d'isométrie du mode classique ne faisaient
+> aucune vérification de bornes — ce qui est précisément la raison pour laquelle elles
+> renvoyaient toujours `success` (voir étape 2). Pentoscope, lui, recentre déjà : son
+> `neededRecentering` est posé à dix endroits.
+>
+> Correction : un garde-fou unique `_keepOnBoard(PlacedPiece)` appliqué aux **6 sites**
+> où une pièce posée reçoit une nouvelle orientation. Décalage **minimal**, juste ce
+> qu'il faut pour que toutes les cellules rentrent. Il ne vérifie **que les bornes**,
+> pas les chevauchements : c'est le défaut signalé, et `boardIsValid` continue de
+> signaler le reste.
+>
+> **Dette restante** : le décalage n'est pas remonté dans le retour. Ces méthodes
+> devraient renvoyer `TransformationResult.recentered` quand `_keepOnBoard` a déplacé la
+> pièce. Non fait ici pour ne pas mêler une correction de défaut à un changement de
+> sémantique dans le même commit — à traiter avec la famille Isométries.
+>
 > **Décision de jeu, 2026-08-27 — le magnétisme devient assistant partout.** Les deux
 > modes n'avaient pas le même comportement d'accrochage : le mode classique cherchait
 > une position valide dans un rayon de **2 cases** et affichait rouge au-delà ; Pentoscope
