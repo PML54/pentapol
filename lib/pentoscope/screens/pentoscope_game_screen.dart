@@ -1,3 +1,5 @@
+// Modified: 2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece (fusion des deux types
+//           de pièce posée). 2 références, import ajouté.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
 // Modified: 2604221500
 // Dialogue bilan enrichi : déplacements, suppressions, score %
@@ -7,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/config/game_icons_config.dart';
@@ -472,13 +475,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   /// Simule les pièces de l'adversaire (pour démo)
   /// En mode miroir : affiche les mêmes pièces que nous
-  List<PentoscopePlacedPiece> _getSimulatedOpponentPieces(PentoscopeState state) {
+  List<PlacedPiece> _getSimulatedOpponentPieces(PentoscopeState state) {
     // Simulation miroir : mêmes pièces que nous
     return state.placedPieces.toList();
   }
 
   /// Récupère l'ID de la pièce à une position donnée
-  int? _getPieceAtPosition(List<PentoscopePlacedPiece> pieces, int x, int y) {
+  int? _getPieceAtPosition(List<PlacedPiece> pieces, int x, int y) {
     for (final placed in pieces) {
       for (final cell in placed.absoluteCells) {
         if (cell.x == x && cell.y == y) {

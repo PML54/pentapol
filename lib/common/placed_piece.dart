@@ -1,7 +1,10 @@
+// Modified: 2026-08-27 19:58 — la fusion annoncée est enfin effective : PentoscopePlacedPiece
+//           a été supprimé de pentoscope_provider.dart, Pentoscope et le multijoueur
+//           utilisent désormais cette classe. Avertissement ajouté sur
+//           getOccupiedCells(), spécifique au plateau 6×10.
 // lib/common/placed_piece.dart
-// Modified: 251213HHMMSS
-// Classe commune pour toutes les pièces placées sur un plateau
-// Remplace: IsopentoPlacedPiece et PentoscopePlacedPiece
+// Historique: 251213HHMMSS — Classe commune pour toutes les pièces placées
+// Remplaçait: IsopentoPlacedPiece et PentoscopePlacedPiece (fusion terminée le 2026-08-27)
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/point.dart';
@@ -105,6 +108,12 @@ class PlacedPiece {
   ///
   /// Retourne une liste de cellNum (1 à 60) correspondant aux cases occupées.
   /// Les cases hors limites (x < 0, x >= 6, y < 0, y >= 10) sont ignorées.
+  ///
+  /// ⚠️ **Réservé au plateau 6×10 du mode classique.** Les bornes sont écrites en
+  /// dur. Sur un plateau Pentoscope (hauteur 5, largeur 3 à 10), cette méthode
+  /// écarte silencieusement les cases hors de la zone 6×10 et renvoie un résultat
+  /// faux sans lever d'erreur. Utiliser [absoluteCells], qui ne présume rien des
+  /// dimensions.
   List<int> getOccupiedCells() {
     final cells = <int>[];
 

@@ -1,3 +1,6 @@
+// Modified: 2026-08-27 19:57 — fusion de PentoscopePlacedPiece dans common/PlacedPiece :
+//           classe locale supprimée, 19 références renommées. Aucun changement
+//           de comportement (aucune comparaison objet à objet dans ce fichier).
 // lib/pentoscope/pentoscope_provider.dart
 // Modified: 2605030800
 // Pentoscope: min isométries théoriques + translation mastercase / snap
@@ -11,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
+import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
@@ -214,7 +218,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final newPlateau = _rebuildPlateau();
 
     // Placer la nouvelle pièce
-    final newPlaced = PentoscopePlacedPiece(
+    final newPlaced = PlacedPiece(
       piece: hintPiece,
       positionIndex: hintPlacement.positionIndex,
       gridX: hintPlacement.gridX,
@@ -261,7 +265,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   bool _checkHasPossibleSolutionWith(
     Plateau plateau,
     List<Pento> availablePieces,
-    List<PentoscopePlacedPiece> placedPieces,
+    List<PlacedPiece> placedPieces,
   ) {
     if (state.puzzle == null) return false;
     if (availablePieces.isEmpty) return false;
@@ -351,7 +355,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  PentoscopePlacedPiece? getPlacedPieceAt(int x, int y) {
+  PlacedPiece? getPlacedPieceAt(int x, int y) {
     for (final placed in state.placedPieces) {
       for (final cell in placed.absoluteCells) {
         if (cell.x == x && cell.y == y) {
@@ -362,7 +366,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return null;
   }
 
-  void removePlacedPiece(PentoscopePlacedPiece placed) {
+  void removePlacedPiece(PlacedPiece placed) {
     final newPlateau = _rebuildPlateau(exclude: placed);
 
     final newPlaced = state.placedPieces
@@ -473,7 +477,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
 
   void selectPlacedPiece(
-    PentoscopePlacedPiece placed,
+    PlacedPiece placed,
     int absoluteX,
     int absoluteY,
   ) {
@@ -753,7 +757,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final newPlateau = _rebuildPlateau(exclude: state.selectedPlacedPiece);
 
     // Placer la nouvelle pièce
-    final newPlaced = PentoscopePlacedPiece(
+    final newPlaced = PlacedPiece(
       piece: piece,
       positionIndex: positionIndex,
       gridX: anchorX,
@@ -765,7 +769,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
 
     // Mettre à jour les listes
-    List<PentoscopePlacedPiece> newPlacedPieces;
+    List<PlacedPiece> newPlacedPieces;
     List<Pento> newAvailable;
 
     if (state.selectedPlacedPiece != null) {
@@ -1428,8 +1432,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// Calcule la position gridX,gridY pour maintenir la mastercase fixe lors d'une transformation
   Point _calculatePositionForFixedMastercase({
-    required PentoscopePlacedPiece originalPiece,
-    required PentoscopePlacedPiece transformedPiece,
+    required PlacedPiece originalPiece,
+    required PlacedPiece transformedPiece,
     required Point mastercase,
   }) {
     debugPrint(
@@ -1537,7 +1541,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return Point(dragGridX, dragGridY);
   }
 
-  bool _canPlacePieceWithoutChecker(PentoscopePlacedPiece placed) {
+  bool _canPlacePieceWithoutChecker(PlacedPiece placed) {
     debugPrint(
       '🔎 Vérification ${placed.piece.id} à gridX=${placed.gridX}, gridY=${placed.gridY}',
     );
@@ -1572,7 +1576,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// Cherche la position valide la plus proche autour de la mastercase
   /// Retourne null si aucune position valide n'est trouvée dans un rayon raisonnable
   Point? _findNearestValidPosition({
-    required PentoscopePlacedPiece piece,
+    required PlacedPiece piece,
     required Point mastercaseAbs,
     required Point mastercaseLocal,
     int maxRadius = 5,
@@ -1751,7 +1755,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return validPlacements;
   }
 
-  int _getMaxLocalX(PentoscopePlacedPiece piece) {
+  int _getMaxLocalX(PlacedPiece piece) {
     return piece.absoluteCells.fold(
           0,
           (max, cell) => cell.x > max ? cell.x : max,
@@ -1759,7 +1763,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         piece.gridX;
   }
 
-  int _getMaxLocalY(PentoscopePlacedPiece piece) {
+  int _getMaxLocalY(PlacedPiece piece) {
     return piece.absoluteCells.fold(
           0,
           (max, cell) => cell.y > max ? cell.y : max,
@@ -1771,8 +1775,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // exclude : pièce à ignorer (ex: pièce sélectionnée temporairement retirée).
   // pieces  : liste source (défaut: state.placedPieces).
   Plateau _rebuildPlateau({
-    List<PentoscopePlacedPiece>? pieces,
-    PentoscopePlacedPiece? exclude,
+    List<PlacedPiece>? pieces,
+    PlacedPiece? exclude,
   }) {
     final src = pieces ?? state.placedPieces;
     final p = Plateau.allVisible(state.plateau.width, state.plateau.height);
@@ -1886,55 +1890,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 }
 
-/// Pièce placée sur le plateau Pentoscope
-class PentoscopePlacedPiece {
-  final Pento piece;
-  final int positionIndex;
-  final int gridX;
-  final int gridY;
-
-  const PentoscopePlacedPiece({
-    required this.piece,
-    required this.positionIndex,
-    required this.gridX,
-    required this.gridY,
-  });
-
-  /// Coordonnées absolues des cellules occupées (normalisées)
-  Iterable<Point> get absoluteCells sync* {
-    final position = piece.orientations[positionIndex];
-
-    // Trouver le décalage minimum pour normaliser
-    int minLocalX = 5, minLocalY = 5;
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      if (localX < minLocalX) minLocalX = localX;
-      if (localY < minLocalY) minLocalY = localY;
-    }
-
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5 - minLocalX;
-      final localY = (cellNum - 1) ~/ 5 - minLocalY;
-      yield Point(gridX + localX, gridY + localY);
-    }
-  }
-
-  PentoscopePlacedPiece copyWith({
-    Pento? piece,
-    int? positionIndex,
-    int? gridX,
-    int? gridY,
-  }) {
-    return PentoscopePlacedPiece(
-      piece: piece ?? this.piece,
-      positionIndex: positionIndex ?? this.positionIndex,
-      gridX: gridX ?? this.gridX,
-      gridY: gridY ?? this.gridY,
-    );
-  }
-}
-
 /// État du jeu Pentoscope
 class PentoscopeState {
   /// Orientation "vue" (repère écran). Ne change pas la logique.
@@ -1943,7 +1898,7 @@ class PentoscopeState {
   final PentoscopePuzzle? puzzle;
   final Plateau plateau;
   final List<Pento> availablePieces;
-  final List<PentoscopePlacedPiece> placedPieces;
+  final List<PlacedPiece> placedPieces;
 
   // Sélection pièce du slider
   final Pento? selectedPiece;
@@ -1951,7 +1906,7 @@ class PentoscopeState {
   final Map<int, int> piecePositionIndices;
 
   // Sélection pièce placée
-  final PentoscopePlacedPiece? selectedPlacedPiece;
+  final PlacedPiece? selectedPlacedPiece;
   final Point? selectedCellInPiece; // Mastercase
   final Point? selectedMasterAbs; // Mastercase absolue à la sélection
 
@@ -2058,12 +2013,12 @@ class PentoscopeState {
     PentoscopePuzzle? puzzle,
     Plateau? plateau,
     List<Pento>? availablePieces,
-    List<PentoscopePlacedPiece>? placedPieces,
+    List<PlacedPiece>? placedPieces,
     Pento? selectedPiece,
     bool clearSelectedPiece = false,
     int? selectedPositionIndex,
     Map<int, int>? piecePositionIndices,
-    PentoscopePlacedPiece? selectedPlacedPiece,
+    PlacedPiece? selectedPlacedPiece,
     bool clearSelectedPlacedPiece = false,
     Point? selectedCellInPiece,
     bool clearSelectedCellInPiece = false,
