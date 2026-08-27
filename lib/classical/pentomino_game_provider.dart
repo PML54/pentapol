@@ -1,11 +1,13 @@
-// Modified: 2026-08-27 20:39 — étape 2 du plan d'unification : les 4 applyIsometry* renvoient
-//           TransformationResult au lieu de void, comme côté Pentoscope. Le mode
-//           classique ne renvoie que success (aucun chemin d'échec dans ses helpers) :
-//           l'alignement porte sur le type, pas encore sur la sémantique.
+// Modified: 2026-08-27 20:47 — deux changements du jour :
+//           (1) étape 2 du plan d'unification — les 4 applyIsometry* renvoient
+//               TransformationResult au lieu de void, comme côté Pentoscope. Le mode
+//               classique ne renvoie que success : aucun chemin d'échec dans ses
+//               helpers. L'alignement porte sur le type, pas encore sur la sémantique.
+//           (2) retrait de 3 méthodes privées orphelines (_calculateNewMasterCell,
+//               _canPlacePieceAt, _extractAbsoluteCoords), 48 lignes.
 // lib/classical/pentomino_game_provider.dart
-// Modified: 2604221200
-// Refactor: absoluteCells remplace boucles cellNum manuelles, print→debugPrint
-// CHANGEMENTS: (1) absoluteCells dans cancelSelection/hint/tutorial, (2) 49 print→debugPrint, (3) ref.onDispose()
+// Historique: 2604221200 — Refactor: absoluteCells remplace boucles cellNum
+//             manuelles, print→debugPrint, ref.onDispose()
 
 import 'dart:async';
 
@@ -235,10 +237,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     }
   }
-// lib/pentapol/providers/pentomino_game_provider.dart
-// Modified: 250101HHMMM
-// Apply hint from compatible solutions
-// CHANGEMENTS: (1) applyHint() method
 
 
 // ========================================================================
@@ -1476,51 +1474,11 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     }
   }
 
-  /// Calcule la nouvelle position locale de la master case après une transformation
-  /// [centerX], [centerY] : coordonnées absolues de la master case (fixe)
-  /// [newGridX], [newGridY] : nouvelle ancre de la pièce transformée
-  Point _calculateNewMasterCell(
-      int centerX,
-      int centerY,
-      int newGridX,
-      int newGridY,
-      ) {
-    final newLocalX = centerX - newGridX;
-    final newLocalY = centerY - newGridY;
-    return Point(newLocalX, newLocalY);
-  }
-
   // ============================================================
   // UTILITAIRES TUTORIEL
   // ============================================================
 
 
-  /// Vérifie si une pièce peut être placée à une position donnée
-  /// Utilisé après une transformation géométrique
-  bool _canPlacePieceAt(ShapeMatch match, PlacedPiece? excludePiece) {
-    final position = match.piece.orientations[match.positionIndex];
-
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      final absX = match.gridX + localX;
-      final absY = match.gridY + localY;
-
-      // Vérifier les limites
-      if (!state.plateau.isInBounds(absX, absY)) {
-        return false;
-      }
-
-      // Vérifier si la cellule est libre (ou occupée par la pièce qu'on transforme)
-      final cell = state.plateau.getCell(absX, absY);
-      if (cell != 0 &&
-          (excludePiece == null || cell != excludePiece.piece.id)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
   /// Calcule le nombre de solutions possibles avec une pièce transformée
   /// Crée temporairement un plateau avec toutes les pièces incluant la transformée
   int? _computeSolutionsWithTransformedPiece(PlacedPiece transformedPiece) {
@@ -1556,16 +1514,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     // Calculer les solutions possibles
     return tempPlateau.countPossibleSolutions();
-  }
-
-  /// Extrait les coordonnées absolues d'une pièce placée
-  List<List<int>> _extractAbsoluteCoords(PlacedPiece piece) {
-    final position = piece.piece.orientations[piece.positionIndex];
-    return position.map((cellNum) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      return [piece.gridX + localX, piece.gridY + localY];
-    }).toList();
   }
 
   /// Cherche la position valide la plus proche dans un rayon donné

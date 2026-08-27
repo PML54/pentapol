@@ -1,4 +1,4 @@
-// Modified: 2025-11-30 - DuelSettings enrichi (durée, affichage, feedback, stats)
+// Modified: 2026-08-27 20:46 — retrait de _getDuelColor, orpheline (26 lignes).
 // lib/models/app_settings.dart
 // Modèles pour les paramètres de l'application
 
@@ -149,32 +149,6 @@ class UISettings {
       return _getClassicColor(pieceId);
     }
     return customColors[(pieceId - 1) % customColors.length];
-  }
-  /// Palette DUEL : 12 couleurs maximalement distinctes
-  /// Conçue pour le mode compétitif où la distinction rapide est cruciale
-  Color _getDuelColor(int pieceId) {
-    const colors = [
-      // Couleurs primaires pures
-      Color(0xFFE53935), // 1  - ROUGE vif
-      Color(0xFF43A047), // 2  - VERT franc
-      Color(0xFF1E88E5), // 3  - BLEU roi
-
-      // Couleurs secondaires
-      Color(0xFFFFB300), // 4  - JAUNE OR
-      Color(0xFFFF6D00), // 5  - ORANGE vif
-      Color(0xFF8E24AA), // 6  - VIOLET profond
-
-      // Couleurs tertiaires bien espacées
-      Color(0xFF00BCD4), // 7  - CYAN
-      Color(0xFFD81B60), // 8  - MAGENTA / Rose vif
-      Color(0xFF5D4037), // 9  - MARRON foncé
-
-      // Couleurs complémentaires
-      Color(0xFFAEEA00), // 10 - LIME vif (plus jaune-vert)
-      Color(0xFF303F9F), // 11 - INDIGO foncé
-      Color(0xFF757575), // 12 - GRIS moyen (neutre, bien distinct)
-    ];
-    return colors[(pieceId - 1) % colors.length];
   }
   Color _getClassicColor(int pieceId) {
     const colors = [

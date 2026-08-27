@@ -1,3 +1,4 @@
+// Modified: 2026-08-27 20:46 — retrait de la variable morte step2Duration.
 // test/generate_6x10_solutions.dart
 // Génère les solutions pour un plateau 6×10
 // Crée 2 fichiers binaires :
@@ -80,7 +81,6 @@ void main() async {
     }
   }
 
-  final step2Duration = DateTime.now().difference(startTime);
   print('\n✓ ${uniqueSolutions.length} solutions uniques '
       '(${duplicates} doublons éliminés)\n');
 

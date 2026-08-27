@@ -1,3 +1,4 @@
+// Modified: 2026-08-27 20:46 — retrait de _addTestSession, orpheline (24 lignes).
 // DEBUG WIDGET - VERSION SIMPLIFIÉE ET SANS ERREURS
 // 251226
 // Widget pour afficher/tester les données sauvegardées en DB
@@ -203,31 +204,6 @@ class _DatabaseDebugScreenState extends State<DatabaseDebugScreen> {
         ),
       ],
     );
-  }
-
-  Future<void> _addTestSession() async {
-    try {
-      await database.saveGameSession(
-        solutionNumber: 42,
-        elapsedSeconds: 225,
-        score: 0,
-        piecesPlaced: 12,
-        numUndos: 0,
-        isometriesCount: 15,
-        solutionsViewCount: 3,
-      );
-
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _clearAllData() async {

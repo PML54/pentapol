@@ -1,3 +1,5 @@
+// Modified: 2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes) : son seul appel était en
+//           commentaire, supprimé aussi.
 // lib/pentoscope/widgets/pentoscope_board.dart
 // Plateau Pentoscope - calqué sur game_board.dart
 // v2: Support du snap visuel
@@ -204,7 +206,6 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               HapticFeedback.mediumImpact();
               final newState = ref.read(pentoscopeProvider);
               if (newState.isComplete) {
-                //       _showVictoryDialog(context, ref);
               }
             } else {
               HapticFeedback.heavyImpact();
@@ -802,59 +803,5 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   /// Détecte si cette cellule est une pièce solution
   bool _isSolutionCell(PentoscopeState state, int logicalX, int logicalY) {
     return _getSolutionPieceIdAt(state, logicalX, logicalY) != null;
-  }
-  void _showVictoryDialog(BuildContext context, WidgetRef ref) {
-
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 100),
-          child: Material(
-            borderRadius: BorderRadius.circular(12),
-            elevation: 8,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 8),
-
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ref.read(pentoscopeProvider.notifier).reset();
-                        },
-                        child: const Text('Rejouer'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Menu'),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

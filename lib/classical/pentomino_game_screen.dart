@@ -1,18 +1,19 @@
-// Modified: 2026-08-27 20:43 — garde d'initialisation : le jeu n'est plus monté avant que les
-//           9356 solutions soient chargées (défaut P4). L'ancien widget devient
-//           _PentominoGameBody ; PentominoGameScreen est désormais la garde.
-//           Retrait du super.key sur _PentominoGameBody : widget privé instancié en
-//           un seul point, la clé n'était jamais fournie (unused_element_parameter).
+// Modified: 2026-08-27 20:47 — trois changements du jour :
+//           (1) garde d'initialisation — le jeu n'est plus monté avant que les 9356
+//               solutions soient chargées (défaut P4). L'ancien widget devient
+//               _PentominoGameBody, PentominoGameScreen est désormais la garde.
+//           (2) retrait du super.key sur _PentominoGameBody : widget privé instancié
+//               en un seul point, la clé n'était jamais fournie.
+//           (3) retrait de 2 imports inutilisés et du ref.watch(settingsProvider) en
+//               double dans _buildLandscapeLayout — build() le surveille déjà.
 // lib/classical/pentomino_game_screen.dart
 // Historique: 251226120030 — Démarrage du timer à la première pièce touchée
 // CHANGEMENTS: (1) Variable _timerStarted ligne 34, (2) Logique dans build() lignes 49-54, (3) initState() réduit à reset() seul, (4) Démarrage au premier touch sans listener
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/classical/pentomino_game_provider.dart';
-import 'package:pentapol/classical/pentomino_game_screen_spec.dart';
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/config/game_icons_config.dart';
@@ -417,7 +418,6 @@ class _PentominoGameScreenState extends ConsumerState<_PentominoGameBody> {
       bool isInTransformMode,
       )
   {
-    final settings = ref.watch(settingsProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
