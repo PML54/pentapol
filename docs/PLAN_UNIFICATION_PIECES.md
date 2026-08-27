@@ -200,14 +200,80 @@ chacune**, jamais toutes d'un coup :
 | Famille | Méthodes |
 |---|---|
 | Sélection | `selectPiece`, `selectPlacedPiece`, `cancelSelection` |
-| Preview & drag | `setDragging`, `updatePreview`, `clearPreview` |
-| Placement | `tryPlacePiece`, `getPlacedPieceAt`, `removePlacedPiece` |
+| Preview & drag ⚠ | `setDragging` ✅, `clearPreview` ✅ — **`updatePreview` reclassé** (voir ci-dessous) |
+| Placement | `tryPlacePiece`, `updatePreview`, `getPlacedPieceAt`, `removePlacedPiece` |
 | Isométries | les 4 `applyIsometry*`, `cycleToNextOrientation` |
 | Barre | `highlightPieceInSlider`, `clearSliderHighlight`, `scrollSliderToPiece` |
-| Chrono | `startTimer`, `stopTimer`, `getElapsedSeconds` |
+| Chrono ✅ | `startTimer`, `stopTimer`, `getElapsedSeconds` — **fait le 2026-08-27** |
 
 Commencer par **Chrono** et **Preview & drag** : corps déjà quasi identiques, gain
-immédiat, risque nul. Garder **Placement** pour la fin — `tryPlacePiece` fait 178 lignes
+immédiat, risque nul.
+
+> **Décision de jeu, 2026-08-27 — le magnétisme devient assistant partout.** Les deux
+> modes n'avaient pas le même comportement d'accrochage : le mode classique cherchait
+> une position valide dans un rayon de **2 cases** et affichait rouge au-delà ; Pentoscope
+> snappait sur la position valide la plus proche **sans aucune limite de distance**. Paul
+> a tranché pour le comportement de Pentoscope, plus assistant.
+>
+> **Appliqué autrement que « reprendre l'implémentation de Pentoscope ».** Ce port aurait
+> imposé d'ajouter `validPlacements` à l'état classique et d'en répliquer les **13 sites
+> d'invalidation**, et fait perdre l'indicateur `isSnapped` (preview cyan) que seul le mode
+> classique alimente. Le mode classique ayant déjà l'algorithme « position valide la plus
+> proche dans un rayon », il a suffi de porter `_snapRadius` de 2 à **10** — le plateau
+> 6×10 est alors entièrement couvert depuis n'importe quelle ancre. Une constante, aucun
+> état ajouté, l'indicateur cyan préservé.
+>
+> Coût : 440 positions testées par mouvement du doigt au lieu de 24, soit ~2200
+> vérifications de case. Négligeable à l'échelle d'un geste ; c'est le premier poste à
+> regarder si le drag devenait saccadé sur un appareil lent.
+>
+> **Défaut découvert, non corrigé** : Pentoscope **lit** `state.isSnapped` dans
+> `pentoscope_board.dart` pour afficher une preview cyan, mais ne l'**écrit** jamais — le
+> champ n'apparaît chez lui qu'en déclaration, valeur par défaut et plomberie de
+> `copyWith`. La branche cyan de Pentoscope est donc morte depuis toujours. À traiter avec
+> la famille Placement, où les deux `updatePreview` seront réconciliés.
+>
+> **Preview & drag, fait le 2026-08-27** → `common/piece_interaction_mixin.dart`,
+> `PieceInteractionMixin<S extends PieceManipulationState> on Notifier<S>`. Le bornage
+> sur le contrat de l'étape 1 est ce qui permet à `clearPreview` de lire
+> `state.previewX` sans connaître le type concret — première fois que l'interface sert
+> à autre chose qu'à documenter.
+>
+> **`updatePreview` a été reclassé dans la famille Placement.** Le plan le disait « quasi
+> identique » sur la foi de sa taille — 37 lignes contre 38. Le nombre de lignes était un
+> mauvais indicateur : ce sont deux **algorithmes différents**. Le mode classique calcule
+> la validité à la volée ; Pentoscope s'appuie sur `validPlacements`, une liste
+> pré-calculée dans son état que le mode classique n'a pas, et n'écrit jamais `isSnapped`.
+> Les unifier revient à choisir un comportement de snapping pour les deux modes : une
+> décision de jeu, pas un refactor.
+>
+> Gain brut de cette famille : 15 lignes. Le vrai intérêt est d'avoir établi le domicile
+> des familles lourdes sur deux méthodes dont l'échec aurait été immédiat et sans
+> conséquence.
+>
+> **Chrono, fait le 2026-08-27** → `common/game_timer_mixin.dart`, mixin générique
+> `GameTimerMixin<S> on Notifier<S>`. Le module ne fournit que
+> `stateWithElapsedSeconds` : le mixin ignore la forme de l'état.
+>
+> Contrairement à l'attente, `startTimer` **n'était pas** identique. Les gardes
+> différaient — `_startTime != null` côté classique, `_gameTimer != null` côté
+> Pentoscope — donnant des comportements incompatibles : le premier ne repartait
+> jamais après un arrêt, le second repartait en **perdant le temps écoulé**. La cause
+> était que « mettre en pause » et « remettre à zéro » passaient par le même appel.
+> Résolu en séparant les intentions : `stopTimer()` conserve l'origine, `resetTimer()`
+> l'efface. `startTimer()` devient idempotent et reprend sans perte.
+>
+> Les champs privés du chrono vivant désormais dans une autre bibliothèque, les accès
+> directs ont été remplacés par l'API du mixin : `isTimerRunning` côté Pentoscope,
+> `resetTimer()` / `stopTimer()` côté classique.
+>
+> **Découverte** : il existait une **troisième** implémentation du chrono, dans
+> `pentoscope_mp_provider.dart` — l'audit initial disait « deux familles », ce qui vaut
+> pour les widgets mais pas ici. Elle n'est **pas** absorbée, pour une raison précise :
+> ce provider a **deux** timers qui se partagent les mêmes champs, `_startGameTimer()`
+> (1 s, vérifie l'état de partie) et `startTimer()` (100 ms). Le second n'est **jamais
+> appelé** ; `getElapsedSeconds` ne l'est que depuis lui. Les deux sont donc morts, mais
+> ils échappent à `flutter analyze` parce qu'ils sont publics. À traiter à part. Garder **Placement** pour la fin — `tryPlacePiece` fait 178 lignes
 côté classical contre 91 côté pentoscope, c'est là qu'est la vraie réconciliation.
 
 - **Critère de fin, par famille** : la méthode n'existe plus que dans le mixin, les deux

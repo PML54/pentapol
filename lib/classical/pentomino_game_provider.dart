@@ -1,4 +1,4 @@
-// Modified: 2026-08-27 20:53 — deux changements du jour :
+// Modified: 2026-08-27 21:03 — trois changements du jour :
 //           (1) étape 2 du plan d'unification — les 4 applyIsometry* renvoient
 //               TransformationResult au lieu de void, comme côté Pentoscope. Le mode
 //               classique ne renvoie que success : aucun chemin d'échec dans ses
@@ -6,6 +6,9 @@
 //           (2) retrait de 3 méthodes privées orphelines (_calculateNewMasterCell,
 //               _canPlacePieceAt, _extractAbsoluteCoords), 48 lignes, plus
 //               l'import shape_recognizer.dart qu'elles seules utilisaient.
+//           (3) magnétisme élargi : _snapRadius passe de 2 à 10, soit tout le
+//               plateau. Décision de jeu — aligner le mode classique sur le
+//               comportement assistant de Pentoscope.
 // lib/classical/pentomino_game_provider.dart
 // Historique: 2604221200 — Refactor: absoluteCells remplace boucles cellNum
 //             manuelles, print→debugPrint, ref.onDispose()
@@ -22,6 +25,7 @@ import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
 import 'package:pentapol/common/game_timer_mixin.dart';
+import 'package:pentapol/common/piece_interaction_mixin.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/services/plateau_solution_counter.dart' show PlateauSolutionCounter;
@@ -37,12 +41,34 @@ NotifierProvider<PentominoGameNotifier, PentominoGameState>(
 );
 
 class PentominoGameNotifier extends Notifier<PentominoGameState> 
-    with PentominoGameMixin, GameTimerMixin<PentominoGameState> {
+    with PentominoGameMixin, GameTimerMixin<PentominoGameState>, PieceInteractionMixin<PentominoGameState> {
+  @override
+  PentominoGameState stateWithDragging(bool isDragging) =>
+      state.copyWith(isDragging: isDragging);
+
+  @override
+  PentominoGameState stateWithPreviewCleared() =>
+      state.copyWith(clearPreview: true);
+
   @override
   PentominoGameState stateWithElapsedSeconds(int elapsedSeconds) =>
       state.copyWith(elapsedSeconds: elapsedSeconds);
 
-  static const int _snapRadius = 2;
+  /// Rayon de recherche du magnétisme, en cases.
+  ///
+  /// Le plateau classique fait 6×10 : un rayon de 10 couvre l'intégralité du plateau
+  /// depuis n'importe quelle ancre. Le magnétisme est donc **illimité en pratique** —
+  /// lâcher une pièce n'importe où l'accroche à la position valide la plus proche,
+  /// jamais de preview rouge tant qu'un placement existe.
+  ///
+  /// Valait 2 jusqu'au 2026-08-27 : il fallait viser à deux cases près, sinon la
+  /// preview passait au rouge. Élargi sur décision de jeu, pour aligner le mode
+  /// classique sur le comportement plus assistant de Pentoscope.
+  ///
+  /// Coût : 440 positions testées par mouvement du doigt au lieu de 24. Négligeable
+  /// à l'échelle d'un geste, mais c'est le poste à regarder en premier si le drag
+  /// devenait saccadé sur un appareil lent.
+  static const int _snapRadius = 10;
   
   // ============================================================================
   // IMPLÉMENTATION DES MÉTHODES ABSTRAITES DU MIXIN
@@ -403,16 +429,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
   }
 
-  /// Efface la prévisualisation
-  void clearPreview() {
-    if (state.previewX != null || state.previewY != null) {
-      state = state.copyWith(clearPreview: true);
-    }
-  }
 
-  void setDragging(bool value) {
-    state = state.copyWith(isDragging: value);
-  }
 
   /// Efface la surbrillance du slider
   void clearSliderHighlight() {
