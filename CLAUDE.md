@@ -116,6 +116,29 @@ done
    (2339 solutions canoniques, 9356 après expansion) : ils se contrôlent par
    exécution, pas par raisonnement.
 
+## Protocole entre agents — OBLIGATOIRE
+
+Deux agents travaillent sur ce dépôt : **Claude Code (CLI)**, qui écrit le code,
+compile, teste et fait tout le git ; et **Claude cowork**, qui analyse, documente et
+écrit les plans. Ils ne partagent **aucune mémoire**. Le dépôt est le seul canal.
+Mémo complet : `docs/MODUS_VIVENDI.md`.
+
+1. **Au démarrage** : lire `docs/JOURNAL.md` §ÉTAT, puis le plan qu'il cite.
+2. **Toute décision non prévue au plan** s'écrit dans `docs/JOURNAL.md` §DÉCISIONS
+   **avant** le commit qui l'applique. Un message de commit n'est pas un canal :
+   cowork ne le lit pas.
+3. **En fin de travail** : réécrire §ÉTAT, ajouter une ligne en §PASSATIONS.
+4. **Ne jamais ranger un fait de projet dans la mémoire `~/.claude/`** — elle est
+   locale à cette machine et invisible pour cowork. Ce qui doit survivre va dans
+   `docs/`.
+5. **`docs/` appartient au CLI côté git.** Un doc qui pilote un travail de code est
+   commité DANS le même commit que ce code. Un doc sans code derrière est commité
+   seul, en début de session suivante, avant toute modification de `lib/`.
+   Vérification : `git status -s docs/` doit être vide en fin de session.
+
+> ⚠️ `flutter analyze` ne signale pas une méthode **publique** sans appelant. Il ne
+> peut donc pas confirmer qu'un nettoyage est complet : vérifier au `grep`, par nom.
+
 ## Stack technique
 
 - Flutter SDK (dernière version stable), lints via `package:flutter_lints`
@@ -130,6 +153,9 @@ done
 - `docs/ANALYSE_STOCKAGE_POSITIONS.md` — encodage des plateaux et solutions,
   vérifications exécutées, défauts connus, fondement combinatoire du code `bit6`
 - `docs/PIECES_ENCODING.md` — définition des pièces, `bit6`, isométries
+- `docs/MODUS_VIVENDI.md` — répartition du travail entre le CLI et cowork,
+  passations, règles de commit
+- `docs/JOURNAL.md` — état courant, décisions prises, passations
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
   des modules) alimentant `tools/db/pentapol.db`
 
