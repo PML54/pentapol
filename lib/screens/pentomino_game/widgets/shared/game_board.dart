@@ -1,7 +1,10 @@
-// Modified: 2026-08-28 20:48 — suppression de la démonstration : retrait des 4 branches de
-//           mode isométries (jamais exécutées), du bloc de surbrillance de cases et du
-//           helper _findLetterForCell devenu orphelin ; import point.dart retiré.
+// Modified: 2026-08-28 21:05 — le tap sur une case vide (hors pièce sélectionnée) appelle
+//           validateSelection au lieu de cancelSelection : la position/rotation courante
+//           est validée plutôt qu'abandonnée.
 // lib/screens/pentomino_game/widgets/shared/game_board.dart
+// Historique: 2026-08-28 20:48 — suppression démonstration : retrait des 4 branches de mode
+//             isométries, du bloc de surbrillance de cases et du helper _findLetterForCell ;
+//             import point.dart retiré.
 // Plateau de jeu 6×10 avec drag & drop
 // v2: Support du snap visuel (bordure cyan + glow)
 
@@ -350,7 +353,9 @@ class GameBoard extends ConsumerWidget {
     } else if (!isOccupied && state.selectedPiece != null && cellValue == 0) {
       cellWidget = GestureDetector(
         onTap: () {
-          notifier.cancelSelection();
+          // Clic hors de la pièce sélectionnée : valider sa position courante
+          // (rotations conservées) plutôt que d'abandonner la manipulation.
+          notifier.validateSelection();
         },
         child: cellWidget,
       );

@@ -1,9 +1,11 @@
-// Modified: 2026-08-28 20:48 — suppression de la démonstration (couches C+D) : retrait des
-//           12 méthodes de surbrillance, des méthodes de mode (isométries, démonstration)
-//           et de la restauration d'état, toutes publiques sans appelant. Étiquettes de
-//           section et traces console correspondantes nettoyées.
+// Modified: 2026-08-28 21:05 — nouvelle méthode validateSelection : cliquer hors de la pièce
+//           sélectionnée la valide à sa position/orientation courante (recopie de
+//           selectedPlacedPiece dans placedPieces via map, puis désélection) au lieu
+//           d'abandonner la rotation. cancelSelection (abandon) inchangée.
 // lib/classical/pentomino_game_provider.dart
-// Historique: 2026-08-28 20:30 — retrait des 4 méthodes de l'API de démonstration du provider.
+// Historique: 2026-08-28 20:48 — suppression démonstration (C+D) : 12 méthodes de surbrillance,
+//             méthodes de mode et restauration d'état retirées.
+//             2026-08-28 20:30 — retrait des 4 méthodes de l'API de démonstration du provider.
 //             2026-08-28 20:24 — dettes 1 et 2 : solutionsCount recalculé, isComplete
 //             redonne un chemin de retour vers true.
 //             2026-08-28 10:19 — temps 2 : bascule stay + mask (3 lifts, 2 restitutions,
@@ -242,6 +244,46 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     );
 
     if (wasPlaced) _recomputeBoardValidity();
+  }
+
+  /// Valide la pièce posée sélectionnée à sa position/orientation courante et
+  /// la désélectionne (clic sur une case vide, hors de la pièce). Contrairement
+  /// à cancelSelection, la manipulation en cours (rotations) est conservée :
+  /// selectedPlacedPiece est recopié dans placedPieces avant reconstruction.
+  void validateSelection() {
+    final selected = state.selectedPlacedPiece;
+    if (selected == null) {
+      // Pièce du slider (non posée) : rien à valider, simple désélection.
+      cancelSelection();
+      return;
+    }
+
+    final committed = selected.copyWith(positionIndex: state.selectedPositionIndex);
+    final newPlaced = state.placedPieces
+        .map((p) => p.piece.id == committed.piece.id ? committed : p)
+        .toList();
+    final newPlateau = _rebuildPlateau(pieces: newPlaced);
+
+    state = state.copyWith(
+      plateau: newPlateau,
+      placedPieces: newPlaced,
+      solutionsCount: newPlateau.countPossibleSolutions(),
+      clearSelectedPiece: true,
+      clearSelectedPlacedPiece: true,
+      clearSelectedCellInPiece: true,
+    );
+    _recomputeBoardValidity();
+
+    // La validation peut compléter le puzzle (12e pièce) : n'activer isComplete
+    // que si le plateau est plein ET valide (les isométries ne vérifient que les
+    // bornes, pas les chevauchements).
+    if (state.placedPieces.length == 12 && state.boardIsValid) {
+      state = state.copyWith(isComplete: true);
+    }
+
+    debugPrint(
+      '[GAME] ✅ Pièce ${committed.piece.id} validée à sa position (désélection)',
+    );
   }
 
 
