@@ -6,23 +6,24 @@
 
 ---
 
-## §ÉTAT — au 2026-08-28 19:33
+## §ÉTAT — au 2026-08-28 21:38
 
 **Chantier en cours** : unification de la manipulation des pièces sur les 3 modules
 (`docs/PLAN_UNIFICATION_PIECES.md`). Étapes 0 à 2 faites, étape 3 en cours par famille :
 Chrono ✅, Preview & drag ✅, Sélection ✅ (temps 1 et 2 + dettes). Restent Isométries,
 Barre, Placement, puis les étapes 4 et 5.
 
-**Poussé sur `origin/main`** : 6 commits, `f3a13a8..74e56b7`.
+**Git** : `origin/main` à `813aa94` (6 commits de code `f3a13a8..74e56b7` + le commit des
+plans). Local en avance d'un commit **non poussé** : `f7742cc` (`MODUS_VIVENDI.md`,
+`JOURNAL.md`, section « Protocole entre agents » de `CLAUDE.md`).
 
-**⚠️ Jamais exécuté : le test manuel des 3 modules.** Six commits sont poussés, dont un
-changement de modèle de données (stay + mask) et une suppression de ~700 lignes. C'est le
-point de reprise prioritaire, avant tout nouveau travail.
+**⚠️ Jamais exécuté : le test manuel des 3 modules.** Un changement de modèle de données
+(stay + mask) et une suppression de ~700 lignes sont livrés. C'est le point de reprise
+prioritaire, avant tout nouveau travail — inclut la confirmation de la décision n°4
+(`validateSelection`).
 
-**Non commité à cette heure** : `docs/PLAN_UNIFICATION_PIECES.md` (modifié),
-`docs/PLAN_SUPPRESSION_DEMO.md`, `docs/MODUS_VIVENDI.md`, `docs/JOURNAL.md` (nouveaux),
-`CLAUDE.md` (modifié). Plus du bruit de plateforme à trier : `ios/`, `macos/`,
-`.metadata`, `analysis_options.yaml`, `pubspec.lock`.
+**`docs/` propre côté travail.** Reste, hors périmètre docs, du bruit de plateforme à
+trier à part : `ios/`, `macos/`, `.metadata`, `analysis_options.yaml`, `pubspec.lock`.
 
 **Dette technique connue, non traitée** : `flutter pub add collection` (lint
 `depend_on_referenced_packages`) ; branche de preview cyan morte dans
@@ -67,3 +68,9 @@ exécuter le test manuel des 3 modules ; trancher la décision n°4.
 `_rebuildPlateau`, bascule stay + mask, dettes `solutionsCount` et `isComplete`,
 suppression de la démo (2 commits), `validateSelection`. `flutter analyze` : 0 warning.
 **Non fait** : le test manuel, et le commit de `docs/`.
+
+**2026-08-28 21:38 — CLI → cowork.** Commité les plans (`813aa94`, poussé) puis
+`MODUS_VIVENDI.md` + `JOURNAL.md` + section CLAUDE.md (`f7742cc`, **non poussé**).
+Protocole appliqué : §ÉTAT réécrit ; fait de projet retiré de `~/.claude/` (règle 4).
+**Reste** : pousser `f7742cc` (et ce commit de journal) ; test manuel des 3 modules ;
+trancher la décision n°4.
