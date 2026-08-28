@@ -1,6 +1,9 @@
-// Modified: 2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece (fusion des deux types
-//           de pièce posée). 2 références, import ajouté.
+// Modified: 2026-08-28 20:30 — suppression de la démo automatique : retrait de l'import
+//           demo_screen.dart et des deux IconButton « Démo automatique » (portrait et
+//           paysage). Le mode classique se lance toujours par son propre bouton.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece (fusion des deux types
+//             de pièce posée). 2 références, import ajouté.
 // Modified: 2604221500
 // Dialogue bilan enrichi : déplacements, suppressions, score %
 // CHANGEMENTS: (1) _showCompletionDialog: score minIsometries+numPieces / isométries+transl+delete, (2) rows déplacements et suppressions ajoutées
@@ -18,7 +21,6 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
-import 'package:pentapol/screens/demo_screen.dart';
 import 'package:pentapol/classical/pentomino_game_screen.dart';
 
 /// ⏱️ Formate le temps en secondes (max 999s) - format compact
@@ -200,21 +202,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 },
                 tooltip: state.hasPossibleSolution ? 'Indice' : 'Aucune solution possible',
               ),
-            // 🎬 Démo automatique
-            IconButton(
-              icon: const Icon(Icons.play_circle_outline),
-              color: Colors.teal,
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DemoScreen(),
-                  ),
-                );
-              },
-              tooltip: 'Démo automatique',
-            ),
             // 🔍 Mode Classique
             IconButton(
               icon: const Icon(Icons.manage_search),
@@ -846,21 +833,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                           },
                           tooltip: 'Indice',
                         ),
-                      // 🎬 Démo automatique
-                      IconButton(
-                        icon: Icon(Icons.play_circle_outline, size: iconSize),
-                        color: Colors.teal,
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const DemoScreen(),
-                            ),
-                          );
-                        },
-                        tooltip: 'Démo automatique',
-                      ),
                     ],
                   ),
                 ),

@@ -1,7 +1,11 @@
-// Modified: 2026-08-28 04:48 — étape 3 : extraction de GameTimerMixin et PieceInteractionMixin.
-//           startTimer/stopTimer/getElapsedSeconds, clearPreview et setDragging retirés du
-//           provider ; fournis par les mixins via stateWith* (elapsedSeconds/preview/isDragging).
-//           Le garde du timer passe de _gameTimer==null à !isTimerRunning.
+// Modified: 2026-08-28 20:30 — suppression démo : retrait du bloc « MÉTHODES POUR TUTORIEL »
+//           (7 méthodes publiques sans appelant : selectPieceFromSliderForTutorial,
+//           highlightPieceInSlider, clearSliderHighlight, scrollSliderToPiece,
+//           placeSelectedPieceForTutorial, selectPlacedPieceAt, rotateAroundMasterForTutorial).
+// Historique: 2026-08-28 04:48 — étape 3 : extraction de GameTimerMixin et PieceInteractionMixin.
+//             startTimer/stopTimer/getElapsedSeconds, clearPreview et setDragging retirés du
+//             provider ; fournis par les mixins via stateWith* (elapsedSeconds/preview/isDragging).
+//             Le garde du timer passe de _gameTimer==null à !isTimerRunning.
 // Modified: 2026-08-27 20:29 — étape 1 du plan d'unification : PentoscopeState implémente le
 //           contrat commun PieceManipulationState ; ViewOrientation déplacé dans
 //           common/ et ré-exporté d'ici. Aucun champ ni site d'appel modifié.
@@ -1808,80 +1812,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  // ============================================================================
-  // MÉTHODES POUR TUTORIEL (ajoutées pour compatibilité)
-  // ============================================================================
-
-  /// Sélectionne une pièce depuis le slider (pour tutoriel)
-  void selectPieceFromSliderForTutorial(int pieceNumber) {
-    // pieceNumber commence à 1, mais les indices commencent à 0
-    final pieceIndex = pieceNumber - 1;
-
-    // Vérifier que l'index est valide
-    if (pieceIndex < 0 || pieceIndex >= state.availablePieces.length) {
-      print('[TUTORIAL] ⚠️ Pièce $pieceNumber invalide (index $pieceIndex)');
-      return;
-    }
-
-    final piece = state.availablePieces[pieceIndex];
-    selectPiece(piece);
-    print('[TUTORIAL] ✅ Pièce $pieceNumber sélectionnée depuis slider');
-  }
-
-  /// Surligne une pièce dans le slider (pour tutoriel)
-  void highlightPieceInSlider(int pieceNumber) {
-    // Cette méthode est gérée par le widget PentoscopePieceSlider
-    print('[TUTORIAL] ✅ Pièce $pieceNumber surlignée dans slider');
-  }
-
-  /// Efface le surlignage du slider (pour tutoriel)
-  void clearSliderHighlight() {
-    // Cette méthode est gérée par le widget PentoscopePieceSlider
-    print('[TUTORIAL] ✅ Surlignage slider effacé');
-  }
-
-  /// Fait défiler le slider jusqu'à une pièce (pour tutoriel)
-  void scrollSliderToPiece(int pieceNumber) {
-    // Cette méthode est gérée par le widget PentoscopePieceSlider
-    print('[TUTORIAL] ✅ Slider centré sur pièce $pieceNumber');
-  }
-
-  /// Place la pièce sélectionnée à une position donnée (pour tutoriel)
-  void placeSelectedPieceForTutorial(int gridX, int gridY) {
-    if (state.selectedPiece == null) {
-      print('[TUTORIAL] ⚠️ Aucune pièce sélectionnée');
-      return;
-    }
-
-    // Utiliser la méthode existante tryPlacePiece
-    final success = tryPlacePiece(gridX, gridY);
-    if (success) {
-      print('[TUTORIAL] ✅ Pièce placée en ($gridX, $gridY)');
-    } else {
-      print('[TUTORIAL] ❌ Échec placement en ($gridX, $gridY)');
-    }
-  }
-
-  /// Sélectionne une pièce placée sur le plateau (pour tutoriel)
-  void selectPlacedPieceAt(int x, int y) {
-    // Trouver la pièce aux coordonnées (x, y)
-    for (final placed in state.placedPieces) {
-      for (final cell in placed.absoluteCells) {
-        if (cell.x == x && cell.y == y) {
-          selectPlacedPiece(placed, x, y);
-          print('[TUTORIAL] ✅ Pièce sélectionnée en ($x, $y)');
-          return;
-        }
-      }
-    }
-    print('[TUTORIAL] ⚠️ Aucune pièce trouvée en ($x, $y)');
-  }
-
-  /// Applique une rotation autour de la mastercase (pour tutoriel)
-  void rotateAroundMasterForTutorial(int pieceNumber, int quarterTurns) {
-    // Cette logique devra être implémentée selon les besoins du tutoriel
-    print('[TUTORIAL] ✅ Rotation pièce $pieceNumber de $quarterTurns quarts de tour');
-  }
 }
 
 /// État du jeu Pentoscope

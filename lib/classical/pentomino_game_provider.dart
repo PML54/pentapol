@@ -1,9 +1,10 @@
-// Modified: 2026-08-28 20:24 — Sélection temps 2, dettes 1 et 2 : cancelSelection et
-//           selectPiece recalculent solutionsCount depuis le plateau reconstruit
-//           (périmé après abandon d'une rotation), et cancelSelection redonne à
-//           isComplete un chemin de retour vers true (plateau plein et valide).
+// Modified: 2026-08-28 20:30 — suppression démo : retrait des 4 méthodes *ForTutorial
+//           sans appelant (placeSelectedPieceForTutorial, selectPieceFromSliderForTutorial,
+//           selectPlacedPieceAtForTutorial, selectPlacedPieceWithMastercaseForTutorial).
 // lib/classical/pentomino_game_provider.dart
-// Historique: 2026-08-28 10:19 — temps 2 : bascule stay + mask (3 lifts, 2 restitutions,
+// Historique: 2026-08-28 20:24 — dettes 1 et 2 : solutionsCount recalculé, isComplete
+//             redonne un chemin de retour vers true.
+//             2026-08-28 10:19 — temps 2 : bascule stay + mask (3 lifts, 2 restitutions,
 //             tryPlacePiece map/add, isComplete).
 //             2026-08-28 09:22 — temps 1 : helper unique _rebuildPlateau, 10 méthodes.
 //             2026-08-27 21:03 — (1) applyIsometry* renvoient TransformationResult ;
@@ -697,71 +698,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     debugPrint('[TUTORIAL] ${validCells.length} positions valides surlignées');
   }
 
-  /// Place la pièce sélectionnée à la position indiquée (pour tutoriel)
-  /// Place la pièce sélectionnée à la position indiquée (pour tutoriel)
-  /// gridX/gridY = position de la MASTERCASE (pas du coin haut-gauche)
-  void placeSelectedPieceForTutorial(int gridX, int gridY) {
-    if (state.selectedPiece == null) {
-      debugPrint('[TUTORIAL] ⚠️ Aucune pièce sélectionnée');
-      return;
-    }
-
-    final piece = state.selectedPiece!;
-    final positionIndex = 0; // Position par défaut
-
-    // IMPORTANT : Calculer l'offset de la mastercase
-    // La première cellule de position[0] est la mastercase
-    final position = piece.orientations[positionIndex];
-    final mastercellNum = position.first;
-    final masterLocalX = (mastercellNum - 1) % 5;
-    final masterLocalY = (mastercellNum - 1) ~/ 5;
-
-    // Convertir : position mastercase → position coin haut-gauche
-    final anchorX = gridX - masterLocalX;
-    final anchorY = gridY - masterLocalY;
-
-
-    // Vérifier que la position est valide
-    if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
-      debugPrint('[TUTORIAL] ⚠️ Position invalide pour placer la pièce');
-      return;
-    }
-
-    // Créer l'objet PlacedPiece pour la nouvelle pièce
-    final newPlacedPiece = PlacedPiece(
-      piece: piece,
-      positionIndex: positionIndex,
-      gridX: anchorX,
-      gridY: anchorY,
-    );
-
-    // Ajouter aux pièces placées
-    final newPlaced = List<PlacedPiece>.from(state.placedPieces)
-      ..add(newPlacedPiece);
-
-    // Créer le plateau avec toutes les pièces (existantes + nouvelle)
-    final newPlateau = _rebuildPlateau(pieces: newPlaced);
-
-    // Retirer la pièce des disponibles
-    final newAvailable = List<Pento>.from(state.availablePieces)
-      ..removeWhere((p) => p.id == piece.id);
-
-    // Calculer le nombre de solutions possibles
-    final solutionsCount = newPlateau.countPossibleSolutions();
-
-    // Mettre à jour l'état
-    state = state.copyWith(
-      plateau: newPlateau,
-      placedPieces: newPlaced,
-      availablePieces: newAvailable,
-      selectedPiece: null,
-      solutionsCount: solutionsCount,
-    );
-
-    debugPrint('[TUTORIAL] 🔍 PlacedPiece absoluteCells: ${newPlacedPiece.absoluteCells.toList()}');
-    debugPrint('[TUTORIAL] ✅ Pièce ${piece.id} placée avec mastercase en ($gridX, $gridY)');
-  }
-
   /// Retire une pièce placée du plateau
   void removePlacedPiece(PlacedPiece placedPiece) {
     // Reconstruire le plateau sans cette pièce
@@ -892,19 +828,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     _recomputeBoardValidity();
   }
 
-  /// Sélectionne une pièce du slider avec mastercase explicite
-  /// (pour compatibilité Scratch SELECT_PIECE_FROM_SLIDER)
-  void selectPieceFromSliderForTutorial(int pieceNumber) {
-    if (pieceNumber < 1 || pieceNumber > 12) {
-      throw ArgumentError('pieceNumber doit être entre 1 et 12');
-    }
-
-    final piece = pentominos.firstWhere((p) => p.id == pieceNumber);
-    selectPiece(piece);
-
-    debugPrint('[TUTORIAL] Pièce $pieceNumber sélectionnée depuis le slider');
-  }
-
   // ============================================================
   // HIGHLIGHTS PLATEAU
   // ============================================================
@@ -960,52 +883,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     debugPrint(
       '[GAME] 🔄 Pièce ${placedPiece.piece.id} sélectionnée pour déplacement (case ref: $selectedCell)',
-    );
-  }
-
-  /// Sélectionne une pièce sur le plateau à une position donnée
-  /// (pour compatibilité Scratch SELECT_PIECE_ON_BOARD_AT)
-  void selectPlacedPieceAtForTutorial(int x, int y) {
-    final placedPiece = findPlacedPieceAt(x, y);
-
-    if (placedPiece == null) {
-      throw StateError('Aucune pièce à la position ($x, $y)');
-    }
-
-    // La case cliquée devient la mastercase
-    selectPlacedPiece(placedPiece, x, y);
-
-    debugPrint('[TUTORIAL] Pièce ${placedPiece.piece.id} sélectionnée en ($x, $y)');
-  }
-
-  /// Sélectionne une pièce avec une mastercase explicite
-  /// (pour compatibilité Scratch SELECT_PIECE_ON_BOARD_WITH_MASTERCASE)
-  void selectPlacedPieceWithMastercaseForTutorial(
-      int pieceNumber,
-      int mastercaseX,
-      int mastercaseY,
-      ) {
-    final placedPiece = findPlacedPieceById(pieceNumber);
-
-    if (placedPiece == null) {
-      throw StateError('La pièce $pieceNumber n\'est pas sur le plateau');
-    }
-
-    // Vérifier que la mastercase est bien dans la pièce
-    final isInPiece = placedPiece.absoluteCells.any(
-          (cell) => cell.x == mastercaseX && cell.y == mastercaseY,
-    );
-
-    if (!isInPiece) {
-      throw ArgumentError(
-        'La position ($mastercaseX, $mastercaseY) n\'est pas dans la pièce $pieceNumber',
-      );
-    }
-
-    selectPlacedPiece(placedPiece, mastercaseX, mastercaseY);
-
-    debugPrint(
-      '[TUTORIAL] Pièce $pieceNumber sélectionnée avec mastercase ($mastercaseX, $mastercaseY)',
     );
   }
 
