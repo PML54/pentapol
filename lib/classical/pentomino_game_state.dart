@@ -1,6 +1,10 @@
-// Modified: 2026-08-27 20:29 — étape 1 du plan d'unification : implémente le contrat commun
-//           PieceManipulationState ; ViewOrientation déplacé dans common/ et
-//           ré-exporté d'ici. Aucun champ ni site d'appel modifié.
+// Modified: 2026-08-28 10:19 — Sélection temps 2 (stay + mask) : ajout du champ
+//           isComplete, écrit à la pose du 12e pentomino dans tryPlacePiece, pour
+//           que la victoire ne soit plus déduite de placedPieces.length (qui vaut
+//           12 même pièce en main sous stay + mask).
+// Historique: 2026-08-27 20:29 — étape 1 du plan d'unification : implémente le contrat commun
+//             PieceManipulationState ; ViewOrientation déplacé dans common/ et
+//             ré-exporté d'ici. Aucun champ ni site d'appel modifié.
 // Modified: 2025-12-01 (Snap intelligent ajouté)
 // lib/providers/pentomino_game_state.dart
 // État du jeu de pentominos (mode libre + mode tutoriel)
@@ -47,6 +51,11 @@ class PentominoGameState implements PieceManipulationState {
 
   // 🆕 Index de la solution trouvée (quand puzzle complété)
   final int? solvedSolutionIndex; // null = non résolu, 0-9355 = index de la solution
+
+  // Puzzle complété : écrit uniquement dans tryPlacePiece à la pose du 12e
+  // pentomino. Sous stay + mask, placedPieces.length vaut 12 même pièce en main ;
+  // ce booléen évite le faux positif de victoire pendant une manipulation.
+  final bool isComplete;
 
   // Mode isométries
   final bool
@@ -96,6 +105,7 @@ class PentominoGameState implements PieceManipulationState {
     this.isDragging = false,
     this.solutionsCount,
     this.solvedSolutionIndex, // 🆕
+    this.isComplete = false,
     this.isIsometriesMode = false,
     this.savedGameState,
 
@@ -190,6 +200,7 @@ class PentominoGameState implements PieceManipulationState {
     int? solutionsCount,
     int? solvedSolutionIndex, // 🆕
     bool clearSolvedSolutionIndex = false, // 🆕
+    bool? isComplete,
     bool? isIsometriesMode,
     PentominoGameState? savedGameState,
     bool clearSavedGameState = false,
@@ -247,6 +258,7 @@ class PentominoGameState implements PieceManipulationState {
       solvedSolutionIndex: clearSolvedSolutionIndex
           ? null
           : (solvedSolutionIndex ?? this.solvedSolutionIndex), // 🆕
+      isComplete: isComplete ?? this.isComplete,
       isIsometriesMode: isIsometriesMode ?? this.isIsometriesMode,
       savedGameState: clearSavedGameState
           ? null

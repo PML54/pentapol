@@ -1,13 +1,12 @@
-// Modified: 2026-08-27 20:47 — trois changements du jour :
-//           (1) garde d'initialisation — le jeu n'est plus monté avant que les 9356
-//               solutions soient chargées (défaut P4). L'ancien widget devient
-//               _PentominoGameBody, PentominoGameScreen est désormais la garde.
-//           (2) retrait du super.key sur _PentominoGameBody : widget privé instancié
-//               en un seul point, la clé n'était jamais fournie.
-//           (3) retrait de 2 imports inutilisés et du ref.watch(settingsProvider) en
-//               double dans _buildLandscapeLayout — build() le surveille déjà.
+// Modified: 2026-08-28 10:19 — Sélection temps 2 (stay + mask) : la détection de
+//           victoire lit state.isComplete au lieu de placedPieces.length == 12, qui
+//           donnerait un faux positif quand une pièce est tenue (longueur 12 mais
+//           plateau incomplet).
 // lib/classical/pentomino_game_screen.dart
-// Historique: 251226120030 — Démarrage du timer à la première pièce touchée
+// Historique: 2026-08-27 20:47 — (1) garde d'initialisation avant chargement des 9356
+//             solutions ; (2) retrait super.key sur _PentominoGameBody ; (3) retrait
+//             de 2 imports inutilisés et d'un ref.watch(settingsProvider) en double.
+//             251226120030 — Démarrage du timer à la première pièce touchée
 // CHANGEMENTS: (1) Variable _timerStarted ligne 34, (2) Logique dans build() lignes 49-54, (3) initState() réduit à reset() seul, (4) Démarrage au premier touch sans listener
 
 import 'package:flutter/material.dart';
@@ -130,10 +129,13 @@ class _PentominoGameScreenState extends ConsumerState<_PentominoGameBody> {
       _timerStarted = true;
     }
 
-    // ✨ AJOUT: Détecter la complétion du puzzle (12 pièces placées)
+    // ✨ Détecter la complétion du puzzle via state.isComplete (posé dans
+    // tryPlacePiece à la pose du 12e pentomino). Sous stay + mask, déduire la
+    // victoire de placedPieces.length donnerait un faux positif : la longueur
+    // vaut 12 même pendant qu'une pièce est tenue (masquée du plateau).
     // Vérifier aussi que le timer a tourné (elapsedSeconds > 0) pour éviter
-    // les faux positifs lors de la réinitialisation
-    if (state.placedPieces.length == 12 &&
+    // les faux positifs lors de la réinitialisation.
+    if (state.isComplete &&
         !_completionProcessed &&
         state.elapsedSeconds > 0 &&
         _timerStarted) {

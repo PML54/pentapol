@@ -1,10 +1,12 @@
-// Modified: 2026-08-28 09:22 — étape 1 de la convergence Sélection : les
-//           reconstructions manuelles du plateau passent par un helper unique
-//           _rebuildPlateau, porté de Pentoscope. 10 méthodes touchées,
-//           build()/reset() laissés tels quels (plateau vide légitime). Gardes
-//           de bornes redondantes supprimées. Aucun changement de comportement.
+// Modified: 2026-08-28 10:19 — Sélection temps 2 : bascule sur le modèle stay + mask.
+//           Une pièce posée sélectionnée reste dans placedPieces ; seule la
+//           reconstruction du plateau l'ignore (exclude:). Suppression des 3 lifts
+//           et des 2 restitutions, tryPlacePiece remplace via map (déplacement) ou
+//           ajoute (barre), _computeSolutionsWithTransformedPiece passe au map,
+//           victoire portée par isComplete au lieu de placedPieces.length.
 // lib/classical/pentomino_game_provider.dart
-// Historique: 2026-08-27 21:03 — (1) applyIsometry* renvoient TransformationResult ;
+// Historique: 2026-08-28 09:22 — temps 1 : helper unique _rebuildPlateau, 10 méthodes.
+//             2026-08-27 21:03 — (1) applyIsometry* renvoient TransformationResult ;
 //             (2) retrait de 3 méthodes orphelines + import shape_recognizer ;
 //             (3) magnétisme _snapRadius 2 → 10.
 //             2604221200 — Refactor: absoluteCells remplace boucles cellNum
@@ -215,37 +217,19 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   void cancelSelection() {
     if (state.selectedPiece == null) return;
 
-    // Si c'est une pièce placée, la replacer sur le plateau
-    if (state.selectedPlacedPiece != null) {
-      final placedPiece = state.selectedPlacedPiece!;
+    // Stay + mask : une pièce posée sélectionnée n'a jamais quitté placedPieces.
+    // Annuler revient à la démasquer (reconstruire le plateau) et à vider la
+    // sélection. Pour une pièce du slider, il n'y a rien à démasquer.
+    final wasPlaced = state.selectedPlacedPiece != null;
 
-      // Remettre la pièce dans les placées à sa position d'origine, puis
-      // reconstruire le plateau depuis la liste complète.
-      final updatedPlacedPiece = placedPiece.copyWith(
-        positionIndex: state.selectedPositionIndex,
-      );
-      final newPlaced = List<PlacedPiece>.from(state.placedPieces)
-        ..add(updatedPlacedPiece);
-      final newPlateau = _rebuildPlateau(pieces: newPlaced);
+    state = state.copyWith(
+      plateau: wasPlaced ? _rebuildPlateau() : state.plateau,
+      clearSelectedPiece: true,
+      clearSelectedPlacedPiece: true,
+      clearSelectedCellInPiece: true,
+    );
 
-      state = state.copyWith(
-        plateau: newPlateau,
-        placedPieces: newPlaced,
-        clearSelectedPiece: true,
-        clearSelectedPlacedPiece: true,
-        clearSelectedCellInPiece: true,
-      );
-      _recomputeBoardValidity();
-
-    } else {
-      // C'est une pièce du slider, juste annuler la sélection
-      state = state.copyWith(
-        clearSelectedPiece: true,
-        clearSelectedPlacedPiece: true,
-        clearSelectedCellInPiece: true,
-      );
-
-    }
+    if (wasPlaced) _recomputeBoardValidity();
   }
 
 
@@ -306,11 +290,15 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     final solutionsCount = newPlateau.countPossibleSolutions();
 
     // 9️⃣ Mettre à jour l'état
+    // L'indice peut poser le 12e pentomino (dernier trou) : c'est un second
+    // chemin de complétion, en plus de tryPlacePiece. On y pose isComplete pour
+    // que la victoire se déclenche comme avant (l'ancien code lisait length == 12).
     state = state.copyWith(
       plateau: newPlateau,
       placedPieces: newPlaced,
       availablePieces: newAvailable,
       solutionsCount: solutionsCount,
+      isComplete: newPlaced.length == 12,
       clearSelectedPiece: true,
       clearSelectedPlacedPiece: true,
       clearSelectedCellInPiece: true,
@@ -793,6 +781,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       clearSelectedPlacedPiece: true,
       clearSelectedCellInPiece: true,
       solutionsCount: solutionsCount,
+      isComplete: false,
     );
     _recomputeBoardValidity();
 
@@ -866,17 +855,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       '[DEBUG PAYSAGE] 📋 piecePositionIndices: ${state.piecePositionIndices}',
     );
     debugPrint('[DEBUG PAYSAGE] 📌 savedIndex pour pièce ${piece.id}: $savedIndex');
-    if (state.selectedPlacedPiece != null) {
-      final placedPiece = state.selectedPlacedPiece!;
 
-      // Remettre la pièce dans les placées, puis reconstruire le plateau
-      final newPlaced = List<PlacedPiece>.from(state.placedPieces)
-        ..add(placedPiece.copyWith(positionIndex: placedPiece.positionIndex));
-      final newPlateau = _rebuildPlateau(pieces: newPlaced);
-
-      state = state.copyWith(plateau: newPlateau, placedPieces: newPlaced);
-      _recomputeBoardValidity();
-    }
+    // Stay + mask : une éventuelle pièce posée sélectionnée n'a jamais quitté
+    // placedPieces ; sélectionner une pièce du slider la démasque simplement en
+    // reconstruisant le plateau complet (rien n'est masqué pour une pièce du slider).
 
     // Définir une case de référence par défaut (première case de la pièce)
     final position = piece.orientations[savedIndex];
@@ -887,6 +869,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     }
 
     state = state.copyWith(
+      plateau: _rebuildPlateau(),
       selectedPiece: piece,
       selectedPositionIndex: savedIndex, // Utilise l'index sauvegardé
       clearSelectedPlacedPiece: true,
@@ -918,25 +901,9 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   /// Sélectionne une pièce déjà placée pour la déplacer
   /// [cellX] et [cellY] sont les coordonnées de la case touchée sur le plateau
   void selectPlacedPiece(PlacedPiece placedPiece, int cellX, int cellY) {
-    // Si une autre pièce du plateau est déjà sélectionnée, la replacer d'abord
-    if (state.selectedPlacedPiece != null &&
-        state.selectedPlacedPiece != placedPiece) {
-      final oldPiece = state.selectedPlacedPiece!;
-
-      // Remettre l'ancienne pièce dans la liste des placées, puis reconstruire
-      final tempPlaced = List<PlacedPiece>.from(state.placedPieces)
-        ..add(oldPiece.copyWith(positionIndex: state.selectedPositionIndex));
-      final tempPlateau = _rebuildPlateau(pieces: tempPlaced);
-
-      // Mettre à jour l'état avec le plateau et la liste mis à jour
-      state = state.copyWith(
-        plateau: tempPlateau,
-        placedPieces: tempPlaced,
-        clearSelectedPiece: true,
-        clearSelectedPlacedPiece: true,
-        clearSelectedCellInPiece: true,
-      );
-    }
+    // Stay + mask : la pièce sélectionnée reste dans placedPieces ; seule la
+    // reconstruction du plateau l'ignore (exclude:). Une éventuelle autre pièce
+    // déjà sélectionnée est démasquée d'elle-même par cette reconstruction.
 
     // Trouver quelle case de la pièce correspond à (cellX, cellY)
     final position = placedPiece.piece.orientations[placedPiece.positionIndex];
@@ -961,26 +928,20 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       selectedCell = Point((firstCellNum - 1) % 5, (firstCellNum - 1) ~/ 5);
     }
 
-    // Retirer la pièce du plateau (reconstruction sans elle)
+    // Masquer la pièce sélectionnée du plateau (elle reste dans placedPieces)
     final newPlateau = _rebuildPlateau(exclude: placedPiece);
 
-    // Retirer la pièce de la liste des placées
-    final newPlaced = state.placedPieces
-        .where((p) => p != placedPiece)
-        .toList();
-
-    // ✅ AJOUT : Calculer les solutions en incluant la pièce sélectionnée
+    // Calculer les solutions en incluant la pièce sélectionnée
     final solutionsCount = _computeSolutionsWithTransformedPiece(placedPiece);
 
     // Sélectionner la pièce avec sa position actuelle et la case de référence
     state = state.copyWith(
       plateau: newPlateau,
-      placedPieces: newPlaced,
       selectedPiece: placedPiece.piece,
       selectedPositionIndex: placedPiece.positionIndex,
       selectedPlacedPiece: placedPiece,
       selectedCellInPiece: selectedCell,
-      solutionsCount: solutionsCount, // ✅ AJOUT
+      solutionsCount: solutionsCount,
     );
 
     debugPrint(
@@ -1145,33 +1106,31 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       gridY: anchorY,
     );
 
-    // Retirer la pièce des disponibles (si elle y était)
-    final newAvailable = List<Pento>.from(state.availablePieces)
-      ..removeWhere((p) => p.id == piece.id);
-
-    // Ajouter aux pièces placées
-    final newPlaced = List<PlacedPiece>.from(state.placedPieces)
-      ..add(placedPiece);
-
     // Calculer le nombre de solutions possibles
     final solutionsCount = newPlateau.countPossibleSolutions();
 
     // ✅ Si c'était une pièce placée, on la garde sélectionnée (comme pour rotation/symétrie)
     if (wasPlacedPiece) {
-      // Retirer la pièce du plateau pour qu'elle reste "flottante" (sélectionnée)
-      final plateauSansPiece = _rebuildPlateau();
+      // Déplacement : sous stay + mask la pièce n'a jamais quitté placedPieces.
+      // On remplace son entrée par sa nouvelle position (map par id, jamais add :
+      // un ajout créerait un doublon). Elle reste sélectionnée, donc masquée du
+      // plateau ; availablePieces est inchangé (une pièce posée n'y était pas).
+      final newPlacedPieces = state.placedPieces
+          .map((p) => p.piece.id == piece.id ? placedPiece : p)
+          .toList();
+      final plateauSansPiece = _rebuildPlateau(exclude: placedPiece);
 
       state = state.copyWith(
         plateau: plateauSansPiece,
-        availablePieces: newAvailable,
-        placedPieces:
-        state.placedPieces, // ✅ Ne pas ajouter la pièce aux placées
+        availablePieces: state.availablePieces,
+        placedPieces: newPlacedPieces,
         selectedPiece: piece,
         selectedPositionIndex: positionIndex,
         selectedPlacedPiece:
         placedPiece, // ✅ Garder la référence à la nouvelle position
         selectedCellInPiece: savedCellInPiece, // ✅ Garder la master cell
         solutionsCount: solutionsCount,
+        isComplete: false, // pièce encore tenue : plateau incomplet
         clearPreview: true,
       );
       _recomputeBoardValidity();
@@ -1181,15 +1140,22 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       );
       debugPrint('[GAME] 🎯 Solutions possibles: $solutionsCount');
     } else {
-      // C'était une pièce du slider → comportement normal (désélectionner)
+      // C'était une pièce du slider → nouvelle pièce ajoutée, puis désélection.
+      final newPlacedPieces = [...state.placedPieces, placedPiece];
+      final newAvailable = state.availablePieces
+          .where((p) => p.id != piece.id)
+          .toList();
+      final isComplete = newPlacedPieces.length == 12;
+
       state = state.copyWith(
         plateau: newPlateau,
         availablePieces: newAvailable,
-        placedPieces: newPlaced,
+        placedPieces: newPlacedPieces,
         clearSelectedPiece: true,
         clearSelectedPlacedPiece: true,
         clearSelectedCellInPiece: true,
         solutionsCount: solutionsCount,
+        isComplete: isComplete,
         clearPreview: true,
       );
       _recomputeBoardValidity();
@@ -1245,6 +1211,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       availablePieces: newAvailable,
       placedPieces: newPlaced,
       solutionsCount: solutionsCount,
+      isComplete: false,
       clearSolvedSolutionIndex: true, // 🆕 Réinitialiser si on retire une pièce
     );
 
@@ -1399,10 +1366,13 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   /// Calcule le nombre de solutions possibles avec une pièce transformée
   /// Crée temporairement un plateau avec toutes les pièces incluant la transformée
   int? _computeSolutionsWithTransformedPiece(PlacedPiece transformedPiece) {
-    // Plateau temporaire : toutes les pièces placées + la transformée posée
-    // par-dessus, exactement comme l'ancienne construction inline.
+    // Stay + mask : la pièce transformée est déjà dans placedPieces à son
+    // ancienne orientation. On remplace son entrée (map par id), sinon elle
+    // figurerait deux fois et l'ancienne empreinte subsisterait sous la nouvelle.
     final tempPlateau = _rebuildPlateau(
-      pieces: [...state.placedPieces, transformedPiece],
+      pieces: state.placedPieces
+          .map((p) => p.piece.id == transformedPiece.piece.id ? transformedPiece : p)
+          .toList(),
     );
 
     // Calculer les solutions possibles
