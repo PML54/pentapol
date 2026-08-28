@@ -1,16 +1,13 @@
-// Modified: 2026-08-27 21:03 — trois changements du jour :
-//           (1) étape 2 du plan d'unification — les 4 applyIsometry* renvoient
-//               TransformationResult au lieu de void, comme côté Pentoscope. Le mode
-//               classique ne renvoie que success : aucun chemin d'échec dans ses
-//               helpers. L'alignement porte sur le type, pas encore sur la sémantique.
-//           (2) retrait de 3 méthodes privées orphelines (_calculateNewMasterCell,
-//               _canPlacePieceAt, _extractAbsoluteCoords), 48 lignes, plus
-//               l'import shape_recognizer.dart qu'elles seules utilisaient.
-//           (3) magnétisme élargi : _snapRadius passe de 2 à 10, soit tout le
-//               plateau. Décision de jeu — aligner le mode classique sur le
-//               comportement assistant de Pentoscope.
+// Modified: 2026-08-28 09:22 — étape 1 de la convergence Sélection : les
+//           reconstructions manuelles du plateau passent par un helper unique
+//           _rebuildPlateau, porté de Pentoscope. 10 méthodes touchées,
+//           build()/reset() laissés tels quels (plateau vide légitime). Gardes
+//           de bornes redondantes supprimées. Aucun changement de comportement.
 // lib/classical/pentomino_game_provider.dart
-// Historique: 2604221200 — Refactor: absoluteCells remplace boucles cellNum
+// Historique: 2026-08-27 21:03 — (1) applyIsometry* renvoient TransformationResult ;
+//             (2) retrait de 3 méthodes orphelines + import shape_recognizer ;
+//             (3) magnétisme _snapRadius 2 → 10.
+//             2604221200 — Refactor: absoluteCells remplace boucles cellNum
 //             manuelles, print→debugPrint, ref.onDispose()
 
 import 'dart:async';
@@ -222,30 +219,14 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     if (state.selectedPlacedPiece != null) {
       final placedPiece = state.selectedPlacedPiece!;
 
-      // Reconstruire le plateau avec toutes les pièces placées + celle qui était sélectionnée
-      final newPlateau = Plateau.allVisible(6, 10);
-
-      // Replacer toutes les pièces déjà placées
-      for (final placed in state.placedPieces) {
-        for (final cell in placed.absoluteCells) {
-          newPlateau.setCell(cell.x, cell.y, placed.piece.id);
-        }
-      }
-
-      // Replacer la pièce qui était sélectionnée à sa position d'origine
-      final restoredPiece = placedPiece.copyWith(positionIndex: state.selectedPositionIndex);
-      for (final cell in restoredPiece.absoluteCells) {
-        if (cell.x >= 0 && cell.x < 6 && cell.y >= 0 && cell.y < 10) {
-          newPlateau.setCell(cell.x, cell.y, placedPiece.piece.id);
-        }
-      }
-
-      // Remettre la pièce dans les placées avec sa nouvelle position si elle a été modifiée
+      // Remettre la pièce dans les placées à sa position d'origine, puis
+      // reconstruire le plateau depuis la liste complète.
       final updatedPlacedPiece = placedPiece.copyWith(
         positionIndex: state.selectedPositionIndex,
       );
       final newPlaced = List<PlacedPiece>.from(state.placedPieces)
         ..add(updatedPlacedPiece);
+      final newPlateau = _rebuildPlateau(pieces: newPlaced);
 
       state = state.copyWith(
         plateau: newPlateau,
@@ -314,14 +295,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     final newPlaced = List<PlacedPiece>.from(state.placedPieces)..add(hintPiece);
 
     // 6️⃣ Reconstruire le plateau avec la nouvelle pièce
-    final newPlateau = Plateau.allVisible(6, 10);
-    for (final placed in newPlaced) {
-      for (final cell in placed.absoluteCells) {
-        if (cell.x >= 0 && cell.x < 6 && cell.y >= 0 && cell.y < 10) {
-          newPlateau.setCell(cell.x, cell.y, placed.piece.id);
-        }
-      }
-    }
+    final newPlateau = _rebuildPlateau(pieces: newPlaced);
 
     // 7️⃣ Retirer la pièce du slider
     final newAvailable = state.availablePieces
@@ -756,32 +730,24 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       return;
     }
 
-    // Créer le plateau avec toutes les pièces existantes
-    final newPlateau = Plateau.allVisible(6, 10);
-    for (final placed in state.placedPieces) {
-      for (final cell in placed.absoluteCells) {
-        newPlateau.setCell(cell.x, cell.y, placed.piece.id);
-      }
-    }
-
-    // Ajouter la nouvelle pièce au plateau
+    // Créer l'objet PlacedPiece pour la nouvelle pièce
     final newPlacedPiece = PlacedPiece(
       piece: piece,
       positionIndex: positionIndex,
       gridX: anchorX,
       gridY: anchorY,
     );
-    for (final cell in newPlacedPiece.absoluteCells) {
-      newPlateau.setCell(cell.x, cell.y, piece.id);
-    }
-
-    // Retirer la pièce des disponibles
-    final newAvailable = List<Pento>.from(state.availablePieces)
-      ..removeWhere((p) => p.id == piece.id);
 
     // Ajouter aux pièces placées
     final newPlaced = List<PlacedPiece>.from(state.placedPieces)
       ..add(newPlacedPiece);
+
+    // Créer le plateau avec toutes les pièces (existantes + nouvelle)
+    final newPlateau = _rebuildPlateau(pieces: newPlaced);
+
+    // Retirer la pièce des disponibles
+    final newAvailable = List<Pento>.from(state.availablePieces)
+      ..removeWhere((p) => p.id == piece.id);
 
     // Calculer le nombre de solutions possibles
     final solutionsCount = newPlateau.countPossibleSolutions();
@@ -802,22 +768,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   /// Retire une pièce placée du plateau
   void removePlacedPiece(PlacedPiece placedPiece) {
     // Reconstruire le plateau sans cette pièce
-    final newPlateau = Plateau.allVisible(6, 10);
-
-    // Replacer toutes les pièces sauf celle à retirer
-    for (final placed in state.placedPieces) {
-      if (placed != placedPiece) {
-        final position = placed.piece.orientations[placed.positionIndex];
-
-        for (final cellNum in position) {
-          final localX = (cellNum - 1) % 5;
-          final localY = (cellNum - 1) ~/ 5;
-          final x = placed.gridX + localX;
-          final y = placed.gridY + localY;
-          newPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-    }
+    final newPlateau = _rebuildPlateau(exclude: placedPiece);
 
     // Remettre la pièce dans les disponibles
     final newAvailable = List<Pento>.from(state.availablePieces)
@@ -918,37 +869,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     if (state.selectedPlacedPiece != null) {
       final placedPiece = state.selectedPlacedPiece!;
 
-      // Reconstruire le plateau avec la pièce replacée
-      final newPlateau = Plateau.allVisible(6, 10);
-
-      // Replacer toutes les pièces déjà placées
-      for (final placed in state.placedPieces) {
-        final position = placed.piece.orientations[placed.positionIndex];
-
-        for (final cellNum in position) {
-          final localX = (cellNum - 1) % 5;
-          final localY = (cellNum - 1) ~/ 5;
-          final x = placed.gridX + localX;
-          final y = placed.gridY + localY;
-          newPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-
-      // Replacer la pièce qui était sélectionnée
-      final position = placedPiece.piece.orientations[placedPiece.positionIndex];
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = placedPiece.gridX + localX;
-        final y = placedPiece.gridY + localY;
-        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-          newPlateau.setCell(x, y, placedPiece.piece.id);
-        }
-      }
-
-      // Remettre la pièce dans les placées
+      // Remettre la pièce dans les placées, puis reconstruire le plateau
       final newPlaced = List<PlacedPiece>.from(state.placedPieces)
         ..add(placedPiece.copyWith(positionIndex: placedPiece.positionIndex));
+      final newPlateau = _rebuildPlateau(pieces: newPlaced);
 
       state = state.copyWith(plateau: newPlateau, placedPieces: newPlaced);
       _recomputeBoardValidity();
@@ -999,36 +923,10 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
         state.selectedPlacedPiece != placedPiece) {
       final oldPiece = state.selectedPlacedPiece!;
 
-      // Reconstruire le plateau avec l'ancienne pièce replacée
-      final tempPlateau = Plateau.allVisible(6, 10);
-
-      // Replacer toutes les pièces déjà placées
-      for (final placed in state.placedPieces) {
-        final pos = placed.piece.orientations[placed.positionIndex];
-        for (final cellNum in pos) {
-          final localX = (cellNum - 1) % 5;
-          final localY = (cellNum - 1) ~/ 5;
-          final x = placed.gridX + localX;
-          final y = placed.gridY + localY;
-          tempPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-
-      // Replacer l'ancienne pièce sélectionnée
-      final oldPosition = oldPiece.piece.orientations[state.selectedPositionIndex];
-      for (final cellNum in oldPosition) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = oldPiece.gridX + localX;
-        final y = oldPiece.gridY + localY;
-        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-          tempPlateau.setCell(x, y, oldPiece.piece.id);
-        }
-      }
-
-      // Remettre l'ancienne pièce dans la liste des placées
+      // Remettre l'ancienne pièce dans la liste des placées, puis reconstruire
       final tempPlaced = List<PlacedPiece>.from(state.placedPieces)
         ..add(oldPiece.copyWith(positionIndex: state.selectedPositionIndex));
+      final tempPlateau = _rebuildPlateau(pieces: tempPlaced);
 
       // Mettre à jour l'état avec le plateau et la liste mis à jour
       state = state.copyWith(
@@ -1063,23 +961,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       selectedCell = Point((firstCellNum - 1) % 5, (firstCellNum - 1) ~/ 5);
     }
 
-    // Retirer la pièce du plateau
-    final newPlateau = Plateau.allVisible(6, 10);
-
-    // Replacer toutes les pièces SAUF celle sélectionnée
-    for (final placed in state.placedPieces) {
-      if (placed != placedPiece) {
-        final pos = placed.piece.orientations[placed.positionIndex];
-
-        for (final cellNum in pos) {
-          final localX = (cellNum - 1) % 5;
-          final localY = (cellNum - 1) ~/ 5;
-          final x = placed.gridX + localX;
-          final y = placed.gridY + localY;
-          newPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-    }
+    // Retirer la pièce du plateau (reconstruction sans elle)
+    final newPlateau = _rebuildPlateau(exclude: placedPiece);
 
     // Retirer la pièce de la liste des placées
     final newPlaced = state.placedPieces
@@ -1276,19 +1159,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     // ✅ Si c'était une pièce placée, on la garde sélectionnée (comme pour rotation/symétrie)
     if (wasPlacedPiece) {
       // Retirer la pièce du plateau pour qu'elle reste "flottante" (sélectionnée)
-      final plateauSansPiece = Plateau.allVisible(6, 10);
-      for (final placed in state.placedPieces) {
-        final pos = placed.piece.orientations[placed.positionIndex];
-        for (final cellNum in pos) {
-          final localX = (cellNum - 1) % 5;
-          final localY = (cellNum - 1) ~/ 5;
-          final x = placed.gridX + localX;
-          final y = placed.gridY + localY;
-          if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-            plateauSansPiece.setCell(x, y, placed.piece.id);
-          }
-        }
-      }
+      final plateauSansPiece = _rebuildPlateau();
 
       state = state.copyWith(
         plateau: plateauSansPiece,
@@ -1353,26 +1224,8 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
     final lastPlaced = state.placedPieces.last;
 
-    // Recréer le plateau sans cette pièce
-    final newPlateau = Plateau.allVisible(6, 10);
-
-    // Replacer toutes les pièces sauf la dernière
-    for (int i = 0; i < state.placedPieces.length - 1; i++) {
-      final placed = state.placedPieces[i];
-      final position = placed.piece.orientations[placed.positionIndex];
-
-      for (final cellNum in position) {
-        // Convertir cellNum (1-25 sur grille 5×5) en coordonnées (x, y)
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-
-        // Position absolue sur le plateau
-        final x = placed.gridX + localX;
-        final y = placed.gridY + localY;
-
-        newPlateau.setCell(x, y, placed.piece.id);
-      }
-    }
+    // Recréer le plateau sans la dernière pièce
+    final newPlateau = _rebuildPlateau(exclude: lastPlaced);
 
     // Remettre la pièce dans les disponibles
     final newAvailable = List<Pento>.from(state.availablePieces)
@@ -1524,38 +1377,33 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   // ============================================================
 
 
+  /// Reconstruit le plateau depuis une liste de pièces posées.
+  ///
+  /// [pieces]  : liste source (défaut : state.placedPieces)
+  /// [exclude] : pièce à ignorer, par son id
+  Plateau _rebuildPlateau({
+    List<PlacedPiece>? pieces,
+    PlacedPiece? exclude,
+  }) {
+    final src = pieces ?? state.placedPieces;
+    final p = Plateau.allVisible(state.plateau.width, state.plateau.height);
+    for (final placed in src) {
+      if (exclude != null && placed.piece.id == exclude.piece.id) continue;
+      for (final cell in placed.absoluteCells) {
+        p.setCell(cell.x, cell.y, placed.piece.id);
+      }
+    }
+    return p;
+  }
+
   /// Calcule le nombre de solutions possibles avec une pièce transformée
   /// Crée temporairement un plateau avec toutes les pièces incluant la transformée
   int? _computeSolutionsWithTransformedPiece(PlacedPiece transformedPiece) {
-    // Créer un plateau temporaire
-    final tempPlateau = Plateau.allVisible(6, 10);
-
-    // Placer toutes les pièces déjà placées (sauf celle en transformation)
-    for (final placed in state.placedPieces) {
-      final position = placed.piece.orientations[placed.positionIndex];
-      for (final cellNum in position) {
-        final localX = (cellNum - 1) % 5;
-        final localY = (cellNum - 1) ~/ 5;
-        final x = placed.gridX + localX;
-        final y = placed.gridY + localY;
-        if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-          tempPlateau.setCell(x, y, placed.piece.id);
-        }
-      }
-    }
-
-    // Placer la pièce transformée
-    final position =
-    transformedPiece.piece.orientations[transformedPiece.positionIndex];
-    for (final cellNum in position) {
-      final localX = (cellNum - 1) % 5;
-      final localY = (cellNum - 1) ~/ 5;
-      final x = transformedPiece.gridX + localX;
-      final y = transformedPiece.gridY + localY;
-      if (x >= 0 && x < 6 && y >= 0 && y < 10) {
-        tempPlateau.setCell(x, y, transformedPiece.piece.id);
-      }
-    }
+    // Plateau temporaire : toutes les pièces placées + la transformée posée
+    // par-dessus, exactement comme l'ancienne construction inline.
+    final tempPlateau = _rebuildPlateau(
+      pieces: [...state.placedPieces, transformedPiece],
+    );
 
     // Calculer les solutions possibles
     return tempPlateau.countPossibleSolutions();
