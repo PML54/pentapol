@@ -1,3 +1,7 @@
+// Modified: 2026-08-28 04:48 — étape 3 : extraction de GameTimerMixin et PieceInteractionMixin.
+//           startTimer/stopTimer/getElapsedSeconds, clearPreview et setDragging retirés du
+//           provider ; fournis par les mixins via stateWith* (elapsedSeconds/preview/isDragging).
+//           Le garde du timer passe de _gameTimer==null à !isTimerRunning.
 // Modified: 2026-08-27 20:29 — étape 1 du plan d'unification : PentoscopeState implémente le
 //           contrat commun PieceManipulationState ; ViewOrientation déplacé dans
 //           common/ et ré-exporté d'ici. Aucun champ ni site d'appel modifié.
@@ -23,6 +27,8 @@ import 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/piece_manipulation_state.dart';
 export 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/placed_piece.dart';
+import 'package:pentapol/common/game_timer_mixin.dart';
+import 'package:pentapol/common/piece_interaction_mixin.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
@@ -48,13 +54,23 @@ enum PentoscopeDifficulty { easy, random, hard }
 // ré-exporté ci-dessus pour que les imports existants continuent de fonctionner.
 
 class PentoscopeNotifier extends Notifier<PentoscopeState> 
-    with PentominoGameMixin {
+    with PentominoGameMixin, GameTimerMixin<PentoscopeState>, PieceInteractionMixin<PentoscopeState> {
+  @override
+  PentoscopeState stateWithDragging(bool isDragging) =>
+      state.copyWith(isDragging: isDragging);
+
+  @override
+  PentoscopeState stateWithPreviewCleared() =>
+      state.copyWith(clearPreview: true);
+
+  @override
+  PentoscopeState stateWithElapsedSeconds(int elapsedSeconds) =>
+      state.copyWith(elapsedSeconds: elapsedSeconds);
+
   late final PentoscopeGenerator _generator;
   late final PentoscopeSolver _solver;
   
   // ⏱️ Timer
-  Timer? _gameTimer;
-  DateTime? _startTime;
   
   // ============================================================================
   // IMPLÉMENTATION DES MÉTHODES ABSTRAITES DU MIXIN
@@ -127,29 +143,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ⏱️ TIMER
   // ==========================================================================
 
-  /// Démarre le chronomètre
-  void startTimer() {
-    if (_gameTimer != null) return; // Déjà démarré
-    
-    _startTime = DateTime.now();
-    _gameTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      state = state.copyWith(
-        elapsedSeconds: getElapsedSeconds(),
-      );
-    });
-  }
 
-  /// Arrête le chronomètre
-  void stopTimer() {
-    _gameTimer?.cancel();
-    _gameTimer = null;
-  }
 
-  /// Retourne le temps écoulé en secondes
-  int getElapsedSeconds() {
-    if (_startTime == null) return 0;
-    return DateTime.now().difference(_startTime!).inSeconds;
-  }
 
   // ==========================================================================
   // 📊 NOTE / SCORE
@@ -331,13 +326,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ✨ NOUVELLE FONCTION: Trouver la position la plus proche
   // ==========================================================================
 
-  void clearPreview() {
-    state = state.copyWith(clearPreview: true);
-  }
 
-  void setDragging(bool value) {
-    state = state.copyWith(isDragging: value);
-  }
 
   void cycleToNextOrientation() {
     if (state.selectedPiece == null) return;
@@ -828,7 +817,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
 
     // ⏱️ Démarrer le timer au premier placement depuis le slider
-    if (_gameTimer == null && !wasPlacedPiece) {
+    if (!isTimerRunning && !wasPlacedPiece) {
       startTimer();
     }
 
