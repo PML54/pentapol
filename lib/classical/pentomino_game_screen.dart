@@ -1,9 +1,10 @@
-// Modified: 2026-08-28 10:19 — Sélection temps 2 (stay + mask) : la détection de
-//           victoire lit state.isComplete au lieu de placedPieces.length == 12, qui
-//           donnerait un faux positif quand une pièce est tenue (longueur 12 mais
-//           plateau incomplet).
+// Modified: 2026-08-28 20:48 — suppression de la démonstration : les 4 boutons d'isométrie
+//           ne sont plus enveloppés dans le widget d'animation de surbrillance (rendu
+//           identique, l'indicateur étant toujours faux) ; import correspondant retiré.
 // lib/classical/pentomino_game_screen.dart
-// Historique: 2026-08-27 20:47 — (1) garde d'initialisation avant chargement des 9356
+// Historique: 2026-08-28 10:19 — temps 2 : la victoire lit state.isComplete au lieu de
+//             placedPieces.length == 12.
+//             2026-08-27 20:47 — (1) garde d'initialisation avant chargement des 9356
 //             solutions ; (2) retrait super.key sur _PentominoGameBody ; (3) retrait
 //             de 2 imports inutilisés et d'un ref.watch(settingsProvider) en double.
 //             251226120030 — Démarrage du timer à la première pièce touchée
@@ -26,7 +27,6 @@ import 'package:pentapol/screens/pentomino_game/widgets/shared/game_board.dart';
 import 'package:pentapol/screens/solutions_browser_screen.dart';
 
 
-import 'package:pentapol/screens/pentomino_game/widgets/shared/highlighted_icon_button.dart';
 import 'package:pentapol/services/solution_matcher.dart' show SolutionInfo;
 
 
@@ -514,7 +514,7 @@ class _PentominoGameScreenState extends ConsumerState<_PentominoGameBody> {
         }
       },
       builder: (context, candidateData, rejectedData) {
-        // Highlight visuel quand on survole avec une pièce placée
+        // Retour visuel quand on survole avec une pièce placée
         final isHovering = candidateData.isNotEmpty;
 
         return AnimatedContainer(
@@ -593,67 +593,55 @@ class _PentominoGameScreenState extends ConsumerState<_PentominoGameBody> {
   List<Widget> _buildTransformActions(state, notifier, settings) {
     return [
       // Rotation anti-horaire
-      HighlightedIconButton(
-        isHighlighted: state.highlightedIsometryIcon == 'rotation',
-        child: IconButton(
-          icon: Icon(GameIcons.isometryRotationTW.icon, size: UISizes.isometryIconSize),
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometryRotationTW();
-          },
-          tooltip: GameIcons.isometryRotationTW.tooltip,
-          color: GameIcons.isometryRotationTW.color,
-          padding: UISizes.isometryIconPadding,
-          constraints: UISizes.isometryIconConstraints,
-        ),
+      IconButton(
+        icon: Icon(GameIcons.isometryRotationTW.icon, size: UISizes.isometryIconSize),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          notifier.applyIsometryRotationTW();
+        },
+        tooltip: GameIcons.isometryRotationTW.tooltip,
+        color: GameIcons.isometryRotationTW.color,
+        padding: UISizes.isometryIconPadding,
+        constraints: UISizes.isometryIconConstraints,
       ),
 
       // Rotation horaire
-      HighlightedIconButton(
-        isHighlighted: state.highlightedIsometryIcon == 'rotation_cw',
-        child: IconButton(
-          icon: Icon(GameIcons.isometryRotationCW.icon, size: UISizes.isometryIconSize),
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometryRotationCW();
-          },
-          tooltip: GameIcons.isometryRotationCW.tooltip,
-          color: GameIcons.isometryRotationCW.color,
-          padding: UISizes.isometryIconPadding,
-          constraints: UISizes.isometryIconConstraints,
-        ),
+      IconButton(
+        icon: Icon(GameIcons.isometryRotationCW.icon, size: UISizes.isometryIconSize),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          notifier.applyIsometryRotationCW();
+        },
+        tooltip: GameIcons.isometryRotationCW.tooltip,
+        color: GameIcons.isometryRotationCW.color,
+        padding: UISizes.isometryIconPadding,
+        constraints: UISizes.isometryIconConstraints,
       ),
 
       // Symétrie horizontale
-      HighlightedIconButton(
-        isHighlighted: state.highlightedIsometryIcon == 'symmetry_h',
-        child: IconButton(
-          icon: Icon(GameIcons.isometrySymmetryH.icon, size: UISizes.isometryIconSize),
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometrySymmetryH();
-          },
-          tooltip: GameIcons.isometrySymmetryH.tooltip,
-          color: GameIcons.isometrySymmetryH.color,
-          padding: UISizes.isometryIconPadding,
-          constraints: UISizes.isometryIconConstraints,
-        ),
+      IconButton(
+        icon: Icon(GameIcons.isometrySymmetryH.icon, size: UISizes.isometryIconSize),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          notifier.applyIsometrySymmetryH();
+        },
+        tooltip: GameIcons.isometrySymmetryH.tooltip,
+        color: GameIcons.isometrySymmetryH.color,
+        padding: UISizes.isometryIconPadding,
+        constraints: UISizes.isometryIconConstraints,
       ),
 
       // Symétrie verticale
-      HighlightedIconButton(
-        isHighlighted: state.highlightedIsometryIcon == 'symmetry_v',
-        child: IconButton(
-          icon: Icon(GameIcons.isometrySymmetryV.icon, size: UISizes.isometryIconSize),
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometrySymmetryV();
-          },
-          tooltip: GameIcons.isometrySymmetryV.tooltip,
-          color: GameIcons.isometrySymmetryV.color,
-          padding: UISizes.isometryIconPadding,
-          constraints: UISizes.isometryIconConstraints,
-        ),
+      IconButton(
+        icon: Icon(GameIcons.isometrySymmetryV.icon, size: UISizes.isometryIconSize),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          notifier.applyIsometrySymmetryV();
+        },
+        tooltip: GameIcons.isometrySymmetryV.tooltip,
+        color: GameIcons.isometrySymmetryV.color,
+        padding: UISizes.isometryIconPadding,
+        constraints: UISizes.isometryIconConstraints,
       ),
 
       // Delete (uniquement si pièce placée sélectionnée)

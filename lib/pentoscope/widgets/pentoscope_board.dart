@@ -1,6 +1,8 @@
-// Modified: 2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes) : son seul appel était en
-//           commentaire, supprimé aussi.
+// Modified: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
+//           méthodes de surbrillance locale et des deux méthodes de démonstration du State,
+//           plus leur bloc lecteur dans _buildCell (tous inatteignables, aucune GlobalKey).
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes).
 // Plateau Pentoscope - calqué sur game_board.dart
 // v2: Support du snap visuel
 
@@ -29,46 +31,6 @@ class PentoscopeBoard extends ConsumerStatefulWidget {
 }
 
 class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
-  final List<Map<String, dynamic>> _highlightedCells = [];
-
-  // Méthodes publiques pour le tutoriel
-  void highlightCell(int x, int y, Color color) {
-    setState(() {
-      // Supprimer l'ancien highlight à cette position s'il existe
-      _highlightedCells.removeWhere((cell) => cell['x'] == x && cell['y'] == y);
-      // Ajouter le nouveau highlight
-      _highlightedCells.add({'x': x, 'y': y, 'color': color});
-    });
-  }
-
-  void clearHighlights() {
-    setState(() {
-      _highlightedCells.clear();
-    });
-  }
-
-  void placeSelectedPiece(int gridX, int gridY) {
-    // Pour l'instant, on simule le placement en utilisant la logique du drag & drop
-    // Le tutoriel devra utiliser une approche différente
-    print('[BOARD] Placement simulé en ($gridX, $gridY)');
-  }
-
-  void selectPieceOnBoard(int x, int y) {
-    final notifier = ref.read(pentoscopeProvider.notifier);
-    final state = ref.read(pentoscopeProvider);
-
-    // Chercher la pièce à cette position
-    final placedPieces = state.placedPieces;
-    for (final placed in placedPieces) {
-      for (final cell in placed.absoluteCells) {
-        if (cell.x == x && cell.y == y) {
-          notifier.selectPlacedPiece(placed, x, y);
-          return;
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final ref = context as WidgetRef;
@@ -406,21 +368,6 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       logicalY,
       isLandscape,
     );
-
-    // 🎯 6.5️⃣ APPLIQUER LES HIGHLIGHTS DU TUTORIEL
-    final tutorialHighlight = _highlightedCells.firstWhere(
-      (cell) => cell['x'] == logicalX && cell['y'] == logicalY,
-      orElse: () => <String, dynamic>{},
-    );
-
-    if (tutorialHighlight.isNotEmpty) {
-      cellColor = tutorialHighlight['color'] as Color;
-      // Ajouter un effet visuel supplémentaire
-      border = Border.all(
-        color: Colors.white,
-        width: 3,
-      );
-    }
 
     // 7️⃣ CRÉER LE WIDGET DE CELLULE
     Widget cellWidget = Container(

@@ -1,8 +1,10 @@
-// Modified: 2026-08-28 20:30 — suppression démo : retrait des 4 méthodes *ForTutorial
-//           sans appelant (placeSelectedPieceForTutorial, selectPieceFromSliderForTutorial,
-//           selectPlacedPieceAtForTutorial, selectPlacedPieceWithMastercaseForTutorial).
+// Modified: 2026-08-28 20:48 — suppression de la démonstration (couches C+D) : retrait des
+//           12 méthodes de surbrillance, des méthodes de mode (isométries, démonstration)
+//           et de la restauration d'état, toutes publiques sans appelant. Étiquettes de
+//           section et traces console correspondantes nettoyées.
 // lib/classical/pentomino_game_provider.dart
-// Historique: 2026-08-28 20:24 — dettes 1 et 2 : solutionsCount recalculé, isComplete
+// Historique: 2026-08-28 20:30 — retrait des 4 méthodes de l'API de démonstration du provider.
+//             2026-08-28 20:24 — dettes 1 et 2 : solutionsCount recalculé, isComplete
 //             redonne un chemin de retour vers true.
 //             2026-08-28 10:19 — temps 2 : bascule stay + mask (3 lifts, 2 restitutions,
 //             tryPlacePiece map/add, isComplete).
@@ -15,7 +17,7 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart' show Color, debugPrint;
+import 'package:flutter/material.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/classical/pentomino_game_state.dart';
 
@@ -322,10 +324,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     );
     debugPrint('🎯 Solutions restantes: $solutionsCount');
   }
-  /// Annule le tutoriel (toujours restaurer)
-  void cancelTutorial() {
-    exitTutorialMode(restore: true);
-  }
 
   // ✨ AJOUT: Appelé quand le puzzle est complété (12 pièces placées)
   Future<void> onPuzzleCompleted() async {
@@ -370,23 +368,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     }
   }
 
-  /// Efface la surbrillance du plateau
-  void clearBoardHighlight() {
-    state = state.copyWith(clearHighlightedBoardPiece: true);
-
-  }
-
-  /// Efface toutes les surbrillances de cases
-  void clearCellHighlights() {
-    state = state.copyWith(clearCellHighlights: true);
-
-  }
-
-  /// 🆕 Efface la surbrillance des icônes d'isométrie
-  void clearIsometryIconHighlight() {
-    state = state.copyWith(clearHighlightedIsometryIcon: true);
-  }
-
   /// 🆕 Incrémente le compteur de consultation des solutions
   void incrementSolutionsViewCount() {
     state = state.copyWith(solutionsViewCount: state.solutionsViewCount + 1);
@@ -395,19 +376,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
 
 
-  /// Efface la surbrillance de la mastercase
-  void clearMastercaseHighlight() {
-    state = state.copyWith(clearHighlightedMastercase: true);
-
-  }
-
-
-
-  /// Efface la surbrillance du slider
-  void clearSliderHighlight() {
-    state = state.copyWith(clearHighlightedSliderPiece: true);
-
-  }
 
   /// Cycle vers l'orientation suivante de la pièce sélectionnée
   /// Passe simplement à l'index suivant dans piece.orientations (boucle)
@@ -460,105 +428,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
 
   }
 
-  /// Entre en mode isométries (sauvegarde l'état actuel)
-  void enterIsometriesMode() {
-    if (state.isIsometriesMode) return; // Déjà en mode isométries
-
-
-    // Sauvegarder l'état actuel (sans le savedGameState pour éviter la récursion)
-    final savedState = PentominoGameState(
-      plateau: state.plateau,
-      availablePieces: List.from(state.availablePieces),
-      placedPieces: List.from(state.placedPieces),
-      selectedPiece: state.selectedPiece,
-      selectedPositionIndex: state.selectedPositionIndex,
-      selectedPlacedPiece: state.selectedPlacedPiece,
-      piecePositionIndices: Map.from(state.piecePositionIndices),
-      selectedCellInPiece: state.selectedCellInPiece,
-      previewX: state.previewX,
-      previewY: state.previewY,
-      isPreviewValid: state.isPreviewValid,
-      solutionsCount: state.solutionsCount,
-    );
-
-    // Passer en mode isométries
-    state = state.copyWith(isIsometriesMode: true, savedGameState: savedState);
-  }
-
-  /// Entre en mode tutoriel : sauvegarde l'état actuel et reset le jeu
-  void enterTutorialMode() {
-    if (state.isInTutorial) {
-      throw StateError('Déjà en mode tutoriel');
-    }
-
-    if (state.isIsometriesMode) {
-      throw StateError(
-        'Impossible d\'entrer en tutoriel depuis le mode isométries',
-      );
-    }
-
-    // Sauvegarder l'état complet actuel
-    final savedState = state.copyWith();
-
-    // Reset le jeu pour un plateau vierge
-    reset();
-
-    // Marquer comme mode tutoriel avec sauvegarde
-    state = state.copyWith(savedGameState: savedState, isInTutorial: true);
-
-  }
-
-  /// Sort du mode isométries (restaure l'état sauvegardé)
-  void exitIsometriesMode() {
-    if (!state.isIsometriesMode) return; // Pas en mode isométries
-    if (state.savedGameState == null) {
-
-      return;
-    }
-
-
-
-    // Restaurer l'état sauvegardé
-    state = state.savedGameState!;
-  }
-
-  /// Sort du mode tutoriel et restaure l'état sauvegardé
-  void exitTutorialMode({bool restore = true}) {
-    if (!state.isInTutorial) {
-      throw StateError('Pas en mode tutoriel');
-    }
-
-    if (state.savedGameState == null) {
-      throw StateError('Pas de sauvegarde disponible');
-    }
-
-    if (restore) {
-      // Restaurer l'état complet
-      state = state.savedGameState!.copyWith(
-        savedGameState: null,
-        isInTutorial: false,
-        clearHighlightedSliderPiece: true,
-        clearHighlightedBoardPiece: true,
-        clearHighlightedMastercase: true,
-        clearCellHighlights: true,
-        sliderOffset: 0,
-      );
-
-    } else {
-      // Garder le plateau actuel, juste enlever le flag tutoriel
-      state = state.copyWith(
-        savedGameState: null,
-        isInTutorial: false,
-        clearHighlightedSliderPiece: true,
-        clearHighlightedBoardPiece: true,
-        clearHighlightedMastercase: true,
-        clearCellHighlights: true,
-        sliderOffset: 0,
-      );
-
-    }
-  }
-
   /// Trouve une pièce placée à une position donnée
   PlacedPiece? findPlacedPieceAt(int x, int y) {
     for (final placedPiece in state.placedPieces) {
@@ -599,104 +468,6 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     return null;
   }
 
-  /// Surligne une case individuelle avec une couleur
-  void highlightCell(int x, int y, Color color) {
-    if (x < 0 || x >= 6 || y < 0 || y >= 10) {
-      throw ArgumentError('Position hors limites: ($x, $y)');
-    }
-
-    final newHighlights = Map<Point, Color>.from(state.cellHighlights);
-    newHighlights[Point(x, y)] = color;
-
-    state = state.copyWith(cellHighlights: newHighlights);
-    debugPrint('[TUTORIAL] Case ($x, $y) surlignée');
-  }
-
-  /// Surligne plusieurs cases avec la même couleur
-  void highlightCells(List<Point> cells, Color color) {
-    final newHighlights = Map<Point, Color>.from(state.cellHighlights);
-
-    for (final cell in cells) {
-      if (cell.x >= 0 && cell.x < 6 && cell.y >= 0 && cell.y < 10) {
-        newHighlights[cell] = color;
-      }
-    }
-
-    state = state.copyWith(cellHighlights: newHighlights);
-    debugPrint('[TUTORIAL] ${cells.length} cases surlignées');
-  }
-
-  /// 🆕 Surligne une icône d'isométrie (pour tutoriel)
-  /// iconName: 'rotation', 'rotation_cw', 'symmetry_h', 'symmetry_v'
-  void highlightIsometryIcon(String iconName) {
-    final validIcons = ['rotation', 'rotation_cw', 'symmetry_h', 'symmetry_v'];
-    if (!validIcons.contains(iconName)) {
-      debugPrint('[TUTORIAL] ⚠️ Icône invalide: $iconName (attendu: ${validIcons.join(", ")})');
-      return;
-    }
-    state = state.copyWith(highlightedIsometryIcon: iconName);
-    debugPrint('[TUTORIAL] 🔆 Icône d\'isométrie surlignée: $iconName');
-  }
-
-  /// Surligne la mastercase d'une pièce
-  void highlightMastercase(Point position) {
-    state = state.copyWith(highlightedMastercase: position);
-    debugPrint('[TUTORIAL] Mastercase surlignée en (${position.x}, ${position.y})');
-  }
-
-  /// Surligne une pièce dans le slider (sans la sélectionner)
-  void highlightPieceInSlider(int pieceNumber) {
-    if (pieceNumber < 1 || pieceNumber > 12) {
-      throw ArgumentError('pieceNumber doit être entre 1 et 12');
-    }
-
-    state = state.copyWith(highlightedSliderPiece: pieceNumber);
-    debugPrint('[TUTORIAL] Pièce $pieceNumber surlignée dans le slider');
-  }
-
-  /// Surligne une pièce posée sur le plateau (sans la sélectionner)
-  void highlightPieceOnBoard(int pieceNumber) {
-    if (pieceNumber < 1 || pieceNumber > 12) {
-      throw ArgumentError('pieceNumber doit être entre 1 et 12');
-    }
-
-    // Vérifier que la pièce existe sur le plateau
-    final exists = state.placedPieces.any((p) => p.piece.id == pieceNumber);
-    if (!exists) {
-      throw StateError('La pièce $pieceNumber n\'est pas sur le plateau');
-    }
-
-    state = state.copyWith(highlightedBoardPiece: pieceNumber);
-    debugPrint('[TUTORIAL] Pièce $pieceNumber surlignée sur le plateau');
-  }
-
-  /// Surligne toutes les positions valides pour la pièce sélectionnée
-  void highlightValidPositions(Pento piece, int positionIndex, Color color) {
-    final validCells = <Point>[];
-
-    // Tester toutes les positions du plateau
-    for (int y = 0; y < 10; y++) {
-      for (int x = 0; x < 6; x++) {
-        if (state.canPlacePiece(piece, positionIndex, x, y)) {
-          // Ajouter toutes les cases que la pièce occuperait
-          final position = piece.orientations[positionIndex];
-          for (final cellNum in position) {
-            final localX = (cellNum - 1) % 5;
-            final localY = (cellNum - 1) ~/ 5;
-            final absX = x + localX;
-            final absY = y + localY;
-
-            if (absX >= 0 && absX < 6 && absY >= 0 && absY < 10) {
-              validCells.add(Point(absX, absY));
-            }
-          }
-        }
-      }
-    }
-
-    highlightCells(validCells, color);
-    debugPrint('[TUTORIAL] ${validCells.length} positions valides surlignées');
-  }
 
   /// Retire une pièce placée du plateau
   void removePlacedPiece(PlacedPiece placedPiece) {
@@ -747,20 +518,12 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   /// Remet le slider à sa position initiale
   void resetSliderPosition() {
     state = state.copyWith(sliderOffset: 0);
-    debugPrint('[TUTORIAL] Slider remis à la position initiale');
+    debugPrint('[SLIDER] Slider remis à la position initiale');
   }
 
   // ============================================================
-  // 🆕 MÉTHODES TUTORIEL - Ajoutées pour le système Scratch-Pentapol
+  // DÉFILEMENT DU SLIDER
   // ============================================================
-
-  /// 🆕 Restaure un état sauvegardé (utilisé par TutorialProvider au quit)
-  void restoreState(PentominoGameState savedState) {
-    debugPrint(
-      '[GAME] ♻️ Restauration de l\'état : ${savedState.placedPieces.length} pièces placées',
-    );
-    state = savedState;
-  }
 
   /// Fait défiler le slider de N positions
   /// positions > 0 : vers la droite
@@ -769,7 +532,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     final newOffset = (state.sliderOffset + positions) % 12;
     state = state.copyWith(sliderOffset: newOffset);
     debugPrint(
-      '[TUTORIAL] Slider décalé de $positions positions (offset: $newOffset)',
+      '[SLIDER] Slider décalé de $positions positions (offset: $newOffset)',
     );
   }
 
@@ -783,11 +546,11 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     // (dépend de l'implémentation exacte du slider)
     final targetOffset = (pieceNumber - 1) % 12;
     state = state.copyWith(sliderOffset: targetOffset);
-    debugPrint('[TUTORIAL] Slider centré sur pièce $pieceNumber');
+    debugPrint('[SLIDER] Slider centré sur pièce $pieceNumber');
   }
 
   // ============================================================
-  // HIGHLIGHTS SLIDER
+  // SÉLECTION DEPUIS LE SLIDER
   // ============================================================
 
   /// Sélectionne une pièce du slider (commence le drag)
@@ -829,7 +592,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   }
 
   // ============================================================
-  // HIGHLIGHTS PLATEAU
+  // SÉLECTION SUR LE PLATEAU
   // ============================================================
 
   /// Sélectionne une pièce déjà placée pour la déplacer
@@ -894,7 +657,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   }
 
   // ============================================================
-  // HIGHLIGHTS DE CASES
+  // PLACEMENT
   // ============================================================
 
 
@@ -1231,7 +994,7 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
   }
 
   // ============================================================
-  // UTILITAIRES TUTORIEL
+  // UTILITAIRES
   // ============================================================
 
 

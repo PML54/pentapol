@@ -1,6 +1,8 @@
+// Modified: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
+//           méthodes de surbrillance locale et du bloc lecteur ; l'enveloppe Container de
+//           surbrillance disparaît (rendu identique, décoration toujours nulle).
 // lib/pentapol/pentoscope/widgets/pentoscope_piece_slider.dart
-// Modified: 2512100457
-// FIX: Adopter _getDisplayPositionIndex() d'isopento pour rotation paysage stable (-90° compensation)
+// Historique: 2512100457 — FIX _getDisplayPositionIndex() rotation paysage stable.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,32 +35,6 @@ class PentoscopePieceSlider extends ConsumerStatefulWidget {
 
 class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   final ScrollController _scrollController = ScrollController();
-  int? _highlightedIndex;
-
-  // Méthodes publiques pour le tutoriel
-  void highlightPiece(int index) {
-    setState(() {
-      _highlightedIndex = index;
-    });
-  }
-
-  void clearHighlight() {
-    setState(() {
-      _highlightedIndex = null;
-    });
-  }
-
-  void scrollToPiece(int pieceIndex) {
-    // Calculer la position approximative
-    final estimatedItemWidth = widget.isLandscape ? 120.0 : 100.0;
-    final targetOffset = pieceIndex * estimatedItemWidth;
-
-    _scrollController.animateTo(
-      targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeInOut,
-    );
-  }
 
   void selectPiece(int pieceIndex) {
     final state = ref.read(pentoscopeProvider);
@@ -96,22 +72,8 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       itemCount: pieces.length,
       itemBuilder: (context, index) {
         final piece = pieces[index];
-        final isHighlighted = _highlightedIndex == index;
 
-        return Container(
-          decoration: isHighlighted ? BoxDecoration(
-            border: Border.all(color: Colors.yellow, width: 3),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.yellow.withOpacity(0.5),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
-            ],
-          ) : null,
-          child: _buildDraggablePiece(piece, notifier, state, settings, widget.isLandscape),
-        );
+        return _buildDraggablePiece(piece, notifier, state, settings, widget.isLandscape);
       },
     );
   }

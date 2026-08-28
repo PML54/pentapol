@@ -1,15 +1,13 @@
-// Modified: 2026-08-28 10:19 — Sélection temps 2 (stay + mask) : ajout du champ
-//           isComplete, écrit à la pose du 12e pentomino dans tryPlacePiece, pour
-//           que la victoire ne soit plus déduite de placedPieces.length (qui vaut
-//           12 même pièce en main sous stay + mask).
-// Historique: 2026-08-27 20:29 — étape 1 du plan d'unification : implémente le contrat commun
-//             PieceManipulationState ; ViewOrientation déplacé dans common/ et
-//             ré-exporté d'ici. Aucun champ ni site d'appel modifié.
+// Modified: 2026-08-28 20:30 — suppression de la démonstration : retrait des champs de
+//           mode (isométries, démonstration), de l'état sauvegardé et des 5 champs de
+//           surbrillance, avec leur plomberie constructeur/initial/copyWith.
+// Historique: 2026-08-28 10:19 — temps 2 (stay + mask) : ajout du champ isComplete.
+//             2026-08-27 20:29 — étape 1 : contrat commun PieceManipulationState,
+//             ViewOrientation déplacé dans common/.
 // Modified: 2025-12-01 (Snap intelligent ajouté)
 // lib/providers/pentomino_game_state.dart
-// État du jeu de pentominos (mode libre + mode tutoriel)
+// État du jeu de pentominos (mode libre)
 
-import 'package:flutter/material.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/piece_manipulation_state.dart';
@@ -57,27 +55,6 @@ class PentominoGameState implements PieceManipulationState {
   // ce booléen évite le faux positif de victoire pendant une manipulation.
   final bool isComplete;
 
-  // Mode isométries
-  final bool
-  isIsometriesMode; // true = mode isométries, false = mode jeu normal
-  final PentominoGameState?
-  savedGameState; // État du jeu sauvegardé (isométries OU tutoriel)
-
-  // 🆕 MODE TUTORIEL
-  final bool isInTutorial; // true = en mode tutoriel, false = jeu normal
-
-  // 🆕 HIGHLIGHTS TUTORIEL
-  final int?
-  highlightedSliderPiece; // ID de la pièce surlignée dans le slider (null = aucune)
-  final int?
-  highlightedBoardPiece; // ID de la pièce surlignée sur le plateau (null = aucune)
-  final Point?
-  highlightedMastercase; // Position de la mastercase surlignée (null = aucune)
-  final Map<Point, Color>
-  cellHighlights; // Highlights de cases individuelles avec couleur
-  final String?
-  highlightedIsometryIcon; // Icône d'isométrie surlignée ('rotation', 'rotation_cw', 'symmetry_h', 'symmetry_v')
-
   // 🆕 SLIDER POSITION
   final int
   sliderOffset; // Offset de défilement du slider (0 = position initiale)
@@ -106,30 +83,20 @@ class PentominoGameState implements PieceManipulationState {
     this.solutionsCount,
     this.solvedSolutionIndex, // 🆕
     this.isComplete = false,
-    this.isIsometriesMode = false,
-    this.savedGameState,
 
     // Validation
     this.boardIsValid = true,
     Set<Point>? overlappingCells,
     Set<Point>? offBoardCells,
 
-    // 🆕 Tutoriel
-    this.isInTutorial = false,
-    this.highlightedSliderPiece,
-    this.highlightedBoardPiece,
-    this.highlightedMastercase,
-    Map<Point, Color>? cellHighlights,
     this.sliderOffset = 0,
-    this.highlightedIsometryIcon,
     this.viewOrientation = ViewOrientation.portrait,
     this.elapsedSeconds = 0,
     this.isometriesCount = 0,
     this.solutionsViewCount = 0,
   }) : piecePositionIndices = piecePositionIndices ?? {},
        overlappingCells = overlappingCells ?? <Point>{},
-       offBoardCells = offBoardCells ?? <Point>{},
-       cellHighlights = cellHighlights ?? <Point, Color>{};
+       offBoardCells = offBoardCells ?? <Point>{};
 
   /// État initial du jeu
   factory PentominoGameState.initial() {
@@ -143,9 +110,7 @@ class PentominoGameState implements PieceManipulationState {
       boardIsValid: true,
       overlappingCells: <Point>{},
       offBoardCells: <Point>{},
-      isInTutorial: false,
       sliderOffset: 0,
-      cellHighlights: <Point, Color>{},
       viewOrientation: ViewOrientation.portrait,
       elapsedSeconds: 0, // ✨ NOUVEAU
     );
@@ -201,28 +166,13 @@ class PentominoGameState implements PieceManipulationState {
     int? solvedSolutionIndex, // 🆕
     bool clearSolvedSolutionIndex = false, // 🆕
     bool? isComplete,
-    bool? isIsometriesMode,
-    PentominoGameState? savedGameState,
-    bool clearSavedGameState = false,
 
     // Validation
     bool? boardIsValid,
     Set<Point>? overlappingCells,
     Set<Point>? offBoardCells,
 
-    // 🆕 Tutoriel
-    bool? isInTutorial,
-    int? highlightedSliderPiece,
-    bool clearHighlightedSliderPiece = false,
-    int? highlightedBoardPiece,
-    bool clearHighlightedBoardPiece = false,
-    Point? highlightedMastercase,
-    bool clearHighlightedMastercase = false,
-    Map<Point, Color>? cellHighlights,
-    bool clearCellHighlights = false,
     int? sliderOffset,
-    String? highlightedIsometryIcon,
-    bool clearHighlightedIsometryIcon = false,
     ViewOrientation? viewOrientation,
 
     // Timer et compteurs
@@ -259,34 +209,13 @@ class PentominoGameState implements PieceManipulationState {
           ? null
           : (solvedSolutionIndex ?? this.solvedSolutionIndex), // 🆕
       isComplete: isComplete ?? this.isComplete,
-      isIsometriesMode: isIsometriesMode ?? this.isIsometriesMode,
-      savedGameState: clearSavedGameState
-          ? null
-          : (savedGameState ?? this.savedGameState),
 
       // Validation
       boardIsValid: boardIsValid ?? this.boardIsValid,
       overlappingCells: overlappingCells ?? this.overlappingCells,
       offBoardCells: offBoardCells ?? this.offBoardCells,
 
-      // 🆕 Tutoriel
-      isInTutorial: isInTutorial ?? this.isInTutorial,
-      highlightedSliderPiece: clearHighlightedSliderPiece
-          ? null
-          : (highlightedSliderPiece ?? this.highlightedSliderPiece),
-      highlightedBoardPiece: clearHighlightedBoardPiece
-          ? null
-          : (highlightedBoardPiece ?? this.highlightedBoardPiece),
-      highlightedMastercase: clearHighlightedMastercase
-          ? null
-          : (highlightedMastercase ?? this.highlightedMastercase),
-      cellHighlights: clearCellHighlights
-          ? <Point, Color>{}
-          : (cellHighlights ?? this.cellHighlights),
       sliderOffset: sliderOffset ?? this.sliderOffset,
-      highlightedIsometryIcon: clearHighlightedIsometryIcon
-          ? null
-          : (highlightedIsometryIcon ?? this.highlightedIsometryIcon),
       viewOrientation: viewOrientation ?? this.viewOrientation,
 
       // Timer et compteurs

@@ -1,3 +1,6 @@
+// Modified: 2026-08-28 20:48 — suppression de la démonstration : retrait des 4 branches de
+//           mode isométries (jamais exécutées), du bloc de surbrillance de cases et du
+//           helper _findLetterForCell devenu orphelin ; import point.dart retiré.
 // lib/screens/pentomino_game/widgets/shared/game_board.dart
 // Plateau de jeu 6×10 avec drag & drop
 // v2: Support du snap visuel (bordure cyan + glow)
@@ -11,7 +14,6 @@ import 'package:pentapol/classical/pentomino_game_provider.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calculator.dart';
 import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
-import 'package:pentapol/common/point.dart';
 
 /// Plateau de jeu 6×10
 ///
@@ -186,27 +188,6 @@ class GameBoard extends ConsumerWidget {
     );
   }
 
-  /// Trouve la lettre (A-E) pour une pièce à une position donnée
-  String? _findLetterForCell(state, int pieceId, int logicalX, int logicalY) {
-    // Chercher dans toutes les pièces placées
-    for (final placedPiece in state.placedPieces) {
-      if (placedPiece.piece.id == pieceId) {
-        final position = placedPiece.piece.orientations[placedPiece.positionIndex];
-        for (final cellNum in position) {
-          final localX = (cellNum - 1) % 5;
-          final localY = (cellNum - 1) ~/ 5;
-          final pieceX = placedPiece.gridX + localX;
-          final pieceY = placedPiece.gridY + localY;
-
-          if (pieceX == logicalX && pieceY == logicalY) {
-            return placedPiece.piece.getLetterForPosition(placedPiece.positionIndex, cellNum);
-          }
-        }
-      }
-    }
-    return null;
-  }
-
   Widget _buildCell(
       BuildContext context,
       WidgetRef ref,
@@ -218,7 +199,6 @@ class GameBoard extends ConsumerWidget {
       bool isLandscape,
       ) {
     final cellValue = state.plateau.getCell(logicalX, logicalY);
-    final isIsometriesMode = state.isIsometriesMode;
 
     Color cellColor;
     String cellText = '';
@@ -231,15 +211,6 @@ class GameBoard extends ConsumerWidget {
     } else {
       cellColor = settings.ui.getPieceColor(cellValue);
       cellText = cellValue.toString();
-
-      // Ajouter la lettre en mode isométries
-      if (isIsometriesMode) {
-        final letter = _findLetterForCell(state, cellValue, logicalX, logicalY);
-        if (letter != null) {
-          cellText += letter;
-        }
-      }
-
       isOccupied = true;
     }
 
@@ -310,11 +281,6 @@ class GameBoard extends ConsumerWidget {
 
           cellText = piece.id.toString();
 
-          // Ajouter la lettre en mode isométries
-          if (isIsometriesMode) {
-            cellText += piece.getLetterForPosition(state.selectedPositionIndex, cellNum);
-          }
-
           break;
         }
       }
@@ -337,17 +303,6 @@ class GameBoard extends ConsumerWidget {
     } else {
       border = PieceBorderCalculator.calculate(
           logicalX, logicalY, state.plateau, isLandscape);
-    }
-
-    // Vérifier si la cellule est highlightée (tutoriel)
-    final highlightPoint = Point(logicalX, logicalY);
-    final highlightColor = state.cellHighlights[highlightPoint];
-    if (highlightColor != null) {
-      // Superposer la couleur de highlight
-      cellColor = Color.alphaBlend(
-        highlightColor.withValues(alpha: 0.6),
-        cellColor,
-      );
     }
 
     Widget cellWidget = Container(
@@ -504,9 +459,6 @@ class GameBoard extends ConsumerWidget {
     final pieceColor = settings.ui.getPieceColor(piece.id);
 
     String cellText = piece.id.toString();
-    if (state.isIsometriesMode) {
-      cellText += piece.getLetterForPosition(state.selectedPositionIndex, cellNum);
-    }
 
     return Container(
       decoration: BoxDecoration(
