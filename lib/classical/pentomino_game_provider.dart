@@ -1,11 +1,11 @@
-// Modified: 2026-08-28 10:19 — Sélection temps 2 : bascule sur le modèle stay + mask.
-//           Une pièce posée sélectionnée reste dans placedPieces ; seule la
-//           reconstruction du plateau l'ignore (exclude:). Suppression des 3 lifts
-//           et des 2 restitutions, tryPlacePiece remplace via map (déplacement) ou
-//           ajoute (barre), _computeSolutionsWithTransformedPiece passe au map,
-//           victoire portée par isComplete au lieu de placedPieces.length.
+// Modified: 2026-08-28 20:24 — Sélection temps 2, dettes 1 et 2 : cancelSelection et
+//           selectPiece recalculent solutionsCount depuis le plateau reconstruit
+//           (périmé après abandon d'une rotation), et cancelSelection redonne à
+//           isComplete un chemin de retour vers true (plateau plein et valide).
 // lib/classical/pentomino_game_provider.dart
-// Historique: 2026-08-28 09:22 — temps 1 : helper unique _rebuildPlateau, 10 méthodes.
+// Historique: 2026-08-28 10:19 — temps 2 : bascule stay + mask (3 lifts, 2 restitutions,
+//             tryPlacePiece map/add, isComplete).
+//             2026-08-28 09:22 — temps 1 : helper unique _rebuildPlateau, 10 méthodes.
 //             2026-08-27 21:03 — (1) applyIsometry* renvoient TransformationResult ;
 //             (2) retrait de 3 méthodes orphelines + import shape_recognizer ;
 //             (3) magnétisme _snapRadius 2 → 10.
@@ -221,9 +221,18 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
     // Annuler revient à la démasquer (reconstruire le plateau) et à vider la
     // sélection. Pour une pièce du slider, il n'y a rien à démasquer.
     final wasPlaced = state.selectedPlacedPiece != null;
+    final newPlateau = wasPlaced ? _rebuildPlateau() : state.plateau;
 
+    // Dette 1 : la rotation abandonnée laissait solutionsCount périmé (calculé
+    // pour une orientation qui n'est plus posée) — on recalcule depuis le plateau
+    // reconstruit. Dette 2 : isComplete n'avait pas de chemin de retour vers true
+    // (reprendre puis reposer une pièce sur un plateau plein le laissait à false).
     state = state.copyWith(
-      plateau: wasPlaced ? _rebuildPlateau() : state.plateau,
+      plateau: newPlateau,
+      solutionsCount: wasPlaced
+          ? newPlateau.countPossibleSolutions()
+          : state.solutionsCount,
+      isComplete: wasPlaced && state.placedPieces.length == 12 && state.boardIsValid,
       clearSelectedPiece: true,
       clearSelectedPlacedPiece: true,
       clearSelectedCellInPiece: true,
@@ -868,8 +877,13 @@ class PentominoGameNotifier extends Notifier<PentominoGameState>
       defaultCell = Point((firstCellNum - 1) % 5, (firstCellNum - 1) ~/ 5);
     }
 
+    // Dette 1 : si une pièce posée était sélectionnée, sa rotation est abandonnée
+    // ici ; on recalcule solutionsCount depuis le plateau reconstruit (une seule
+    // reconstruction, réutilisée) plutôt que de laisser un compteur périmé.
+    final newPlateau = _rebuildPlateau();
     state = state.copyWith(
-      plateau: _rebuildPlateau(),
+      plateau: newPlateau,
+      solutionsCount: newPlateau.countPossibleSolutions(),
       selectedPiece: piece,
       selectedPositionIndex: savedIndex, // Utilise l'index sauvegardé
       clearSelectedPlacedPiece: true,
