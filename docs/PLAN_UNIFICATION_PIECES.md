@@ -9,6 +9,19 @@
 
 ---
 
+> ⚠️ **CHANTIER SUSPENDU le 2026-08-29.** Décision de Paul : le mode classique n'est plus
+> modifié, Pentoscope devient la référence de la manipulation des pièces et reçoit une
+> taille 6×10 adossée aux 9356 solutions. **Les étapes 3 (familles Isométries, Barre,
+> Placement), 4 et 5 de ce document ne sont plus à appliquer.** Le plan en vigueur est
+> `docs/PLAN_6X10_DANS_PENTOSCOPE.md`.
+>
+> Ce document reste valide comme historique et comme socle : ses étapes 0 à 2
+> (`PlacedPiece` commun, `PieceManipulationState`, `TransformationResult`,
+> `ViewOrientation`, `GameTimerMixin`, `PieceInteractionMixin`) sont ce qui rend le port
+> possible.
+
+---
+
 ## 1. Où on en est vraiment
 
 ### Deux familles, pas trois

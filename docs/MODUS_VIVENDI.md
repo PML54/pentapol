@@ -164,9 +164,15 @@ vigilance et les deux commandes de la §6.
 **Cowork ne sait pas que le CLI a travaillé.** Il n'y a pas de notification : c'est toi
 qui fais la bascule. Acceptable tant que la règle du parallélisme est tenue.
 
-**Il ne remplace pas le test.** Six commits ont été poussés — dont un changement de
-modèle de données et une suppression de 700 lignes — sans qu'aucun test manuel des trois
-modules ait été exécuté. Aucun protocole de communication ne corrige ça.
+**Il ne remplace pas le test.** Ni le CLI ni cowork ne jugent le ressenti d'un geste.
+Le test se fait sur appareil, par Paul : `flutter run --release -d <device-id>`. Aucun
+protocole de communication ne remplace ça, et aucun des deux agents ne doit annoncer
+qu'une fonctionnalité marche — seulement que le code compile et que les critères
+mesurables sont tenus.
+
+> Corollaire pour les deux agents : ne jamais écrire « non testé » sur la foi du silence.
+> L'absence de rapport de test dans un message de commit ne dit rien de ce qui a été
+> essayé sur l'appareil. Le demander, ou ne rien affirmer.
 
 ---
 

@@ -6,29 +6,48 @@
 
 ---
 
-## §ÉTAT — au 2026-08-28 21:38
+## §ÉTAT — au 2026-08-29
 
-**Chantier en cours** : unification de la manipulation des pièces sur les 3 modules
-(`docs/PLAN_UNIFICATION_PIECES.md`). Étapes 0 à 2 faites, étape 3 en cours par famille :
-Chrono ✅, Preview & drag ✅, Sélection ✅ (temps 1 et 2 + dettes). Restent Isométries,
-Barre, Placement, puis les étapes 4 et 5.
+**Changement de chantier.** L'unification classical ↔ pentoscope est **suspendue**. Le
+mode classique n'est plus modifié ; Pentoscope devient la référence de la manipulation des
+pièces et reçoit une taille `6×10 / 12 pièces`, branchée sur les 9356 solutions connues.
+Plan à appliquer : `docs/PLAN_6X10_DANS_PENTOSCOPE.md`, en deux temps, **dans l'ordre**.
 
-**Git** : `origin/main` à `813aa94` (6 commits de code `f3a13a8..74e56b7` + le commit des
-plans). Local en avance d'un commit **non poussé** : `f7742cc` (`MODUS_VIVENDI.md`,
-`JOURNAL.md`, section « Protocole entre agents » de `CLAUDE.md`).
+`docs/PLAN_UNIFICATION_PIECES.md` reste valide comme historique et comme socle : ses
+étapes 0 à 2 (`PlacedPiece` commun, `PieceManipulationState`, `TransformationResult`,
+`ViewOrientation`, les deux mixins) sont ce qui rend le port possible. Ses étapes 3
+(familles Isométries, Barre, Placement), 4 et 5 ne sont plus à l'ordre du jour.
 
-**⚠️ Jamais exécuté : le test manuel des 3 modules.** Un changement de modèle de données
-(stay + mask) et une suppression de ~700 lignes sont livrés. C'est le point de reprise
-prioritaire, avant tout nouveau travail — inclut la confirmation de la décision n°4
-(`validateSelection`).
+**Git** : `origin/main` à `813aa94`. Local en avance de deux commits **non poussés** :
+`f7742cc` (protocole) et `4539ed8` (journal). S'y ajoute
+`docs/PLAN_6X10_DANS_PENTOSCOPE.md`, non suivi.
 
-**`docs/` propre côté travail.** Reste, hors périmètre docs, du bruit de plateforme à
-trier à part : `ios/`, `macos/`, `.metadata`, `analysis_options.yaml`, `pubspec.lock`.
+**Test manuel** : Paul teste sur son iPhone, en release, avec
+
+```bash
+flutter run --release -d 00008150-000165D4027B401C
+```
+
+C'est le juge de référence — ni le CLI ni cowork ne testent. **L'effort de test va
+désormais sur Pentoscope**, pas sur le mode classique : c'est Pentoscope qui devient le
+seul moteur de manipulation, et son 6×10 est ce qui doit être validé.
+
+> ⚠️ En `--release`, `debugPrint` est supprimé à la compilation : tout critère
+> d'acceptation formulé sur la console doit être reformulé en observation à l'écran.
+
+**Défauts relevés le 2026-08-29, laissés en l'état** (mode classique, qu'on ne touche
+plus) — détail en §5 du plan 6×10 :
+
+- `game_board.dart` l.447 appelle `applyIsometryRotation()`, méthode inexistante, passée
+  par un `notifier` non typé donc `dynamic` : `NoSuchMethodError` au double-tap sur une
+  pièce posée sélectionnée. Invisible pour `flutter analyze`.
+- le mode classique n'appelle jamais `setDragging` ; `state.isDragging` y est mort.
+- miniature au déplacement signalée par Paul : cause probable `PieceRenderer`, taille de
+  case codée en dur à 22 px. Non confirmée par observation.
 
 **Dette technique connue, non traitée** : `flutter pub add collection` (lint
 `depend_on_referenced_packages`) ; branche de preview cyan morte dans
-`pentoscope_board.dart` (lit `state.isSnapped`, que personne n'écrit) ; troisième
-implémentation du chrono dans `pentoscope_mp_provider.dart`, morte mais publique.
+`pentoscope_board.dart` ; troisième implémentation du chrono dans `pentoscope_mp_provider.dart`.
 
 ---
 
@@ -57,6 +76,19 @@ détaillé.
 
 ---
 
+7. **2026-08-29 — Paul** — le mode classique n'est plus modifié ; Pentoscope devient la
+   référence de la manipulation des pièces et reçoit une taille 6×10 / 12 pièces adossée
+   aux 9356 solutions. Les autres tailles gardent le calcul à la volée.
+   → `PLAN_6X10_DANS_PENTOSCOPE.md`.
+8. **2026-08-29 — cowork** — **la décision n°3 reposait sur une affirmation fausse.** Elle
+   disait que Pentoscope « n'écrit lui non plus que `selectedPlacedPiece` (l.1147, l.1396) ».
+   Vérification faite, à ces lignes exactes (aujourd'hui 1152 et 1401) Pentoscope écrit
+   `placedPieces: updatedPlacedPieces` : ses deux chemins d'isométrie **committent** la
+   rotation. Les deux modes font donc l'inverse l'un de l'autre sur « tourner une pièce
+   posée puis annuler » — classique abandonne, Pentoscope conserve. Sans conséquence
+   pratique depuis la décision n°7 (le classique est figé, Pentoscope est la référence),
+   mais **ne pas reprendre l'argument d'alignement de la décision n°3**, il est faux.
+
 ## §PASSATIONS
 
 **2026-08-28 19:33 — cowork → toi.** Écrit `MODUS_VIVENDI.md`, `JOURNAL.md`, et le bloc
@@ -74,3 +106,11 @@ suppression de la démo (2 commits), `validateSelection`. `flutter analyze` : 0 
 Protocole appliqué : §ÉTAT réécrit ; fait de projet retiré de `~/.claude/` (règle 4).
 **Reste** : pousser `f7742cc` (et ce commit de journal) ; test manuel des 3 modules ;
 trancher la décision n°4.
+
+**2026-08-29 — cowork → toi.** Écrit `docs/PLAN_6X10_DANS_PENTOSCOPE.md` (316 l.) et
+réécrit §ÉTAT ; ajouté les décisions 7 et 8. Rien appliqué au code.
+**À faire côté CLI, dans l'ordre** : temps 1 du plan (la taille 6×10 existe et se joue,
+sans les 9356), puis test manuel par Paul, puis temps 2 (branchement de `solutionMatcher`).
+Ne pas commencer le temps 2 avant le test du temps 1 — c'est ce qui rend le chantier
+réversible.
+**Reste, hérité** : pousser `f7742cc` et `4539ed8`.
