@@ -1,7 +1,8 @@
-// Modified: 2026-08-29 14:02 — suppression du mode classique (§2, étape 6) : coupure du point
-//           d'entrée — retrait du bouton « Mode Classique » (icône manage_search) et de son
-//           import. C'était le seul accès vivant au mode classique.
+// Modified: 2026-08-29 20:18 — Réglages dans l'AppBar (§8 étape 2) : bouton ⚙️ en portrait et
+//           paysage ouvrant SettingsScreen — seul accès depuis l'abandon annoncé de
+//           HomeScreen. Débloque le point 3 du test du temps 2 (bascule du compteur).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-29 14:02 — étape 6 : retrait du bouton « Mode Classique ».
 // Historique: 2026-08-29 13:43 — étape 3 : bouton « Solutions compatibles » (navigateur),
 //             gaté par solutionsCount != null.
 //             2026-08-29 10:05 — 6×10 temps 2 étape 5 : compteur de solutions dans l'AppBar.
@@ -26,6 +27,7 @@ import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
+import 'package:pentapol/screens/settings_screen.dart';
 
 /// ⏱️ Formate le temps en secondes (max 999s) - format compact
 String _formatTime(int seconds) {
@@ -247,6 +249,18 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 },
                 tooltip: 'Solutions compatibles',
               ),
+            // ⚙️ Réglages (seul accès depuis l'abandon de HomeScreen, §8.1)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+              tooltip: 'Réglages',
+            ),
           ],
         ),
       ),
@@ -883,6 +897,18 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                           },
                           tooltip: 'Solutions compatibles',
                         ),
+                      // ⚙️ Réglages
+                      IconButton(
+                        icon: Icon(Icons.settings, size: iconSize),
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          );
+                        },
+                        tooltip: 'Réglages',
+                      ),
                     ],
                   ),
                 ),
