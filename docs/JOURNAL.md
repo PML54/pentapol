@@ -6,59 +6,43 @@
 
 ---
 
-## §ÉTAT — au 2026-08-29, seconde session cowork (fin)
+## §ÉTAT — au 2026-08-29 14:09 — SUPPRESSION DU MODE CLASSIQUE FAITE
 
-**Test du temps 2 : point 1 validé par Paul** — le compteur du 6×10 affiche 9356 et
-décroît. Point 3 (la bascule) **ininstruisable** : l'écran de Réglages est inatteignable
-(décision 23). Points 2, 4 et 5 non instruits, et **ils ne bloquent plus** : le canari du
-§4.3 est remplacé par un test unitaire de `SolutionMatcher` (décision 24), préalable à la
-suppression.
+**Le mode classique n'existe plus.** Étapes 2, 3, 5, 6, 7 de
+`PLAN_SUPPRESSION_CLASSICAL.md` §5 appliquées, un commit chacune, plus la régénération de doc.
+**Non poussé.**
 
-**Chantier lancé : la suppression du mode classique** — voir §PASSATIONS. Ce qui reste du
-test appareil du temps 2 (§4.7 du plan 6×10), étape 5, le
-**compteur de solutions**. Rien n'est exécutable avant — ni le §5 du plan 6×10, ni la
-suppression du mode classique. Ce test est doublement important : le compteur du mode
-classique est le **canari** de la §4.3, et le module qui le porte est promis à la
-suppression.
+- **2** — test unitaire `SolutionMatcher` (`test/solution_matcher_test.dart`, 5/5), remplaçant
+  du canari du §4.3 (décision 24). → `4485058`
+- **3** — navigateur branché dans Pentoscope : 4ᵉ méthode `compatibleSolutions` sur
+  `SolutionSource`, écran dégraissé du singleton, bouton « Solutions compatibles » gaté par
+  `solutionsCount != null`. → `6b96fa8`
+- **5** — 5 fichiers partagés déménagés vers `lib/common/` (+ `game_utils` orphelin supprimé,
+  décision 26). → `6ea1d35`
+- **6** — 3 points d'entrée coupés. → `1f6fb08`
+- **7** — suppression : `lib/classical/`, `lib/screens/pentomino_game/`, `docs/CLASSICAL.md`,
+  `plateau_solution_counter`, `solutions_provider`, le singleton global `solutionMatcher`.
+  Navigateur déménagé dans `lib/pentoscope/screens/` (décision 25). → `371c3d5`
+- doc régénérée (`tools/docs`). → `129ac70`
 
-**Chantier annoncé : supprimer totalement le mode classique** (décision 19).
-`docs/PLAN_SUPPRESSION_CLASSICAL.md`, 243 l. C'est devenu mécanique parce que le temps 2 a
-donné à Pentoscope sa chaîne complète — `grep -rn 'solutionMatcher|countPossibleSolutions|
-solutionsReadyProvider' lib/pentoscope/` → vide.
+**Critères §6** : `grep classical/` et `grep screens/pentomino_game/` → aucun ;
+`solutionMatcher` hors pentoscope/ → seulement un commentaire documentant son retrait.
+`flutter analyze` 0 warning ; canari 5/5.
 
-- **Plancher : 3279 lignes** sans aucune décision.
-- **505 lignes déménagent d'abord** (`piece_renderer`, `piece_border_calculator`,
-  `draggable_piece_widget`, `game_colors`, `game_constants`) : Pentoscope et le multijoueur
-  les lisent.
-- **Trois points d'entrée** à couper, dont `pentoscope_game_screen.dart` l.237 — c'est
-  Pentoscope lui-même qui ouvre le mode classique.
-- **Les deux fonctionnalités sont ré-hébergées, pas abandonnées** (décisions 21 et 22).
-  Le navigateur est **moins cher que prévu** (son lien au singleton est mort) ; l'historique
-  est **plus cher que je ne l'avais dit** — il demande une migration drift, c'est un
-  chantier à part.
-- **Ordre en 7 étapes**, chacune réversible seule. La règle qui ne souffre pas d'exception :
-  brancher le navigateur dans Pentoscope **avant** de couper l'accès au mode classique.
+**Hors périmètre, restent à faire** : étape 4 (historique en base, migration drift,
+décision 22) ; correctif d'accès aux Réglages (décision 23). Puis §5 du plan 6×10 (tables
+5×12 et 4×15 ; d'abord `PentominoSolver.maxSeconds` paramétrable, décision 10).
 
-**Le 3×20 est abandonné** (décision 20) : tables à produire = **5×12 et 4×15**. Motif
-rectifié au plan §5.6 — ce n'est pas l'affichage (cases à 50 % de celles du 6×10), c'est le
-jeu (2 solutions, donc compteur à 0 et indice rouge en permanence).
+**⚠️ Index de `check_orphan_files` (tools/db) périmé** : il liste encore `game_utils`
+supprimé. `generate_dart_documentation` a rafraîchi `tools/docs` mais pas cet index → à
+reconstruire à part. Par raisonnement + `flutter analyze` 0 : aucun nouvel orphelin réel.
 
-**Préparé, inchangé** : §5.1 le correctif `PentominoSolver` (deux défauts — `maxSeconds` non
-paramétrable ET troncature invisible ; le correctif porte sur la **signature**
-`({solutions, truncated})`, gratuit car un seul appelant), §5.2 généralisation de l'outil,
-§5.4 les trois vérifications d'acceptation, §5.7 l'ordre — jamais les valeurs d'enum avant
-le sélecteur.
+**Prochain pas : test appareil de Paul** — Pentoscope (toutes tailles) + multijoueur se
+lancent, aucun bouton ne mène nulle part, le compteur du 6×10 est là ; **et le test du
+temps 2 (§4.7, compteur) reste dû**.
 
-**À ne pas refaire** : `solutions_6x10_normalisees.bin` est complet (8175 brutes couvraient
-2339/2339 classes). À reproduire une fois, comme non-régression du correctif §5.1.
-
-**Le mode classique reste figé** en attendant sa suppression (décision n°7).
-
-**Git** : `origin/main` à `1833aba`. Modifiés/nouveaux non commités : `docs/JOURNAL.md`,
-`docs/PLAN_6X10_DANS_PENTOSCOPE.md`, `docs/PLAN_SUPPRESSION_CLASSICAL.md`. Ces docs ne
-pilotent pas de code immédiat : à commiter **seuls, en début de prochaine session du CLI**,
-avant toute modification de `lib/` (MODUS_VIVENDI §5). Le reste du `git status` est du bruit
-de plateforme.
+**Git** : `origin/main` à `1833aba` ; local en avance de commits **non poussés** — docs
+(`2ceab85`, `45932aa`) puis suppression (`4485058`…`129ac70`).
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -68,14 +52,10 @@ flutter run --release -d 00008150-000165D4027B401C
 
 > ⚠️ En `--release`, `debugPrint` supprimé : critère console → observation écran.
 
-**Défauts du mode classique** : ils s'éteindront avec le module
-(`PLAN_SUPPRESSION_CLASSICAL.md` §7). Seule la miniature (`PieceRenderer`, case à 22 px en
-dur) survit — ce fichier déménage, c'est le moment d'y ajouter un paramètre `cellSize`.
-
 **Dette technique** : `flutter pub add collection` ; preview cyan morte dans
-`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` (multijoueur, non
-concerné) ; **trois** implémentations du couple (pieces, mask) — la suppression en éteint
-une, il en restera deux dont `common/bigint_plateau.dart`, orpheline et la mieux écrite.
+`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` (multijoueur) ;
+`common/bigint_plateau.dart` reste l'implémentation (pieces, mask) orpheline la mieux écrite ;
+le paramètre `cellSize` de `PieceRenderer` (miniature, plan 6×10 §6) reste à ajouter.
 
 ---
 
@@ -215,7 +195,17 @@ détaillé.
     **préalable** à toute suppression. Le point 1 du test appareil ayant été validé par Paul,
     la suppression n'est plus bloquée par les points 2, 4 et 5.
 
-## §PASSATIONS
+25. **2026-08-29 — CLI** — **le navigateur de solutions est dégraissé du singleton à l'étape 3
+    mais déménagé seulement à l'étape 7**, pas à l'étape 3 comme l'écrit §3.1. Motif : le
+    déménager pendant que le mode classique l'utilise encore forcerait à corriger l'import de
+    deux fichiers voués à la suppression (écran classique, `action_slider`). En le laissant
+    dans `lib/screens/` jusqu'à l'étape 7 (ce dossier survit), on ne touche aucun fichier
+    condamné. Le but fonctionnel de §3.1 (découplage + accès Pentoscope) est atteint dès
+    l'étape 3. → `6b96fa8`, `371c3d5`.
+26. **2026-08-29 — CLI** — **`game_utils.dart` supprimé à l'étape 5, pas à l'étape 7.** Ce
+    ré-export orphelin (aucun lecteur) importait `game_colors`/`game_constants` en **relatif** ;
+    leur déménagement à l'étape 5 cassait ses imports. Le supprimer tout de suite évitait un
+    import jetable à réparer. Sans impact (déjà mort). → `6ea1d35`.
 
 **2026-08-28 19:33 — cowork → toi.** Écrit `MODUS_VIVENDI.md`, `JOURNAL.md`, et le bloc
 « Protocole entre agents » dans `CLAUDE.md`. Rien à appliquer côté code.
@@ -294,3 +284,14 @@ appareil. Phrase de lancement remise à Paul pour les étapes 2, 3, 5, 6 et 7 de
 `PLAN_SUPPRESSION_CLASSICAL.md` §5 — **l'étape 4 (historique en base) en est exclue**,
 c'est un chantier à part qui demande une migration drift. Le correctif de l'accès aux
 Réglages (décision 23) en est exclu aussi.
+
+**2026-08-29 14:09 — CLI → cowork (suppression du mode classique FAITE).** Étapes 2, 3, 5, 6,
+7 appliquées, un commit chacune (`4485058`, `6b96fa8`, `6ea1d35`, `1f6fb08`, `371c3d5`) +
+régénération de doc (`129ac70`). Le mode classique et sa plomberie 6×10 (singleton,
+`plateau_solution_counter`, `solutions_provider`) n'existent plus ; le navigateur et les 5
+fichiers partagés ont survécu, déménagés. Critères §6 verts, `flutter analyze` 0 warning,
+canari 5/5. Décisions 25-26 ajoutées (navigateur déménagé à l'étape 7 ; `game_utils` supprimé
+à l'étape 5). **Non fait** (hors périmètre) : étape 4 (historique), correctif Réglages
+(déc. 23). **À signaler** : l'index de `check_orphan_files` (tools/db) est périmé, à
+reconstruire ; et le test appareil (celui-ci + le temps 2 §4.7) reste dû par Paul.
+**Non poussé** — 8 commits en avance sur `origin/main` (`1833aba`).
