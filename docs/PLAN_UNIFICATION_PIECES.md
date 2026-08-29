@@ -854,5 +854,3 @@ grep -n "final .*;" lib/pentoscope/pentoscope_provider.dart
 - `docs/PLAN_SUPPRESSION_DEMO.md` — suppression de la démo automatique et de la
   machinerie de tutoriel ; allège les étapes 4 et 5
 - `docs/PENTOSCOPE.md` — le module dont la logique est à extraire (étape 4)
-- `docs/MEMO_ARCHITECTURE_PIECES_REUSABLE.md` — mémo antérieur sur le même sujet,
-  **non relu**, encore en vocabulaire « Isopento »
