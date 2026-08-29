@@ -1,9 +1,11 @@
-// Modified: 2026-08-29 08:55 — 6×10 dans Pentoscope (temps 2, étape 1) : _width/_height/_cells
-//           passent de static const à champs d'instance, défauts 6×10. Additif : le
-//           singleton global reste 6×10, le mode classique est inchangé ; Pentoscope pourra
-//           créer ses propres instances pour d'autres rectangles complets.
+// Modified: 2026-08-29 14:09 — suppression du mode classique (§3.1, étape 7) : retrait du
+//           singleton global (son seul rôle était de servir le mode classique, supprimé).
+//           La classe SolutionMatcher reste — Pentoscope en crée des instances par table ;
+//           exemples de doc reformulés en conséquence.
 // lib/services/solution_matcher.dart
-// Historique: 2026-08-27 15:32 — correction de la table des lettres de pièces (commentaires).
+// Historique: 2026-08-29 08:55 — temps 2 étape 1 : _width/_height/_cells en champs d'instance
+//             (défauts 6×10), paramétrisation additive.
+//             2026-08-27 15:32 — correction de la table des lettres de pièces (commentaires).
 // =============================================================================
 // SERVICE DE GESTION DES SOLUTIONS PENTOMINOS 6×10
 // =============================================================================
@@ -227,7 +229,7 @@ class SolutionInfo {
 /// ```dart
 /// final loader = PentapolSolutionsLoader();
 /// await loader.load();
-/// solutionMatcher.initWithBigIntSolutions(loader.bigIntSolutions);
+/// matcher.initWithBigIntSolutions(loader.bigIntSolutions);
 /// ```
 ///
 /// ## Recherche de compatibilité
@@ -238,17 +240,17 @@ class SolutionInfo {
 /// final (piecesBits, maskBits) = plateau.toBigIntMasks();
 ///
 /// // Compter les solutions compatibles
-/// final count = solutionMatcher.countCompatibleFromBigInts(piecesBits, maskBits);
+/// final count = matcher.countCompatibleFromBigInts(piecesBits, maskBits);
 ///
 /// // Ou obtenir les indices
-/// final indices = solutionMatcher.getCompatibleSolutionIndices(piecesBits, maskBits);
+/// final indices = matcher.getCompatibleSolutionIndices(piecesBits, maskBits);
 /// ```
 ///
 /// ## Reconstruction des pièces
 ///
 /// Pour obtenir les [PlacedPiece] d'une solution :
 /// ```dart
-/// final pieces = solutionMatcher.getPlacedPiecesByIndex(42);
+/// final pieces = matcher.getPlacedPiecesByIndex(42);
 /// for (final p in pieces!) {
 ///   print('${p.piece.id} à (${p.gridX}, ${p.gridY}) pos=${p.positionIndex}');
 /// }
@@ -356,7 +358,7 @@ class SolutionMatcher {
     if (!_initialized) {
       throw StateError(
         'SolutionMatcher non initialisé.\n'
-        'Appelle solutionMatcher.initWithBigIntSolutions(...) au démarrage.',
+        'Appelle matcher.initWithBigIntSolutions(...) au démarrage.',
       );
     }
   }
@@ -577,7 +579,7 @@ class SolutionMatcher {
   ///
   /// ## Exemple
   /// ```dart
-  /// final indices = solutionMatcher.getCompatibleSolutionIndices(piecesBits, maskBits);
+  /// final indices = matcher.getCompatibleSolutionIndices(piecesBits, maskBits);
   /// for (final idx in indices) {
   ///   final info = SolutionInfo(idx);
   ///   print('Solution $idx (famille ${info.canonicalIndex})');
@@ -662,8 +664,8 @@ class SolutionMatcher {
   ///
   /// ## Exemple
   /// ```dart
-  /// final solution = solutionMatcher.getSolutionByIndex(42)!;
-  /// final pieces = solutionMatcher.solutionToPlacedPieces(solution);
+  /// final solution = matcher.getSolutionByIndex(42)!;
+  /// final pieces = matcher.solutionToPlacedPieces(solution);
   ///
   /// for (final p in pieces) {
   ///   print('Pièce ${p.piece.id}:');
@@ -746,7 +748,7 @@ class SolutionMatcher {
   ///
   /// ## Exemple
   /// ```dart
-  /// final pieces = solutionMatcher.getPlacedPiecesByIndex(42);
+  /// final pieces = matcher.getPlacedPiecesByIndex(42);
   /// if (pieces != null) {
   ///   print('Solution 42 contient ${pieces.length} pièces');
   /// }
@@ -758,35 +760,6 @@ class SolutionMatcher {
   }
 }
 
-// =============================================================================
-// SINGLETON GLOBAL
-// =============================================================================
-
-/// Instance singleton du [SolutionMatcher].
-///
-/// Évite de recharger les solutions à chaque utilisation.
-/// Doit être initialisé au démarrage de l'application.
-///
-/// ## Initialisation typique (dans main.dart ou bootstrap.dart)
-/// ```dart
-/// void main() async {
-///   WidgetsFlutterBinding.ensureInitialized();
-///
-///   // Charger les solutions
-///   final loader = PentapolSolutionsLoader();
-///   await loader.load();
-///   solutionMatcher.initWithBigIntSolutions(loader.bigIntSolutions);
-///
-///   runApp(MyApp());
-/// }
-/// ```
-///
-/// ## Utilisation
-/// ```dart
-/// // Compter les solutions compatibles
-/// final count = solutionMatcher.countCompatibleFromBigInts(piecesBits, maskBits);
-///
-/// // Obtenir les pièces d'une solution
-/// final pieces = solutionMatcher.getPlacedPiecesByIndex(42);
-/// ```
-final solutionMatcher = SolutionMatcher();
+// Le singleton global `solutionMatcher` a été retiré avec le mode classique
+// (PLAN_SUPPRESSION_CLASSICAL.md §3.1) : Pentoscope crée ses propres instances par
+// table via `pentoscopeSolutionsProvider`. La classe reste, pas l'instance globale.

@@ -24,7 +24,7 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
-import 'package:pentapol/screens/solutions_browser_screen.dart';
+import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 
 /// ⏱️ Formate le temps en secondes (max 999s) - format compact

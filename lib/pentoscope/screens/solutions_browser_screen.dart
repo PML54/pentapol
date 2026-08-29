@@ -1,10 +1,10 @@
-// Modified: 2026-08-29 13:43 — dégraissé du singleton (suppression du mode classique,
-//           PLAN_SUPPRESSION_CLASSICAL.md §3.1/§5 étape 3) : afficheur pur d'une
-//           `List<BigInt>` — retrait de solution_matcher, du constructeur par défaut et de la
-//           branche else qui lisait le singleton global. Un seul constructeur : forSolutions.
-//           Déménagement physique différé à l'étape 7 (décision, cf. JOURNAL).
-// lib/screens/solutions_browser_screen.dart
-// Historique: 2025-11-16 — Navigateur de solutions BigInt (360 bits).
+// Modified: 2026-08-29 14:09 — déménagé vers lib/pentoscope/screens/ (suppression du mode
+//           classique, §5 étape 7) : le seul appelant restant est Pentoscope. Le dégraissage
+//           du singleton (afficheur pur de List<BigInt>, un seul constructeur forSolutions)
+//           avait été fait à l'étape 3.
+// lib/pentoscope/screens/solutions_browser_screen.dart
+// Historique: 2026-08-29 13:43 — dégraissé du singleton (afficheur pur de List<BigInt>).
+//             2025-11-16 — Navigateur de solutions BigInt (360 bits).
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

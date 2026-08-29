@@ -1,6 +1,7 @@
-// Modified: 2026-08-29 14:02 — suppression du mode classique (§2, étape 6) : coupure du point
-//           d'entrée — retrait de l'import du screen classique et de la route '/game'. La
-//           route '/home' et l'amorce de solutionsReadyProvider restent (nettoyées à l'étape 7).
+// Modified: 2026-08-29 14:09 — suppression du mode classique (§2/§3.1, étape 7) : retrait de
+//           l'amorce de solutionsReadyProvider et de son import (le provider et le singleton
+//           global des 9356 disparaissent avec le module). L'entrée du mode classique avait
+//           déjà été coupée à l'étape 6.
 // lib/main.dart
 // Historique: 2026-08-27 16:04 — suppression de la course au démarrage (P4) : chargement des
 //             solutions via solutionsReadyProvider, amorcé ici.
@@ -13,7 +14,6 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 
-import 'package:pentapol/providers/solutions_provider.dart';
 import 'package:pentapol/screens/home_screen.dart';
 
 
@@ -35,13 +35,8 @@ class _PentapolAppState extends ConsumerState<PentapolApp> {
   @override
   void initState() {
     super.initState();
-
-    // Amorce le chargement des 9356 solutions SANS l'attendre : Pentoscope utilise
-    // PentoscopeSolver et n'en a pas besoin, il ne doit pas être ralenti au démarrage.
-    // PentominoGameScreen observe ce même provider et refuse de monter le jeu tant
-    // qu'il n'est pas résolu — c'est ce qui supprime la course (défaut P4).
-    ref.read(solutionsReadyProvider);
-
+    // Le singleton global des 9356 (solutionsReadyProvider) servait le mode classique,
+    // supprimé : Pentoscope charge ses tables via pentoscopeSolutionsProvider.
     _initializeApp();
   }
 

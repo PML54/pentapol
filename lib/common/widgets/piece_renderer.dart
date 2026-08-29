@@ -1,4 +1,4 @@
-// Modified: 2026-08-29 13:43 — déménagé de lib/screens/pentomino_game/widgets/shared/ vers
+// Modified: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique  vers
 //           lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
 //           et le multijoueur, sorti avant la suppression du dossier classique.
 // lib/common/widgets/piece_renderer.dart
