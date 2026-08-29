@@ -1,8 +1,11 @@
-// Modified: 2026-08-28 20:30 — suppression démo : retrait du bloc « MÉTHODES POUR TUTORIEL »
-//           (7 méthodes publiques sans appelant : selectPieceFromSliderForTutorial,
-//           highlightPieceInSlider, clearSliderHighlight, scrollSliderToPiece,
-//           placeSelectedPieceForTutorial, selectPlacedPieceAt, rotateAroundMasterForTutorial).
-// Historique: 2026-08-28 04:48 — étape 3 : extraction de GameTimerMixin et PieceInteractionMixin.
+// Modified: 2026-08-29 07:46 — 6×10 dans Pentoscope (temps 1) : garde dans
+//           _checkHasPossibleSolutionWith — les tailles adossées à une table (6×10) ne
+//           passent plus par le solveur (hasPossibleSolution reste true). Un seul point,
+//           couvre les 5 appelants. Aucun accès à solutionMatcher à ce stade.
+// lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-28 20:30 — suppression démo : retrait du bloc de 7 méthodes de
+//             démonstration, publiques sans appelant.
+//             2026-08-28 04:48 — étape 3 : extraction de GameTimerMixin et PieceInteractionMixin.
 //             startTimer/stopTimer/getElapsedSeconds, clearPreview et setDragging retirés du
 //             provider ; fournis par les mixins via stateWith* (elapsedSeconds/preview/isDragging).
 //             Le garde du timer passe de _gameTimer==null à !isTimerRunning.
@@ -273,6 +276,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   ) {
     if (state.puzzle == null) return false;
     if (availablePieces.isEmpty) return false;
+
+    // Temps 1 : les tailles adossées à une table de solutions (6×10) ne passent
+    // pas par le solveur — hasPossibleSolution reste true. Le vrai calcul (le
+    // compteur qui peut passer au rouge) vient au temps 2 via SolutionSource.
+    // Court-circuit à un seul point : couvre tous les appelants de cette méthode.
+    if (state.puzzle!.size.table != null) return true;
 
     final width = state.puzzle!.size.width;
     final height = state.puzzle!.size.height;
