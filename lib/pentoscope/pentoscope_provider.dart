@@ -1,9 +1,12 @@
-// Modified: 2026-08-29 07:46 — 6×10 dans Pentoscope (temps 1) : garde dans
-//           _checkHasPossibleSolutionWith — les tailles adossées à une table (6×10) ne
-//           passent plus par le solveur (hasPossibleSolution reste true). Un seul point,
-//           couvre les 5 appelants. Aucun accès à solutionMatcher à ce stade.
+// Modified: 2026-08-29 09:26 — 6×10 dans Pentoscope (temps 2, étapes 4/6) : champ _solutions
+//           (SolutionSource), posé par _makeSolutionSource — seul site lisant size.table —
+//           dans les 3 créations de puzzle. _checkHasPossibleSolutionWith et applyHint
+//           passent par _solutions (table réelle → l'indice peut passer au rouge) ; la garde
+//           temps-1 et l'appel direct au solveur sont retirés.
 // lib/pentoscope/pentoscope_provider.dart
-// Historique: 2026-08-28 20:30 — suppression démo : retrait du bloc de 7 méthodes de
+// Historique: 2026-08-29 07:46 — temps 1 : garde de court-circuit dans
+//             _checkHasPossibleSolutionWith.
+//             2026-08-28 20:30 — suppression démo : retrait du bloc de 7 méthodes de
 //             démonstration, publiques sans appelant.
 //             2026-08-28 04:48 — étape 3 : extraction de GameTimerMixin et PieceInteractionMixin.
 //             startTimer/stopTimer/getElapsedSeconds, clearPreview et setDragging retirés du
@@ -41,6 +44,8 @@ import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_solver.dart'
     show Solution, PentoscopeSolver;
+import 'package:pentapol/pentoscope/solution_source.dart';
+import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
 
 // ============================================================================
 // ÉTAT
@@ -76,7 +81,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   late final PentoscopeGenerator _generator;
   late final PentoscopeSolver _solver;
-  
+
+  /// D'où viennent les réponses « solution » du puzzle courant. Posé à chaque
+  /// création de puzzle par _makeSolutionSource (seul site lisant size.table).
+  /// Défaut : solveur à la volée, tant qu'aucun puzzle n'est démarré.
+  late SolutionSource _solutions;
+
   // ⏱️ Timer
   
   // ============================================================================
@@ -143,7 +153,18 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     });
     _generator = PentoscopeGenerator();
     _solver = PentoscopeSolver();
+    _solutions = LiveSolutionSource(_solver);
     return PentoscopeState.initial();
+  }
+
+  /// Choisit la source de solutions du puzzle : table pré-calculée si la taille
+  /// en porte une (chargée paresseusement, instance propre à Pentoscope), sinon
+  /// le solveur à la volée. **Seul site lisant `size.table`** (§4.2).
+  Future<SolutionSource> _makeSolutionSource(PentoscopeSize size) async {
+    final table = size.table;
+    if (table == null) return LiveSolutionSource(_solver);
+    final matcher = await ref.read(pentoscopeSolutionsProvider(table).future);
+    return TableSolutionSource(matcher, table);
   }
 
   // ==========================================================================
@@ -188,49 +209,35 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (state.availablePieces.isEmpty) return;
     if (!state.hasPossibleSolution) return;
 
-    final width = state.puzzle!.size.width;
-    final height = state.puzzle!.size.height;
-
-    // Récupérer les IDs des pièces non encore placées
-    final remainingPieceIds = state.availablePieces.map((p) => p.id).toList();
-
-    // Créer un plateau temporaire avec les pièces déjà placées
-    final tempPlateau = List<List<int>>.generate(
-      height,
-      (_) => List<int>.filled(width, 0),
-    );
-
-    for (final placed in state.placedPieces) {
-      for (final cell in placed.absoluteCells) {
-        if (cell.x >= 0 && cell.x < width && cell.y >= 0 && cell.y < height) {
-          tempPlateau[cell.y][cell.x] = placed.piece.id;
-        }
-      }
-    }
-
-    // Trouver une solution
-    final solution = _solver.findSolutionFrom(remainingPieceIds, width, height, tempPlateau);
+    // Source du puzzle : table pré-calculée (solution compatible aléatoire,
+    // décision §4.6) ou solveur à la volée. hintFrom renvoie les placements d'une
+    // solution ; on y choisit une pièce non encore posée.
+    final board = _rebuildPlateau();
+    final solution = _solutions.hintFrom(board, state.availablePieces);
     if (solution == null || solution.isEmpty) {
       debugPrint('❌ HINT: Aucune solution trouvée');
       return;
     }
 
-    // Prendre le premier placement de la solution (première pièce à placer)
-    final hintPlacement = solution.first;
-    final hintPiece = pentominos.firstWhere((p) => p.id == hintPlacement.pieceId);
+    final placedIds = state.placedPieces.map((p) => p.piece.id).toSet();
+    PlacedPiece? hint;
+    for (final pp in solution) {
+      if (!placedIds.contains(pp.piece.id)) {
+        hint = pp;
+        break;
+      }
+    }
+    if (hint == null) {
+      debugPrint('❌ HINT: Aucune pièce nouvelle dans la solution proposée');
+      return;
+    }
+    final hintPiece = hint.piece;
 
-    debugPrint('💡 HINT: Placer pièce ${hintPiece.id} à (${hintPlacement.gridX}, ${hintPlacement.gridY}) pos=${hintPlacement.positionIndex}');
+    debugPrint('💡 HINT: Placer pièce ${hintPiece.id} à (${hint.gridX}, ${hint.gridY}) pos=${hint.positionIndex}');
 
-    // Créer le nouveau plateau
+    // Créer le nouveau plateau et y poser la pièce indiquée
     final newPlateau = _rebuildPlateau();
-
-    // Placer la nouvelle pièce
-    final newPlaced = PlacedPiece(
-      piece: hintPiece,
-      positionIndex: hintPlacement.positionIndex,
-      gridX: hintPlacement.gridX,
-      gridY: hintPlacement.gridY,
-    );
+    final newPlaced = hint;
 
     for (final cell in newPlaced.absoluteCells) {
       newPlateau.setCell(cell.x, cell.y, hintPiece.id);
@@ -268,7 +275,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  /// Version interne pour vérifier avec un état spécifique
+  /// Version interne pour vérifier avec un état spécifique.
+  ///
+  /// Temps 2 : passe par la source de solutions du puzzle courant (`_solutions`),
+  /// table pré-calculée ou solveur à la volée selon la taille. La table donne le
+  /// vrai « une solution reste-t-elle atteignable ? » — le compteur peut donc
+  /// passer au rouge, contrairement au court-circuit du temps 1.
   bool _checkHasPossibleSolutionWith(
     Plateau plateau,
     List<Pento> availablePieces,
@@ -277,30 +289,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (state.puzzle == null) return false;
     if (availablePieces.isEmpty) return false;
 
-    // Temps 1 : les tailles adossées à une table de solutions (6×10) ne passent
-    // pas par le solveur — hasPossibleSolution reste true. Le vrai calcul (le
-    // compteur qui peut passer au rouge) vient au temps 2 via SolutionSource.
-    // Court-circuit à un seul point : couvre tous les appelants de cette méthode.
-    if (state.puzzle!.size.table != null) return true;
-
-    final width = state.puzzle!.size.width;
-    final height = state.puzzle!.size.height;
-    final remainingPieceIds = availablePieces.map((p) => p.id).toList();
-
-    final tempPlateau = List<List<int>>.generate(
-      height,
-      (_) => List<int>.filled(width, 0),
-    );
-
-    for (final placed in placedPieces) {
-      for (final cell in placed.absoluteCells) {
-        if (cell.x >= 0 && cell.x < width && cell.y >= 0 && cell.y < height) {
-          tempPlateau[cell.y][cell.x] = placed.piece.id;
-        }
-      }
-    }
-
-    return _solver.canSolveFrom(remainingPieceIds, width, height, tempPlateau);
+    final board = _rebuildPlateau(pieces: placedPieces);
+    return _solutions.hasSolutionFrom(board, availablePieces);
   }
 
   // ==========================================================================
@@ -413,6 +403,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     // Générer un nouveau puzzle avec la même taille
     final newPuzzle = await _generator.generate(puzzle.size);
+    _solutions = await _makeSolutionSource(newPuzzle.size);
 
     final pieces = newPuzzle.pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
@@ -570,6 +561,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       PentoscopeDifficulty.hard => _generator.generateHard(size),
       PentoscopeDifficulty.random => _generator.generate(size),
     };
+    _solutions = await _makeSolutionSource(size);
 
     final pieces = puzzle.pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
@@ -635,6 +627,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   ) async {
     // Générer le puzzle avec les paramètres fournis
     final puzzle = await _generator.generateFromSeed(size, seed, pieceIds);
+    _solutions = await _makeSolutionSource(size);
 
     final pieces = pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
