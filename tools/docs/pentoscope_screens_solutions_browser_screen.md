@@ -1,24 +1,14 @@
-# screens/solutions_browser_screen.dart
+# pentoscope/screens/solutions_browser_screen.dart
 
-**Module:** screens
+**Module:** pentoscope
 
 ## Fonctions
 
-### SolutionsBrowserScreen
-
-Liste de solutions à afficher (BigInt).
-Si null → on affiche toutes les solutions de solutionMatcher.
-Titre personnalisé (affiché en petit au-dessus des flèches si fourni).
-Constructeur standard : affiche toutes les solutions.
-
-
-```dart
-const SolutionsBrowserScreen({super.key})
-```
-
 ### createState
 
-Constructeur pour afficher une liste donnée de solutions.
+Liste de solutions à afficher (BigInt).
+Titre personnalisé (affiché en petit au-dessus des flèches si fourni).
+Affiche une liste donnée de solutions.
 
 
 ```dart
@@ -40,7 +30,7 @@ Widget build(BuildContext context) {
 ### Scaffold
 
 ```dart
-return Scaffold( appBar: AppBar( title: const Text('Solutions'), backgroundColor: Colors.blue[700], ), body: const Center( child: Text( 'Aucune solution chargée.\n' 'Vérifie que SolutionMatcher est bien initialisé au démarrage.', textAlign: TextAlign.center, ), ), );
+return Scaffold( appBar: AppBar( title: const Text('Solutions'), backgroundColor: Colors.blue[700], ), body: const Center( child: Text( 'Aucune solution compatible avec ce plateau.', textAlign: TextAlign.center, ), ), );
 ```
 
 ### Scaffold

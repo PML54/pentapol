@@ -64,6 +64,12 @@ Obtient les numéros de cases occupées par cette pièce sur le plateau 6×10.
 Retourne une liste de cellNum (1 à 60) correspondant aux cases occupées.
 Les cases hors limites (x < 0, x >= 6, y < 0, y >= 10) sont ignorées.
 
+⚠️ **Réservé au plateau 6×10 du mode classique.** Les bornes sont écrites en
+dur. Sur un plateau Pentoscope (hauteur 5, largeur 3 à 10), cette méthode
+écarte silencieusement les cases hors de la zone 6×10 et renvoie un résultat
+faux sans lever d'erreur. Utiliser [absoluteCells], qui ne présume rien des
+dimensions.
+
 
 ```dart
 List<int> getOccupiedCells() {

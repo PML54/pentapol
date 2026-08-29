@@ -43,7 +43,7 @@ Widget build(BuildContext context) {
 ### Scaffold
 
 ```dart
-return Scaffold( backgroundColor: Colors.white, appBar: isLandscape ? null : PreferredSize( preferredSize: const Size.fromHeight(56.0), child: AppBar( toolbarHeight: 56.0, backgroundColor: Colors.white, automaticallyImplyLeading: false, // 🔑 En mode transformation: pas de leading, les icônes prennent toute la place leading: (isPlacedPieceSelected || isSliderPieceSelected) ? null : Row( mainAxisSize: MainAxisSize.min, children: [ IconButton( icon: const Icon(Icons.close, color: Colors.red), onPressed: () => Navigator.pop(context), ), // ⏱️ Chronomètre Text( _formatTime(state.elapsedSeconds), style: const TextStyle( fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black, ), ), ], ), leadingWidth: (isPlacedPieceSelected || isSliderPieceSelected) ? 0 : 100, // 🔑 En mode transformation: icônes isométrie pleine largeur title: (isPlacedPieceSelected || isSliderPieceSelected) ? _buildFullWidthIsometryBar(state, notifier) : state.isComplete ? TweenAnimationBuilder<double>( tween: Tween(begin: 0.0, end: 1.0), duration: const Duration(milliseconds: 800), curve: Curves.elasticOut, builder: (context, value, child) {
+return Scaffold( backgroundColor: Colors.white, appBar: isLandscape ? null : PreferredSize( preferredSize: const Size.fromHeight(56.0), child: AppBar( toolbarHeight: 56.0, backgroundColor: Colors.white, automaticallyImplyLeading: false, // 🔑 En mode transformation: pas de leading, les icônes prennent toute la place leading: (isPlacedPieceSelected || isSliderPieceSelected) ? null : Row( mainAxisSize: MainAxisSize.min, children: [ // ⏱️ Chronomètre Text( _formatTime(state.elapsedSeconds), style: const TextStyle( fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black, ), ), ], ), leadingWidth: (isPlacedPieceSelected || isSliderPieceSelected) ? 0 : 60, // 🔑 En mode transformation: icônes isométrie pleine largeur title: (isPlacedPieceSelected || isSliderPieceSelected) ? _buildFullWidthIsometryBar(state, notifier) : state.isComplete ? TweenAnimationBuilder<double>( tween: Tween(begin: 0.0, end: 1.0), duration: const Duration(milliseconds: 800), curve: Curves.elasticOut, builder: (context, value, child) {
 ```
 
 ### SizedBox
@@ -56,6 +56,12 @@ const SizedBox(width: 6), Icon(Icons.open_with, size: 14, color: Colors.purple.s
 
 ```dart
 const SizedBox(width: 6), Icon(Icons.delete_outline, size: 14, color: Colors.red.shade600), Text('${state.deleteCount}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(width: 4), Text( '${state.solutionsCount}',
 ```
 
 ### Positioned
@@ -97,7 +103,6 @@ return Container( decoration: BoxDecoration( color: pieceId != null ? settings.u
 Simule les pièces de l'adversaire (pour démo)
 En mode miroir : affiche les mêmes pièces que nous
 Récupère l'ID de la pièce à une position donnée
-Widget réutilisable pour les icônes isométrie (horizontal ou vertical)
 🔑 Barre d'isométries pleine largeur avec icônes grandes et réparties uniformément
 
 
@@ -112,24 +117,6 @@ return Row( mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ // Rot
 
 ```dart
 return Column( mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ // Rotation anti-horaire IconButton( icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize), padding: EdgeInsets.zero, constraints: const BoxConstraints(), onPressed: () {
-```
-
-### IconButton
-
-Helper: bouton d'action isométrie
-
-
-```dart
-return IconButton( icon: Icon(icon.icon, size: iconSize), padding: const EdgeInsets.all(6), constraints: const BoxConstraints(minWidth: 36, minHeight: 36), onPressed: () {
-```
-
-### Text
-
-Affiche le nombre de solutions
-
-
-```dart
-return Text( '$count solution${count != 1 ? "s" : ""}',
 ```
 
 ### AnimatedContainer
@@ -177,13 +164,61 @@ return Row( children: [ // Plateau de jeu const Expanded(child: PentoscopeBoard(
 const Expanded(child: PentoscopeBoard(isLandscape: true)),  // Colonne de droite : actions + slider Row( children: [ // 🎯 Colonne d'actions (contextuelles) Container( width: actionColumnWidth, decoration: BoxDecoration( color: Colors.white, boxShadow: [ BoxShadow( color: Colors.black.withOpacity(0.05), blurRadius: 2, offset: const Offset(-1, 0), ), ], ), child: (isPlacedPieceSelected || isSliderPieceSelected) // 🔑 Mode transformation: icônes pleine hauteur, réparties uniformément ? _buildFullHeightIsometryBar(state, notifier, actionColumnWidth) // Mode normal: actions centrées : Column( mainAxisAlignment: MainAxisAlignment.center, children: [ // ⏱️ Chronomètre Padding( padding: const EdgeInsets.symmetric(vertical: 8.0), child: Text( _formatTime(state.elapsedSeconds), style: TextStyle( fontSize: (iconSize * 0.5).clamp(10.0, 16.0), fontWeight: FontWeight.bold, color: Colors.black, ), ), ), // Actions générales (reset, close, hint) IconButton( icon: Icon(Icons.games, size: iconSize), onPressed: () {
 ```
 
-### Column
+### Divider
 
-Version adaptative de la barre d'isométries (taille variable)
+🏆 Bilan affiché à la complétion du puzzle
 
 
 ```dart
-return Column( mainAxisSize: MainAxisSize.min, children: [ // Rotation anti-horaire IconButton( icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize), padding: EdgeInsets.all(iconSize * 0.2), constraints: BoxConstraints(minWidth: iconSize + 8, minHeight: iconSize + 8), onPressed: () {
+const Divider(), const SizedBox(height: 8), _BilanRow(icon: Icons.timer_outlined, label: 'Temps', value: timeStr), const SizedBox(height: 12), _BilanRow(icon: Icons.rotate_right, label: 'Isométries', value: '${state.isometryCount}'),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 8), _BilanRow(icon: Icons.timer_outlined, label: 'Temps', value: timeStr), const SizedBox(height: 12), _BilanRow(icon: Icons.rotate_right, label: 'Isométries', value: '${state.isometryCount}'),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 12), _BilanRow(icon: Icons.rotate_right, label: 'Isométries', value: '${state.isometryCount}'),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 12), _BilanRow(icon: Icons.open_with, label: 'Déplacements', value: '${state.translationCount}'),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 12), _BilanRow(icon: Icons.delete_outline, label: 'Suppressions', value: '${state.deleteCount}', valueColor: Colors.orange),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 12), _BilanRow(icon: Icons.lightbulb, label: 'Indices', value: '${state.hintCount}', valueColor: Colors.orange),
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 12), const Divider(), const SizedBox(height: 4), _BilanRow(icon: Icons.stars, label: 'Score', value: '$scorePercent %', valueColor: scoreColor), ], ), actions: [ TextButton( onPressed: () => Navigator.of(context).pop(), child: const Text('Fermer'), ), FilledButton.icon( icon: const Icon(Icons.refresh, size: 18), label: const Text('Nouvelle partie'), onPressed: () {
+```
+
+### Divider
+
+```dart
+const Divider(), const SizedBox(height: 4), _BilanRow(icon: Icons.stars, label: 'Score', value: '$scorePercent %', valueColor: scoreColor), ], ), actions: [ TextButton( onPressed: () => Navigator.of(context).pop(), child: const Text('Fermer'), ), FilledButton.icon( icon: const Icon(Icons.refresh, size: 18), label: const Text('Nouvelle partie'), onPressed: () {
+```
+
+### SizedBox
+
+```dart
+const SizedBox(height: 4), _BilanRow(icon: Icons.stars, label: 'Score', value: '$scorePercent %', valueColor: scoreColor), ], ), actions: [ TextButton( onPressed: () => Navigator.of(context).pop(), child: const Text('Fermer'), ), FilledButton.icon( icon: const Icon(Icons.refresh, size: 18), label: const Text('Nouvelle partie'), onPressed: () {
 ```
 
 ### Text
@@ -199,5 +234,32 @@ const Text('Sélectionnez la nouvelle taille :'), const SizedBox(height: 16), ..
 
 ```dart
 const SizedBox(height: 16), ...PentoscopeSize.values.map((size) => RadioListTile<PentoscopeSize>( title: Text('${size.label} (${size.width}x${size.height})'),
+```
+
+### build
+
+👥 Navigation vers le mode multijoueur
+
+
+```dart
+Widget build(BuildContext context) {
+```
+
+### Row
+
+```dart
+return Row( children: [ Icon(icon, size: 20, color: theme.colorScheme.primary), const SizedBox(width: 10), Text(label, style: theme.textTheme.bodyMedium), const Spacer(), Text( value, style: theme.textTheme.titleMedium?.copyWith( fontWeight: FontWeight.bold, color: valueColor ?? theme.colorScheme.primary, ), ), ], );
+```
+
+### SizedBox
+
+```dart
+const SizedBox(width: 10), Text(label, style: theme.textTheme.bodyMedium), const Spacer(), Text( value, style: theme.textTheme.titleMedium?.copyWith( fontWeight: FontWeight.bold, color: valueColor ?? theme.colorScheme.primary, ), ), ], );
+```
+
+### Spacer
+
+```dart
+const Spacer(), Text( value, style: theme.textTheme.titleMedium?.copyWith( fontWeight: FontWeight.bold, color: valueColor ?? theme.colorScheme.primary, ), ), ], );
 ```
 

@@ -1,6 +1,6 @@
-# screens/pentomino_game/widgets/shared/piece_border_calculator.dart
+# common/widgets/piece_border_calculator.dart
 
-**Module:** screens
+**Module:** common
 
 ## Fonctions
 

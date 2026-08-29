@@ -4,125 +4,18 @@
 
 ## Modules
 
-- **classical** (3 fichiers)
-- **common** (9 fichiers)
+- **common** (15 fichiers)
 - **config** (4 fichiers)
-- **data** (1 fichiers)
 - **database** (2 fichiers)
 - **debug** (1 fichiers)
 - **main.dart** (1 fichiers)
 - **models** (1 fichiers)
-- **pentoscope** (7 fichiers)
+- **pentoscope** (9 fichiers)
 - **pentoscope_multiplayer** (6 fichiers)
 - **providers** (1 fichiers)
-- **screens** (14 fichiers)
-- **services** (4 fichiers)
-- **utils** (6 fichiers)
-
----
-
-## Module: classical
-
-### classical/pentomino_game_provider.dart
-
-**Fonctions :**
-
-- `canPlacePiece()`
-- `applyIsometryRotationCW()`
-- `applyIsometryRotationTW()`
-- `applyIsometrySymmetryH()`
-- `applyIsometrySymmetryV()`
-- `build()`
-- `calculateScore()`
-- `cancelSelection()`
-- `applyHint()`
-- `cancelTutorial()`
-- `onPuzzleCompleted()`
-- `clearBoardHighlight()`
-- `clearCellHighlights()`
-- `clearIsometryIconHighlight()`
-- `incrementSolutionsViewCount()`
-- `clearMastercaseHighlight()`
-- `clearPreview()`
-- `clearSliderHighlight()`
-- `cycleToNextOrientation()`
-- `enterIsometriesMode()`
-- `enterTutorialMode()`
-- `StateError()`
-- `StateError()`
-- `exitIsometriesMode()`
-- `exitTutorialMode()`
-- `StateError()`
-- `StateError()`
-- `getElapsedSeconds()`
-- `highlightCell()`
-- `ArgumentError()`
-- `highlightCells()`
-- `highlightIsometryIcon()`
-- `highlightMastercase()`
-- `highlightPieceInSlider()`
-- `ArgumentError()`
-- `highlightPieceOnBoard()`
-- `ArgumentError()`
-- `StateError()`
-- `highlightValidPositions()`
-- `placeSelectedPieceForTutorial()`
-- `removePlacedPiece()`
-- `reset()`
-- `resetSliderPosition()`
-- `restoreState()`
-- `scrollSlider()`
-- `scrollSliderToPiece()`
-- `ArgumentError()`
-- `selectPiece()`
-- `selectPieceFromSliderForTutorial()`
-- `ArgumentError()`
-- `selectPlacedPiece()`
-- `selectPlacedPieceAtForTutorial()`
-- `StateError()`
-- `selectPlacedPieceWithMastercaseForTutorial()`
-- `StateError()`
-- `ArgumentError()`
-- `setViewOrientation()`
-- `startTimer()`
-- `stopTimer()`
-- `tryPlacePiece()`
-- `undoLastPlacement()`
-- `updatePreview()`
-- `Point()`
-- `findNearestValidPosition()`
-- `remapSelectedCell()`
-
-### classical/pentomino_game_screen.dart
-
-**Fonctions :**
-
-- `PentominoGameScreen()`
-- `createState()`
-- `build()`
-- `SizedBox()`
-- `SizedBox()`
-- `Divider()`
-- `SizedBox()`
-- `SizedBox()`
-- `Scaffold()`
-- `dispose()`
-- `initState()`
-- `didChangeDependencies()`
-- `LayoutBuilder()`
-- `Row()`
-- `Column()`
-- `AnimatedContainer()`
-
-### classical/pentomino_game_state.dart
-
-**Fonctions :**
-
-- `PentominoGameState()`
-- `canPlacePiece()`
-- `copyWith()`
-- `PentominoGameState()`
-- `getPiecePositionIndex()`
+- **screens** (3 fichiers)
+- **services** (3 fichiers)
+- **utils** (5 fichiers)
 
 ---
 
@@ -140,6 +33,12 @@
 - `getCell()`
 - `ArgumentError()`
 
+### common/game_colors.dart
+
+**Fonctions :**
+
+- `getPieceColorFallback()`
+
 ### common/game_piece.dart
 
 **Fonctions :**
@@ -156,16 +55,15 @@
 - `unplace()`
 - `GamePiece()`
 
-### common/isometry_transformation_service.dart
+### common/game_timer_mixin.dart
 
 **Fonctions :**
 
-- `applyRotationTW()`
-- `applyRotationCW()`
-- `applySymmetryH()`
-- `applySymmetryV()`
-- `canPlacePiece()`
-- `UnimplementedError()`
+- `stateWithElapsedSeconds()`
+- `startTimer()`
+- `stopTimer()`
+- `resetTimer()`
+- `getElapsedSeconds()`
 
 ### common/pentomino_game_mixin.dart
 
@@ -180,6 +78,19 @@
 - `calculateAnchorPosition()`
 - `Point()`
 - `Point()`
+
+### common/pentomino_symmetry_api.dart
+
+**Fonctions :**
+
+- `applyRotationAbs()`
+- `Point()`
+- `Point()`
+- `applySymmetryAbs()`
+- `Point()`
+- `Point()`
+- `normalizeCoords()`
+- `findOrientationIndexFromNormalized()`
 
 ### common/pentominos.dart
 
@@ -199,6 +110,15 @@
 - `symmetryHRelativeToMastercase()`
 - `symmetryVRelativeToMastercase()`
 - `minIsometriesToReach()`
+
+### common/piece_interaction_mixin.dart
+
+**Fonctions :**
+
+- `stateWithDragging()`
+- `stateWithPreviewCleared()`
+- `setDragging()`
+- `clearPreview()`
 
 ### common/placed_piece.dart
 
@@ -238,6 +158,32 @@
 - `ShapeMatch()`
 - `toString()`
 - `ShapeMatch()`
+
+### common/widgets/draggable_piece_widget.dart
+
+**Fonctions :**
+
+- `DraggablePieceWidget()`
+- `createState()`
+- `dispose()`
+- `build()`
+
+### common/widgets/piece_border_calculator.dart
+
+**Fonctions :**
+
+- `calculate()`
+- `neighborId()`
+- `Border()`
+- `Border()`
+
+### common/widgets/piece_renderer.dart
+
+**Fonctions :**
+
+- `PieceRenderer()`
+- `build()`
+- `Container()`
 
 ---
 
@@ -300,22 +246,6 @@
 - `calculateLayout()`
 - `calculateActionBarDimensions()`
 - `calculateLayout()`
-
----
-
-## Module: data
-
-### data/solution_database.dart
-
-**Fonctions :**
-
-- `init()`
-- `StateError()`
-- `decodeSolution()`
-- `hasSolution()`
-- `findMatchingSolutions()`
-- `getStats()`
-- `reset()`
 
 ---
 
@@ -512,6 +442,7 @@
 - `PentoscopePuzzle()`
 - `PentoscopePuzzle()`
 - `toString()`
+- `SolutionTable()`
 - `PentoscopeSize()`
 - `PentoscopeStats()`
 - `toString()`
@@ -520,19 +451,20 @@
 
 **Fonctions :**
 
+- `stateWithDragging()`
+- `stateWithPreviewCleared()`
+- `stateWithElapsedSeconds()`
 - `canPlacePiece()`
 - `applyIsometryRotationCW()`
 - `applyIsometryRotationTW()`
 - `applyIsometrySymmetryH()`
 - `applyIsometrySymmetryV()`
 - `build()`
-- `startTimer()`
-- `stopTimer()`
-- `getElapsedSeconds()`
+- `TableSolutionSource()`
+- `compatibleSolutions()`
 - `calculateNote()`
 - `applyHint()`
 - `cancelSelection()`
-- `clearPreview()`
 - `cycleToNextOrientation()`
 - `removePlacedPiece()`
 - `reset()`
@@ -553,19 +485,14 @@
 - `Point()`
 - `Point()`
 - `Point()`
-- `calculateDefaultCell()`
-- `remapSelectedCell()`
-- `selectPieceFromSliderForTutorial()`
-- `highlightPieceInSlider()`
-- `clearSliderHighlight()`
-- `scrollSliderToPiece()`
-- `placeSelectedPieceForTutorial()`
-- `selectPlacedPieceAt()`
-- `rotateAroundMasterForTutorial()`
-- `PentoscopePlacedPiece()`
 - `Point()`
-- `copyWith()`
-- `PentoscopePlacedPiece()`
+- `Point()`
+- `calculateDefaultCell()`
+- `Point()`
+- `Point()`
+- `Point()`
+- `Point()`
+- `remapSelectedCell()`
 - `PentoscopeState()`
 - `PentoscopeState()`
 - `canPlacePiece()`
@@ -599,6 +526,7 @@
 - `Scaffold()`
 - `SizedBox()`
 - `SizedBox()`
+- `SizedBox()`
 - `Positioned()`
 - `SizedBox()`
 - `Text()`
@@ -606,17 +534,27 @@
 - `Container()`
 - `Row()`
 - `Column()`
-- `IconButton()`
-- `Text()`
 - `AnimatedContainer()`
 - `Column()`
 - `Expanded()`
 - `LayoutBuilder()`
 - `Row()`
 - `Expanded()`
-- `Column()`
+- `Divider()`
+- `SizedBox()`
+- `SizedBox()`
+- `SizedBox()`
+- `SizedBox()`
+- `SizedBox()`
+- `SizedBox()`
+- `Divider()`
+- `SizedBox()`
 - `Text()`
 - `SizedBox()`
+- `build()`
+- `Row()`
+- `SizedBox()`
+- `Spacer()`
 
 ### pentoscope/screens/pentoscope_menu_screen.dart
 
@@ -637,22 +575,48 @@
 - `Expanded()`
 - `SizedBox()`
 
+### pentoscope/screens/solutions_browser_screen.dart
+
+**Fonctions :**
+
+- `createState()`
+- `initState()`
+- `build()`
+- `Scaffold()`
+- `Scaffold()`
+- `SizedBox()`
+- `SizedBox()`
+- `Container()`
+- `Container()`
+- `SizedBox()`
+- `SizedBox()`
+- `Divider()`
+- `SizedBox()`
+- `SizedBox()`
+- `neighborId()`
+- `Border()`
+- `Border()`
+
+### pentoscope/solution_source.dart
+
+**Fonctions :**
+
+- `hasSolutionFrom()`
+- `compatibleSolutions()`
+- `hasSolutionFrom()`
+- `compatibleSolutions()`
+- `hasSolutionFrom()`
+- `compatibleSolutions()`
+
 ### pentoscope/widgets/pentoscope_board.dart
 
 **Fonctions :**
 
 - `PentoscopeBoard()`
 - `createState()`
-- `highlightCell()`
-- `clearHighlights()`
-- `placeSelectedPiece()`
-- `selectPieceOnBoard()`
 - `build()`
 - `LayoutBuilder()`
 - `Align()`
-- `SizedBox()`
-- `SizedBox()`
-- `SizedBox()`
 
 ### pentoscope/widgets/pentoscope_piece_slider.dart
 
@@ -660,12 +624,8 @@
 
 - `PentoscopePieceSlider()`
 - `createState()`
-- `highlightPiece()`
-- `clearHighlight()`
-- `scrollToPiece()`
 - `selectPiece()`
 - `build()`
-- `Container()`
 - `SizedBox()`
 - `dispose()`
 
@@ -729,9 +689,11 @@
 - `build()`
 - `createRoom()`
 - `Exception()`
+- `Duration()`
 - `joinRoom()`
 - `Exception()`
 - `Exception()`
+- `Duration()`
 - `leaveRoom()`
 - `startGame()`
 - `updateProgress()`
@@ -901,31 +863,6 @@
 - `SizedBox()`
 - `GestureDetector()`
 
-### screens/demo_screen.dart
-
-**Fonctions :**
-
-- `DemoScreen()`
-- `createState()`
-- `initState()`
-- `dispose()`
-- `AnimatedPieceWidget()`
-- `build()`
-- `Scaffold()`
-- `PentominoGameScreen()`
-- `DemoStep()`
-- `AnimatedPieceWidget()`
-- `createState()`
-- `initState()`
-- `dispose()`
-- `build()`
-- `AnimatedBuilder()`
-- `Positioned()`
-- `PentominoPieceWidget()`
-- `build()`
-- `SizedBox()`
-- `Positioned()`
-
 ### screens/home_screen.dart
 
 **Fonctions :**
@@ -946,80 +883,6 @@
 - `SizedBox()`
 - `SizedBox()`
 - `Icon()`
-
-### screens/pentomino_game/utils/game_colors.dart
-
-**Fonctions :**
-
-- `getPieceColorFallback()`
-
-### screens/pentomino_game/widgets/game_mode/piece_slider.dart
-
-**Fonctions :**
-
-- `PieceSlider()`
-- `createState()`
-- `dispose()`
-- `build()`
-- `SizedBox()`
-
-### screens/pentomino_game/widgets/shared/action_slider.dart
-
-**Fonctions :**
-
-- `getCompatibleSolutionsIncludingSelected()`
-- `ActionSlider()`
-- `build()`
-- `LayoutBuilder()`
-- `Column()`
-- `Column()`
-
-### screens/pentomino_game/widgets/shared/draggable_piece_widget.dart
-
-**Fonctions :**
-
-- `DraggablePieceWidget()`
-- `createState()`
-- `dispose()`
-- `build()`
-
-### screens/pentomino_game/widgets/shared/game_board.dart
-
-**Fonctions :**
-
-- `GameBoard()`
-- `build()`
-- `LayoutBuilder()`
-- `Align()`
-
-### screens/pentomino_game/widgets/shared/highlighted_icon_button.dart
-
-**Fonctions :**
-
-- `HighlightedIconButton()`
-- `createState()`
-- `initState()`
-- `dispose()`
-- `build()`
-- `AnimatedBuilder()`
-- `Container()`
-
-### screens/pentomino_game/widgets/shared/piece_border_calculator.dart
-
-**Fonctions :**
-
-- `calculate()`
-- `neighborId()`
-- `Border()`
-- `Border()`
-
-### screens/pentomino_game/widgets/shared/piece_renderer.dart
-
-**Fonctions :**
-
-- `PieceRenderer()`
-- `build()`
-- `Container()`
 
 ### screens/settings_screen.dart
 
@@ -1071,45 +934,6 @@
 - `Color()`
 - `GestureDetector()`
 
-### screens/solutions_browser_screen.dart
-
-**Fonctions :**
-
-- `SolutionsBrowserScreen()`
-- `createState()`
-- `initState()`
-- `build()`
-- `Scaffold()`
-- `Scaffold()`
-- `SizedBox()`
-- `SizedBox()`
-- `Container()`
-- `Container()`
-- `SizedBox()`
-- `SizedBox()`
-- `Divider()`
-- `SizedBox()`
-- `SizedBox()`
-- `neighborId()`
-- `Border()`
-- `Border()`
-
-### screens/solutions_viewer_screen.dart
-
-**Fonctions :**
-
-- `SolutionsViewerScreen()`
-- `createState()`
-- `build()`
-- `Scaffold()`
-- `Scaffold()`
-- `Container()`
-- `SizedBox()`
-- `Text()`
-- `Text()`
-- `Text()`
-- `Text()`
-
 ---
 
 ## Module: services
@@ -1148,16 +972,6 @@
 - `stopCounting()`
 - `tryNextPlacements()`
 - `toString()`
-
-### services/plateau_solution_counter.dart
-
-**Fonctions :**
-
-- `StateError()`
-- `StateError()`
-- `getCompatibleSolutionsBigInt()`
-- `getCompatibleSolutionIndices()`
-- `findExactSolutionIndex()`
 
 ### services/solution_matcher.dart
 
@@ -1210,26 +1024,6 @@
 - `Container()`
 - `getColorHex()`
 - `getPredefinedColors()`
-
-### utils/plateau_compressor.dart
-
-**Fonctions :**
-
-- `encode()`
-- `decode()`
-- `rotate90()`
-- `encode()`
-- `rotate180()`
-- `rotate90()`
-- `rotate270()`
-- `rotate90()`
-- `mirrorH()`
-- `encode()`
-- `compare()`
-- `findCanonical()`
-- `toDebugString()`
-- `areEquivalent()`
-- `compare()`
 
 ### utils/solution_collector.dart
 

@@ -77,7 +77,7 @@ Le matcher doit être initialisé au démarrage de l'application :
 ```dart
 final loader = PentapolSolutionsLoader();
 await loader.load();
-solutionMatcher.initWithBigIntSolutions(loader.bigIntSolutions);
+matcher.initWithBigIntSolutions(loader.bigIntSolutions);
 ```
 
 ## Recherche de compatibilité
@@ -88,17 +88,17 @@ Pour trouver les solutions compatibles avec un plateau partiel :
 final (piecesBits, maskBits) = plateau.toBigIntMasks();
 
 // Compter les solutions compatibles
-final count = solutionMatcher.countCompatibleFromBigInts(piecesBits, maskBits);
+final count = matcher.countCompatibleFromBigInts(piecesBits, maskBits);
 
 // Ou obtenir les indices
-final indices = solutionMatcher.getCompatibleSolutionIndices(piecesBits, maskBits);
+final indices = matcher.getCompatibleSolutionIndices(piecesBits, maskBits);
 ```
 
 ## Reconstruction des pièces
 
 Pour obtenir les [PlacedPiece] d'une solution :
 ```dart
-final pieces = solutionMatcher.getPlacedPiecesByIndex(42);
+final pieces = matcher.getPlacedPiecesByIndex(42);
 for (final p in pieces!) {
 print('${p.piece.id} à (${p.gridX}, ${p.gridY}) pos=${p.positionIndex}');
 }
@@ -108,11 +108,12 @@ Liste des 9356 solutions (4 variantes × 2339 canoniques).
 Chaque solution est un BigInt de 360 bits encodant les 60 cases
 du plateau 6×10 avec le code bit6 de chaque pièce.
 Indique si le matcher a été initialisé.
-Nombre de cases du plateau 6×10.
-Masque pour extraire 6 bits (0x3F = 0b111111 = 63).
-Largeur du plateau en colonnes (x: 0 à 5).
-Hauteur du plateau en lignes (y: 0 à 9).
-Crée une instance du matcher (non initialisée).
+Masque pour extraire 6 bits (0x3F = 0b111111 = 63). Indépendant de la taille.
+Largeur du plateau en colonnes. 6 par défaut : le singleton global reste 6×10,
+et Pentoscope peut créer des instances pour d'autres rectangles complets.
+Hauteur du plateau en lignes. 10 par défaut.
+Nombre de cases = _width × _height (60 pour tous les rectangles complets).
+Crée une instance du matcher (non initialisée). Dimensions 6×10 par défaut.
 
 Appeler [initWithBigIntSolutions] pour charger les solutions.
 Initialise le matcher avec les solutions canoniques.
@@ -140,7 +141,7 @@ Vérifie que le matcher est initialisé, sinon lève une exception.
 
 
 ```dart
-throw StateError( 'SolutionMatcher non initialisé.\n' 'Appelle solutionMatcher.initWithBigIntSolutions(...) au démarrage.', );
+throw StateError( 'SolutionMatcher non initialisé.\n' 'Appelle matcher.initWithBigIntSolutions(...) au démarrage.', );
 ```
 
 ### ArgumentError
@@ -269,7 +270,7 @@ Liste des indices (0-9355) des solutions compatibles.
 
 ## Exemple
 ```dart
-final indices = solutionMatcher.getCompatibleSolutionIndices(piecesBits, maskBits);
+final indices = matcher.getCompatibleSolutionIndices(piecesBits, maskBits);
 for (final idx in indices) {
 final info = SolutionInfo(idx);
 print('Solution $idx (famille ${info.canonicalIndex})');
@@ -335,8 +336,8 @@ Liste de 12 [PlacedPiece], une par pentomino.
 
 ## Exemple
 ```dart
-final solution = solutionMatcher.getSolutionByIndex(42)!;
-final pieces = solutionMatcher.solutionToPlacedPieces(solution);
+final solution = matcher.getSolutionByIndex(42)!;
+final pieces = matcher.solutionToPlacedPieces(solution);
 
 for (final p in pieces) {
 print('Pièce ${p.piece.id}:');
@@ -371,7 +372,7 @@ Raccourci combinant [getSolutionByIndex] et [solutionToPlacedPieces].
 
 ## Exemple
 ```dart
-final pieces = solutionMatcher.getPlacedPiecesByIndex(42);
+final pieces = matcher.getPlacedPiecesByIndex(42);
 if (pieces != null) {
 print('Solution 42 contient ${pieces.length} pièces');
 }

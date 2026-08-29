@@ -1,6 +1,6 @@
-# screens/pentomino_game/widgets/shared/piece_renderer.dart
+# common/widgets/piece_renderer.dart
 
-**Module:** screens
+**Module:** common
 
 ## Fonctions
 

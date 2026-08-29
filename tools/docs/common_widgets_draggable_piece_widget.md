@@ -1,6 +1,6 @@
-# screens/pentomino_game/widgets/shared/draggable_piece_widget.dart
+# common/widgets/draggable_piece_widget.dart
 
-**Module:** screens
+**Module:** common
 
 ## Fonctions
 

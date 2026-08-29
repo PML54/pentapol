@@ -33,6 +33,12 @@ Future<bool> createRoom({
 throw Exception('Erreur création room: ${createResponse.statusCode}');
 ```
 
+### Duration
+
+```dart
+const Duration(seconds: 10), onTimeout: () => throw TimeoutException('Timeout connexion WebSocket'), );
+```
+
 ### joinRoom
 
 Rejoindre une room
@@ -52,6 +58,12 @@ throw Exception('Room introuvable');
 
 ```dart
 throw Exception('Room introuvable ou fermée');
+```
+
+### Duration
+
+```dart
+const Duration(seconds: 10), onTimeout: () => throw TimeoutException('Timeout connexion WebSocket'), );
 ```
 
 ### leaveRoom

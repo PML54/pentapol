@@ -4,7 +4,30 @@
 
 ## Fonctions
 
+### stateWithDragging
+
+```dart
+PentoscopeState stateWithDragging(bool isDragging) => state.copyWith(isDragging: isDragging);
+```
+
+### stateWithPreviewCleared
+
+```dart
+PentoscopeState stateWithPreviewCleared() => state.copyWith(clearPreview: true);
+```
+
+### stateWithElapsedSeconds
+
+```dart
+PentoscopeState stateWithElapsedSeconds(int elapsedSeconds) => state.copyWith(elapsedSeconds: elapsedSeconds);
+```
+
 ### canPlacePiece
+
+D'où viennent les réponses « solution » du puzzle courant. Posé à chaque
+création de puzzle par _makeSolutionSource (seul site lisant size.table).
+Défaut : solveur à la volée, tant qu'aucun puzzle n'est démarré.
+
 
 ```dart
 bool canPlacePiece(Pento piece, int positionIndex, int gridX, int gridY) {
@@ -40,31 +63,27 @@ TransformationResult applyIsometrySymmetryV() {
 PentoscopeState build() {
 ```
 
-### startTimer
+### TableSolutionSource
 
-Démarre le chronomètre
+Choisit la source de solutions du puzzle : table pré-calculée si la taille
+en porte une (chargée paresseusement, instance propre à Pentoscope), sinon
+le solveur à la volée. **Seul site lisant `size.table`** (§4.2).
 
 
 ```dart
-void startTimer() {
+return TableSolutionSource(matcher, table);
 ```
 
-### stopTimer
+### compatibleSolutions
 
-Arrête le chronomètre
-
-
-```dart
-void stopTimer() {
-```
-
-### getElapsedSeconds
-
-Retourne le temps écoulé en secondes
+Solutions complètes compatibles avec le plateau courant (pour le navigateur
+de solutions). Le plateau reconstruit inclut la pièce sélectionnée (elle n'a
+jamais quitté placedPieces sous stay + mask), donc pas d'`exclude:`. Vide pour
+les tailles à la volée.
 
 
 ```dart
-int getElapsedSeconds() {
+List<BigInt> compatibleSolutions() => _solutions.compatibleSolutions(_rebuildPlateau());
 ```
 
 ### calculateNote
@@ -90,17 +109,16 @@ void applyHint() {
 
 ### cancelSelection
 
-Version interne pour vérifier avec un état spécifique
+`(hasPossibleSolution, solutionsCount)` pour un plateau donné par ses pièces.
+
+Temps 2 : un seul rebuild + un seul passage par la source du puzzle courant.
+La table sait compter (count non-null, `has` = count > 0) — le compteur peut
+donc passer au rouge, contrairement au court-circuit du temps 1 ; le solveur
+à la volée ne compte pas (count null, `has` via canSolveFrom).
 
 
 ```dart
 void cancelSelection() {
-```
-
-### clearPreview
-
-```dart
-void clearPreview() {
 ```
 
 ### cycleToNextOrientation
@@ -112,7 +130,7 @@ void cycleToNextOrientation() {
 ### removePlacedPiece
 
 ```dart
-void removePlacedPiece(PentoscopePlacedPiece placed) {
+void removePlacedPiece(PlacedPiece placed) {
 ```
 
 ### reset
@@ -130,7 +148,7 @@ void selectPiece(Pento piece) {
 ### selectPlacedPiece
 
 ```dart
-void selectPlacedPiece( PentoscopePlacedPiece placed, int absoluteX, int absoluteY, ) {
+void selectPlacedPiece( PlacedPiece placed, int absoluteX, int absoluteY, ) {
 ```
 
 ### Point
@@ -213,8 +231,11 @@ return Point(x, y);
 
 ### Point
 
-Calcule la position gridX,gridY pour maintenir la mastercase fixe lors d'une transformation
+```dart
+return Point(x, y);
+```
 
+### Point
 
 ```dart
 return Point(x, y);
@@ -223,7 +244,16 @@ return Point(x, y);
 ### Point
 
 ```dart
-return Point(originalPiece.gridX, originalPiece.gridY);
+return Point(x, y);
+```
+
+### Point
+
+Calcule la position gridX,gridY pour maintenir la mastercase fixe lors d'une transformation
+
+
+```dart
+return Point(x, y);
 ```
 
 ### Point
@@ -255,23 +285,51 @@ Helper: calcule la mastercase par défaut (première cellule normalisée)
 return calculateDefaultCell(piece, positionIndex);
 ```
 
-### remapSelectedCell
+### Point
 
-Convertit les coordonnées normalisées de la mastercase en coordonnées brutes
-pour la position actuelle de la pièce (grille 5×5)
-
-✅ Utilise maintenant la méthode du mixin (via super pour éviter le conflit de nom)
 Annule le mode "pièce placée en main" (sélection sur plateau) en
 reconstruisant le plateau complet à partir des pièces placées.
 À appeler avant de sélectionner une pièce du slider.
+Calcule l'ancre voulue à partir du drag (doigt) en respectant
+l'origine de translation (mastercase sélectionnée).
+- Si pièce placée: vecteur = (doigt - masterAbs), ancre = originGrid + vecteur
+- Sinon: ancre = doigt - mastercase normalisée
+
+
+```dart
+return Point(sp.gridX + dx, sp.gridY + dy);
+```
+
+### Point
+
+```dart
+return Point( dragGridX - state.selectedCellInPiece!.x, dragGridY - state.selectedCellInPiece!.y, );
+```
+
+### Point
+
+```dart
+return Point(dragGridX, dragGridY);
+```
+
+### Point
+
 Cherche la position valide la plus proche autour de la mastercase
 Retourne null si aucune position valide n'est trouvée dans un rayon raisonnable
-Trouve la position valide la plus proche du doigt
-dragGridX/Y = position du doigt sur le plateau
-Retourne la position d'ancre valide la plus proche
 
-✅ FIX: On cherche la position où la MASTERCASE serait la plus proche du doigt
-Si pas de mastercase définie, on utilise la première cellule normalisée
+
+```dart
+return Point(x, y);
+```
+
+### remapSelectedCell
+
+Trouve la position valide la plus proche du vecteur de translation
+dragGridX/Y = position du doigt sur le plateau
+Retourne la position d'ancre valide la plus proche du vecteur
+
+✅ FIX: On cherche l'ancre la plus proche de l'ancre désirée
+(calculée via le vecteur mastercase -> doigt)
 Génère TOUS les placements possibles pour une pièce à une positionIndex donnée
 Retourne une liste de Point (gridX, gridY) où la pièce peut être placée
 Remapping de la cellule de référence lors d'une isométrie
@@ -281,99 +339,6 @@ Remapping de la cellule de référence lors d'une isométrie
 
 ```dart
 return remapSelectedCell( piece: piece, oldIndex: oldIndex, newIndex: newIndex, oldCell: oldCell, );
-```
-
-### selectPieceFromSliderForTutorial
-
-Sélectionne une pièce depuis le slider (pour tutoriel)
-
-
-```dart
-void selectPieceFromSliderForTutorial(int pieceNumber) {
-```
-
-### highlightPieceInSlider
-
-Surligne une pièce dans le slider (pour tutoriel)
-
-
-```dart
-void highlightPieceInSlider(int pieceNumber) {
-```
-
-### clearSliderHighlight
-
-Efface le surlignage du slider (pour tutoriel)
-
-
-```dart
-void clearSliderHighlight() {
-```
-
-### scrollSliderToPiece
-
-Fait défiler le slider jusqu'à une pièce (pour tutoriel)
-
-
-```dart
-void scrollSliderToPiece(int pieceNumber) {
-```
-
-### placeSelectedPieceForTutorial
-
-Place la pièce sélectionnée à une position donnée (pour tutoriel)
-
-
-```dart
-void placeSelectedPieceForTutorial(int gridX, int gridY) {
-```
-
-### selectPlacedPieceAt
-
-Sélectionne une pièce placée sur le plateau (pour tutoriel)
-
-
-```dart
-void selectPlacedPieceAt(int x, int y) {
-```
-
-### rotateAroundMasterForTutorial
-
-Applique une rotation autour de la mastercase (pour tutoriel)
-
-
-```dart
-void rotateAroundMasterForTutorial(int pieceNumber, int quarterTurns) {
-```
-
-### PentoscopePlacedPiece
-
-Pièce placée sur le plateau Pentoscope
-
-
-```dart
-const PentoscopePlacedPiece({
-```
-
-### Point
-
-Coordonnées absolues des cellules occupées (normalisées)
-
-
-```dart
-yield Point(gridX + localX, gridY + localY);
-```
-
-### copyWith
-
-```dart
-PentoscopePlacedPiece copyWith({
-```
-
-### PentoscopePlacedPiece
-
-```dart
-return PentoscopePlacedPiece( piece: piece ?? this.piece, positionIndex: positionIndex ?? this.positionIndex, gridX: gridX ?? this.gridX, gridY: gridY ?? this.gridY, );
 ```
 
 ### PentoscopeState
@@ -408,7 +373,7 @@ PentoscopeState copyWith({
 ### PentoscopeState
 
 ```dart
-return PentoscopeState( viewOrientation: viewOrientation ?? this.viewOrientation, puzzle: puzzle ?? this.puzzle, plateau: plateau ?? this.plateau, availablePieces: availablePieces ?? this.availablePieces, placedPieces: placedPieces ?? this.placedPieces, selectedPiece: clearSelectedPiece ? null : (selectedPiece ?? this.selectedPiece), selectedPositionIndex: selectedPositionIndex ?? this.selectedPositionIndex, piecePositionIndices: piecePositionIndices ?? this.piecePositionIndices, selectedPlacedPiece: clearSelectedPlacedPiece ? null : (selectedPlacedPiece ?? this.selectedPlacedPiece), selectedCellInPiece: clearSelectedCellInPiece ? null : (selectedCellInPiece ?? this.selectedCellInPiece), previewX: clearPreview ? null : (previewX ?? this.previewX), previewY: clearPreview ? null : (previewY ?? this.previewY), isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid), validPlacements: validPlacements ?? this.validPlacements, // ✨ NOUVEAU isComplete: isComplete ?? this.isComplete, isometryCount: isometryCount ?? this.isometryCount, translationCount: translationCount ?? this.translationCount, hintCount: hintCount ?? this.hintCount, deleteCount: deleteCount ?? this.deleteCount, isSnapped: isSnapped ?? this.isSnapped, showSolution: showSolution ?? this.showSolution, // ✅ NOUVEAU currentSolution: currentSolution ?? this.currentSolution, // ✅ NOUVEAU hasPossibleSolution: hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer );
+return PentoscopeState( viewOrientation: viewOrientation ?? this.viewOrientation, puzzle: puzzle ?? this.puzzle, plateau: plateau ?? this.plateau, availablePieces: availablePieces ?? this.availablePieces, placedPieces: placedPieces ?? this.placedPieces, selectedPiece: clearSelectedPiece ? null : (selectedPiece ?? this.selectedPiece), selectedPositionIndex: selectedPositionIndex ?? this.selectedPositionIndex, piecePositionIndices: piecePositionIndices ?? this.piecePositionIndices, selectedPlacedPiece: clearSelectedPlacedPiece ? null : (selectedPlacedPiece ?? this.selectedPlacedPiece), selectedCellInPiece: clearSelectedCellInPiece ? null : (selectedCellInPiece ?? this.selectedCellInPiece), selectedMasterAbs: clearSelectedMasterAbs ? null : (selectedMasterAbs ?? this.selectedMasterAbs), previewX: clearPreview ? null : (previewX ?? this.previewX), previewY: clearPreview ? null : (previewY ?? this.previewY), isPreviewValid: clearPreview ? false : (isPreviewValid ?? this.isPreviewValid), validPlacements: validPlacements ?? this.validPlacements, // ✨ NOUVEAU isComplete: isComplete ?? this.isComplete, isometryCount: isometryCount ?? this.isometryCount, translationCount: translationCount ?? this.translationCount, hintCount: hintCount ?? this.hintCount, deleteCount: deleteCount ?? this.deleteCount, isSnapped: isSnapped ?? this.isSnapped, isDragging: isDragging ?? this.isDragging, showSolution: showSolution ?? this.showSolution, // ✅ NOUVEAU currentSolution: currentSolution ?? this.currentSolution, // ✅ NOUVEAU hasPossibleSolution: hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢 elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer minIsometries: minIsometries ?? this.minIsometries, // 🏆 );
 ```
 
 ### getPiecePositionIndex

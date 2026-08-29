@@ -1,6 +1,6 @@
-# screens/pentomino_game/utils/game_colors.dart
+# common/game_colors.dart
 
-**Module:** screens
+**Module:** common
 
 ## Fonctions
 

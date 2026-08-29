@@ -19,31 +19,31 @@ Widget build(BuildContext context, WidgetRef ref) {
 ### Scaffold
 
 ```dart
-return Scaffold( body: Container( decoration: BoxDecoration( gradient: LinearGradient( begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [ colorScheme.primaryContainer.withOpacity(0.9), colorScheme.surface, ], ), ), child: SafeArea( child: Padding( padding: const EdgeInsets.all(16), child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ // HEADER Row( children: [ _AppLogo(color: colorScheme.primary), const SizedBox(width: 12), Expanded( child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ Text( 'Pentapolis', style: theme.textTheme.headlineMedium?.copyWith( fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer, ), ), const SizedBox(height: 4), Text( 'La cité des pentominos', style: theme.textTheme.bodyMedium?.copyWith( color: colorScheme.onPrimaryContainer.withOpacity( 0.8, ), ), ), ], ), ), ], ),  const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.search, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
+return Scaffold( body: Container( decoration: BoxDecoration( gradient: LinearGradient( begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [ colorScheme.primaryContainer.withOpacity(0.9), colorScheme.surface, ], ), ), child: SafeArea( child: Padding( padding: const EdgeInsets.all(16), child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ // HEADER Row( children: [ _AppLogo(color: colorScheme.primary), const SizedBox(width: 12), Expanded( child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ Text( 'Pentapolis', style: theme.textTheme.headlineMedium?.copyWith( fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer, ), ), const SizedBox(height: 4), Text( 'La cité des pentominos', style: theme.textTheme.bodyMedium?.copyWith( color: colorScheme.onPrimaryContainer.withOpacity( 0.8, ), ), ), ], ), ), ], ),  const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.person, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
 ```
 
 ### SizedBox
 
 ```dart
-const SizedBox(width: 12), Expanded( child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ Text( 'Pentapolis', style: theme.textTheme.headlineMedium?.copyWith( fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer, ), ), const SizedBox(height: 4), Text( 'La cité des pentominos', style: theme.textTheme.bodyMedium?.copyWith( color: colorScheme.onPrimaryContainer.withOpacity( 0.8, ), ), ), ], ), ), ], ),  const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.search, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
+const SizedBox(width: 12), Expanded( child: Column( crossAxisAlignment: CrossAxisAlignment.start, children: [ Text( 'Pentapolis', style: theme.textTheme.headlineMedium?.copyWith( fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer, ), ), const SizedBox(height: 4), Text( 'La cité des pentominos', style: theme.textTheme.bodyMedium?.copyWith( color: colorScheme.onPrimaryContainer.withOpacity( 0.8, ), ), ), ], ), ), ], ),  const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.person, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
 ```
 
 ### SizedBox
 
 ```dart
-const SizedBox(height: 4), Text( 'La cité des pentominos', style: theme.textTheme.bodyMedium?.copyWith( color: colorScheme.onPrimaryContainer.withOpacity( 0.8, ), ), ), ], ), ), ], ),  const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.search, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
+const SizedBox(height: 4), Text( 'La cité des pentominos', style: theme.textTheme.bodyMedium?.copyWith( color: colorScheme.onPrimaryContainer.withOpacity( 0.8, ), ), ), ], ), ), ], ),  const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.person, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
 ```
 
 ### SizedBox
 
 ```dart
-const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.search, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
+const SizedBox(height: 24),  // CONTENU PRINCIPAL : CARTES DE MENU Expanded( child: SingleChildScrollView( child: Column( children: [ const SizedBox(height: 12), _MenuCard( icon: Icons.person, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
 ```
 
 ### SizedBox
 
 ```dart
-const SizedBox(height: 12), _MenuCard( icon: Icons.search, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
+const SizedBox(height: 12), _MenuCard( icon: Icons.person, title: 'Pentominos Speed', subtitle: 'Placer de 3 à 6 pieces', color: colorScheme.secondary, onTap: () {
 ```
 
 ### SizedBox

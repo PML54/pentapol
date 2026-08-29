@@ -16,24 +16,6 @@ const PentoscopePieceSlider({
 ConsumerState<PentoscopePieceSlider> createState() => _PentoscopePieceSliderState();
 ```
 
-### highlightPiece
-
-```dart
-void highlightPiece(int index) {
-```
-
-### clearHighlight
-
-```dart
-void clearHighlight() {
-```
-
-### scrollToPiece
-
-```dart
-void scrollToPiece(int pieceIndex) {
-```
-
 ### selectPiece
 
 ```dart
@@ -44,12 +26,6 @@ void selectPiece(int pieceIndex) {
 
 ```dart
 Widget build(BuildContext context) {
-```
-
-### Container
-
-```dart
-return Container( decoration: isHighlighted ? BoxDecoration( border: Border.all(color: Colors.yellow, width: 3), borderRadius: BorderRadius.circular(8), boxShadow: [ BoxShadow( color: Colors.yellow.withOpacity(0.5), blurRadius: 8, spreadRadius: 2, ), ], ) : null, child: _buildDraggablePiece(piece, notifier, state, settings, widget.isLandscape), );
 ```
 
 ### SizedBox

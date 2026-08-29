@@ -42,10 +42,6 @@ Color getPieceColor(int pieceId) {
 
 ### toJson
 
-Palette DUEL : 12 couleurs maximalement distinctes
-Conçue pour le mode compétitif où la distinction rapide est cruciale
-
-
 ```dart
 Map<String, dynamic> toJson() {
 ```
