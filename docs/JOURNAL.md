@@ -6,28 +6,29 @@
 
 ---
 
-## §ÉTAT — au 2026-08-29 07:46
+## §ÉTAT — au 2026-08-29 10:05
 
-**Temps 1 du 6×10 dans Pentoscope : FAIT et VALIDÉ.** Code `fed0ef6` (non poussé) ; la
-taille `6×10 / 12 pièces` existe et se joue, **sans** accès aux 9356 (branchés au temps 2).
-`flutter analyze` : 0 warning ; critères §3.4 OK. **Test manuel sur appareil : OK (Paul,
-2026-08-29).** Détail des sites : `PLAN_6X10_DANS_PENTOSCOPE.md` §3 et décisions 11-13.
+**Temps 2 du 6×10 dans Pentoscope : FAIT** (6 étapes, `52823f7..97f8da6`, poussé). Pentoscope
+route ses réponses « solution » par une `SolutionSource` (table 6×10 ou solveur à la volée),
+choisie au seul site `_makeSolutionSource`. Le 6×10 utilise la vraie table des 9356 :
+`hasPossibleSolution` réel (l'indice peut virer au rouge), `applyHint` = solution compatible
+**aléatoire** (décision de Paul §4.6), et un **compteur de solutions** dans l'AppBar, gaté
+par `GameSettings.showSolutionCounter` (défaut true, rouge à 0). `SolutionMatcher`/loader
+paramétrés additivement ; le singleton global du classique est intact.
+`flutter analyze` : 0 warning ; critères §4.7 OK ; `lib/classical/` intact.
 
-**Prochain pas : le TEMPS 2** (§4, branchement des tables de solutions) — **débloqué** par
-le test. Une **question ouverte pour Paul avant/pendant** : `applyHint` (plan §4.6, décision
-13) — Pentoscope et le classique ne choisissent pas l'indice de la même façon, `hintFrom`
-doit trancher.
+**Temps 1 : validé au test appareil (Paul).** Les étapes 3-4-6 du temps 2 aussi (latence 1er
+démarrage imperceptible → pas de garde de montage, décision 14).
 
-**Limite connue du temps 1** : le bouton d'indice sur le 6×10 déclenche un backtracking
-live (`_solver.findSolutionFrom`, pas `solutionMatcher`) — lent mais fonctionnel ; c'est un
-point du temps 2 (plan §4.6, décision 13).
+**Prochain pas : TEST MANUEL du temps 2 par Paul** (§4.7), surtout l'**étape 5 (compteur)**,
+pas encore testée : 9356 sur plateau vide, décroît à chaque pose, rouge en impasse ; autres
+tailles → compteur absent et comportement inchangé ; **mode classique → compteur toujours là
+(le canari §4.3)**.
 
 **Le mode classique reste figé** (décision n°7). Rien sous `lib/classical/` ni
-`lib/screens/pentomino_game/` n'a été touché.
+`lib/screens/pentomino_game/` touché.
 
-**Git** : `origin/main` à `341021c` (donc `f7742cc` et `4539ed8` sont désormais poussés,
-reliquat hérité résolu). Local en avance de deux commits **non poussés** : `4f17ca8` (docs
-cowork — même message que `341021c`, doublon à vérifier) et `fed0ef6` (temps 1).
+**Git** : `origin/main` = `97f8da6`, local aligné.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -35,18 +36,19 @@ cowork — même message que `341021c`, doublon à vérifier) et `fed0ef6` (temp
 flutter run --release -d 00008150-000165D4027B401C
 ```
 
-> ⚠️ En `--release`, `debugPrint` est supprimé : tout critère console se reformule en
-> observation à l'écran.
+> ⚠️ En `--release`, `debugPrint` supprimé : critère console → observation écran.
 
-**Défauts du mode classique relevés le 2026-08-29, laissés en l'état** (on n'y touche plus)
-— détail plan §6 : double-tap sur pièce posée = `NoSuchMethodError` (`game_board.dart`
-appelle `applyIsometryRotation()`, inexistante, via `notifier` dynamic) ; `setDragging`
-jamais appelé ; miniature au déplacement (`PieceRenderer` 22 px en dur, non confirmée).
+**Reste après validation** : §5 du plan (tables 5×12/4×15/3×20) — d'abord rendre
+`PentominoSolver.maxSeconds` paramétrable (décision n°10), puis ouvrir ces tailles (objections
+d'interface §5.4 : le sélecteur `Row` d'`Expanded` doit changer de forme avant 12 entrées).
 
-**Dette technique connue** : `flutter pub add collection` (lint
-`depend_on_referenced_packages`) ; preview cyan morte dans `pentoscope_board.dart` ;
-`PentominoSolver.maxSeconds=30` à rendre paramétrable **avant** §5 (décision n°10) ;
-troisième chrono dans `pentoscope_mp_provider.dart`.
+**Défauts du mode classique laissés en l'état** (plan §6) : double-tap = `NoSuchMethodError`
+(`applyIsometryRotation()` inexistante) ; `setDragging` jamais appelé ; miniature au
+déplacement (`PieceRenderer` 22 px).
+
+**Dette technique** : `flutter pub add collection` ; preview cyan morte dans
+`pentoscope_board.dart` ; `maxSeconds=30` à paramétrer avant §5 ; 3e chrono dans
+`pentoscope_mp_provider.dart`.
 
 ---
 
@@ -110,7 +112,18 @@ détaillé.
 13. **2026-08-29 — CLI** — `applyHint` **laissé inchangé** au temps 1 : sur le 6×10 il
    appelle `_solver.findSolutionFrom` (backtracking à la demande, pas `solutionMatcher`),
    donc temps-1-compatible mais lent au clic sur l'indice. À traiter au temps 2 (plan §4.6,
-   « question ouverte pour Paul »).
+   « question ouverte pour Paul »). **Résolu au temps 2** → décision 15.
+14. **2026-08-29 — CLI** — **pas de garde de montage d'écran** (§4.4). `startPuzzle` `await`
+   le chargement de la table ; la source n'est jamais consultée avant. Le compteur n'apparaît
+   donc jamais vide sans message (critère §4.7 satisfait). Latence 1er démarrage 6×10
+   **imperceptible sur iPhone** (Paul). Si un jour elle gêne, ajouter la garde de pré-chargement.
+15. **2026-08-29 — Paul** — l'indice du 6×10 tire une **solution compatible aléatoire** de la
+   table (comme le mode classique), pas la première. `hintFrom` reçoit `remaining` (le plan
+   montrait `hintFrom(plateau)`) pour que `LiveSolutionSource` ait la liste des pièces ; la
+   table l'ignore. → `35ba8e4`, `PLAN_6X10_DANS_PENTOSCOPE.md` §4.6.
+16. **2026-08-29 — Paul** — compteur de solutions **visible par défaut**, avec bascule oui/non
+   dans les réglages (le champ `GameSettings.showSolutionCounter`, défaut true, existait déjà).
+   Placé dans l'AppBar en jeu normal, rouge à 0. Masqué pour les tailles sans table. → `97f8da6`.
 
 ## §PASSATIONS
 
@@ -154,3 +167,13 @@ sous `lib/classical/` ni `lib/screens/pentomino_game/`. Décisions 11-13 ajouté
 **À faire, dans l'ordre** : test manuel du 6×10 par Paul (le juge), **puis** temps 2 —
 ne pas commencer le temps 2 avant. **Reste** : pousser `4f17ca8` + `fed0ef6` (et ce commit
 de journal) ; élucider le doublon `4f17ca8`/`341021c`.
+
+**2026-08-29 10:05 — CLI → cowork.** Temps 1 validé au test appareil (Paul), puis **temps 2
+appliqué et poussé en 5 commits** (`52823f7..97f8da6`) : `SolutionMatcher`/loader
+paramétrés (additif), `SolutionSource` + 2 impls, famille de chargement, câblage `_solutions`
+(un seul site lisant `size.table`), `applyHint` via `hintFrom`, compteur à l'écran.
+`flutter analyze` 0 warning, critères §4.7 OK, `lib/classical/` intact. Décisions 14-16
+ajoutées (14 = pas de garde de montage ; 15 = indice aléatoire, réponse de Paul ; 16 =
+compteur visible par défaut). **À faire** : test manuel du temps 2 par Paul, **surtout le
+compteur (étape 5, pas encore testée)**. Le doublon `4f17ca8`/`341021c` reste à élucider —
+sans effet fonctionnel (mêmes docs).
