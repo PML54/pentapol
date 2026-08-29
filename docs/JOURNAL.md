@@ -8,16 +8,15 @@
 
 ## §ÉTAT — au 2026-08-29 07:46
 
-**Temps 1 du 6×10 dans Pentoscope : FAIT** (`fed0ef6`, non poussé). La taille
-`6×10 / 12 pièces` existe et se joue, **sans** accès aux 9356 (branchés au temps 2).
-`flutter analyze` : 0 warning ; critères §3.4 du plan OK. Détail des sites :
-`PLAN_6X10_DANS_PENTOSCOPE.md` §3 et décisions 11-13 ci-dessous.
+**Temps 1 du 6×10 dans Pentoscope : FAIT et VALIDÉ.** Code `fed0ef6` (non poussé) ; la
+taille `6×10 / 12 pièces` existe et se joue, **sans** accès aux 9356 (branchés au temps 2).
+`flutter analyze` : 0 warning ; critères §3.4 OK. **Test manuel sur appareil : OK (Paul,
+2026-08-29).** Détail des sites : `PLAN_6X10_DANS_PENTOSCOPE.md` §3 et décisions 11-13.
 
-**Prochain pas, dans l'ordre imposé : le TEST MANUEL du 6×10 par Paul sur l'appareil,
-AVANT tout temps 2.** C'est ce qui rend le chantier réversible. Critères §3.4 : le 6×10
-apparaît dans le menu et le sélecteur en partie ; démarre **sans latence** ; 12 pièces →
-victoire une fois ; l'indice ne passe pas au rouge ; autres tailles inchangées, y compris
-multijoueur.
+**Prochain pas : le TEMPS 2** (§4, branchement des tables de solutions) — **débloqué** par
+le test. Une **question ouverte pour Paul avant/pendant** : `applyHint` (plan §4.6, décision
+13) — Pentoscope et le classique ne choisissent pas l'indice de la même façon, `hintFrom`
+doit trancher.
 
 **Limite connue du temps 1** : le bouton d'indice sur le 6×10 déclenche un backtracking
 live (`_solver.findSolutionFrom`, pas `solutionMatcher`) — lent mais fonctionnel ; c'est un
