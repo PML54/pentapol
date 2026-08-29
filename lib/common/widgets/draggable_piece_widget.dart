@@ -1,4 +1,7 @@
-// lib/screens/pentomino_game/widgets/shared/draggable_piece_widget.dart
+// Modified: 2026-08-29 13:43 — déménagé de lib/screens/pentomino_game/widgets/shared/ vers
+//           lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
+//           et le multijoueur, sorti avant la suppression du dossier classique.
+// lib/common/widgets/draggable_piece_widget.dart
 // Widget pour gérer le drag & drop d'une pièce avec double-tap
 
 import 'dart:async';

@@ -12,8 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/draggable_piece_widget.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
+import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 class PentoscopePieceSlider extends ConsumerStatefulWidget {

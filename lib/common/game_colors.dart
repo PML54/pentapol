@@ -1,4 +1,7 @@
-// lib/screens/pentomino_game/utils/game_colors.dart
+// Modified: 2026-08-29 13:43 — déménagé de lib/screens/pentomino_game/utils/ vers lib/common/
+//           (suppression du mode classique §4) : partagé par Pentoscope et le multijoueur,
+//           sorti avant la suppression du dossier classique.
+// lib/common/game_colors.dart
 // Couleurs pour le jeu de pentominos
 
 import 'package:flutter/material.dart';

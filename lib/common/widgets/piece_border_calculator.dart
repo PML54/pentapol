@@ -1,10 +1,13 @@
-// lib/screens/pentomino_game/widgets/shared/piece_border_calculator.dart
+// Modified: 2026-08-29 13:43 — déménagé de lib/screens/pentomino_game/widgets/shared/ vers
+//           lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
+//           et le multijoueur, sorti avant la suppression du dossier classique.
+// lib/common/widgets/piece_border_calculator.dart
 // Calcul des bordures de pièces sur le plateau
 
 import 'package:flutter/material.dart';
 import 'package:pentapol/common/plateau.dart';
-import 'package:pentapol/screens/pentomino_game/utils/game_colors.dart';
-import 'package:pentapol/screens/pentomino_game/utils/game_constants.dart';
+import 'package:pentapol/common/game_colors.dart';
+import 'package:pentapol/common/game_constants.dart';
 
 /// Calcule les bordures d'une cellule sur le plateau
 /// 

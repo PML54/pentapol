@@ -13,8 +13,8 @@ import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_border_calculator.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
+import 'package:pentapol/common/widgets/piece_border_calculator.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;

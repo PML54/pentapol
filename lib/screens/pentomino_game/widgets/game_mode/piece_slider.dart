@@ -9,9 +9,9 @@ import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/classical/pentomino_game_provider.dart';
 import 'package:pentapol/classical/pentomino_game_state.dart';
 import 'package:pentapol/providers/settings_provider.dart';
-import 'package:pentapol/screens/pentomino_game/utils/game_constants.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/draggable_piece_widget.dart';
-import 'package:pentapol/screens/pentomino_game/widgets/shared/piece_renderer.dart';
+import 'package:pentapol/common/game_constants.dart';
+import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
 
 /// Slider de pièces disponibles
 ///
