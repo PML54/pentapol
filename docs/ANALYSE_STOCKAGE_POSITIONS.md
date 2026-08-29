@@ -1,5 +1,20 @@
 # Analyse — stockage des positions (encodage plateau / solutions)
 
+> ⚠️ **Encadré ajouté le 2026-08-29 — document à jour SAUF sur le schéma 4 bits.**
+> Dix identifiants cités ici n'existent plus dans `lib/` : `PlateauCompressor`,
+> `SolutionDatabase`, `SolutionsViewerScreen`, `plateau_compressor`, `solution_database`,
+> `findCanonical`, `areEquivalent`, plus trois pistes écartées (`AsyncNotifier`,
+> `Uint32List`, `PentominoGameProvider`). Ils ont été **supprimés le 2026-08-27** (555
+> lignes, l'ancien schéma 4 bits, mort et cassé) : les sections qui les décrivent sont de
+> l'histoire, pas de l'état.
+>
+> Restent pleinement valides : le schéma `bit6` / BigInt 360 bits, le chemin
+> `.bin` → loader → `solution_matcher`, et le **§7 (fondement combinatoire)**, qui est la
+> référence du projet sur le choix des codes.
+>
+> ⚠️ Ne pas confondre `solutions_viewer_screen` (supprimé) et
+> `screens/solutions_browser_screen.dart` (**vivant**).
+
 > Périmètre : encodage des plateaux et des solutions 6×10 (fichiers `.bin`, `bit6`,
 > `BigInt` 360 bits, `PlateauCompressor`). Hors périmètre : table statique
 > `pentominos.dart`, `PlacedPiece`, persistance drift/SharedPreferences.

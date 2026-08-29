@@ -1,4 +1,14 @@
 ================================================================================
+
+> ⚠️ **Encadré ajouté le 2026-08-29 — ce document est VIVANT, ne pas le supprimer.**
+> Le « duel isométries » qu'il décrit **est** le mode multijoueur d'aujourd'hui : même
+> serveur `pentapol-duel.pentapml.workers.dev`, même `roomCode`, même WebSocket
+> (`lib/pentoscope_multiplayer/providers/pentoscope_mp_provider.dart` l.32-38). Seul le
+> nom a changé — le client s'appelle maintenant `lib/pentoscope_multiplayer/`.
+>
+> C'est, avec `BILAN_DUEL_ISOMETRIES.md`, la **seule documentation du protocole serveur**,
+> qui ne vit pas dans ce dépôt. Les noms de classes côté serveur (`DuelIsometryRoom`) n'ont
+> aucune contrepartie dans `lib/` : c'est normal, ils sont dans le worker Cloudflare.
 DUEL ISOMÉTRIES - FLUX DE FONCTIONNEMENT
 ================================================================================
 

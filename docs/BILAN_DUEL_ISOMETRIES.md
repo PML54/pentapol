@@ -1,5 +1,12 @@
 # BILAN DUEL ISOMÉTRIES - État au 3 décembre 2025
 
+> ⚠️ **Encadré ajouté le 2026-08-29 — ce document est VIVANT, ne pas le supprimer.**
+> Le « duel isométries » est le mode multijoueur actuel ; le client s'appelle désormais
+> `lib/pentoscope_multiplayer/`. Vérification : même serveur
+> `pentapol-duel.pentapml.workers.dev`, même `roomCode`, même WebSocket. Avec
+> `DUEL_ISOM_ARCH.md`, c'est la seule trace du protocole serveur, absent de ce dépôt.
+> L'état daté « 3 décembre 2025 » porte sur l'avancement, pas sur l'architecture.
+
 ## 🎯 OBJECTIF
 
 Mode de jeu multijoueur 1v1 où deux joueurs doivent reconstituer le même puzzle de pentominos en appliquant des isométries (rotations, symétries). Le gagnant est celui qui utilise le moins d'isométries, ou en cas d'égalité, le plus rapide.

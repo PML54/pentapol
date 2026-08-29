@@ -6,31 +6,59 @@
 
 ---
 
-## §ÉTAT — au 2026-08-29 10:05
+## §ÉTAT — au 2026-08-29, seconde session cowork (fin)
 
-**Temps 2 du 6×10 dans Pentoscope : FAIT** (6 étapes en 4 commits de code
-`52823f7` → `97f8da6`, poussé). Pentoscope
-route ses réponses « solution » par une `SolutionSource` (table 6×10 ou solveur à la volée),
-choisie au seul site `_makeSolutionSource`. Le 6×10 utilise la vraie table des 9356 :
-`hasPossibleSolution` réel (l'indice peut virer au rouge), `applyHint` = solution compatible
-**aléatoire** (décision de Paul §4.6), et un **compteur de solutions** dans l'AppBar, gaté
-par `GameSettings.showSolutionCounter` (défaut true, rouge à 0). `SolutionMatcher`/loader
-paramétrés additivement ; le singleton global du classique est intact.
-`flutter analyze` : 0 warning ; critères §4.7 OK ; `lib/classical/` intact.
+**Test du temps 2 : point 1 validé par Paul** — le compteur du 6×10 affiche 9356 et
+décroît. Point 3 (la bascule) **ininstruisable** : l'écran de Réglages est inatteignable
+(décision 23). Points 2, 4 et 5 non instruits, et **ils ne bloquent plus** : le canari du
+§4.3 est remplacé par un test unitaire de `SolutionMatcher` (décision 24), préalable à la
+suppression.
 
-**Temps 1 : validé au test appareil (Paul).** Les étapes 3-4-6 du temps 2 aussi (latence 1er
-démarrage imperceptible → pas de garde de montage, décision 14).
+**Chantier lancé : la suppression du mode classique** — voir §PASSATIONS. Ce qui reste du
+test appareil du temps 2 (§4.7 du plan 6×10), étape 5, le
+**compteur de solutions**. Rien n'est exécutable avant — ni le §5 du plan 6×10, ni la
+suppression du mode classique. Ce test est doublement important : le compteur du mode
+classique est le **canari** de la §4.3, et le module qui le porte est promis à la
+suppression.
 
-**Prochain pas : TEST MANUEL du temps 2 par Paul** (§4.7), surtout l'**étape 5 (compteur)**,
-pas encore testée : 9356 sur plateau vide, décroît à chaque pose, rouge en impasse ; autres
-tailles → compteur absent et comportement inchangé ; **mode classique → compteur toujours là
-(le canari §4.3)**.
+**Chantier annoncé : supprimer totalement le mode classique** (décision 19).
+`docs/PLAN_SUPPRESSION_CLASSICAL.md`, 243 l. C'est devenu mécanique parce que le temps 2 a
+donné à Pentoscope sa chaîne complète — `grep -rn 'solutionMatcher|countPossibleSolutions|
+solutionsReadyProvider' lib/pentoscope/` → vide.
 
-**Le mode classique reste figé** (décision n°7). Rien sous `lib/classical/` ni
-`lib/screens/pentomino_game/` touché.
+- **Plancher : 3279 lignes** sans aucune décision.
+- **505 lignes déménagent d'abord** (`piece_renderer`, `piece_border_calculator`,
+  `draggable_piece_widget`, `game_colors`, `game_constants`) : Pentoscope et le multijoueur
+  les lisent.
+- **Trois points d'entrée** à couper, dont `pentoscope_game_screen.dart` l.237 — c'est
+  Pentoscope lui-même qui ouvre le mode classique.
+- **Les deux fonctionnalités sont ré-hébergées, pas abandonnées** (décisions 21 et 22).
+  Le navigateur est **moins cher que prévu** (son lien au singleton est mort) ; l'historique
+  est **plus cher que je ne l'avais dit** — il demande une migration drift, c'est un
+  chantier à part.
+- **Ordre en 7 étapes**, chacune réversible seule. La règle qui ne souffre pas d'exception :
+  brancher le navigateur dans Pentoscope **avant** de couper l'accès au mode classique.
 
-**Git** : `origin/main` à jour, local aligné — dernier commit de code `97f8da6`, plus le
-commit de journal qui porte ce §ÉTAT.
+**Le 3×20 est abandonné** (décision 20) : tables à produire = **5×12 et 4×15**. Motif
+rectifié au plan §5.6 — ce n'est pas l'affichage (cases à 50 % de celles du 6×10), c'est le
+jeu (2 solutions, donc compteur à 0 et indice rouge en permanence).
+
+**Préparé, inchangé** : §5.1 le correctif `PentominoSolver` (deux défauts — `maxSeconds` non
+paramétrable ET troncature invisible ; le correctif porte sur la **signature**
+`({solutions, truncated})`, gratuit car un seul appelant), §5.2 généralisation de l'outil,
+§5.4 les trois vérifications d'acceptation, §5.7 l'ordre — jamais les valeurs d'enum avant
+le sélecteur.
+
+**À ne pas refaire** : `solutions_6x10_normalisees.bin` est complet (8175 brutes couvraient
+2339/2339 classes). À reproduire une fois, comme non-régression du correctif §5.1.
+
+**Le mode classique reste figé** en attendant sa suppression (décision n°7).
+
+**Git** : `origin/main` à `1833aba`. Modifiés/nouveaux non commités : `docs/JOURNAL.md`,
+`docs/PLAN_6X10_DANS_PENTOSCOPE.md`, `docs/PLAN_SUPPRESSION_CLASSICAL.md`. Ces docs ne
+pilotent pas de code immédiat : à commiter **seuls, en début de prochaine session du CLI**,
+avant toute modification de `lib/` (MODUS_VIVENDI §5). Le reste du `git status` est du bruit
+de plateforme.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -40,17 +68,14 @@ flutter run --release -d 00008150-000165D4027B401C
 
 > ⚠️ En `--release`, `debugPrint` supprimé : critère console → observation écran.
 
-**Reste après validation** : §5 du plan (tables 5×12/4×15/3×20) — d'abord rendre
-`PentominoSolver.maxSeconds` paramétrable (décision n°10), puis ouvrir ces tailles (objections
-d'interface §5.4 : le sélecteur `Row` d'`Expanded` doit changer de forme avant 12 entrées).
-
-**Défauts du mode classique laissés en l'état** (plan §6) : double-tap = `NoSuchMethodError`
-(`applyIsometryRotation()` inexistante) ; `setDragging` jamais appelé ; miniature au
-déplacement (`PieceRenderer` 22 px).
+**Défauts du mode classique** : ils s'éteindront avec le module
+(`PLAN_SUPPRESSION_CLASSICAL.md` §7). Seule la miniature (`PieceRenderer`, case à 22 px en
+dur) survit — ce fichier déménage, c'est le moment d'y ajouter un paramètre `cellSize`.
 
 **Dette technique** : `flutter pub add collection` ; preview cyan morte dans
-`pentoscope_board.dart` ; `maxSeconds=30` à paramétrer avant §5 ; 3e chrono dans
-`pentoscope_mp_provider.dart`.
+`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` (multijoueur, non
+concerné) ; **trois** implémentations du couple (pieces, mask) — la suppression en éteint
+une, il en restera deux dont `common/bigint_plateau.dart`, orpheline et la mieux écrite.
 
 ---
 
@@ -127,6 +152,69 @@ détaillé.
    dans les réglages (le champ `GameSettings.showSolutionCounter`, défaut true, existait déjà).
    Placé dans l'AppBar en jeu normal, rouge à 0. Masqué pour les tailles sans table. → `97f8da6`.
 
+17. **2026-08-29 — cowork** — **sélecteur de taille : deux groupes, pas une rangée de 12.**
+    Les 8 puzzles gardent la rangée et les labels d'aujourd'hui ; les 4 rectangles complets
+    forment une seconde rangée de 4, labels `'6×10'`…`'3×20'`. Le critère de séparation est
+    `size.table == null`, qui existe déjà. Motif : ce n'est pas qu'une question de place —
+    les deux familles diffèrent par les pièces (tirées / toutes), la configuration (une par
+    tirage / une seule) et l'origine des solutions ; et `label` valant `numPieces`, les
+    quatre rectangles s'afficheraient tous « 12 ». → plan §5.5.
+18. **2026-08-29 — cowork** — **le 3×20 est généré et vérifié mais n'entre pas dans le
+    sélecteur.** 2 solutions à symétrie près sur 60 cases : le compteur tomberait à 0 après
+    très peu de pièces et l'indice serait rouge en permanence. Il sert de fixture de
+    validation de la chaîne — seule table assez petite (8 solutions) pour être vérifiée à la
+    main. Son ouverture au joueur reste une décision de jeu, à prendre après avoir vu le
+    compteur sur le 4×15. **Recommandation de cowork, à confirmer ou infirmer par Paul.**
+    → plan §5.6.
+
+19. **2026-08-29 — Paul** — **intention de supprimer totalement le module classique.**
+    Devenu possible : depuis le temps 2 (`35ba8e4`), Pentoscope a sa propre chaîne de
+    solutions et ne lit plus rien du chemin classique (`grep -rn 'solutionMatcher|
+    countPossibleSolutions|solutionsReadyProvider' lib/pentoscope/` → vide). Inventaire,
+    objections et ordre d'exécution : `PLAN_SUPPRESSION_CLASSICAL.md`. **Non exécutable en
+    l'état** — deux décisions de fonctionnalité manquent (navigateur de solutions,
+    historique de parties en base) et le test appareil du temps 2 n'a pas été rapporté.
+20. **2026-08-29 — Paul** — **le 3×20 est abandonné pour l'instant**, ni généré ni ouvert
+    au joueur ; les tables à produire sont 5×12 et 4×15. Motif rectifié par cowork :
+    l'objection d'affichage est faible (cases à 50 % de celles du 6×10), la raison dirimante
+    est de jeu — 2 solutions à symétrie près, donc compteur à 0 et indice rouge en
+    permanence. → plan 6×10 §5.6. *(Remplace la recommandation n°18.)*
+
+21. **2026-08-29 — Paul** — **le navigateur de solutions est ré-hébergé dans Pentoscope**,
+    pas abandonné. Découverte en écrivant le mode opératoire : son couplage au singleton est
+    du **code mort** — les deux sites vivants passent par `.forSolutions`, le constructeur
+    par défaut n'a aucun appelant. L'écran n'a donc besoin d'aucun `SolutionMatcher`. Le
+    travail est côté appelant : une 4ᵉ méthode `compatibleSolutions(Plateau)` sur
+    `SolutionSource`. → `PLAN_SUPPRESSION_CLASSICAL.md` §3.1.
+22. **2026-08-29 — Paul** — **l'écriture de l'historique de parties est portée dans
+    Pentoscope.** ⚠️ **Correction d'une estimation de cowork** : j'avais annoncé « une
+    dizaine de lignes », c'est faux. `GameSessions.solutionNumber` est non nullable et sert
+    de clé à `SolutionStats` ; Pentoscope ne connaît pas ce numéro (→ 5ᵉ méthode
+    `solutionIndexOf`), et il n'est **pas unique entre tables** — la solution n°5 du 6×10 et
+    celle du 5×12 se confondraient. Il faut donc une **migration drift** (colonne de plateau,
+    `solutionNumber` nullable pour les tailles sans table). Chantier à part, à ne pas mêler
+    au commit de suppression. → §3.2.
+
+23. **2026-08-29 — cowork** — **défaut découvert pendant le test de Paul : l'écran de
+    Réglages est inatteignable.** `main.dart` démarre sur `PentoscopeGameScreen` (l.77) ; les
+    routes `'/home'` et `'/game'` sont déclarées (l.80-81) mais **aucun `pushNamed` n'existe
+    dans le dépôt**. `HomeScreen` n'est donc joignable par aucun chemin, et avec lui
+    `SettingsScreen` (seule porte vers la bascule « Compteur de solutions » de la décision 16,
+    `settings_screen.dart` l.168-175) et `DatabaseDebugScreen`. Tous les réglages de jeu sont
+    hors d'atteinte, pas seulement le compteur. **Correctif à part, plus urgent que la
+    suppression du mode classique** ; et `HomeScreen` ne doit surtout pas être supprimé avec
+    lui. → `PLAN_SUPPRESSION_CLASSICAL.md` §2.1.
+
+24. **2026-08-29 — cowork** — **le canari du §4.3 est remplacé, pas contourné.** Le point 5
+    du test (« le compteur du mode classique est toujours là ») devient sans objet dès lors
+    que ce module est supprimé : ce qu'il prouvait, c'est que le câblage classique n'avait
+    pas été abîmé, et ce câblage disparaît. Ce qui reste à garantir, c'est que
+    `SolutionMatcher` répond juste — et un **test unitaire** le fait mieux qu'une observation
+    à l'écran : plateau 6×10 vide → 9356, plateau à une pièce → compte stable entre deux
+    exécutions. Ce test est l'étape 2 de `PLAN_SUPPRESSION_CLASSICAL.md` §5 et il est
+    **préalable** à toute suppression. Le point 1 du test appareil ayant été validé par Paul,
+    la suppression n'est plus bloquée par les points 2, 4 et 5.
+
 ## §PASSATIONS
 
 **2026-08-28 19:33 — cowork → toi.** Écrit `MODUS_VIVENDI.md`, `JOURNAL.md`, et le bloc
@@ -179,3 +267,30 @@ ajoutées (14 = pas de garde de montage ; 15 = indice aléatoire, réponse de Pa
 compteur visible par défaut). **À faire** : test manuel du temps 2 par Paul, **surtout le
 compteur (étape 5, pas encore testée)**. Le doublon `4f17ca8`/`341021c` reste à élucider —
 sans effet fonctionnel (mêmes docs).
+
+**2026-08-29 — cowork → toi.** Écrit le §5 complet du plan (correctif `PentominoSolver`,
+généralisation de l'outil, vérifications d'acceptation, deux décisions d'interface, ordre
+d'exécution), mis §4.4 et §4.6 en accord avec ce qui a été livré, ajouté les décisions 17 et
+18, réécrit §ÉTAT. **Aucun code touché.**
+**Prochain pas : ton test appareil du temps 2**, §4.7 du plan, l'étape 5 avant tout. Le §5
+n'est exécutable qu'après.
+
+**2026-08-29 (seconde session) — cowork → toi.** Écrit `docs/PLAN_SUPPRESSION_CLASSICAL.md`
+(200 l.) : inventaire mesuré, les 505 lignes à déménager avant, les 3 points d'entrée, les
+2 décisions de fonctionnalité qui bloquent, l'ordre en 7 étapes dont chacune est réversible
+seule. Rectifié §5.6 du plan 6×10 (3×20 abandonné, et pour la bonne raison). Décisions 19
+et 20, §ÉTAT réécrit. **Aucun code touché.**
+**Prochain pas, inchangé : le test appareil du temps 2**, §4.7, étape 5 avant tout.
+
+**2026-08-29 (seconde session, fin) — cowork → toi.** Décisions 21 et 22 prises par Paul ;
+§3 du plan de suppression réécrit en mode opératoire, ordre d'exécution passé à 7 étapes.
+Deux rectifications de mes propres estimations y figurent — le navigateur est moins cher,
+l'historique plus cher. §ÉTAT réécrit. **Aucun code touché.**
+**Prochain pas, inchangé et bloquant : ton test appareil du temps 2**, §4.7, étape 5.
+
+**2026-08-29 — cowork → toi (lancement de la suppression).** Décision 24 : le canari est
+remplacé par un test unitaire, la suppression n'est plus bloquée par la fin du test
+appareil. Phrase de lancement remise à Paul pour les étapes 2, 3, 5, 6 et 7 de
+`PLAN_SUPPRESSION_CLASSICAL.md` §5 — **l'étape 4 (historique en base) en est exclue**,
+c'est un chantier à part qui demande une migration drift. Le correctif de l'accès aux
+Réglages (décision 23) en est exclu aussi.
