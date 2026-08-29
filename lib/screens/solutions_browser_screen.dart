@@ -1,66 +1,49 @@
-// Modified: 2025-11-16 11:35:00
+// Modified: 2026-08-29 13:43 — dégraissé du singleton (suppression du mode classique,
+//           PLAN_SUPPRESSION_CLASSICAL.md §3.1/§5 étape 3) : afficheur pur d'une
+//           `List<BigInt>` — retrait de solution_matcher, du constructeur par défaut et de la
+//           branche else qui lisait le singleton global. Un seul constructeur : forSolutions.
+//           Déménagement physique différé à l'étape 7 (décision, cf. JOURNAL).
 // lib/screens/solutions_browser_screen.dart
-// Navigateur pour parcourir des solutions de pentominos stockées en BigInt (360 bits)
+// Historique: 2025-11-16 — Navigateur de solutions BigInt (360 bits).
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pentapol/services/solution_matcher.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 
 class SolutionsBrowserScreen extends ConsumerStatefulWidget {
   /// Liste de solutions à afficher (BigInt).
-  /// Si null → on affiche toutes les solutions de solutionMatcher.
-  final List<BigInt>? initialSolutions;
+  final List<BigInt> initialSolutions;
 
   /// Titre personnalisé (affiché en petit au-dessus des flèches si fourni).
   final String? title;
 
-  /// Constructeur standard : affiche toutes les solutions.
-  const SolutionsBrowserScreen({super.key})
-      : initialSolutions = null,
-        title = null;
-
-  /// Constructeur pour afficher une liste donnée de solutions.
+  /// Affiche une liste donnée de solutions.
   const SolutionsBrowserScreen.forSolutions({
     super.key,
     required List<BigInt> solutions,
-    String? title,
-  })  : initialSolutions = solutions,
-        title = title;
+    this.title,
+  }) : initialSolutions = solutions;
 
   @override
   ConsumerState<SolutionsBrowserScreen> createState() => _SolutionsBrowserScreenState();
 }
 
 class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen> {
-  final SolutionMatcher _matcher = solutionMatcher; // singleton
   late final Map<int, int> _idByBit6;
-  late List<BigInt> _allSolutions;
+  late final List<BigInt> _allSolutions;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
     // bit6 -> id de pièce (1..12)
     _idByBit6 = {
       for (final p in pentominos) p.bit6: p.id,
     };
-
-    try {
-      if (widget.initialSolutions != null) {
-        _allSolutions = List<BigInt>.from(widget.initialSolutions!);
-        debugPrint('[BROWSER] ${_allSolutions.length} solutions (filtrées) chargées');
-      } else {
-        _allSolutions = _matcher.allSolutions;
-        debugPrint('[BROWSER] ${_allSolutions.length} solutions (toutes) chargées');
-      }
-    } catch (e) {
-      debugPrint('[BROWSER] Solutions non initialisées: $e');
-      _allSolutions = const [];
-    }
+    _allSolutions = List<BigInt>.from(widget.initialSolutions);
+    debugPrint('[BROWSER] ${_allSolutions.length} solutions chargées');
   }
 
   void _previousSolution() {
@@ -95,8 +78,7 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
         ),
         body: const Center(
           child: Text(
-            'Aucune solution chargée.\n'
-                'Vérifie que SolutionMatcher est bien initialisé au démarrage.',
+            'Aucune solution compatible avec ce plateau.',
             textAlign: TextAlign.center,
           ),
         ),

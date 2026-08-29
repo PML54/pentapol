@@ -1,8 +1,9 @@
-// Modified: 2026-08-29 10:05 — 6×10 dans Pentoscope (temps 2, étape 5) : champ d'état
-//           solutionsCount, calculé avec hasPossibleSolution par le helper unique
-//           _solutionStatus (un seul rebuild/scan) aux 5 sites de mutation et aux 3
-//           démarrages. Remplace _checkHasPossibleSolutionWith.
+// Modified: 2026-08-29 13:43 — suppression du mode classique (§3.1) : méthode publique
+//           compatibleSolutions() (via _solutions, plateau reconstruit sans exclude) pour le
+//           navigateur de solutions branché dans Pentoscope.
 // lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-29 10:05 — 6×10 temps 2 étape 5 : champ solutionsCount, helper
+//             _solutionStatus (remplace _checkHasPossibleSolutionWith).
 // Historique: 2026-08-29 09:26 — temps 2 étapes 4/6 : champ _solutions (SolutionSource) posé
 //             par _makeSolutionSource ; hasPossibleSolution et applyHint via _solutions.
 // Historique: 2026-08-29 07:46 — temps 1 : garde de court-circuit dans
@@ -167,6 +168,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final matcher = await ref.read(pentoscopeSolutionsProvider(table).future);
     return TableSolutionSource(matcher, table);
   }
+
+  /// Solutions complètes compatibles avec le plateau courant (pour le navigateur
+  /// de solutions). Le plateau reconstruit inclut la pièce sélectionnée (elle n'a
+  /// jamais quitté placedPieces sous stay + mask), donc pas d'`exclude:`. Vide pour
+  /// les tailles à la volée.
+  List<BigInt> compatibleSolutions() =>
+      _solutions.compatibleSolutions(_rebuildPlateau());
 
   // ==========================================================================
   // ⏱️ TIMER

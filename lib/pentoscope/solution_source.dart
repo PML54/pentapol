@@ -1,7 +1,8 @@
-// Modified: 2026-08-29 09:26 — 6×10 dans Pentoscope (temps 2, étape 2) : interface
-//           SolutionSource et ses deux implémentations (table pré-calculée / solveur à la
-//           volée). Isolé, non branché à ce stade — le câblage (startPuzzle) vient à l'étape 4.
+// Modified: 2026-08-29 13:43 — suppression du mode classique (§3.1) : 4e méthode
+//           compatibleSolutions(plateau) — la table renvoie les solutions compatibles en
+//           BigInt (pour le navigateur), le solveur à la volée renvoie [].
 // lib/pentoscope/solution_source.dart
+// Historique: 2026-08-29 09:26 — 6×10 temps 2 étape 2 : interface SolutionSource + 2 impls.
 // D'où viennent les réponses « solution » d'un puzzle Pentoscope :
 // - rectangle complet adossé à une table (6×10 aujourd'hui) → TableSolutionSource ;
 // - toute autre taille → LiveSolutionSource (PentoscopeSolver, à la volée).
@@ -30,6 +31,11 @@ abstract interface class SolutionSource {
   /// [remaining] sert au solveur ; la table l'ignore (elle renvoie la solution complète,
   /// à l'appelant de choisir une pièce non encore posée).
   List<PlacedPiece>? hintFrom(Plateau plateau, List<Pento> remaining);
+
+  /// Les solutions complètes compatibles avec ce plateau, en BigInt (pour le
+  /// navigateur de solutions). Liste vide pour la source à la volée, qui ne les
+  /// énumère pas.
+  List<BigInt> compatibleSolutions(Plateau plateau);
 }
 
 /// Grille `[y][x]` attendue par le solveur, construite depuis un plateau.
@@ -77,6 +83,9 @@ class LiveSolutionSource implements SolutionSource {
             ))
         .toList();
   }
+
+  @override
+  List<BigInt> compatibleSolutions(Plateau plateau) => const [];
 }
 
 /// Source adossée à une table pré-calculée (rectangle complet), au-dessus d'un
@@ -132,5 +141,11 @@ class TableSolutionSource implements SolutionSource {
     // Décision de Paul (§4.6) : une solution compatible AU HASARD.
     final idx = indices[_random.nextInt(indices.length)];
     return _matcher.getPlacedPiecesByIndex(idx);
+  }
+
+  @override
+  List<BigInt> compatibleSolutions(Plateau plateau) {
+    final (pieces, m) = _mask(plateau);
+    return _matcher.getCompatibleSolutionsFromBigInts(pieces, m);
   }
 }

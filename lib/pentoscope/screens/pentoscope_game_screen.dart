@@ -1,8 +1,10 @@
-// Modified: 2026-08-29 10:05 — 6×10 dans Pentoscope (temps 2, étape 5) : compteur de
-//           solutions dans l'AppBar en jeu normal, gaté par GameSettings.showSolutionCounter
-//           (défaut true), rouge à 0 (cohérent avec le bouton d'indice). Affiché seulement
-//           quand state.solutionsCount != null (tailles adossées à une table).
+// Modified: 2026-08-29 13:43 — suppression du mode classique (§3.1/§5 étape 3) : bouton
+//           « Solutions compatibles » (navigateur) en portrait et paysage, gaté par
+//           state.solutionsCount != null, ouvrant SolutionsBrowserScreen sur
+//           notifier.compatibleSolutions(). Le bouton « Mode Classique » subsiste (coupé à
+//           l'étape 6).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-29 10:05 — 6×10 temps 2 étape 5 : compteur de solutions dans l'AppBar.
 // Historique: 2026-08-28 20:30 — suppression démo : retrait de l'import demo_screen.dart et
 //             des deux IconButton « Démo automatique ».
 //             2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece.
@@ -22,6 +24,7 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
+import 'package:pentapol/screens/solutions_browser_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/classical/pentomino_game_screen.dart';
 
@@ -224,6 +227,26 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   }
                 },
                 tooltip: state.hasPossibleSolution ? 'Indice' : 'Aucune solution possible',
+              ),
+            // 🔎 Navigateur de solutions (tailles adossées à une table)
+            if (state.solutionsCount != null)
+              IconButton(
+                icon: const Icon(Icons.view_carousel),
+                color: Colors.indigo,
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  final sols = notifier.compatibleSolutions();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SolutionsBrowserScreen.forSolutions(
+                        solutions: sols,
+                        title: '${sols.length} solution(s) compatible(s)',
+                      ),
+                    ),
+                  );
+                },
+                tooltip: 'Solutions compatibles',
               ),
             // 🔍 Mode Classique
             IconButton(
@@ -855,6 +878,26 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                             notifier.applyHint();
                           },
                           tooltip: 'Indice',
+                        ),
+                      // 🔎 Navigateur de solutions (tailles adossées à une table)
+                      if (state.solutionsCount != null)
+                        IconButton(
+                          icon: Icon(Icons.view_carousel, size: iconSize),
+                          color: Colors.indigo,
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            final sols = notifier.compatibleSolutions();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SolutionsBrowserScreen.forSolutions(
+                                  solutions: sols,
+                                  title: '${sols.length} solution(s) compatible(s)',
+                                ),
+                              ),
+                            );
+                          },
+                          tooltip: 'Solutions compatibles',
                         ),
                     ],
                   ),
