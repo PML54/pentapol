@@ -1,11 +1,13 @@
+// Modified: 2026-08-29 14:02 — suppression du mode classique (§2, étape 6) : retrait du
+//           _MenuCard « Pentominos Classique » et de son import. HomeScreen est conservé :
+//           il porte l'accès aux Réglages (§2.1).
 // lib/screens/home_screen.dart
-// Modified: 2604221500
+// Historique: 2604221500
 // Icône solo (person) pour le mode Pentoscope Speed
 // CHANGEMENTS: (1) Icons.search → Icons.person ligne 82
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pentapol/classical/pentomino_game_screen.dart';
 
 import 'package:pentapol/pentoscope/screens/pentoscope_menu_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
@@ -92,19 +94,7 @@ class HomeScreen extends ConsumerWidget {
                             );
                           },
                         ),
-                        _MenuCard(
-                          icon: Icons.extension,
-                          title: 'Pentominos Classique',
-                          subtitle: '9356 Solutions',
-                          color: colorScheme.primary,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const PentominoGameScreen(),
-                              ),
-                            );
-                          },
-                        ),
+                        // Mode classique retiré (suppression du module).
 
 
 

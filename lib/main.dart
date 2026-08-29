@@ -1,8 +1,10 @@
-// Modified: 2026-08-27 16:04 — suppression de la course au démarrage (P4) : le chargement des
-//           solutions passe du Future.microtask non attendu au solutionsReadyProvider,
-//           amorcé ici et observé par PentominoGameScreen.
+// Modified: 2026-08-29 14:02 — suppression du mode classique (§2, étape 6) : coupure du point
+//           d'entrée — retrait de l'import du screen classique et de la route '/game'. La
+//           route '/home' et l'amorce de solutionsReadyProvider restent (nettoyées à l'étape 7).
 // lib/main.dart
-// Historique: 2025-12-06 16:00 → 251226 (Avec numérotation)
+// Historique: 2026-08-27 16:04 — suppression de la course au démarrage (P4) : chargement des
+//             solutions via solutionsReadyProvider, amorcé ici.
+//             2025-12-06 16:00 → 251226 (Avec numérotation)
 // Version adaptée avec pré-chargement des solutions BigInt + Numérotation
 
 import 'package:flutter/material.dart';
@@ -13,7 +15,6 @@ import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 
 import 'package:pentapol/providers/solutions_provider.dart';
 import 'package:pentapol/screens/home_screen.dart';
-import 'package:pentapol/classical/pentomino_game_screen.dart';
 
 
 void main() async {
@@ -77,7 +78,6 @@ class _PentapolAppState extends ConsumerState<PentapolApp> {
       home: _isInitialized ? const PentoscopeGameScreen() : _buildLoadingScreen(),
 
       routes: {
-        '/game': (context) => const PentominoGameScreen(),
         '/home': (context) => const HomeScreen(),
       },
     );

@@ -1,10 +1,10 @@
-// Modified: 2026-08-29 13:43 — suppression du mode classique (§3.1/§5 étape 3) : bouton
-//           « Solutions compatibles » (navigateur) en portrait et paysage, gaté par
-//           state.solutionsCount != null, ouvrant SolutionsBrowserScreen sur
-//           notifier.compatibleSolutions(). Le bouton « Mode Classique » subsiste (coupé à
-//           l'étape 6).
+// Modified: 2026-08-29 14:02 — suppression du mode classique (§2, étape 6) : coupure du point
+//           d'entrée — retrait du bouton « Mode Classique » (icône manage_search) et de son
+//           import. C'était le seul accès vivant au mode classique.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
-// Historique: 2026-08-29 10:05 — 6×10 temps 2 étape 5 : compteur de solutions dans l'AppBar.
+// Historique: 2026-08-29 13:43 — étape 3 : bouton « Solutions compatibles » (navigateur),
+//             gaté par solutionsCount != null.
+//             2026-08-29 10:05 — 6×10 temps 2 étape 5 : compteur de solutions dans l'AppBar.
 // Historique: 2026-08-28 20:30 — suppression démo : retrait de l'import demo_screen.dart et
 //             des deux IconButton « Démo automatique ».
 //             2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece.
@@ -26,7 +26,6 @@ import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/screens/solutions_browser_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
-import 'package:pentapol/classical/pentomino_game_screen.dart';
 
 /// ⏱️ Formate le temps en secondes (max 999s) - format compact
 String _formatTime(int seconds) {
@@ -248,21 +247,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 },
                 tooltip: 'Solutions compatibles',
               ),
-            // 🔍 Mode Classique
-            IconButton(
-              icon: const Icon(Icons.manage_search),
-              color: Colors.blue,
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PentominoGameScreen(),
-                  ),
-                );
-              },
-              tooltip: 'Mode Classique',
-            ),
           ],
         ),
       ),
