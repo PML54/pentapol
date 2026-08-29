@@ -1,7 +1,9 @@
-// Modified: 2026-08-27 15:32 — correction de la table des lettres de pièces dans l'en-tête
-//           (colonne « Pièce » fausse sur 8 lignes) ; commentaires uniquement,
-//           aucun code modifié. Voir docs/ANALYSE_STOCKAGE_POSITIONS.md §D2.
+// Modified: 2026-08-29 08:55 — 6×10 dans Pentoscope (temps 2, étape 1) : _width/_height/_cells
+//           passent de static const à champs d'instance, défauts 6×10. Additif : le
+//           singleton global reste 6×10, le mode classique est inchangé ; Pentoscope pourra
+//           créer ses propres instances pour d'autres rectangles complets.
 // lib/services/solution_matcher.dart
+// Historique: 2026-08-27 15:32 — correction de la table des lettres de pièces (commentaires).
 // =============================================================================
 // SERVICE DE GESTION DES SOLUTIONS PENTOMINOS 6×10
 // =============================================================================
@@ -266,31 +268,34 @@ class SolutionMatcher {
   bool _initialized = false;
 
   // ---------------------------------------------------------------------------
-  // CONSTANTES
+  // DIMENSIONS (paramétrables — voir PLAN_6X10_DANS_PENTOSCOPE.md §4.3)
   // ---------------------------------------------------------------------------
 
-  /// Nombre de cases du plateau 6×10.
-  static const int _cells = 60;
-
-  /// Masque pour extraire 6 bits (0x3F = 0b111111 = 63).
+  /// Masque pour extraire 6 bits (0x3F = 0b111111 = 63). Indépendant de la taille.
   static const int _bitMask = 0x3F;
 
-  /// Largeur du plateau en colonnes (x: 0 à 5).
-  static const int _width = 6;
+  /// Largeur du plateau en colonnes. 6 par défaut : le singleton global reste 6×10,
+  /// et Pentoscope peut créer des instances pour d'autres rectangles complets.
+  final int _width;
 
-  /// Hauteur du plateau en lignes (y: 0 à 9).
-  static const int _height = 10;
+  /// Hauteur du plateau en lignes. 10 par défaut.
+  final int _height;
+
+  /// Nombre de cases = _width × _height (60 pour tous les rectangles complets).
+  int get _cells => _width * _height;
 
   // ---------------------------------------------------------------------------
   // CONSTRUCTEUR
   // ---------------------------------------------------------------------------
 
-  /// Crée une instance du matcher (non initialisée).
+  /// Crée une instance du matcher (non initialisée). Dimensions 6×10 par défaut.
   ///
   /// Appeler [initWithBigIntSolutions] pour charger les solutions.
-  SolutionMatcher() {
+  SolutionMatcher({int width = 6, int height = 10})
+      : _width = width,
+        _height = height {
     debugPrint(
-        '[SOLUTION_MATCHER] Créé (en attente d\'initialisation BigInt)...');
+        '[SOLUTION_MATCHER] Créé ${width}x$height (en attente d\'initialisation BigInt)...');
   }
 
   // ---------------------------------------------------------------------------

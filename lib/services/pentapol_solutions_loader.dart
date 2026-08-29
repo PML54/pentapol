@@ -1,5 +1,8 @@
-// Modified: 2025-11-15 06:45:00
+// Modified: 2026-08-29 08:55 — 6×10 dans Pentoscope (temps 2, étape 1) : le nom d'asset
+//           devient paramètre (défaut 6×10, appelant historique inchangé). Format 45 o/
+//           solution indépendant de la forme du rectangle.
 // lib/services/pentapol_solutions_loader.dart
+// Historique: 2025-11-15 06:45:00
 
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
@@ -7,9 +10,16 @@ import 'package:flutter/services.dart' show rootBundle;
 const int _boardCells = 60;
 const int _bytesPerSolution = 45;
 
-Future<List<BigInt>> loadNormalizedSolutionsAsBigInt() async {
-  // Chemin EXACTEMENT identique à celui déclaré dans pubspec.yaml
-  final data = await rootBundle.load('assets/data/solutions_6x10_normalisees.bin');
+/// Charge les solutions normalisées d'un rectangle de 60 cases depuis [asset].
+///
+/// [asset] par défaut : la table 6×10 (comportement historique inchangé). Le
+/// format (60 cases × 6 bits = 45 octets/solution) ne dépend pas de la forme du
+/// rectangle, seul le nom du fichier change — voir PLAN_6X10_DANS_PENTOSCOPE.md §4.3.
+Future<List<BigInt>> loadNormalizedSolutionsAsBigInt([
+  String asset = 'assets/data/solutions_6x10_normalisees.bin',
+]) async {
+  // Le chemin doit être déclaré dans pubspec.yaml (section assets).
+  final data = await rootBundle.load(asset);
   final bytes = data.buffer.asUint8List();
 
   if (bytes.length % _bytesPerSolution != 0) {
