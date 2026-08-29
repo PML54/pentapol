@@ -1,9 +1,10 @@
-// Modified: 2026-08-29 09:26 — 6×10 dans Pentoscope (temps 2, étapes 4/6) : champ _solutions
-//           (SolutionSource), posé par _makeSolutionSource — seul site lisant size.table —
-//           dans les 3 créations de puzzle. _checkHasPossibleSolutionWith et applyHint
-//           passent par _solutions (table réelle → l'indice peut passer au rouge) ; la garde
-//           temps-1 et l'appel direct au solveur sont retirés.
+// Modified: 2026-08-29 10:05 — 6×10 dans Pentoscope (temps 2, étape 5) : champ d'état
+//           solutionsCount, calculé avec hasPossibleSolution par le helper unique
+//           _solutionStatus (un seul rebuild/scan) aux 5 sites de mutation et aux 3
+//           démarrages. Remplace _checkHasPossibleSolutionWith.
 // lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-29 09:26 — temps 2 étapes 4/6 : champ _solutions (SolutionSource) posé
+//             par _makeSolutionSource ; hasPossibleSolution et applyHint via _solutions.
 // Historique: 2026-08-29 07:46 — temps 1 : garde de court-circuit dans
 //             _checkHasPossibleSolutionWith.
 //             2026-08-28 20:30 — suppression démo : retrait du bloc de 7 méthodes de
@@ -256,10 +257,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       stopTimer();
     }
 
-    // Vérifier s'il reste des solutions possibles
-    final hasPossibleSolution = newAvailable.isNotEmpty
-        ? _checkHasPossibleSolutionWith(newPlateau, newAvailable, newPlacedPieces)
-        : false;
+    // Vérifier s'il reste des solutions possibles + le compte
+    final (hasPossibleSolution, solutionsCount) =
+        _solutionStatus(newPlacedPieces, newAvailable);
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -267,6 +267,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       placedPieces: newPlacedPieces,
       isComplete: isComplete,
       hasPossibleSolution: hasPossibleSolution,
+      solutionsCount: solutionsCount,
       hintCount: state.hintCount + 1, // 💡 Incrémenter le compteur de hints
       clearSelectedPiece: true,
       clearSelectedPlacedPiece: true,
@@ -275,22 +276,28 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  /// Version interne pour vérifier avec un état spécifique.
+  /// `(hasPossibleSolution, solutionsCount)` pour un plateau donné par ses pièces.
   ///
-  /// Temps 2 : passe par la source de solutions du puzzle courant (`_solutions`),
-  /// table pré-calculée ou solveur à la volée selon la taille. La table donne le
-  /// vrai « une solution reste-t-elle atteignable ? » — le compteur peut donc
-  /// passer au rouge, contrairement au court-circuit du temps 1.
-  bool _checkHasPossibleSolutionWith(
-    Plateau plateau,
-    List<Pento> availablePieces,
+  /// Temps 2 : un seul rebuild + un seul passage par la source du puzzle courant.
+  /// La table sait compter (count non-null, `has` = count > 0) — le compteur peut
+  /// donc passer au rouge, contrairement au court-circuit du temps 1 ; le solveur
+  /// à la volée ne compte pas (count null, `has` via canSolveFrom).
+  (bool, int?) _solutionStatus(
     List<PlacedPiece> placedPieces,
+    List<Pento> availablePieces,
   ) {
-    if (state.puzzle == null) return false;
-    if (availablePieces.isEmpty) return false;
-
+    if (state.puzzle == null) return (false, null);
     final board = _rebuildPlateau(pieces: placedPieces);
-    return _solutions.hasSolutionFrom(board, availablePieces);
+    final count = _solutions.countFrom(board);
+    final bool has;
+    if (availablePieces.isEmpty) {
+      has = false;
+    } else if (count != null) {
+      has = count > 0;
+    } else {
+      has = _solutions.hasSolutionFrom(board, availablePieces);
+    }
+    return (has, count);
   }
 
   // ==========================================================================
@@ -371,12 +378,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         .toList();
     final newAvailable = [...state.availablePieces, placed.piece];
 
-    // 💡 HINT: Recalculer si une solution est encore possible
-    final hasPossibleSolution = _checkHasPossibleSolutionWith(
-      newPlateau,
-      newAvailable,
-      newPlaced,
-    );
+    // 💡 HINT: Recalculer si une solution est encore possible + le compte
+    final (hasPossibleSolution, solutionsCount) =
+        _solutionStatus(newPlaced, newAvailable);
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -387,6 +391,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       clearSelectedCellInPiece: true,
       clearSelectedMasterAbs: true,
       isComplete: false,
+      solutionsCount: solutionsCount,
       validPlacements: [],
       hasPossibleSolution: hasPossibleSolution,
       deleteCount: state.deleteCount + 1, // 🗑️ Incrémenter le compteur de suppressions
@@ -435,6 +440,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       // ✅ Stocker la solution
       validPlacements: [], // ✨ NOUVEAU
       hasPossibleSolution: true, // 💡 Reset
+      solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0, // ⏱️ Reset timer
     );
     
@@ -613,6 +619,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       currentSolution: firstSolution,
       validPlacements: [],
       hasPossibleSolution: true,
+      solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
       minIsometries: minIsometries,
     );
@@ -677,6 +684,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       currentSolution: null,
       validPlacements: [],
       hasPossibleSolution: true,
+      solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
       minIsometries: minIsometries,
     );
@@ -801,10 +809,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       _saveCompletedLevel();
     }
 
-    // 💡 HINT: Vérifier si une solution est encore possible
-    final hasPossibleSolution = !isComplete && newAvailable.isNotEmpty
-        ? _checkHasPossibleSolutionWith(newPlateau, newAvailable, newPlacedPieces)
-        : false;
+    // 💡 HINT: Vérifier si une solution est encore possible + le compte
+    final (hasPossibleSolution, solutionsCount) =
+        _solutionStatus(newPlacedPieces, newAvailable);
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -820,6 +827,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       currentSolution: state.currentSolution,
       validPlacements: [],
       hasPossibleSolution: hasPossibleSolution, // 💡 HINT
+      solutionsCount: solutionsCount, // 🔢
     );
 
     // ⏱️ Démarrer le timer au premier placement depuis le slider
@@ -1096,10 +1104,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 🔄 Reconstruire le plateau avec les pièces mises à jour
     final newPlateau = _rebuildPlateau(pieces: updatedPlacedPieces);
 
-    // 💡 Recalculer si une solution est encore possible
-    final hasPossibleSolution = state.availablePieces.isNotEmpty
-        ? _checkHasPossibleSolutionWith(newPlateau, state.availablePieces, updatedPlacedPieces)
-        : false;
+    // 💡 Recalculer si une solution est encore possible + le compte
+    final (hasPossibleSolution, solutionsCount) =
+        _solutionStatus(updatedPlacedPieces, state.availablePieces);
 
     // Calculer la nouvelle position relative de la mastercase dans la pièce transformée
     Point? newSelectedCellInPiece;
@@ -1163,6 +1170,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       clearPreview: true,
       isometryCount: state.isometryCount + 1,
       hasPossibleSolution: hasPossibleSolution, // 💡 Mise à jour!
+      solutionsCount: solutionsCount, // 🔢
     );
 
     // === LOG APRES TRANSFO ===
@@ -1347,13 +1355,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final newPlateau = _rebuildPlateau(pieces: updatedPlacedPieces);
 
-    final hasPossibleSolution = state.availablePieces.isNotEmpty
-        ? _checkHasPossibleSolutionWith(
-            newPlateau,
-            state.availablePieces,
-            updatedPlacedPieces,
-          )
-        : false;
+    final (hasPossibleSolution, solutionsCount) =
+        _solutionStatus(updatedPlacedPieces, state.availablePieces);
 
     Point? newSelectedCellInPiece;
     if (state.selectedCellInPiece != null) {
@@ -1412,6 +1415,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       clearPreview: true,
       isometryCount: state.isometryCount + 1,
       hasPossibleSolution: hasPossibleSolution,
+      solutionsCount: solutionsCount, // 🔢
     );
 
     final finalMasterRaw = getRawMastercaseCoords(
@@ -1859,6 +1863,10 @@ class PentoscopeState implements PieceManipulationState {
   // 💡 HINT: Indique si au moins une solution est encore possible
   final bool hasPossibleSolution;
 
+  // 🔢 Nombre de solutions complètes encore compatibles, ou null si la source ne
+  // sait pas compter (solveur à la volée). Affiché si GameSettings.showSolutionCounter.
+  final int? solutionsCount;
+
   // ⏱️ Timer
   final int elapsedSeconds;
 
@@ -1891,6 +1899,7 @@ class PentoscopeState implements PieceManipulationState {
     this.showSolution = false,
     this.currentSolution,
     this.hasPossibleSolution = true, // 💡 Par défaut true au démarrage
+    this.solutionsCount, // 🔢 null tant qu'aucun puzzle à table n'est démarré
     this.elapsedSeconds = 0, // ⏱️ Timer
     this.minIsometries = 0, // 🏆
   });
@@ -1965,6 +1974,7 @@ class PentoscopeState implements PieceManipulationState {
     bool? showSolution, // ✅ NOUVEAU
     Solution? currentSolution, // ✅ NOUVEAU
     bool? hasPossibleSolution, // 💡 HINT
+    int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer
     int? minIsometries, // 🏆
   }) {
@@ -2007,6 +2017,7 @@ class PentoscopeState implements PieceManipulationState {
       // ✅ NOUVEAU
       currentSolution: currentSolution ?? this.currentSolution, // ✅ NOUVEAU
       hasPossibleSolution: hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT
+      solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
       minIsometries: minIsometries ?? this.minIsometries, // 🏆
     );

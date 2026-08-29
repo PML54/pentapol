@@ -1,9 +1,11 @@
-// Modified: 2026-08-28 20:30 — suppression de la démo automatique : retrait de l'import
-//           demo_screen.dart et des deux IconButton « Démo automatique » (portrait et
-//           paysage). Le mode classique se lance toujours par son propre bouton.
+// Modified: 2026-08-29 10:05 — 6×10 dans Pentoscope (temps 2, étape 5) : compteur de
+//           solutions dans l'AppBar en jeu normal, gaté par GameSettings.showSolutionCounter
+//           (défaut true), rouge à 0 (cohérent avec le bouton d'indice). Affiché seulement
+//           quand state.solutionsCount != null (tailles adossées à une table).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
-// Historique: 2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece (fusion des deux types
-//             de pièce posée). 2 références, import ajouté.
+// Historique: 2026-08-28 20:30 — suppression démo : retrait de l'import demo_screen.dart et
+//             des deux IconButton « Démo automatique ».
+//             2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece.
 // Modified: 2604221500
 // Dialogue bilan enrichi : déplacements, suppressions, score %
 // CHANGEMENTS: (1) _showCompletionDialog: score minIsometries+numPieces / isométries+transl+delete, (2) rows déplacements et suppressions ajoutées
@@ -153,7 +155,28 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               );
             },
           )
-              : null,
+              : (settings.game.showSolutionCounter && state.solutionsCount != null)
+                  // 🔢 Compteur de solutions (tailles adossées à une table, ex. 6×10).
+                  // Rouge à 0 : cohérent avec le bouton d'indice qui vire au rouge.
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.grid_view_rounded,
+                            size: 14, color: Colors.indigo.shade400),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${state.solutionsCount}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: state.hasPossibleSolution
+                                ? Colors.black87
+                                : Colors.red.shade700,
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
           centerTitle: true,
           // 🔑 En mode transformation: pas d'actions, tout est dans le title
           actions: (isPlacedPieceSelected || isSliderPieceSelected)
