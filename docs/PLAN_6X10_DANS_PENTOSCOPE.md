@@ -92,19 +92,39 @@ toutes vérifiées sur le code :
 
 ### 3.2 Les sites, exactement
 
-**a) `pentoscope_generator.dart` — la valeur d'enum.**
+**a) `pentoscope_generator.dart` — la valeur d'enum, et le champ qui désigne sa table.**
 
-L'ordre des champs est `(dataIndex, width, height, numPieces, label)` :
+Décision de Paul du 2026-08-29 : d'autres rectangles complets suivront (5×12, 4×15, 3×20).
+L'information « d'où viennent les solutions » est donc portée par la configuration, sous la
+forme d'une **référence**, pas d'un booléen — voir §4.1.
 
 ```dart
-size6x10(8, 6, 10, 12, '12');
+enum PentoscopeSize {
+  size3x5 (0, 3,  5,  3, '3',    null),
+  …                                       // les 7 autres : null, ajout mécanique
+  size6x10(8, 6, 10, 12, '6×10', SolutionTable.r6x10);
+
+  const PentoscopeSize(this.dataIndex, this.width, this.height,
+                       this.numPieces, this.label, this.table);
+  …
+  /// Table de solutions pré-calculées, ou null si le puzzle est résolu à la volée.
+  ///
+  /// N'est valide que si la configuration emploie **toutes** les pièces de la table
+  /// et qu'**aucune case n'est masquée** — voir §2.
+  final SolutionTable? table;
+}
 ```
 
-> ⚠️ **Piège de nommage.** Les noms de cet enum ne veulent rien dire de façon cohérente :
-> `size3x5` a bien width=3, height=5, mais `size10x5` a width=**5**, height=**10**. Les
-> quatre premiers sont `widthxheight`, les quatre derniers l'inverse. `size6x10` est
-> nommé ici selon la convention **widthxheight** (6 colonnes × 10 lignes), qui est celle
-> que Paul emploie. Ne pas « corriger » les noms existants dans le même commit.
+> ⚠️ **Piège de nommage.** Les noms de cet enum ne sont pas cohérents : `size3x5` a bien
+> width=3, height=5, mais `size10x5` a width=**5**, height=**10**. `size6x10` suit la
+> convention **widthxheight** (6 colonnes × 10 lignes), celle qu'emploie Paul. Ne pas
+> « corriger » les noms existants dans le même commit.
+
+> ⚠️ **Le `label` ne peut plus être `numPieces`.** Les quatre rectangles complets ont tous
+> 12 pièces : quatre entrées de menu marquées « 12 » sont inutilisables. Passer au format
+> `'6×10'` pour ceux-là. Les huit tailles existantes gardent leur label ; c'est un champ
+> d'affichage, rien ne le lit par valeur (`grep -n '\.label' lib/` : 5 sites, tous en
+> affichage ou en trace).
 
 > `dataIndex` est mort : `grep -rn dataIndex lib/` ne trouve que sa déclaration et son
 > paramètre. La valeur 8 n'a aucune importance.
@@ -194,88 +214,210 @@ Test manuel, sur appareil, c'est le seul juge :
 
 ---
 
-## 4. Temps 2 — brancher les 9356
+## 4. Temps 2 — brancher les tables de solutions
 
-### 4.1 Presque tout existe déjà
+### 4.1 La forme : une référence, pas un drapeau
 
-`SolutionMatcher` (`services/solution_matcher.dart`) est **exclusivement** 6×10 :
-`_width = 6`, `_height = 10`, `_cells = 60`. Il expose déjà les trois services voulus :
+Un booléen `isComputed` répondrait à « une table existe ? » mais pas à « laquelle ? ».
+Avec quatre tables prévues, les deux questions doivent être posées une seule fois :
 
-| besoin | méthode existante |
-|---|---|
-| le compteur de solutions | `countCompatibleFromBigInts(pieces, mask)` |
-| l'indice | `getCompatibleSolutionIndices(pieces, mask)` |
-| « montrer la solution » | `getSolutionByIndex` / `solutionToPlacedPieces` / `getPlacedPiecesByIndex` |
+```dart
+/// Table de solutions pré-calculées d'un rectangle de 60 cases.
+enum SolutionTable {
+  r6x10('assets/data/solutions_6x10_normalisees.bin',  6, 10, 2339),
+  r5x12('assets/data/solutions_5x12_normalisees.bin',  5, 12, 1010),
+  r4x15('assets/data/solutions_4x15_normalisees.bin',  4, 15,  368),
+  r3x20('assets/data/solutions_3x20_normalisees.bin',  3, 20,    2);
 
-Le masque se construit par l'extension `services/plateau_solution_counter.dart`, celle-là
-même qui porte `Plateau.countPossibleSolutions()`.
+  const SolutionTable(this.asset, this.width, this.height, this.canonicalCount);
+  final String asset;
+  final int width;
+  final int height;
+  /// Solutions à symétrie près, telles que stockées dans le .bin.
+  final int canonicalCount;
+  /// Après expansion identité / rot180 / miroirH / miroirV.
+  /// Valide tant qu'aucune solution n'est invariante par l'une des trois — vérifié
+  /// à la génération (§5.3), jamais à supposer.
+  int get totalCount => canonicalCount * 4;
+}
+```
 
-Le temps 2 est donc du **câblage**, pas de l'algorithmique nouvelle.
+`size.table != null` remplace `isComputed`, sans champ redondant.
 
-### 4.2 La décision de conception du temps 2 — ne PAS remplir `puzzle.solutions`
+### 4.2 La discipline : un seul site de décision
 
-C'est le réflexe, et c'est un piège mesurable.
+Quatre fonctions ont besoin de savoir d'où viennent les solutions :
+`_checkHasPossibleSolutionWith` (3 appelants — `tryPlacePiece` l.804,
+`_applyIsoUsingLookup` l.1097, `_applySymmetryAbs`), `applyHint`, l'affichage du compteur,
+`showSolution`. Un drapeau testé à quatre endroits, c'est « deux implémentations
+sélectionnées par un booléen » — le motif que le chantier d'unification passait son temps
+à démonter.
 
-`startPuzzle` l.582-595 parcourt **toutes** les solutions du puzzle, et pour chacune les
-12 placements, en appelant `minIsometriesToReach`. Avec `solutions: []` cette boucle ne
-coûte rien. Avec 9356 solutions, elle devient 9356 × 12 appels **au démarrage de chaque
-partie**, sur le chemin le plus visible de l'application.
+**Le champ n'est donc lu qu'une fois**, dans `startPuzzle`, pour choisir un collaborateur :
 
-S'y ajoutent la duplication en mémoire (les 9356 sont déjà chez `solutionMatcher`, sous
-forme de BigInt) et la conversion `BigInt` → `Solution` pour chacune.
+```dart
+abstract interface class SolutionSource {
+  /// Une solution reste-t-elle atteignable depuis ce plateau ?
+  bool hasSolutionFrom(Plateau plateau, List<Pento> remaining);
 
-**Donc : `puzzle.solutions` reste vide pour le 6×10**, et les trois besoins passent par
-`solutionMatcher`. Si `minIsometries` doit exister pour cette taille, c'est un calcul à
-concevoir à part — pas un effet de bord d'une liste qu'on aurait remplie.
+  /// Combien de solutions complètes restent compatibles.
+  /// null quand la source ne sait pas compter — c'est le cas du solveur à la volée.
+  int? countFrom(Plateau plateau);
 
-### 4.3 Le piège n°1 — la garde de chargement
+  /// Une solution compatible, pour l'indice. null s'il n'y en a plus.
+  List<PlacedPiece>? hintFrom(Plateau plateau);
+}
+```
 
-`solutionsReadyProvider` (`providers/solutions_provider.dart`) est **amorcé** depuis
-`main.dart` sans attente, et **gardé** par le seul `PentominoGameScreen`, qui refuse de
-monter le jeu tant que les données ne sont pas prêtes.
+Deux implémentations : `TableSolutionSource(SolutionTable)` au-dessus d'un
+`SolutionMatcher`, `LiveSolutionSource` au-dessus de `PentoscopeSolver`. Le provider les
+tient dans un champ privé — comme il tient déjà `_generator` et `_solver` — posé par
+`startPuzzle` :
 
-Interroger `solutionMatcher` avant la fin du chargement lève un `StateError` que
-`plateau_solution_counter` attrape et convertit en `null` : **le compteur disparaît de
-l'interface sans aucun message.** C'est le défaut P4 déjà corrigé une fois côté classique.
+```dart
+_solutions = size.table == null
+    ? LiveSolutionSource(_solver)
+    : TableSolutionSource(size.table!);
+```
 
-L'écran de jeu Pentoscope doit donc, pour la taille 6×10, être gardé de la même façon —
-sur le **montage**, pas seulement sur le `build`.
+`countFrom` nullable est ce qui évite un cinquième `if` : l'écran affiche le compteur quand
+il y en a un, rien sinon.
 
-> Et la documentation de `solutions_provider.dart` dit aujourd'hui « Pentoscope, qui
+### 4.3 Contrainte dure — ne pas casser le mode classique
+
+Le mode classique est **figé** (décision n°7). Or il consulte le singleton global
+`solutionMatcher` par l'extension `Plateau.countPossibleSolutions()`, et
+`plateau_solution_counter._toBigIntMask()` **refuse explicitement** tout autre format :
+
+```dart
+if (width != 6 || height != 10) throw StateError(...);
+```
+
+La paramétrisation doit donc être **additive** : `SolutionMatcher` voit ses `_width`,
+`_height`, `_cells` passer de `static const` à champs d'instance **avec les valeurs 6×10
+par défaut**, le singleton global reste ce qu'il est, et Pentoscope obtient ses propres
+instances. Aucun site du mode classique ne change.
+
+Même chose pour le chargeur : `pentapol_solutions_loader.dart` est déjà générique —
+`_boardCells = 60` et `_bytesPerSolution = 45` ne dépendent pas de la forme du rectangle,
+seul le **nom du fichier** est en dur. Il suffit de le prendre en paramètre.
+
+> ⚠️ `_toBigIntMask` enveloppe tout dans un `try/catch` qui convertit l'erreur en `null`
+> après un `print`. Une table mal branchée ne lèvera donc rien : **le compteur disparaîtra
+> de l'écran sans message**. Ne jamais interpréter un compteur absent comme « 0 solution ».
+
+### 4.4 Le piège n°1 — la garde de chargement
+
+`solutionsReadyProvider` (`providers/solutions_provider.dart`) est amorcé sans attente
+depuis `main.dart` et **gardé** par le seul `PentominoGameScreen`, qui refuse de monter le
+jeu tant que les données ne sont pas prêtes. Interroger un `SolutionMatcher` non initialisé
+lève un `StateError` — avalé comme ci-dessus.
+
+Avec quatre tables, ce provider devient une **famille** indexée par `SolutionTable`, chargée
+paresseusement, et l'écran de jeu Pentoscope est gardé de la même façon — **sur le montage**,
+pas seulement sur le `build`.
+
+> La documentation de `solutions_provider.dart` affirme aujourd'hui « Pentoscope, qui
 > utilise `PentoscopeSolver` et non `solutionMatcher`, n'est pas ralenti ». Cette phrase
-> devient fausse au temps 2 : la corriger dans le même commit.
+> devient fausse : la corriger dans le même commit.
 
-### 4.4 Les branchements
+### 4.5 Le piège n°2 — ne PAS remplir `puzzle.solutions`
 
-- `hasPossibleSolution` pour `size6x10` := `plateau.countPossibleSolutions() > 0`, aux
-  trois sites listés en §3.2c. Les autres tailles gardent `canSolveFrom`.
-- Le compteur de solutions à l'écran : c'est la valeur, pas le booléen. Décider si
-  Pentoscope l'affiche (le mode classique le fait) — **question pour Paul**, elle n'est
-  pas tranchée ici.
-- `applyHint` : Pentoscope a le sien, construit sur `puzzle.solutions`. Pour le 6×10 il
-  doit passer par `getCompatibleSolutionIndices`. **C'est le seul endroit du temps 2 qui
-  n'est pas du câblage** — les deux implémentations d'indice ne choisissent pas de la même
-  façon.
+`startPuzzle` l.582-595 parcourt **toutes** les solutions du puzzle, et pour chacune les 12
+placements, pour calculer `minIsometries`. Liste vide : coût nul. 9356 solutions : 9356 × 12
+appels **au démarrage de chaque partie**, sur le chemin le plus visible de l'application. S'y
+ajoutent la duplication mémoire — la source les détient déjà en BigInt — et la conversion de
+chacune.
 
-### 4.5 Critères de fin, temps 2
+`puzzle.solutions` **reste vide** pour toute taille adossée à une table. Si `minIsometries`
+doit exister pour ces tailles, c'est un calcul à concevoir à part, pas l'effet de bord d'une
+liste qu'on aurait remplie.
+
+### 4.6 Le seul point qui n'est pas du câblage
+
+`applyHint`. Pentoscope construit le sien sur `puzzle.solutions` ; le mode classique tire
+d'une solution compatible aléatoire. Les deux ne choisissent pas de la même façon, et
+`hintFrom` doit trancher. **Question ouverte, pour Paul.**
+
+### 4.7 Critères de fin, temps 2
 
 ```bash
-grep -rn 'solutionMatcher' lib/pentoscope/     # les nouveaux points d'accès
-grep -rn 'canSolveFrom' lib/pentoscope/        # doit rester gardé par size != size6x10
+grep -rn 'countPossibleSolutions\|_toBigIntMask' lib/classical/   # inchangé
+grep -rn 'canSolveFrom' lib/pentoscope/       # uniquement dans LiveSolutionSource
+grep -rn 'size.table\|\.table !=' lib/pentoscope/  # un seul site de lecture : startPuzzle
 ```
 
 Test manuel :
 
-- démarrer un 6×10 : le compteur annonce 9356 sur plateau vide ;
-- poser une pièce : le compte diminue de façon plausible et **instantanément** ;
+- 6×10 : le compteur annonce 9356 sur plateau vide, diminue de façon plausible à chaque
+  pose, **instantanément** ;
 - amener volontairement le plateau dans une impasse : le bouton d'indice passe au rouge ;
-- couper le réseau / relancer à froid : le 6×10 n'est jamais monté avec un compteur vide
-  et sans message ;
-- les autres tailles : compteur et indice inchangés.
+- relancer à froid : le 6×10 n'est jamais monté avec un compteur vide et sans message ;
+- les autres tailles : compteur absent, indice et comportement **inchangés** ;
+- le **mode classique** : compteur de solutions toujours là. C'est le canari de la §4.3.
 
 ---
 
-## 5. Ce que ce plan ne traite pas
+## 5. Les trois autres tables — 5×12, 4×15, 3×20
+
+### 5.1 Le défaut à corriger AVANT de générer quoi que ce soit
+
+`tools/solutions_6x10_brutes.bin` ne contenait que **8175 des 9356** solutions —
+sous-ensemble strict, cause restée inexpliquée jusqu'ici. **Elle est trouvée :**
+`PentominoSolver.maxSeconds` vaut **30**, c'est un champ `final` non paramétrable
+(`lib/services/pentomino_solver.dart` l.23), et `findAllSolutions` fait un simple `return`
+à l'expiration (l.470-475) après un `print`. L'outil hors-ligne
+`tools/generate_6x10_solutions.dart` l'appelle sans pouvoir le régler.
+
+Ce n'est donc **pas** un défaut de complétude du solveur : c'est un timeout silencieux. Le
+même qui, non corrigé, tronquerait les trois nouvelles tables de la même façon.
+
+Correctif préalable : passer `maxSeconds` en paramètre de constructeur (défaut 30, pour ne
+rien changer aux appelants) et le mettre à l'infini dans l'outil hors-ligne.
+
+### 5.2 Le format ne bouge pas
+
+60 cases × 6 bits = 45 octets par solution, quelle que soit la forme du rectangle. Volumes
+attendus :
+
+| table | canoniques | ×4 | fichier |
+|---|---|---|---|
+| 6×10 | 2339 | 9356 | 105 255 o *(constaté)* |
+| 5×12 | 1010 | 4040 | 45 450 o |
+| 4×15 | 368 | 1472 | 16 560 o |
+| 3×20 | 2 | 8 | 90 o |
+
+Négligeable. Déclarer les trois nouveaux assets dans `pubspec.yaml`.
+
+### 5.3 Le critère d'acceptation est gratuit et décisif
+
+Les comptes canoniques des pavages de rectangles par les 12 pentominos sont connus :
+**2339 / 1010 / 368 / 2**. Générer, normaliser, compter, comparer. Un écart d'une seule
+unité signifie une table incomplète — c'est exactement ce qui aurait attrapé le 8175.
+
+Trois vérifications, les mêmes que celles déjà passées sur le 6×10 :
+
+1. compte canonique == valeur attendue ;
+2. **aucune solution invariante** par rot180, miroirH ou miroirV — sinon l'expansion ×4
+   produit des doublons et `totalCount` ment ;
+3. expansion ×4 → 0 collision, compte == 4 × canoniques.
+
+### 5.4 Objections d'interface, à trancher avant d'ouvrir ces tailles au joueur
+
+- **Le sélecteur de taille est un `Row` de `Expanded`** (`pentoscope_menu_screen.dart`
+  l.127-131). Il porte déjà 8 entrées ; à 12 sur une largeur de téléphone, chacune fait une
+  trentaine de pixels. Ce composant doit changer de forme avant, pas après.
+- **Le 3×20 n'est pas un niveau de jeu.** Deux solutions à symétrie près : c'est le
+  rectangle le plus contraint qui existe. Utile comme cas de test de la chaîne, discutable
+  comme taille proposée au joueur.
+- **Les plateaux hauts ne cassent pas, mais deviennent minuscules.** `cellSize` est borné
+  par `constraints.maxHeight / visualRows` (`pentoscope_board.dart` l.65-67) : pas de
+  débordement, mais 20 lignes sur un téléphone donnent des cases illisibles. Le mode paysage
+  échange les axes et sauve probablement le 3×20 et le 4×15 — **à regarder sur l'appareil.**
+
+---
+
+## 6. Ce que ce plan ne traite pas
 
 **Le navigateur de solutions** (`screens/solutions_browser_screen.dart`, vivant, appelé
 par `action_slider` et l'écran classique), l'enregistrement de session en base

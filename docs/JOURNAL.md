@@ -89,6 +89,17 @@ détaillé.
    pratique depuis la décision n°7 (le classique est figé, Pentoscope est la référence),
    mais **ne pas reprendre l'argument d'alignement de la décision n°3**, il est faux.
 
+9. **2026-08-29 — Paul** — d'autres rectangles complets suivront le 6×10 : **5×12, 4×15,
+   3×20**. L'origine des solutions est donc portée par la configuration sous forme de
+   **référence** (`SolutionTable?` sur `PentoscopeSize`), pas d'un booléen `isComputed`, et
+   n'est lue qu'à un seul endroit (`startPuzzle`) pour choisir un `SolutionSource`.
+   → `PLAN_6X10_DANS_PENTOSCOPE.md` §4 et §5.
+10. **2026-08-29 — cowork** — **le mystère du `solutions_6x10_brutes.bin` incomplet est
+   résolu** : 8175 sur 9356 parce que `PentominoSolver.maxSeconds` vaut 30 et que
+   `findAllSolutions` fait un simple `return` à l'expiration. Ce n'est pas un défaut de
+   complétude du solveur. À rendre paramétrable **avant** de générer les trois nouvelles
+   tables, sous peine de les tronquer de la même façon.
+
 ## §PASSATIONS
 
 **2026-08-28 19:33 — cowork → toi.** Écrit `MODUS_VIVENDI.md`, `JOURNAL.md`, et le bloc
@@ -114,3 +125,11 @@ sans les 9356), puis test manuel par Paul, puis temps 2 (branchement de `solutio
 Ne pas commencer le temps 2 avant le test du temps 1 — c'est ce qui rend le chantier
 réversible.
 **Reste, hérité** : pousser `f7742cc` et `4539ed8`.
+
+**2026-08-29 (suite) — cowork → toi.** Sur décision n°9, réécrit §4 du plan (référence
+`SolutionTable?` et interface `SolutionSource`, un seul site de lecture) et ajouté §5, les
+trois autres tables. Deux contraintes dures y sont posées : la paramétrisation de
+`SolutionMatcher` doit être **additive** (le mode classique, figé, consulte le singleton
+global et son `_toBigIntMask` refuse tout format autre que 6×10), et `maxSeconds` doit
+devenir paramétrable avant toute génération. Le temps 1 est inchangé et reste le premier
+travail à faire.
