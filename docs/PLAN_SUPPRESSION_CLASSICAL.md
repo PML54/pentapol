@@ -127,6 +127,12 @@ bouton du navigateur ne s'affiche que si la liste peut être non vide — c'est-
 
 ### 3.2 L'historique de parties — mon estimation était fausse
 
+> ⛔ **RENVERSÉ le 2026-08-29 (décision 32).** Paul a finalement choisi d'**abandonner**
+> l'historique plutôt que de le porter. Mode opératoire : **§9**. La section ci-dessous reste
+> pour mémoire — c'est elle qui a montré le coût réel du portage, et c'est ce coût qui a
+> emporté la décision.
+
+
 J'ai annoncé « une dizaine de lignes ». **C'est faux, et pour une raison de schéma.**
 
 `GameSessions.solutionNumber` est `integer()` **non nullable** : c'est le numéro de la
@@ -256,6 +262,194 @@ lancent ; aucun bouton ne mène nulle part ; le compteur du 6×10 est intact.
 - le commentaire faux de `main.dart` l.38-39 (« Pentoscope […] n'en a pas besoin, il ne
   doit pas être ralenti au démarrage ») — à corriger ou à supprimer, il ment depuis le
   temps 2.
+
+---
+
+## 8. Suite — les Réglages dans l'AppBar, et l'abandon de `HomeScreen`
+
+> Décidé par Paul le 2026-08-29 (décision 31) : l'entrée « Réglages » passe dans l'AppBar de
+> Pentoscope, `HomeScreen` est abandonné. **Attention : cette décision a deux conséquences
+> qu'elle n'énonce pas** — §8.2.
+
+### 8.1 Le geste principal
+
+`SettingsScreen` n'est référencé que depuis `HomeScreen` l.114. Il faut lui donner une entrée
+dans `pentoscope_game_screen.dart`, bloc `actions:` (l.184-249) :
+
+```dart
+IconButton(
+  icon: const Icon(Icons.settings),
+  onPressed: () => Navigator.push(context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen())),
+  tooltip: 'Réglages',
+),
+```
+
+Puis retirer de `main.dart` la route `'/home'` (l.76) et l'import de `HomeScreen`, et
+`git rm lib/screens/home_screen.dart`.
+
+> ⚠️ **Le bloc `actions:` vaut `null` quand une pièce est sélectionnée** (l.184-186). Le
+> bouton Réglages disparaît donc pendant une manipulation. C'est sans conséquence — on
+> n'ouvre pas les réglages en tenant une pièce — mais il ne faut pas le prendre pour un
+> défaut au test.
+
+> ⚠️ **Encombrement.** L'AppBar porte déjà cinq `IconButton` (taille plateau, multijoueur,
+> nouvelle partie, indice, navigateur de solutions). Un sixième, à ~48 px chacun, occupe
+> ~288 px : sur un écran de 390 px de large il ne reste qu'une centaine de pixels pour le
+> titre — **où s'affiche justement le compteur de solutions**. Si c'est trop serré au test,
+> le remède est de grouper les trois boutons rares (multijoueur, navigateur, réglages) dans
+> un `PopupMenuButton`, pas de rogner les icônes.
+
+### 8.2 Ce que l'abandon de `HomeScreen` emporte avec lui
+
+`HomeScreen` porte **trois** cartes, pas une. Retirer l'écran orpheline les deux autres :
+
+| écran | lignes | seul accès | conséquence |
+|---|---|---|---|
+| `SettingsScreen` | 738 | `home_screen` l.114 | **traité** par §8.1 |
+| `PentoscopeMenuScreen` | 190 | `home_screen` l.92 | **orphelin** |
+| `DatabaseDebugScreen` | 255 | `home_screen` l.125 | **orphelin** |
+
+**`PentoscopeMenuScreen`** — ⚠️ **« double emploi » n'est vrai qu'à moitié.** Vérification
+faite, le bouton « + » de l'AppBar appelle `_showSizeChangeDialog`, qui appelle
+`changeBoardSize`, qui code en dur `difficulty: PentoscopeDifficulty.random` et
+`showSolution: false` (`pentoscope_provider.dart` l.704-712). Le menu est donc le **seul
+endroit** où l'on choisit :
+
+- la **difficulté** (`easy` / `random` / `hard`) — sans lui, `generateEasy` et `generateHard`
+  n'ont plus d'appelant et deviennent du code mort ;
+- l'option **« montrer la solution »** au démarrage.
+
+Seul le choix de la taille est réellement dupliqué.
+
+> ✅ **Tranché par Paul (décision 35) : le dialogue absorbe le menu.** « Changer la taille du
+> plateau » devient **« Nouvelle partie »** et porte les trois réglages ; `PentoscopeMenuScreen`
+> est supprimé.
+
+#### Mode opératoire du dialogue
+
+`_showSizeChangeDialog` (`pentoscope_game_screen.dart` l.989-1022) devient
+`_showNewGameDialog` et gagne deux contrôles, repris de
+`pentoscope_menu_screen.dart` l.19-21 et l.170-178 :
+
+- la difficulté — `PentoscopeDifficulty.easy / random / hard` ;
+- un `SwitchListTile` « Montrer la solution ».
+
+Il faut donc un état local : envelopper le contenu dans un `StatefulBuilder` (le dialogue est
+aujourd'hui sans état), et remplacer l'action immédiate par un bouton **« Lancer »** qui
+appelle directement :
+
+```dart
+notifier.startPuzzle(size, difficulty: difficulty, showSolution: showSolution);
+```
+
+`changeBoardSize` (`pentoscope_provider.dart` l.704-712) n'a alors plus d'appelant : le
+supprimer dans le même commit.
+
+> **Le changement d'interaction est un gain, pas seulement un coût.** Aujourd'hui, toucher une
+> taille dans la liste **relance immédiatement une partie** et jette celle en cours, sans le
+> dire. Demain il faudra un tap de plus — mais l'intention devient explicite. Ne pas essayer
+> de garder les deux comportements : une liste qui agit au tap et un bouton qui agit aussi,
+> c'est le meilleur moyen de perdre une partie par mégarde.
+
+> **Préalable, décision 34** : `PentoscopeDifficulty` est déclaré **deux fois**
+> (`piece_difficulty.dart` l.25 et `pentoscope_provider.dart` l.65). Le dialogue va le
+> référencer : unifier **avant**, sinon on choisit au hasard lequel des deux types on importe.
+> Garder celui de `pentoscope_provider.dart` (c'est lui que `startPuzzle` prend en paramètre)
+> et faire de l'autre un ré-export, ou l'inverse — mais un seul déclarant.
+
+Le sélecteur de taille en deux groupes du plan 6×10 §5.5 prend alors place **dans ce
+dialogue**, et non plus dans un écran séparé.
+
+**`DatabaseDebugScreen`** — tranché par la décision 32 : il part avec l'historique. Voir §9.
+
+### 8.3 Ordre
+
+1. **Unifier `PentoscopeDifficulty`** (décision 34). Commit seul, préalable strict.
+2. **Bouton Réglages dans l'AppBar.** Commit seul, testable immédiatement — c'est lui qui
+   débloque le point 3 du test du temps 2.
+3. **Dialogue « Nouvelle partie »** : les trois réglages, `startPuzzle` direct, suppression de
+   `changeBoardSize` puis `git rm lib/pentoscope/screens/pentoscope_menu_screen.dart`.
+4. **`git rm lib/screens/home_screen.dart`** + route `'/home'` + import dans `main.dart`.
+   **En dernier** : tant que `HomeScreen` existe, il reste le filet vers les écrans pas encore
+   rebranchés.
+
+**Ne pas fusionner 2 et 4.** Si l'AppBar se révèle trop encombrée au test, on veut pouvoir
+revenir sur le bouton sans avoir perdu l'autre chemin.
+
+### 8.4 Critères de fin
+
+```bash
+grep -rn "HomeScreen\|'/home'" lib/          # attendu : aucun, après l'étape 3
+grep -rn "SettingsScreen" lib/                # attendu : sa déclaration + l'entrée AppBar
+grep -rn "PentoscopeMenuScreen\|DatabaseDebugScreen" lib/   # aucun orphelin non décidé
+flutter analyze                               # 0 warning
+```
+
+Test appareil : les Réglages s'ouvrent depuis la partie ; la bascule « Compteur de
+solutions » fait bien apparaître et disparaître le compteur — **c'est le point 3 du test du
+temps 2, ininstruisable jusqu'ici** ; le compteur reste lisible dans l'AppBar avec le bouton
+supplémentaire.
+
+---
+
+## 9. Abandonner l'historique de parties — décision 32
+
+> Paul, 2026-08-29 : l'historique est **abandonné**, pas porté. Motif : les lignes déjà
+> enregistrées sont des parties du mode classique, qui n'existe plus ; le portage demandait
+> une migration de schéma (§3.2) pour une fonctionnalité qu'il ne consultait pas.
+> **Cette décision annule la décision 22.**
+
+### 9.1 Ce qui part
+
+| élément | fichier | lignes |
+|---|---|---|
+| table `GameSessions` | `database/settings_database.dart` l.33-63 | ~30 |
+| table `SolutionStats` | idem l.67-92 | ~26 |
+| `saveGameSession`, `getGameHistory`, `getSolutionHistory`, `getFastestCompletion`, `getHighestScore`, `getSolutionStats`, `_updateSolutionStats` | idem l.138-260 | ~120 |
+| `DatabaseDebugScreen` | `debug/database_debug_screen.dart` | 255 |
+
+**Aucun de ces éléments n'a d'appelant vivant** — vérifié le 2026-08-29 : le seul lecteur
+restant était `getGameHistory` depuis l'écran de debug, lui-même injoignable. La suppression
+ne casse donc rien.
+
+La table `Settings` **reste** : c'est elle que consomme `settings_provider`, donc toute la
+configuration de l'application.
+
+### 9.2 Le point qui n'est pas mécanique — la migration
+
+`@DriftDatabase(tables: [Settings, GameSessions, SolutionStats])`, `schemaVersion => 1`, et
+**aucune `MigrationStrategy`** : le projet n'a jamais migré. Deux façons de faire :
+
+1. **Retirer les tables de la liste et ne rien migrer.** Les nouvelles installations ne les
+   créent jamais ; sur un appareil déjà installé, les deux tables restent dans le fichier
+   SQLite, orphelines et invisibles. Coût nul, propreté douteuse.
+2. **Passer `schemaVersion` à 2** et ajouter une `MigrationStrategy` dont l'`onUpgrade` fait
+   deux `DROP TABLE`. Cinq lignes.
+
+*Avis de cowork : la seconde.* Ce sera la première migration du projet ; l'établir sur un cas
+trivial et sans enjeu de données vaut mieux que de la découvrir un jour où des données
+comptent. Et laisser deux tables fantômes dans la base d'un appareil, c'est exactement le
+genre de chose qu'on ne retrouve pas six mois plus tard.
+
+> ⚠️ **`settings_database.g.dart` est généré** (2113 lignes). Après modification du schéma :
+> `dart run build_runner build --delete-conflicting-outputs`. Ne jamais l'éditer à la main.
+
+### 9.3 Ordre et critères de fin
+
+1. Retirer les deux tables, les sept méthodes, ajouter la `MigrationStrategy`, régénérer.
+2. `git rm lib/debug/database_debug_screen.dart` (et le dossier `lib/debug/` s'il se vide).
+3. Commit unique — l'étape 1 seule laisserait un écran qui référence des méthodes disparues.
+
+```bash
+grep -rn "GameSession\|SolutionStat\|saveGameSession\|getGameHistory" lib/   # attendu : aucun
+grep -n "schemaVersion" lib/database/settings_database.dart                     # attendu : 2
+flutter analyze                                                                 # 0 warning
+```
+
+Test appareil : l'application démarre **sur une base existante** (c'est le seul vrai test de
+la migration — une installation neuve ne l'exécute pas), les réglages sont conservés, aucune
+exception au lancement.
 
 ---
 
