@@ -8,7 +8,8 @@
 
 ## §ÉTAT — au 2026-08-29 10:05
 
-**Temps 2 du 6×10 dans Pentoscope : FAIT** (6 étapes, `52823f7..97f8da6`, poussé). Pentoscope
+**Temps 2 du 6×10 dans Pentoscope : FAIT** (6 étapes en 4 commits de code
+`52823f7` → `97f8da6`, poussé). Pentoscope
 route ses réponses « solution » par une `SolutionSource` (table 6×10 ou solveur à la volée),
 choisie au seul site `_makeSolutionSource`. Le 6×10 utilise la vraie table des 9356 :
 `hasPossibleSolution` réel (l'indice peut virer au rouge), `applyHint` = solution compatible
@@ -28,7 +29,8 @@ tailles → compteur absent et comportement inchangé ; **mode classique → com
 **Le mode classique reste figé** (décision n°7). Rien sous `lib/classical/` ni
 `lib/screens/pentomino_game/` touché.
 
-**Git** : `origin/main` = `97f8da6`, local aligné.
+**Git** : `origin/main` à jour, local aligné — dernier commit de code `97f8da6`, plus le
+commit de journal qui porte ce §ÉTAT.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -169,7 +171,7 @@ ne pas commencer le temps 2 avant. **Reste** : pousser `4f17ca8` + `fed0ef6` (et
 de journal) ; élucider le doublon `4f17ca8`/`341021c`.
 
 **2026-08-29 10:05 — CLI → cowork.** Temps 1 validé au test appareil (Paul), puis **temps 2
-appliqué et poussé en 5 commits** (`52823f7..97f8da6`) : `SolutionMatcher`/loader
+appliqué et poussé en **4 commits de code** (`52823f7`, `0d780e0`, `35ba8e4`, `97f8da6`) : `SolutionMatcher`/loader
 paramétrés (additif), `SolutionSource` + 2 impls, famille de chargement, câblage `_solutions`
 (un seul site lisant `size.table`), `applyHint` via `hintFrom`, compteur à l'écran.
 `flutter analyze` 0 warning, critères §4.7 OK, `lib/classical/` intact. Décisions 14-16
