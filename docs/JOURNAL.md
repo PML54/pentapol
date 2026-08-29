@@ -6,48 +6,48 @@
 
 ---
 
-## §ÉTAT — au 2026-08-29
+## §ÉTAT — au 2026-08-29 07:46
 
-**Changement de chantier.** L'unification classical ↔ pentoscope est **suspendue**. Le
-mode classique n'est plus modifié ; Pentoscope devient la référence de la manipulation des
-pièces et reçoit une taille `6×10 / 12 pièces`, branchée sur les 9356 solutions connues.
-Plan à appliquer : `docs/PLAN_6X10_DANS_PENTOSCOPE.md`, en deux temps, **dans l'ordre**.
+**Temps 1 du 6×10 dans Pentoscope : FAIT** (`fed0ef6`, non poussé). La taille
+`6×10 / 12 pièces` existe et se joue, **sans** accès aux 9356 (branchés au temps 2).
+`flutter analyze` : 0 warning ; critères §3.4 du plan OK. Détail des sites :
+`PLAN_6X10_DANS_PENTOSCOPE.md` §3 et décisions 11-13 ci-dessous.
 
-`docs/PLAN_UNIFICATION_PIECES.md` reste valide comme historique et comme socle : ses
-étapes 0 à 2 (`PlacedPiece` commun, `PieceManipulationState`, `TransformationResult`,
-`ViewOrientation`, les deux mixins) sont ce qui rend le port possible. Ses étapes 3
-(familles Isométries, Barre, Placement), 4 et 5 ne sont plus à l'ordre du jour.
+**Prochain pas, dans l'ordre imposé : le TEST MANUEL du 6×10 par Paul sur l'appareil,
+AVANT tout temps 2.** C'est ce qui rend le chantier réversible. Critères §3.4 : le 6×10
+apparaît dans le menu et le sélecteur en partie ; démarre **sans latence** ; 12 pièces →
+victoire une fois ; l'indice ne passe pas au rouge ; autres tailles inchangées, y compris
+multijoueur.
 
-**Git** : `origin/main` à `813aa94`. Local en avance de deux commits **non poussés** :
-`f7742cc` (protocole) et `4539ed8` (journal). S'y ajoute
-`docs/PLAN_6X10_DANS_PENTOSCOPE.md`, non suivi.
+**Limite connue du temps 1** : le bouton d'indice sur le 6×10 déclenche un backtracking
+live (`_solver.findSolutionFrom`, pas `solutionMatcher`) — lent mais fonctionnel ; c'est un
+point du temps 2 (plan §4.6, décision 13).
 
-**Test manuel** : Paul teste sur son iPhone, en release, avec
+**Le mode classique reste figé** (décision n°7). Rien sous `lib/classical/` ni
+`lib/screens/pentomino_game/` n'a été touché.
+
+**Git** : `origin/main` à `341021c` (donc `f7742cc` et `4539ed8` sont désormais poussés,
+reliquat hérité résolu). Local en avance de deux commits **non poussés** : `4f17ca8` (docs
+cowork — même message que `341021c`, doublon à vérifier) et `fed0ef6` (temps 1).
+
+**Test manuel** : Paul, iPhone en release —
 
 ```bash
 flutter run --release -d 00008150-000165D4027B401C
 ```
 
-C'est le juge de référence — ni le CLI ni cowork ne testent. **L'effort de test va
-désormais sur Pentoscope**, pas sur le mode classique : c'est Pentoscope qui devient le
-seul moteur de manipulation, et son 6×10 est ce qui doit être validé.
+> ⚠️ En `--release`, `debugPrint` est supprimé : tout critère console se reformule en
+> observation à l'écran.
 
-> ⚠️ En `--release`, `debugPrint` est supprimé à la compilation : tout critère
-> d'acceptation formulé sur la console doit être reformulé en observation à l'écran.
+**Défauts du mode classique relevés le 2026-08-29, laissés en l'état** (on n'y touche plus)
+— détail plan §6 : double-tap sur pièce posée = `NoSuchMethodError` (`game_board.dart`
+appelle `applyIsometryRotation()`, inexistante, via `notifier` dynamic) ; `setDragging`
+jamais appelé ; miniature au déplacement (`PieceRenderer` 22 px en dur, non confirmée).
 
-**Défauts relevés le 2026-08-29, laissés en l'état** (mode classique, qu'on ne touche
-plus) — détail en §5 du plan 6×10 :
-
-- `game_board.dart` l.447 appelle `applyIsometryRotation()`, méthode inexistante, passée
-  par un `notifier` non typé donc `dynamic` : `NoSuchMethodError` au double-tap sur une
-  pièce posée sélectionnée. Invisible pour `flutter analyze`.
-- le mode classique n'appelle jamais `setDragging` ; `state.isDragging` y est mort.
-- miniature au déplacement signalée par Paul : cause probable `PieceRenderer`, taille de
-  case codée en dur à 22 px. Non confirmée par observation.
-
-**Dette technique connue, non traitée** : `flutter pub add collection` (lint
-`depend_on_referenced_packages`) ; branche de preview cyan morte dans
-`pentoscope_board.dart` ; troisième implémentation du chrono dans `pentoscope_mp_provider.dart`.
+**Dette technique connue** : `flutter pub add collection` (lint
+`depend_on_referenced_packages`) ; preview cyan morte dans `pentoscope_board.dart` ;
+`PentominoSolver.maxSeconds=30` à rendre paramétrable **avant** §5 (décision n°10) ;
+troisième chrono dans `pentoscope_mp_provider.dart`.
 
 ---
 
@@ -99,6 +99,19 @@ détaillé.
    `findAllSolutions` fait un simple `return` à l'expiration. Ce n'est pas un défaut de
    complétude du solveur. À rendre paramétrable **avant** de générer les trois nouvelles
    tables, sous peine de les tronquer de la même façon.
+11. **2026-08-29 — CLI** — le court-circuit `hasPossibleSolution` du §3.2c est posé **à
+   l'intérieur** de `_checkHasPossibleSolutionWith` (condition `size.table != null`), en un
+   seul point, plutôt qu'aux 3 sites d'appel nommés par le plan. Le plan en avait **omis 2** :
+   la méthode a 5 appelants (l.251, 376, 804, 1099, 1349), tous couverts ainsi. Forme
+   `size.table != null` alignée décision n°9. → `fed0ef6`.
+12. **2026-08-29 — CLI** — l'enum `SolutionTable` est créé au temps 1 avec **la seule valeur
+   `r6x10`**, pas les quatre de §4.1 : les assets des trois autres rectangles (5×12, 4×15,
+   3×20) n'existent pas encore et relèvent de §5. Les valeurs manquantes s'ajouteront avec
+   leurs `.bin`. → `fed0ef6`.
+13. **2026-08-29 — CLI** — `applyHint` **laissé inchangé** au temps 1 : sur le 6×10 il
+   appelle `_solver.findSolutionFrom` (backtracking à la demande, pas `solutionMatcher`),
+   donc temps-1-compatible mais lent au clic sur l'indice. À traiter au temps 2 (plan §4.6,
+   « question ouverte pour Paul »).
 
 ## §PASSATIONS
 
@@ -133,3 +146,12 @@ trois autres tables. Deux contraintes dures y sont posées : la paramétrisation
 global et son `_toBigIntMask` refuse tout format autre que 6×10), et `maxSeconds` doit
 devenir paramétrable avant toute génération. Le temps 1 est inchangé et reste le premier
 travail à faire.
+
+**2026-08-29 07:46 — CLI → cowork.** Temps 1 appliqué et commité (`fed0ef6`, non poussé) :
+`size6x10` + `SolutionTable.r6x10` + court-circuit générateur, garde
+`_checkHasPossibleSolutionWith`. `flutter analyze` 0 warning, critères §3.4 OK. Rien touché
+sous `lib/classical/` ni `lib/screens/pentomino_game/`. Décisions 11-13 ajoutées ; §3.2d/e
+étaient déjà satisfaits par le code (`startPuzzle` garde déjà le bloc `minIsometries`).
+**À faire, dans l'ordre** : test manuel du 6×10 par Paul (le juge), **puis** temps 2 —
+ne pas commencer le temps 2 avant. **Reste** : pousser `4f17ca8` + `fed0ef6` (et ce commit
+de journal) ; élucider le doublon `4f17ca8`/`341021c`.
