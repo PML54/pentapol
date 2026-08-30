@@ -6,43 +6,49 @@
 
 ---
 
-## §ÉTAT — au 2026-08-29 14:09 — SUPPRESSION DU MODE CLASSIQUE FAITE
+## §ÉTAT — au 2026-08-30, fin de session CLI (§8 appliquée)
 
-**Le mode classique n'existe plus.** Étapes 2, 3, 5, 6, 7 de
-`PLAN_SUPPRESSION_CLASSICAL.md` §5 appliquées, un commit chacune, plus la régénération de doc.
-**Non poussé.**
+**La suppression du mode classique est faite, poussée et vérifiée indépendamment**
+(décision 27) : `lib/` passe de 23 036 à 19 839 lignes, −3197 ; aucun renvoi mort.
 
-- **2** — test unitaire `SolutionMatcher` (`test/solution_matcher_test.dart`, 5/5), remplaçant
-  du canari du §4.3 (décision 24). → `4485058`
-- **3** — navigateur branché dans Pentoscope : 4ᵉ méthode `compatibleSolutions` sur
-  `SolutionSource`, écran dégraissé du singleton, bouton « Solutions compatibles » gaté par
-  `solutionsCount != null`. → `6b96fa8`
-- **5** — 5 fichiers partagés déménagés vers `lib/common/` (+ `game_utils` orphelin supprimé,
-  décision 26). → `6ea1d35`
-- **6** — 3 points d'entrée coupés. → `1f6fb08`
-- **7** — suppression : `lib/classical/`, `lib/screens/pentomino_game/`, `docs/CLASSICAL.md`,
-  `plateau_solution_counter`, `solutions_provider`, le singleton global `solutionMatcher`.
-  Navigateur déménagé dans `lib/pentoscope/screens/` (décision 25). → `371c3d5`
-- doc régénérée (`tools/docs`). → `129ac70`
+**§8 est appliquée** — 4 commits `35e9d0e..971e8cc`, un par étape, `flutter analyze` 0 warning,
+critères §8.4 tous verts (grep) :
+1. `PentoscopeDifficulty` unifié — `piece_difficulty.dart` **supprimé en entier** (il était
+   100 % orphelin, cf. décision 36) ; le déclarant de `pentoscope_provider.dart` reste seul.
+2. Bouton Réglages ⚙️ dans l'AppBar de Pentoscope (portrait **et** paysage, cf. décision 38) →
+   `SettingsScreen`.
+3. Dialogue « Nouvelle partie » (`StatefulBuilder`) : taille + difficulté + « montrer la
+   solution », bouton **Lancer** appelant `startPuzzle` directement. `PentoscopeMenuScreen`
+   supprimé, `changeBoardSize` aussi (plus d'appelant).
+4. `HomeScreen` abandonné : `git rm home_screen.dart`, route nommée et import retirés de
+   `main.dart`. L'app démarre directement sur `PentoscopeGameScreen`.
 
-**Critères §6** : `grep classical/` et `grep screens/pentomino_game/` → aucun ;
-`solutionMatcher` hors pentoscope/ → seulement un commentaire documentant son retrait.
-`flutter analyze` 0 warning ; canari 5/5.
+**Deux chantiers décidés restent à appliquer.** Dans `PLAN_SUPPRESSION_CLASSICAL.md` :
 
-**Hors périmètre, restent à faire** : étape 4 (historique en base, migration drift,
-décision 22) ; correctif d'accès aux Réglages (décision 23). Puis §5 du plan 6×10 (tables
-5×12 et 4×15 ; d'abord `PentominoSolver.maxSeconds` paramétrable, décision 10).
+- **§9 — abandon de l'historique** (décision 32, qui **annule la 22**). Deux tables, sept
+  méthodes, `DatabaseDebugScreen` : rien n'a d'appelant vivant. Depuis §8 étape 4,
+  `DatabaseDebugScreen` (255 l.) est **franchement orphelin** — plus aucun écran n'y mène.
+  Le seul point non mécanique est la **migration drift** — le projet n'en a jamais eu
+  (`schemaVersion => 1`).
+- **§5 du plan 6×10** — tables 5×12 et 4×15, inchangé et non commencé.
 
-**⚠️ Index de `check_orphan_files` (tools/db) périmé** : il liste encore `game_utils`
-supprimé. `generate_dart_documentation` a rafraîchi `tools/docs` mais pas cet index → à
-reconstruire à part. Par raisonnement + `flutter analyze` 0 : aucun nouvel orphelin réel.
+**Conséquence de la suppression encore ouverte** : l'application n'enregistre plus rien d'une
+partie terminée (décision 28 — sera réglée par l'abandon, §9). Les Réglages, eux, sont
+**redevenus joignables** (décision 23 — réglée par §8 étape 2).
 
-**Prochain pas : test appareil de Paul** — Pentoscope (toutes tailles) + multijoueur se
-lancent, aucun bouton ne mène nulle part, le compteur du 6×10 est là ; **et le test du
-temps 2 (§4.7, compteur) reste dû**.
+**Observation d'architecture** (décision 29) : la couche `common/` — `PieceManipulationState`,
+`GameTimerMixin`, `PieceInteractionMixin`, `PentominoGameMixin` — n'a plus qu'**un seul
+client**, `pentoscope_provider.dart`. Rien à défaire dans l'immédiat, mais à ne pas hériter
+sans l'examiner. Le commentaire de `piece_manipulation_state.dart` l.14 cite encore
+`PentominoGameState`, qui n'existe plus.
 
-**Git** : `origin/main` à `1833aba` ; local en avance de commits **non poussés** — docs
-(`2ceab85`, `45932aa`) puis suppression (`4485058`…`129ac70`).
+**Test appareil dû par Paul** : depuis §8 étape 2, le point 3 du temps 2 (§4.7 du plan 6×10,
+la bascule du compteur) est **désormais instruisable** — les Réglages sont joignables. Les
+autres points du test post-suppression (Pentoscope toutes tailles, multijoueur, aucun bouton
+mort, dialogue « Nouvelle partie » : difficulté + montrer la solution) restent dus.
+
+**Git** : à jour et poussé jusqu'à `af4e046` ; **4 commits §8 non poussés** (`35e9d0e..971e8cc`)
+plus ce commit de journal. Le reste du `git status` est du bruit de plateforme.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -53,9 +59,10 @@ flutter run --release -d 00008150-000165D4027B401C
 > ⚠️ En `--release`, `debugPrint` supprimé : critère console → observation écran.
 
 **Dette technique** : `flutter pub add collection` ; preview cyan morte dans
-`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` (multijoueur) ;
-`common/bigint_plateau.dart` reste l'implémentation (pieces, mask) orpheline la mieux écrite ;
-le paramètre `cellSize` de `PieceRenderer` (miniature, plan 6×10 §6) reste à ajouter.
+`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` ;
+`common/bigint_plateau.dart` orpheline ; le paramètre `cellSize` de `PieceRenderer`
+(miniature, plan 6×10 §6) ; l'index de `check_orphan_files` (tools/db) périmé.
+> `PentoscopeDifficulty` en doublon (ex-décision 34) : **réglé** par §8 étape 1.
 
 ---
 
@@ -207,6 +214,93 @@ détaillé.
     leur déménagement à l'étape 5 cassait ses imports. Le supprimer tout de suite évitait un
     import jetable à réparer. Sans impact (déjà mort). → `6ea1d35`.
 
+27. **2026-08-29 — cowork** — **vérification indépendante de la suppression : conforme.**
+    `classical/` 0, `screens/pentomino_game/` 0, `PentominoGameNotifier` 0,
+    `pentominoGameProvider` 0 ; `solutionMatcher` hors `pentoscope/` = commentaires seulement ;
+    les 5 fichiers sont bien sous `lib/common/` et `lib/common/widgets/`, le navigateur sous
+    `lib/pentoscope/screens/`. **`lib/` passe de 23 036 à 19 839 lignes, −3197.** Les commits
+    **sont poussés** (`git log origin/main..HEAD` = 0) : le §ÉTAT du CLI était périmé sur ce
+    point.
+28. **2026-08-29 — cowork** — **conséquence non anticipée : `GameSessions` est mort des deux
+    côtés.** `onPuzzleCompleted` et le seul appel à `saveGameSession` vivaient dans le
+    provider classique. **Plus aucun code n'écrit dans la table** ; `saveGameSession`,
+    `getFastestCompletion`, `getHighestScore` et `_updateSolutionStats` n'ont plus d'appelant,
+    et le seul lecteur restant (`getGameHistory`, dans `database_debug_screen`) est sur un
+    écran injoignable (décision 23). **L'application n'enregistre plus rien d'une partie
+    terminée.** Prévu par la décision 22, mais ça rend l'étape 4 urgente et non « un jour ».
+29. **2026-08-29 — cowork** — **la couche `common/` n'a plus qu'un seul client.**
+    `PieceManipulationState`, `GameTimerMixin`, `PieceInteractionMixin` et
+    `PentominoGameMixin` ne servent plus que `pentoscope_provider.dart`. Elles avaient été
+    extraites pour tenir **deux** implémentations alignées ; cette raison a disparu. **Ne rien
+    défaire dans l'immédiat** — les mixins découpent un provider de 2000 lignes, ce qui vaut
+    par soi-même — mais le noter plutôt que d'en hériter sans l'examiner. Au minimum, le
+    commentaire de `piece_manipulation_state.dart` l.14 cite encore `PentominoGameState`,
+    qui n'existe plus.
+30. **2026-08-29 — cowork** — **le titre `## §PASSATIONS` avait disparu du journal** lors de
+    la réécriture de §ÉTAT ; les passations se poursuivaient sous §DÉCISIONS. Restauré. Le
+    contrôle de la §6 du MODUS_VIVENDI ne couvre pas la structure du journal lui-même — le
+    faire à l'œil en fin de session.
+
+31. **2026-08-29 — Paul** — **les Réglages passent dans l'AppBar de Pentoscope et
+    `HomeScreen` est abandonné.** Mode opératoire : `PLAN_SUPPRESSION_CLASSICAL.md` §8.
+    ⚠️ Conséquence non énoncée par la décision, relevée par cowork : `HomeScreen` portait
+    **trois** cartes. Les Réglages sont traités ; `PentoscopeMenuScreen` (190 l.) et
+    `DatabaseDebugScreen` (255 l.) deviennent **orphelins** et attendent chacun une décision.
+    Celui du debug est le seul lecteur de l'historique de parties : son sort est lié à
+    l'étape 4. → §8.2.
+
+32. **2026-08-29 — Paul** — **l'historique de parties est ABANDONNÉ, pas porté. Cette
+    décision annule la décision 22.** Motif : les lignes déjà en base sont des parties du mode
+    classique, qui n'existe plus, et le portage exigeait une migration de schéma pour une
+    fonctionnalité non consultée. Partent : les tables `GameSessions` et `SolutionStats`,
+    sept méthodes de `settings_database.dart`, et `DatabaseDebugScreen` (255 l.). La table
+    `Settings` reste — c'est toute la configuration. → `PLAN_SUPPRESSION_CLASSICAL.md` §9.
+    ⚠️ Le projet n'a **jamais migré** (`schemaVersion => 1`, aucune `MigrationStrategy`) :
+    cowork recommande d'en écrire une vraie plutôt que de laisser deux tables fantômes.
+33. **2026-08-29 — Paul** — **`PentoscopeMenuScreen` est supprimé pour double emploi.**
+    ⚠️ **Le double emploi n'est vrai qu'à moitié**, vérification faite par cowork : le bouton
+    « + » de l'AppBar passe par `changeBoardSize`, qui code en dur
+    `difficulty: random` et `showSolution: false`. Le menu est le **seul** endroit où l'on
+    choisit la difficulté (`easy`/`hard`) et l'option « montrer la solution ». Le supprimer
+    tel quel perd ces deux réglages et rend `generateEasy`/`generateHard` orphelines.
+    **Question ouverte pour Paul** : le dialogue de taille absorbe-t-il ces deux réglages
+    (avis de cowork), ou assume-t-on la perte ? → §8.2.
+34. **2026-08-29 — cowork** — **`PentoscopeDifficulty` est déclaré deux fois** :
+    `pentoscope/piece_difficulty.dart` l.25 et `pentoscope/pentoscope_provider.dart` l.65.
+    Pour Dart ce sont deux types distincts — exactement le piège qu'avait `ViewOrientation`
+    avant l'étape 1 de l'unification. À unifier quel que soit le sort du menu.
+
+35. **2026-08-29 — Paul** — **le dialogue de taille absorbe le menu.** « Changer la taille du
+    plateau » devient « Nouvelle partie » et porte taille + difficulté + « montrer la
+    solution » ; `PentoscopeMenuScreen` est supprimé, `changeBoardSize` aussi (plus d'appelant).
+    Effet de bord assumé : la liste des tailles n'agit plus au tap, il faut un bouton
+    « Lancer » — c'est un gain de clarté, le comportement actuel jette la partie en cours sans
+    le dire. Le sélecteur en deux groupes du plan 6×10 §5.5 ira dans ce dialogue.
+    → `PLAN_SUPPRESSION_CLASSICAL.md` §8.2.
+
+36. **2026-08-30 — CLI** — **`piece_difficulty.dart` supprimé en entier, pas ré-exporté.** §8
+    étape 1 disait « garder le déclarant de `pentoscope_provider.dart` » ; le plan envisageait
+    un ré-export du fichier pour l'autre déclaration. Vérification faite, le fichier était
+    **100 % orphelin** : aucun importeur, et son seul autre contenu (`pieceDifficultyRank`)
+    sans lecteur. Unifier = `git rm` le fichier. → `35e9d0e`.
+37. **2026-08-30 — CLI** — **la carte « Pentominos Speed » de `HomeScreen` retirée à l'étape 3,
+    pas à l'étape 4.** `HomeScreen` importait `PentoscopeMenuScreen` ; supprimer le menu à
+    l'étape 3 (décision 35) cassait la compilation de `HomeScreen`. J'ai donc retiré la carte
+    et l'import dès l'étape 3 pour garder `flutter analyze` à 0 warning entre chaque commit,
+    l'étape 4 se contentant du `git rm home_screen.dart`. La consigne « ne fusionne pas les
+    étapes 2 et 4 » est respectée : c'est l'étape 3 qui absorbe ce nettoyage, pas la 2. →
+    `bd903a1`, `971e8cc`.
+38. **2026-08-30 — CLI** — **bouton Réglages ajouté aussi en paysage.** §8 étape 2 ne visait
+    que le bloc `actions:` de l'AppBar (portrait). L'écran a une barre d'outils distincte en
+    paysage ; n'y mettre le bouton qu'en portrait l'aurait rendu injoignable dans l'autre
+    orientation — exactement le défaut que §8 corrige. Ajouté aux deux. Note mineure au
+    passage : l'infobulle du bouton « recommencer » précisée en « Recommencer (même taille) »
+    pour la distinguer de « Nouvelle partie ». → `c6be674`.
+
+---
+
+## §PASSATIONS
+
 **2026-08-28 19:33 — cowork → toi.** Écrit `MODUS_VIVENDI.md`, `JOURNAL.md`, et le bloc
 « Protocole entre agents » dans `CLAUDE.md`. Rien à appliquer côté code.
 **Reste** : faire commiter `docs/` + `CLAUDE.md` au CLI ; trier le bruit de plateforme ;
@@ -295,3 +389,48 @@ canari 5/5. Décisions 25-26 ajoutées (navigateur déménagé à l'étape 7 ; `
 (déc. 23). **À signaler** : l'index de `check_orphan_files` (tools/db) est périmé, à
 reconstruire ; et le test appareil (celui-ci + le temps 2 §4.7) reste dû par Paul.
 **Non poussé** — 8 commits en avance sur `origin/main` (`1833aba`).
+
+**2026-08-29 — cowork, vérification post-suppression.** Critères §6 repassés indépendamment :
+conformes (décision 27). Deux conséquences vivantes relevées — l'historique de parties
+n'existe plus (décision 28), les Réglages restent injoignables (décision 23, non traitée) —
+et une observation d'architecture (décision 29). Titre §PASSATIONS restauré (décision 30).
+**Aucun code touché.**
+**Ordre proposé à Paul** : (1) rebrancher les Réglages — petit, corrige un défaut visible et
+débloque le point 3 du test du temps 2 ; (2) étape 4, l'historique, qui rend la base vivante
+à nouveau ; (3) le §5 du plan 6×10, tables 5×12 et 4×15.
+
+**2026-08-29 — cowork → toi (Réglages).** Décision 31 prise par Paul ; §8 ajoutée au plan de
+suppression — bouton dans l'AppBar, encombrement à surveiller (6 IconButton contre un titre
+qui porte le compteur), et surtout les deux écrans qu'`HomeScreen` orpheline en partant.
+Ordre en 3 temps, `HomeScreen` supprimé **en dernier** pour garder le filet.
+**En attente de Paul** : le sort de `PentoscopeMenuScreen`, et ce que doit contenir
+l'historique de parties (étape 4).
+
+**2026-08-29 — cowork → toi (après décisions 31 à 33).** §9 écrite (abandon de l'historique,
+avec la question de la migration drift — le projet n'en a jamais eu), §8.2 corrigée (le menu
+Pentoscope n'est pas un pur doublon), §3.2 marquée renversée. Décisions 32 à 34.
+**Aucun code touché.**
+**En attente de Paul, une seule question** : le dialogue de taille absorbe-t-il la difficulté
+et l'option « montrer la solution », ou les abandonne-t-on avec le menu ?
+
+**2026-08-29 — cowork → toi (fin de session).** Décisions 31 à 35 enregistrées ; §8 et §9
+écrites dans `PLAN_SUPPRESSION_CLASSICAL.md` avec leur mode opératoire et leur ordre ; §3.2
+marquée renversée ; §ÉTAT réécrit. Deux corrections de fond apportées aux décisions de Paul,
+qui reposaient sur des prémisses inexactes : le menu Pentoscope n'était pas un pur doublon
+(difficulté et « montrer la solution » n'existent que là), et l'abandon de l'historique
+demande quand même une migration. **Aucun code touché.**
+**Prochain pas** : §8 puis §9 côté CLI, dans cet ordre.
+
+**2026-08-30 — CLI → cowork (§8 FAITE).** §8 appliquée dans l'ordre de §8.3, un commit par
+étape (`35e9d0e`, `c6be674`, `bd903a1`, `971e8cc`), `flutter analyze` 0 warning à chaque
+palier, critères §8.4 tous verts. Les Réglages sont joignables via l'AppBar (portrait +
+paysage) ; le dialogue « Nouvelle partie » absorbe le menu (taille + difficulté + montrer la
+solution, bouton Lancer) ; `PentoscopeMenuScreen`, `changeBoardSize`, `piece_difficulty.dart`
+et `home_screen.dart` supprimés ; `main.dart` sans route nommée. Trois décisions non prévues
+au plan ajoutées (36 = suppression totale de `piece_difficulty` orphelin ; 37 = carte
+`HomeScreen` retirée dès l'étape 3 pour ne pas casser la compilation ; 38 = bouton Réglages
+aussi en paysage). **Non poussé** — 4 commits §8 + ce commit de journal.
+**À faire, dû par Paul** : le test appareil, désormais complet — le point 3 du temps 2
+(bascule du compteur) est enfin instruisable, plus le dialogue « Nouvelle partie ».
+**Reste, hérité** : `DatabaseDebugScreen` franchement orphelin depuis l'étape 4 → §9 ;
+tables 5×12/4×15 du plan 6×10 §5.
