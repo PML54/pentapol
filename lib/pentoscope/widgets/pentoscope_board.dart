@@ -1,7 +1,8 @@
-// Modified: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : le feedback de drag (la « miniature »
-//           sous le doigt) prend la taille de case du plateau × k au lieu du défaut 22 —
-//           _buildCell reçoit cellSize. Constante partagée kPieceToBoardCellRatio définie ici.
+// Modified: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro sur une case suit cellSize
+//           (via _getTextSize) au lieu de 14/16 fixes.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-08-30 13:35 — étape 2 : le feedback de drag (« miniature ») prend la taille de
+//             case du plateau × k ; _buildCell reçoit cellSize ; constante kPieceToBoardCellRatio.
 // Historique: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
 //             méthodes de surbrillance locale et des deux méthodes de démonstration du State.
 //             2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes).
@@ -403,7 +404,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               previewInfo.isSnappedPreview,
             ),
             fontWeight: _getTextWeight(previewInfo.isPreview, isSelected),
-            fontSize: _getTextSize(isSelected, previewInfo.isPreview),
+            fontSize: _getTextSize(isSelected, previewInfo.isPreview, cellSize),
           ),
         ),
       ),
@@ -747,9 +748,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     return Colors.white;
   }
 
-  /// Taille du texte
-  double _getTextSize(bool isSelected, bool isPreview) {
-    return (isSelected || isPreview) ? 16.0 : 14.0;
+  /// Taille du numéro sur une case, proportionnelle à la case (§4e) au lieu de 14/16 fixes :
+  /// sur iPad la case est 2× plus grande, le texte doit suivre. Ratios calés pour reproduire
+  /// ≈ 14/16 sur iPhone (case ≈ 76) et grandir ensuite ; plancher pour rester lisible.
+  double _getTextSize(bool isSelected, bool isPreview, double cellSize) {
+    final ratio = (isSelected || isPreview) ? 0.21 : 0.18;
+    return (cellSize * ratio).clamp(11.0, 48.0);
   }
 
   /// Épaisseur du texte

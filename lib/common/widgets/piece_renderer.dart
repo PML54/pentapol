@@ -1,7 +1,7 @@
-// Modified: 2026-08-30 13:30 — PLAN_ERGONOMIE §6 étape 1 : cellSize devient un paramètre (défaut
-//           22.0), au lieu d'une constante locale. Changement additif : aucun appelant modifié,
-//           rendu identique. C'est le filet avant de brancher la taille sur le plateau (étape 2).
+// Modified: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro (badge) sur la pièce suit
+//           cellSize (× 0.55, ≈ 12 au défaut 22) au lieu d'une taille fixe.
 // lib/common/widgets/piece_renderer.dart
+// Historique: 2026-08-30 13:30 — étape 1 : cellSize devient un paramètre (défaut 22.0), additif.
 // Historique: 2026-08-29 13:43 — déménagé de l'ancien dossier du mode classique vers
 //             lib/common/widgets/ : partagé par Pentoscope et le multijoueur.
 // Widget pour afficher visuellement une pièce de pentomino
@@ -105,11 +105,12 @@ class PieceRenderer extends StatelessWidget {
                     ? Center(
                         child: Text(
                           piece.id.toString(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: GameColors.pieceTextColor,
-                            fontSize: 12,
+                            // Badge proportionnel à la case (§4e) ; ≈ 12 au défaut cellSize 22.
+                            fontSize: cellSize * 0.55,
                             fontWeight: FontWeight.bold,
-                            shadows: [
+                            shadows: const [
                               Shadow(
                                 color: Colors.black54,
                                 blurRadius: 2,
