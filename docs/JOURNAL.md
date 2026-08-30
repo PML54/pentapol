@@ -6,49 +6,48 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session CLI (§8 appliquée)
+## §ÉTAT — au 2026-08-30, fin de session cowork (passe documentaire)
 
-**La suppression du mode classique est faite, poussée et vérifiée indépendamment**
-(décision 27) : `lib/` passe de 23 036 à 19 839 lignes, −3197 ; aucun renvoi mort.
+**Code : §8 appliquée et testée sur appareil par Paul.** L'application est désormais un
+module de jeu unique — Pentoscope, tailles `size3x5`…`size9x5` plus `size6x10` — avec le
+multijoueur qui réutilise son provider. Plus d'écran d'accueil, plus de route nommée :
+`main.dart` monte `PentoscopeGameScreen`. Réglages dans l'AppBar, dialogue « Nouvelle
+partie » (taille + difficulté + montrer la solution). `lib/` = **19 415 lignes**.
 
-**§8 est appliquée** — 4 commits `35e9d0e..971e8cc`, un par étape, `flutter analyze` 0 warning,
-critères §8.4 tous verts (grep) :
-1. `PentoscopeDifficulty` unifié — `piece_difficulty.dart` **supprimé en entier** (il était
-   100 % orphelin, cf. décision 36) ; le déclarant de `pentoscope_provider.dart` reste seul.
-2. Bouton Réglages ⚙️ dans l'AppBar de Pentoscope (portrait **et** paysage, cf. décision 38) →
-   `SettingsScreen`.
-3. Dialogue « Nouvelle partie » (`StatefulBuilder`) : taille + difficulté + « montrer la
-   solution », bouton **Lancer** appelant `startPuzzle` directement. `PentoscopeMenuScreen`
-   supprimé, `changeBoardSize` aussi (plus d'appelant).
-4. `HomeScreen` abandonné : `git rm home_screen.dart`, route nommée et import retirés de
-   `main.dart`. L'app démarre directement sur `PentoscopeGameScreen`.
+**Documentation remise en accord avec le code** (décisions 39 et 40) :
 
-**Deux chantiers décidés restent à appliquer.** Dans `PLAN_SUPPRESSION_CLASSICAL.md` :
+| fichier | ce qui a été corrigé |
+|---|---|
+| `CLAUDE.md` | arborescence, table des modules, exemple d'en-tête, docs de référence. **Priorité** : le CLI le charge à chaque session |
+| `FONCTIONNEMENT.md` | trois modes → deux ; flux utilisateur ; les deux sections « solutions » fusionnées en une, autour de `SolutionSource` ; persistance ; providers ; écrans ; code inactif re-vérifié au grep ; table de corrections datée |
+| `services.md` | `plateau_solution_counter` marqué supprimé, singleton retiré, chargeur paramétrable, cause du 8175/9356 élucidée |
+| `PENTOSCOPE.md` | Pentoscope n'est plus « un mode » ; menu supprimé ; « Différences avec Classical » marquée SECTION HISTORIQUE |
+| `ANALYSE_STOCKAGE_POSITIONS.md` | encadré complété : 7 chemins morts nommés, dont un **déménagé** et non supprimé |
+| `MEMO_DEPLACEMENT_PIECES.md`, `BILAN_DUEL_ISOMETRIES.md` | une mention périmée chacun |
+| `PLAN_SUPPRESSION_DEMO.md`, `PLAN_UNIFICATION_PIECES.md` | bandeau 🗄️ **ARCHIVE** — leurs chemins morts ne sont pas à corriger |
+| `PLAN_SUPPRESSION_CLASSICAL.md` | en-tête d'état : §1-§8 appliquées, reste §9 |
 
-- **§9 — abandon de l'historique** (décision 32, qui **annule la 22**). Deux tables, sept
-  méthodes, `DatabaseDebugScreen` : rien n'a d'appelant vivant. Depuis §8 étape 4,
-  `DatabaseDebugScreen` (255 l.) est **franchement orphelin** — plus aucun écran n'y mène.
-  Le seul point non mécanique est la **migration drift** — le projet n'en a jamais eu
-  (`schemaVersion => 1`).
-- **§5 du plan 6×10** — tables 5×12 et 4×15, inchangé et non commencé.
+**Contrôle** : plus aucun chemin `lib/…` mort dans la documentation **descriptive**. Ceux
+qui subsistent sont tous dans des archives ou nommés dans un encadré.
 
-**Conséquence de la suppression encore ouverte** : l'application n'enregistre plus rien d'une
-partie terminée (décision 28 — sera réglée par l'abandon, §9). Les Réglages, eux, sont
-**redevenus joignables** (décision 23 — réglée par §8 étape 2).
+**Deux chantiers restent à appliquer** :
 
-**Observation d'architecture** (décision 29) : la couche `common/` — `PieceManipulationState`,
-`GameTimerMixin`, `PieceInteractionMixin`, `PentominoGameMixin` — n'a plus qu'**un seul
-client**, `pentoscope_provider.dart`. Rien à défaire dans l'immédiat, mais à ne pas hériter
-sans l'examiner. Le commentaire de `piece_manipulation_state.dart` l.14 cite encore
-`PentominoGameState`, qui n'existe plus.
+- **§9 de `PLAN_SUPPRESSION_CLASSICAL.md`** — abandon de l'historique de parties
+  (décision 32). Rien n'a d'appelant vivant ; le seul point non mécanique est la
+  **migration drift**, la première du projet (`schemaVersion => 1`, aucune
+  `MigrationStrategy`). `DatabaseDebugScreen` est franchement orphelin depuis §8 étape 4.
+- **§5 du plan 6×10** — tables 5×12 et 4×15. Préalable strict : rendre
+  `PentominoSolver.maxSeconds` paramétrable **et la troncature observable** (décision 10,
+  plan §5.1), sinon les nouvelles tables seront tronquées en silence.
 
-**Test appareil dû par Paul** : depuis §8 étape 2, le point 3 du temps 2 (§4.7 du plan 6×10,
-la bascule du compteur) est **désormais instruisable** — les Réglages sont joignables. Les
-autres points du test post-suppression (Pentoscope toutes tailles, multijoueur, aucun bouton
-mort, dialogue « Nouvelle partie » : difficulté + montrer la solution) restent dus.
+**Observation d'architecture** (décision 29), toujours ouverte : `PieceManipulationState`,
+`GameTimerMixin`, `PieceInteractionMixin`, `PentominoGameMixin` n'ont plus qu'**un seul
+client**. Rien à défaire, mais à ne pas hériter sans l'examiner. Le commentaire de
+`piece_manipulation_state.dart` l.14 cite encore `PentominoGameState`, qui n'existe plus.
 
-**Git** : à jour et poussé jusqu'à `af4e046` ; **4 commits §8 non poussés** (`35e9d0e..971e8cc`)
-plus ce commit de journal. Le reste du `git status` est du bruit de plateforme.
+**Git** : code poussé jusqu'à `fe3c331`. Non commité : `CLAUDE.md` et les huit fichiers de
+`docs/` ci-dessus. Ces docs ne pilotent pas de code immédiat — à commiter **seuls, en
+début de prochaine session du CLI**, avant toute modification de `lib/`.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -59,10 +58,10 @@ flutter run --release -d 00008150-000165D4027B401C
 > ⚠️ En `--release`, `debugPrint` supprimé : critère console → observation écran.
 
 **Dette technique** : `flutter pub add collection` ; preview cyan morte dans
-`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` ;
-`common/bigint_plateau.dart` orpheline ; le paramètre `cellSize` de `PieceRenderer`
-(miniature, plan 6×10 §6) ; l'index de `check_orphan_files` (tools/db) périmé.
-> `PentoscopeDifficulty` en doublon (ex-décision 34) : **réglé** par §8 étape 1.
+`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` ; cinq fichiers
+orphelins (`bigint_plateau`, `shape_recognizer`, `ui_layout_provider` et ses 9 providers,
+`solution_collector`, `pentomino_solver` par ricochet) ; le paramètre `cellSize` de
+`PieceRenderer` (la miniature signalée par Paul) ; l'index de `check_orphan_files` périmé.
 
 ---
 
@@ -297,6 +296,20 @@ détaillé.
     passage : l'infobulle du bouton « recommencer » précisée en « Recommencer (même taille) »
     pour la distinguer de « Nouvelle partie ». → `c6be674`.
 
+39. **2026-08-30 — cowork** — **passe documentaire après la suppression : la doc de
+    référence décrivait une application qui n'existait plus.** `CLAUDE.md` — chargé
+    automatiquement par le CLI à chaque session, donc le plus coûteux à laisser faux —
+    annonçait encore `classical` « actif », un tutoriel dans son provider, et donnait en
+    exemple un chemin supprimé. `FONCTIONNEMENT.md` décrivait trois modes de jeu et deux
+    sections « gestion des solutions ». `services.md` documentait `plateau_solution_counter`
+    (supprimé) et un singleton global (supprimé). Sept fichiers révisés, deux marqués
+    ARCHIVE. **Aucune ligne de code touchée.**
+40. **2026-08-30 — cowork** — **règle adoptée : un plan exécuté ne se met pas à jour, il se
+    marque.** `PLAN_SUPPRESSION_DEMO.md` et `PLAN_UNIFICATION_PIECES.md` citent des chemins
+    morts ; c'est normal et ça doit le rester — un plan décrit l'état d'alors, c'est ce qui
+    lui donne sa valeur de trace. Ils portent désormais un bandeau 🗄️ ARCHIVE en tête. Ne
+    corriger que la documentation **descriptive**, jamais l'historique.
+
 ---
 
 ## §PASSATIONS
@@ -434,3 +447,10 @@ aussi en paysage). **Non poussé** — 4 commits §8 + ce commit de journal.
 (bascule du compteur) est enfin instruisable, plus le dialogue « Nouvelle partie ».
 **Reste, hérité** : `DatabaseDebugScreen` franchement orphelin depuis l'étape 4 → §9 ;
 tables 5×12/4×15 du plan 6×10 §5.
+
+**2026-08-30 — cowork → toi (passe documentaire).** Huit fichiers de `docs/` plus
+`CLAUDE.md` remis en accord avec le code après la suppression du mode classique et
+l'application du §8. Deux règles posées : la documentation descriptive se corrige, les
+plans exécutés se **marquent** (décision 40). §ÉTAT réécrit. **Aucun code touché.**
+**Prochain pas** : commiter ces docs seuls, puis §9 (abandon de l'historique) ou §5 du plan
+6×10 (tables 5×12 et 4×15) — au choix de Paul, les deux sont indépendants.

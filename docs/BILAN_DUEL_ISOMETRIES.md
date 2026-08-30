@@ -6,6 +6,10 @@
 > `pentapol-duel.pentapml.workers.dev`, même `roomCode`, même WebSocket. Avec
 > `DUEL_ISOM_ARCH.md`, c'est la seule trace du protocole serveur, absent de ce dépôt.
 > L'état daté « 3 décembre 2025 » porte sur l'avancement, pas sur l'architecture.
+>
+> ⚠️ Le chemin `lib/duel_isometry/services/isometry_puzzle.dart` cité plus bas n'existe
+> pas et n'a jamais existé sous ce nom dans ce dépôt : le client vit sous
+> `lib/pentoscope_multiplayer/`.
 
 ## 🎯 OBJECTIF
 

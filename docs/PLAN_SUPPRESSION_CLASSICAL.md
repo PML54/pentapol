@@ -1,5 +1,11 @@
 # Plan — supprimer le module classique
 
+> **ÉTAT au 2026-08-30 : §1 à §8 APPLIQUÉES et testées sur appareil. Reste §9**
+> (abandon de l'historique de parties). Les trois chemins `lib/…` encore cités ici et qui
+> n'existent plus — `home_screen.dart`, `pentoscope_menu_screen.dart`, l'ancien
+> `screens/solutions_browser_screen.dart` — sont précisément ceux que ce plan a fait
+> disparaître ou déménager : **ne pas les « corriger »**.
+
 > Établi le 2026-08-29 par cowork, sur l'intention annoncée par Paul. **Rien n'est à
 > exécuter en l'état** : deux décisions de fonctionnalité manquent (§3) et une condition
 > d'ordre n'est pas remplie (§5).

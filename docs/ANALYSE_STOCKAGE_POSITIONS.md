@@ -12,8 +12,18 @@
 > `.bin` → loader → `solution_matcher`, et le **§7 (fondement combinatoire)**, qui est la
 > référence du projet sur le choix des codes.
 >
-> ⚠️ Ne pas confondre `solutions_viewer_screen` (supprimé) et
-> `screens/solutions_browser_screen.dart` (**vivant**).
+> ⚠️ **Complété le 2026-08-30.** Quatre autres chemins cités ici sont morts depuis la
+> suppression du mode classique : `lib/classical/pentomino_game_screen.dart`,
+> `lib/providers/solutions_provider.dart`, `lib/services/plateau_solution_counter.dart`,
+> et `lib/screens/solutions_browser_screen.dart` — ce dernier n'est pas supprimé mais
+> **déménagé** en `lib/pentoscope/screens/solutions_browser_screen.dart`.
+>
+> Le singleton global `solutionMatcher` n'existe plus : chaque table a son instance, via
+> `pentoscopeSolutionsProvider`. Le masque `(pieces, mask)` est construit par
+> `TableSolutionSource._mask`.
+>
+> ⚠️ Ne pas confondre `solutions_viewer_screen` (supprimé) et le **navigateur**
+> `solutions_browser_screen.dart` (vivant, déménagé).
 
 > Périmètre : encodage des plateaux et des solutions 6×10 (fichiers `.bin`, `bit6`,
 > `BigInt` 360 bits, `PlateauCompressor`). Hors périmètre : table statique

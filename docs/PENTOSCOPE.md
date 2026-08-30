@@ -1,16 +1,24 @@
 # Pentoscope - Documentation Technique
 
+> **Révisé le 2026-08-30.** Pentoscope n'est plus « un mode » : c'est **le** module de
+> jeu. Le mode Classical a été supprimé le 2026-08-29 et son plateau 6×10 est devenu une
+> **taille de Pentoscope**, `size6x10`, adossée aux 9356 solutions pré-calculées.
+> Les sections qui comparent les deux modes sont conservées comme **histoire**, non comme
+> état — elles sont signalées.
+>
 > Mis à jour le 2026-08-27 : fusion de `PentoscopePlacedPiece` dans
-> `common/PlacedPiece`, et correction du nombre de pièces (3 à 10, et non 3 à 8 —
-> voir l'enum `PentoscopeSize`, de `size3x5` à `size10x5`).
+> `common/PlacedPiece`, et correction du nombre de pièces.
 
 ## Vue d'ensemble
 
-**Pentoscope** est un mode de jeu de mini-puzzles pentominos à taille variable. Contrairement au mode Classical (plateau fixe 6×10, 12 pièces, 9356 solutions pré-calculées), Pentoscope génère dynamiquement des puzzles avec un nombre configurable de pièces (3 à 10) sur des plateaux de dimensions variables.
+**Pentoscope** est le module de jeu de Pentapol. Il couvre deux familles de tailles :
+les **puzzles** à pièces tirées au hasard, dont les solutions sont calculées à la volée,
+et les **rectangles complets** à 12 pièces, adossés à une table pré-calculée — aujourd'hui
+le seul 6×10, demain 5×12 et 4×15.
 
 ### Caractéristiques principales
 
-- **Plateaux variables** : 3×5, 4×5, 5×5, 6×5, 7×5, 8×5
+- **Plateaux** : `size3x5` à `size9x5` (largeur 3 à 5), plus `size6x10` (6 × 10, 12 pièces)
 - **Génération dynamique** : Puzzles créés à la volée avec solveur backtracking optimisé
 - **Niveaux de difficulté** : Facile (≥4 solutions), Aléatoire, Difficile (≤2 solutions)
 - **Mode Training** : Option pour afficher la solution optimale
@@ -25,10 +33,11 @@ lib/pentoscope/
 ├── pentoscope_provider.dart      # State management (Riverpod Notifier)
 ├── pentoscope_generator.dart     # Génération de puzzles
 ├── pentoscope_solver.dart        # Solveur backtracking OPTIMISÉ
-├── piece_difficulty.dart         # Classement difficulté des pièces
+├── solution_source.dart          # table pré-calculée OU solveur — choisi au démarrage
+├── pentoscope_solutions_provider.dart  # chargement paresseux d'une table
 ├── screens/
-│   ├── pentoscope_menu_screen.dart   # Menu de configuration
-│   └── pentoscope_game_screen.dart   # Écran de jeu
+│   ├── pentoscope_game_screen.dart   # Écran de jeu — l'écran unique de l'app
+│   └── solutions_browser_screen.dart # Navigateur de solutions compatibles
 └── widgets/
     ├── pentoscope_board.dart         # Plateau de jeu
     └── pentoscope_piece_slider.dart  # Slider des pièces disponibles
@@ -285,13 +294,12 @@ Quand `showSolution = true` :
 
 ## Écrans
 
-### PentoscopeMenuScreen
+### ⛔ PentoscopeMenuScreen — **supprimé le 2026-08-30** (`bd903a1`)
 
-Menu de configuration avant de jouer :
-
-- **Sélection de taille** : Boutons 3×5 à 8×5
-- **Mode Training** : Switch pour afficher la solution
-- **Bouton Jouer** : Lance le puzzle
+Son contenu — sélection de taille, difficulté, « montrer la solution » — a été absorbé par
+le **dialogue « Nouvelle partie »** de `PentoscopeGameScreen`, ouvert par le bouton ➕ de
+l'AppBar. Le dialogue appelle `startPuzzle` directement ; `changeBoardSize`, qui figeait
+`difficulty: random` et `showSolution: false`, a été supprimé avec lui.
 
 ### PentoscopeGameScreen
 
@@ -326,19 +334,22 @@ Slider de pièces avec :
 
 ---
 
-## Différences avec Classical
+## Différences avec Classical — ⛔ SECTION HISTORIQUE
 
-| Aspect | Classical | Pentoscope |
+> Le module Classical a été supprimé le 2026-08-29. Ce tableau décrit l'état d'avant, et
+> **ne doit pas servir de référence**. Ce qui a survécu de la colonne « Classical » est
+> passé dans Pentoscope, sous la forme de la taille `size6x10` et de sa `SolutionTable`.
+
+| Aspect | Classical (supprimé) | Pentoscope aujourd'hui |
 |--------|-----------|------------|
-| Plateau | Fixe 6×10 | Variable (3×5 à 8×5) |
-| Pièces | 12 | 3 à 10 |
-| Solutions | 9356 pré-calculées | Générées dynamiquement |
-| Solveur | BigInt matching | Backtracking optimisé |
-| Optimisations | N/A (lookup) | Smallest Cell First + Pruning |
-| Score | Basé sur le temps | Basé sur efficacité isométries |
-| Hint | Via `SolutionMatcher` | Non disponible |
-| Timer | Oui | Non |
-| Sauvegarde DB | Oui (`GameSessions`) | Non |
+| Plateau | Fixe 6×10 | `size3x5` à `size9x5`, **plus** `size6x10` |
+| Pièces | 12 | 3 à 9 tirées, **ou** les 12 sur le 6×10 |
+| Solutions | 9356 pré-calculées | les deux : table pour les rectangles complets, génération à la volée pour les puzzles |
+| Solveur | BigInt matching | `SolutionSource` — `TableSolutionSource` **ou** `LiveSolutionSource` |
+| Score | Basé sur le temps | Note sur 20, basée sur les isométries |
+| Hint | Via `SolutionMatcher` | **Oui** — solution compatible au hasard sur les tailles à table, première solution trouvée sinon |
+| Timer | Oui | Oui (`GameTimerMixin`, partagé) |
+| Sauvegarde DB | Oui (`GameSessions`) | **Non — et plus personne n'écrit dans cette table**, sa suppression est décidée (plan §9) |
 
 ---
 

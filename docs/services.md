@@ -5,8 +5,12 @@
 > des services n'existait pas. Celle-ci la remplace. `models.md` a depuis été supprimé
 > — il reste récupérable dans l'historique git.
 
-`lib/services/` contient quatre fichiers, qui forment la chaîne de traitement des
-solutions du plateau 6×10 — du fichier binaire jusqu'au compteur affiché à l'écran.
+> **Révisé le 2026-08-30**, après la suppression du mode classique. Trois changements de
+> fond : `plateau_solution_counter.dart` a été **supprimé**, `solution_matcher.dart` n'a
+> plus de singleton global, et le chargeur est devenu paramétrable par table.
+
+`lib/services/` contient **trois** fichiers, qui forment la chaîne de traitement des
+solutions d'un rectangle complet — du fichier binaire jusqu'au compteur affiché à l'écran.
 
 ```
 assets/data/solutions_6x10_normalisees.bin
@@ -19,8 +23,8 @@ assets/data/solutions_6x10_normalisees.bin
         ▼
       9356 solutions en mémoire
         ▲
-        │  plateau_solution_counter.dart       extension sur Plateau : masques + comptage
-        │
+        │  pentoscope/solution_source.dart     TableSolutionSource : masques + comptage
+        │                                      (vit hors de lib/services/)
    état du plateau de jeu
 
    pentomino_solver.dart                       backtracking — INACTIF dans l'app
@@ -49,13 +53,21 @@ canoniques sous forme de `BigInt` de 360 bits.
 
 ### Importé par
 
-`providers/solutions_provider.dart` uniquement.
+`pentoscope/pentoscope_solutions_provider.dart` uniquement. Le chargeur prend désormais
+le **chemin de l'asset en paramètre** : ses constantes `_boardCells = 60` et
+`_bytesPerSolution = 45` ne dépendent pas de la forme du rectangle, seul le nom de fichier
+changeait. C'est ce qui rendra les tables 5×12 et 4×15 possibles sans le toucher.
 
 ---
 
 ## `solution_matcher.dart` — 787 lignes
 
-Cœur du mode classique. Expose un **singleton global** `solutionMatcher`.
+Cœur du traitement des solutions pré-calculées.
+
+> ⚠️ **Le singleton global `solutionMatcher` a été supprimé** avec le mode classique
+> (2026-08-29). La classe est instanciée par table, avec ses dimensions —
+> `SolutionMatcher(width: table.width, height: table.height)` — via le
+> `FutureProvider.family` `pentoscopeSolutionsProvider`.
 
 ### `SolutionMatcher`
 
@@ -111,50 +123,24 @@ cases normalisées aux `cartesianCoords` → `positionIndex`.
 
 ### Importé par
 
-5 fichiers : les providers classique et Pentoscope MP, `plateau_solution_counter`,
-`solutions_browser_screen`, `action_slider`.
+`pentoscope/solution_source.dart`, `pentoscope/pentoscope_solutions_provider.dart`,
+`pentoscope/screens/solutions_browser_screen.dart`.
 
 ---
 
-## `plateau_solution_counter.dart` — 135 lignes
+## `plateau_solution_counter.dart` — **SUPPRIMÉ le 2026-08-29**
 
-Extension sur `Plateau` qui fait le pont entre l'état de jeu et le matcher.
+Cette extension sur `Plateau` construisait les deux masques `(pieces, mask)` et
+interrogeait le singleton. Elle est partie avec le mode classique, son seul appelant.
 
-```dart
-extension PlateauSolutionCounter on Plateau {
-  int?       countPossibleSolutions()
-  List<BigInt> getCompatibleSolutionsBigInt()
-  List<int>  getCompatibleSolutionIndices()
-  int        findExactSolutionIndex()
-}
-```
+Son remplaçant vit ailleurs : `TableSolutionSource._mask`
+(`lib/pentoscope/solution_source.dart`), dimensionné par la table au lieu d'être figé
+sur 6×10.
 
-Chaque méthode reconstruit les deux masques `BigInt` depuis la grille, puis délègue au
-singleton `solutionMatcher`.
-
-### Contrat de retour
-
-Toutes les erreurs sont **attrapées et converties** : `null` ou liste vide pour les
-trois premières, `−1` pour la dernière. Aucune exception ne remonte à l'appelant.
-C'est commode mais silencieux : un échec ressemble à un plateau sans solution.
-
-### Deux limites à connaître
-
-- **Plateau 6×10 uniquement.** Toute autre dimension lève un `StateError`, aussitôt
-  attrapé → `null`.
-- **Cases masquées non gérées.** `Plateau.getCell` peut renvoyer `-1` ; la méthode ne
-  traite que `0` et `1..12`, et un `-1` produit un `StateError` attrapé → `null`.
-  Latent tant que le mode classique n'utilise que `Plateau.allVisible`.
-
-### Duplication à résorber
-
-La classe privée `_PlateauBigIntMask` réimplémente, en moins complet, ce que fait déjà
-`common/bigint_plateau.dart` — lequel est orphelin. La bonne abstraction existe et
-n'est pas utilisée.
-
-### Importé par
-
-`classical/pentomino_game_provider.dart` et `screens/.../action_slider.dart`.
+> Deux défauts partent avec elle, à ne pas réintroduire : un `try/catch` qui convertissait
+> toute erreur en `null` après un `print` — un compteur absent à l'écran ne voulait donc
+> pas dire « 0 solution » mais « quelque chose a échoué en silence » — et un refus
+> explicite de tout format autre que 6×10.
 
 ---
 
@@ -197,9 +183,17 @@ class PlacementInfo { pieceIndex, occupiedCells, ... }
 
 Le fichier `tools/solutions_6x10_brutes.bin`, produit par cet outil, ne contenait que
 **8175 des 9356** solutions — un sous-ensemble strict, sans solution étrangère. La
-cause n'est pas élucidée : run interrompu, ou défaut de complétude de
-`findAllSolutions`. **Vérifier que le solveur en trouve bien 9356 avant toute
-régénération des solutions.**
+cause **est élucidée depuis le 2026-08-29** : `maxSeconds` vaut 30, c'est un champ
+`final` non paramétrable (l.23), et `findAllSolutions` fait un simple `return` à
+l'expiration (l.470-475) après un `print`. L'appelant reçoit une liste **indistinguable**
+d'une liste complète. Ce n'est donc pas un défaut de complétude du solveur.
+
+Le fichier livré, lui, est bon : les 8175 brutes couvraient les **2339/2339** classes.
+
+⚠️ **Avant toute génération de nouvelle table**, rendre `maxSeconds` paramétrable **et** la
+troncature observable (signature `({solutions, truncated})`) — sinon les tables 5×12 et
+4×15 seront tronquées de la même façon, en silence.
+→ `docs/PLAN_6X10_DANS_PENTOSCOPE.md` §5.1.
 
 ---
 
@@ -207,8 +201,10 @@ régénération des solutions.**
 
 Deux composants qu'on s'attendrait à y trouver et qui vivent ailleurs :
 
-- `common/bigint_plateau.dart` — représentation (pieces, mask) d'un plateau
+- `common/bigint_plateau.dart` — représentation (pieces, mask) d'un plateau ; orpheline,
+  et la mieux écrite des trois implémentations de ce couple
 - `pentoscope/pentoscope_solver.dart` — le solveur réellement utilisé par le jeu
+- `pentoscope/solution_source.dart` — l'interface qui choisit entre table et solveur
 
 ## Voir aussi
 

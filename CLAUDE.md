@@ -19,33 +19,43 @@
 
 ```
 lib/
-  classical/               jeu classique 6×10 (provider, écran, état)
-  common/                  modèles et services partagés (Pento, PlacedPiece, Plateau…)
-  config/                  constantes UI (tailles, icônes)
+  common/                  modèles, widgets et mixins partagés (Pento, PlacedPiece,
+                           Plateau, PieceRenderer, GameTimerMixin…)
+  config/                  constantes UI (tailles, icônes, layout)
   data/                    documentation backend (pas de code Dart)
   database/                drift — persistance des réglages
-  debug/                   outils de mise au point
+  debug/                   database_debug_screen (orphelin, voué à disparaître — §9)
   l10n/                    localisation
   models/                  app_settings
-  pentoscope/              module Pentoscope (drag & drop, snapping, scoring)
+  pentoscope/              LE module de jeu : provider, plateau, barre, écrans,
+                           générateur, solveur, sources de solutions
   pentoscope_multiplayer/  mode duel — WebSocket, Cloudflare Durable Objects
-  providers/               providers Riverpod transverses
-  screens/                 écrans et widgets partagés
-  services/                solveurs, matcher de solutions, chargeurs
-  utils/                   géométrie, helpers
+  providers/               providers Riverpod transverses (réglages)
+  screens/                 settings_screen, custom_colors_screen
+  services/                solveur hors-ligne, matcher de solutions, chargeur .bin
+  utils/                   géométrie, helpers, export
 ```
+
+L'application démarre **directement sur `PentoscopeGameScreen`** (`main.dart`) : il n'y
+a plus d'écran d'accueil ni de route nommée.
 
 ## Modules actifs
 
 | Module | État | Notes |
 |---|---|---|
-| `classical` | actif | jeu classique de pentominos, plateau 6×10 |
-| `pentoscope` | actif | drag & drop, snapping magnétique, scoring isométrique |
-| `pentoscope_multiplayer` | actif | duel WebSocket, Cloudflare Durable Objects |
+| `pentoscope` | actif | **le seul module de jeu.** Tailles 3×5 à 5×10 (puzzles à pièces tirées) et 6×10 (rectangle complet adossé aux 9356 solutions) |
+| `pentoscope_multiplayer` | actif | duel WebSocket, Cloudflare Durable Objects ; consomme le provider de `pentoscope` |
 
-> Le tutoriel n'a pas de module propre : il est intégré au provider de `classical`.
-> Il n'existe **ni** `lib/duel/` **ni** `lib/tutorial/` — une version antérieure de
-> ce fichier les annonçait à tort.
+> ⚠️ **Le module `classical` a été supprimé le 2026-08-29** (`371c3d5`), avec
+> `lib/screens/pentomino_game/`, l'écran d'accueil et le tutoriel — −3197 lignes.
+> Pentoscope est désormais la référence unique de la manipulation des pièces. Une
+> version antérieure de ce fichier annonçait aussi `lib/duel/` et `lib/tutorial/`, qui
+> n'ont jamais existé.
+>
+> Conséquence à connaître avant de toucher à `common/` : `PieceManipulationState`,
+> `GameTimerMixin`, `PieceInteractionMixin` et `PentominoGameMixin` avaient été extraits
+> pour tenir **deux** implémentations alignées. Il n'en reste qu'une. Ils gardent leur
+> valeur de découpage, pas leur valeur de contrainte.
 
 ## Convention de header — OBLIGATOIRE
 
@@ -62,9 +72,9 @@ raison du changement :
 Exemple :
 
 ```dart
-// Modified: 2026-08-27 16:04 — garde d'initialisation : le jeu n'est plus monté
-//           avant que les 9356 solutions soient chargées.
-// lib/classical/pentomino_game_screen.dart
+// Modified: 2026-08-29 09:26 — 6×10 temps 2 : les réponses « solution » passent par
+//           une SolutionSource choisie au démarrage du puzzle.
+// lib/pentoscope/solution_source.dart
 // Historique: 251226120030 — Démarrage du timer à la première pièce touchée
 ```
 
@@ -139,6 +149,12 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 > ⚠️ `flutter analyze` ne signale pas une méthode **publique** sans appelant. Il ne
 > peut donc pas confirmer qu'un nettoyage est complet : vérifier au `grep`, par nom.
 
+> ⚠️ **Le test se fait sur appareil, par Paul** :
+> `flutter run --release -d 00008150-000165D4027B401C` (iPhone).
+> Aucun agent ne juge le ressenti d'un geste. Ne jamais écrire « non testé » faute de
+> rapport : demander, ou ne rien affirmer. En `--release`, `debugPrint` est supprimé —
+> ne pas formuler de critère d'acceptation sur la console.
+
 ## Stack technique
 
 - Flutter SDK (dernière version stable), lints via `package:flutter_lints`
@@ -155,7 +171,11 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - `docs/PIECES_ENCODING.md` — définition des pièces, `bit6`, isométries
 - `docs/MODUS_VIVENDI.md` — répartition du travail entre le CLI et cowork,
   passations, règles de commit
-- `docs/JOURNAL.md` — état courant, décisions prises, passations
+- `docs/JOURNAL.md` — **à lire en premier** : état courant, décisions, passations
+- `docs/PLAN_6X10_DANS_PENTOSCOPE.md` — le 6×10 et les tables de solutions
+  pré-calculées ; §5 (tables 5×12 et 4×15) reste à appliquer
+- `docs/PLAN_SUPPRESSION_CLASSICAL.md` — la suppression du mode classique et sa suite ;
+  §9 (abandon de l'historique de parties) reste à appliquer
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
   des modules) alimentant `tools/db/pentapol.db`
 

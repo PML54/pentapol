@@ -1,5 +1,12 @@
 # Plan — unifier la manipulation des pièces (barre + plateau) sur les 3 modules
 
+> 🗄️ **ARCHIVE — chantier suspendu puis rendu sans objet.** L'unification visait à faire
+> converger `classical` et `pentoscope` ; `classical` a été supprimé le 2026-08-29, il n'y
+> a plus rien à unifier. Les étapes 0 à 2 restent le socle du code d'aujourd'hui
+> (`common/PlacedPiece`, `PieceManipulationState`, `TransformationResult`,
+> `ViewOrientation`, les deux mixins) — mais elles n'ont plus qu'**un seul client**.
+> Les chemins `lib/classical/…` cités ici sont morts : **ne pas les corriger.**
+
 > Établi le 2026-08-27 20:22. Objectif fixé par Paul : **une seule implémentation** de la
 > manipulation des pièces, depuis la barre comme sur le plateau, partagée par
 > `classical`, `pentoscope` et `pentoscope_multiplayer`.

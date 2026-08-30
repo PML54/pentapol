@@ -1,16 +1,22 @@
 # Pentapol — Documentation fonctionnelle
 
-> **Vérifiée contre le code le 2026-08-27.** Chaque affirmation chiffrée ou
-> algorithmique de ce document a été contrôlée dans les sources. Les points que je
-> n'ai pas pu vérifier sont marqués « ⚠ non vérifié ». Le récapitulatif des
-> corrections apportées à la version précédente est en fin de document.
+> **Révisée contre le code le 2026-08-30**, après la suppression du mode classique
+> (`371c3d5`) et l'application du §8 de `PLAN_SUPPRESSION_CLASSICAL.md`. Chaque
+> affirmation chiffrée ou algorithmique a été contrôlée dans les sources ; les points
+> non vérifiables sont marqués « ⚠ non vérifié ». Récapitulatif des corrections en fin
+> de document.
+>
+> ⚠️ **Ce que ce document ne décrit plus.** Le module `classical` — son plateau 6×10,
+> son provider, son écran, son tutoriel, son écran d'accueil — **n'existe plus**. Le
+> 6×10 subsiste, mais comme une **taille de Pentoscope**, pas comme un mode.
 
 ## Concept général
 
 Pentapol est un jeu de puzzle basé sur les **pentominos** : 12 pièces géométriques
-uniques composées chacune de 5 carrés. L'application propose trois modes de jeu, du
-classique solitaire au multijoueur en ligne, avec une mécanique commune de placement
-par drag & drop et de transformations isométriques.
+uniques composées chacune de 5 carrés. L'application repose sur **un seul module de
+jeu**, Pentoscope, décliné en tailles de plateau, plus un mode multijoueur qui réutilise
+son provider. La mécanique est commune : placement par drag & drop et transformations
+isométriques.
 
 ---
 
@@ -28,23 +34,21 @@ l'encodage est dans `docs/PIECES_ENCODING.md`.
 
 ## Modes de jeu
 
-### 1. Mode Classique
+### 1. Pentoscope solo — le module de jeu
 
-- **Plateau** : 6 × 10 = 60 cases
-- **Pièces** : les 12 pentominos
-- **Objectif** : remplir complètement le plateau
-- **Solutions connues** : **2339 solutions canoniques** chargées depuis
-  `assets/data/solutions_6x10_normalisees.bin`, étendues à **9356** en mémoire par
-  les 4 isométries du rectangle (identité, rotation 180°, miroir H, miroir V)
-- **Scoring** : `100 - (secondes ~/ 2)`, borné entre 0 et 100
-  (`PentominoGameNotifier.calculateScore`)
+Une seule mécanique, deux familles de tailles, énumérées par `PentoscopeSize` :
 
-### 2. Mode Pentoscope (speed puzzle)
+| famille | tailles | pièces | d'où viennent les solutions |
+|---|---|---|---|
+| **puzzles** | `size3x5` … `size9x5` (largeur 3 à 5, hauteur 5 à 9) | 3 à 9, **tirées au hasard** parmi les 12 | calculées à la volée par `PentoscopeSolver` |
+| **rectangle complet** | `size6x10` — 6 × 10 = 60 cases | les **12**, toujours | **table pré-calculée** : 2339 solutions canoniques dans `assets/data/solutions_6x10_normalisees.bin`, étendues à **9356** en mémoire par les 4 isométries du rectangle |
 
-- **Plateau** : hauteur fixe 5, largeur 3 à 10 → **3 à 10 pièces**
-  (enum `PentoscopeSize`, de `size3x5` à `size10x5`)
-- **Pièces** : sélection aléatoire parmi les 12
-- **Génération à la demande**, avec garantie d'au moins une solution
+Le champ `PentoscopeSize.table` (`SolutionTable?`) porte cette distinction : `null` = calcul
+à la volée. Il n'est lu qu'**au démarrage du puzzle**, pour choisir la `SolutionSource` qui
+répondra ensuite à tout (§ Gestion des solutions).
+
+- **Génération à la demande**, avec garantie d'au moins une solution — **court-circuitée
+  pour le 6×10**, dont le tirage est forcé (12 pièces sur 12) et les solutions déjà connues
 - **Niveaux de difficulté** (constantes de `PentoscopeGenerator`) :
 
   | Niveau | Seuil | Méthode |
@@ -53,14 +57,19 @@ l'encodage est dans `docs/PIECES_ENCODING.md`.
   | Random | ≥ 1 solution | `generate()` |
   | Hard | ≤ **2** solutions | `generateHard()` |
 
-- **Hint (lampe)** : révèle le placement d'une pièce de la solution
-- **Note de non-triche** : `calculateNote()` renvoie une note **sur 20**, distincte du
-  score temporel du mode classique
+- **Nouvelle partie** : un dialogue unique porte taille, difficulté et « montrer la
+  solution », puis appelle `startPuzzle`. Il a remplacé l'ancien écran de menu le
+  2026-08-30 (`bd903a1`)
+- **Compteur de solutions** : affiché dans l'AppBar pour les tailles adossées à une table,
+  absent sinon ; réglable par `GameSettings.showSolutionCounter`
+- **Hint (lampe)** : révèle le placement d'une pièce d'une solution compatible, tirée au
+  hasard. Amber si une solution reste possible, **rouge** sinon
+- **Note de non-triche** : `calculateNote()` renvoie une note **sur 20**
   - 0 hint → 20/20
   - ≥ (nbPièces − 1) hints → 0/20
   - entre les deux, linéaire : `20 − (nbHints × 20 ~/ maxHints)`
 
-### 3. Mode Multijoueur (Pentoscope MP)
+### 2. Mode Multijoueur (Pentoscope MP)
 
 - **Mécanisme** : tous les joueurs reçoivent le même puzzle — même *seed*
   (`DateTime.now().millisecondsSinceEpoch`), mêmes pièces
@@ -81,17 +90,22 @@ Démarrage
         └── _PentapolAppState.initState amorce solutionsReadyProvider (sans await)
               → chargement des 2339 solutions + expansion ×4 en tâche de fond
         ↓
-    PentoscopeGameScreen (écran d'accueil effectif, puzzle 5×5 pré-généré)
-      ├── Pentoscope (speed) → menu taille/difficulté → jeu solo OU lobby MP
-      ├── Classique → PentominoGameScreen
-      │     └── GARDE : affiche un loader tant que solutionsReadyProvider
-      │        n'a pas résolu ; écran d'erreur + « Réessayer » en cas d'échec
-      └── Réglages
+    PentoscopeGameScreen — écran unique, puzzle 5×5 pré-généré
+      ├── ⚙️  Réglages         → SettingsScreen
+      ├── ➕  Nouvelle partie   → dialogue taille / difficulté / montrer la solution
+      ├── 👥  Multijoueur       → lobby MP
+      └── 🔎  Solutions         → navigateur (tailles adossées à une table seulement)
 ```
 
-> Le mode classique **ne peut plus démarrer** avant que les solutions soient
-> disponibles. Auparavant, un chargement en `Future.microtask` non attendu laissait
-> le compteur de solutions disparaître silencieusement de l'interface.
+> **Il n'y a plus d'écran d'accueil ni de route nommée.** `HomeScreen` a été supprimé le
+> 2026-08-30 (`971e8cc`) ; `main.dart` monte `PentoscopeGameScreen` directement. Les
+> Réglages, qui n'étaient plus atteignables depuis la suppression du mode classique, le
+> sont de nouveau par l'AppBar.
+
+> Le chargement d'une table de solutions est **paresseux et attendu par `startPuzzle`**
+> (`pentoscopeSolutionsProvider`, une entrée par `SolutionTable`). Il n'y a pas de garde
+> de montage d'écran : la latence au premier démarrage s'est révélée imperceptible au
+> test appareil.
 
 ### Lobby multijoueur
 
@@ -161,8 +175,10 @@ distinctes de chaque pièce sont pré-calculées, jamais recalculées à l'exéc
 > des tables de documentation fausses. **Se fier aux noms publics, jamais aux privés.**
 
 En mode **paysage**, les interprétations H et V sont échangées pour rester cohérentes
-avec l'orientation visuelle de l'écran (`pentomino_game_provider.dart`, commentaires
-« H/V swap en paysage »).
+avec l'orientation visuelle de l'écran. Cette compensation vit **dans le provider**
+(`pentoscope_provider.dart`, `applyIsometrySymmetryH/V`, sur `state.viewOrientation`
+alimenté par `pentoscope_board`) — et non dans le widget, comme c'était le cas du côté
+classique supprimé.
 
 `minIsometriesToReach(startPos, endPos)` calcule par parcours en largeur le nombre
 minimal d'isométries entre deux orientations — c'est ce qui alimente le scoring
@@ -170,12 +186,32 @@ isométrique du mode duel.
 
 ---
 
-## Gestion des solutions (mode classique)
+## Gestion des solutions — les deux sources
+
+Depuis le 2026-08-29, les réponses « solution » passent toutes par une même interface,
+`SolutionSource` (`lib/pentoscope/solution_source.dart`), choisie **une seule fois** dans
+`startPuzzle` selon `PentoscopeSize.table` :
+
+| | `TableSolutionSource` | `LiveSolutionSource` |
+|---|---|---|
+| tailles | rectangle complet (6×10) | puzzles à pièces tirées |
+| adossée à | `SolutionMatcher` + le `.bin` | `PentoscopeSolver` |
+| `hasSolutionFrom` | compte > 0 | backtracking `canSolveFrom` |
+| `countFrom` | le nombre exact | **`null`** — le solveur ne sait pas compter |
+| `hintFrom` | une solution compatible **au hasard** | la première solution trouvée |
+| `compatibleSolutions` | la liste, pour le navigateur | `const []` |
+
+`countFrom` nullable est ce qui évite un test de taille à chaque site d'appel : l'écran
+affiche le compteur quand il y en a un, rien sinon.
 
 ### Encodage BigInt
 
 Chaque solution 6×10 est encodée en un entier de **360 bits** : 60 cases × 6 bits,
 chaque groupe de 6 bits portant le code unique (`bit6`) de la pièce occupant la case.
+
+Le format ne dépend **pas** de la forme du rectangle — 60 cases × 6 bits = 45 octets,
+que le plateau soit 6×10 ou 3×20. C'est ce qui rendra les tables 5×12 et 4×15 possibles
+sans toucher au chargeur (`docs/PLAN_6X10_DANS_PENTOSCOPE.md` §5).
 
 ### Matching en temps réel
 
@@ -190,21 +226,18 @@ compatible ⟺ (solution & mask) == pieces
 Le masque est ce qui rend le test valable sur un plateau **partiel** : il efface de la
 solution toute case que le joueur n'a pas remplie.
 
-Le nombre de solutions compatibles restantes est affiché en permanence. Exemple mesuré :
-plateau vide 9356 → une pièce X posée 442 → une pièce I ajoutée 82.
+`TableSolutionSource` **balaie linéairement les 9356 solutions**. Elle ne raisonne pas sur
+les pièces restantes ni sur la forme des zones libres : elle compare des cases occupées.
+Un compte de 0 signifie « aucune solution connue ne contient ce placement », donc impasse.
+Exemple mesuré : plateau vide 9356 → une pièce X posée 442 → une pièce I ajoutée 82.
 
-### Ce que `PlateauSolutionCounter` fait — et ne fait pas
+> **Pourquoi « compte > 0 » suffit à répondre « une solution est-elle encore
+> possible ? »** — parce que sur un rectangle complet, **chacune des 9356 solutions emploie
+> les 12 pièces**. L'équivalence ne vaut que là : sur un puzzle à pièces tirées, la table
+> ne dit rien, d'où `LiveSolutionSource`.
 
-L'extension `PlateauSolutionCounter` sur `Plateau` construit les deux masques puis
-**balaie linéairement les 9356 solutions**. Elle ne raisonne pas sur les pièces
-restantes ni sur la forme des zones libres : elle compare des cases occupées. Un
-compte de 0 signifie « aucune solution connue ne contient ce placement », donc impasse.
-
-Méthodes : `countPossibleSolutions()`, `getCompatibleSolutionsBigInt()`,
-`getCompatibleSolutionIndices()`, `findExactSolutionIndex()`.
-
-> Limite connue : le masque ne sait pas traiter les cases masquées (`-1`). Le mode
-> classique n'utilise que des plateaux entièrement visibles, donc le défaut est latent.
+> **Deux invariants** sans lesquels la table répondrait faux en silence : aucune case
+> masquée (`-1`), et les 12 pièces toutes présentes.
 
 ---
 
@@ -226,7 +259,13 @@ Deux modes d'appel :
 
 ## Persistance
 
-Base **drift** (`lib/database/settings_database.dart`), trois tables :
+Base **drift** (`lib/database/settings_database.dart`), trois tables — dont **deux sont
+mortes** :
+
+> ⚠️ Depuis la suppression du mode classique, **plus aucun code n'écrit dans
+> `GameSessions` ni `SolutionStats`** : l'écriture vivait dans `onPuzzleCompleted` du
+> provider classique. Leur suppression est décidée (décision 32, plan §9) et non encore
+> appliquée. Seule `Settings` est vivante.
 
 | Table | Contenu |
 |---|---|
@@ -234,9 +273,12 @@ Base **drift** (`lib/database/settings_database.dart`), trois tables :
 | `GameSessions` | une ligne par partie : `solutionNumber`, `elapsedSeconds`, `score`, `piecesPlaced`, `numUndos`, `isometriesCount`, `solutionsViewCount`, `playerNotes` |
 | `SolutionStats` | une ligne par solution jouée : `timesPlayed`, `bestTime`, `averageTime`, `bestScore` |
 
-`SolutionStats` permet de suivre, solution par solution parmi les 9356, combien de fois
-elle a été résolue et le meilleur temps obtenu. Le pseudo multijoueur est stocké à part,
-via `SharedPreferences`.
+`SolutionStats` permettait de suivre, solution par solution parmi les 9356, combien de fois
+elle avait été résolue et le meilleur temps obtenu. Le pseudo multijoueur est stocké à part,
+via `SharedPreferences`, de même que le dernier niveau réussi (`_saveCompletedLevel`).
+
+> Le projet n'a **jamais migré** : `schemaVersion => 1`, aucune `MigrationStrategy`. La
+> suppression des deux tables sera sa première migration.
 
 ---
 
@@ -282,31 +324,39 @@ absoluteCells   : cases absolues occupées (calculées à la demande)
 
 ```
 lib/
-  classical/               jeu classique 6×10
-  common/                  Pento, Plateau, PlacedPiece, mixin, API de symétrie
+  common/                  Pento, Plateau, PlacedPiece, mixins, API de symétrie,
+                           widgets partagés (PieceRenderer, DraggablePieceWidget…)
   config/                  dimensions UI, icônes
   data/                    documentation backend (pas de code Dart)
-  database/                drift — réglages, sessions, statistiques
-  debug/                   outils de mise au point
+  database/                drift — réglages (+ 2 tables mortes, cf. Persistance)
+  debug/                   database_debug_screen — orphelin depuis la suppression
+                           de l'écran d'accueil
   l10n/                    localisation
   models/                  app_settings
-  pentoscope/              mode Pentoscope solo
+  pentoscope/              LE module de jeu : provider, plateau, barre, écrans,
+                           générateur, solveur, SolutionSource
   pentoscope_multiplayer/  mode duel WebSocket
-  providers/               providers Riverpod transverses
-  screens/                 écrans et widgets partagés
-  services/                chargeur, matcher, compteur, solveur
-  utils/                   géométrie, helpers
+  providers/               providers Riverpod transverses (réglages)
+  screens/                 settings_screen, custom_colors_screen
+  services/                chargeur .bin, matcher de solutions, solveur hors-ligne
+  utils/                   géométrie, helpers, export
 ```
+
+**19 415 lignes de Dart** au 2026-08-30, contre 23 036 avant la suppression du mode
+classique.
 
 ### State management — Riverpod
 
 | Provider | Rôle |
 |---|---|
-| `pentominoGameProvider` | état du jeu classique (`Notifier`, synchrone) |
-| `pentoscopeProvider` | état du jeu Pentoscope solo |
+| `pentoscopeProvider` | état du jeu — **le seul provider de jeu** |
 | `pentoscopeMPProvider` | état multijoueur WebSocket |
 | `settingsProvider` | réglages persistants (drift) |
-| `solutionsReadyProvider` | chargement des solutions (`FutureProvider<int>`) |
+| `settingsDatabaseProvider` | instance drift |
+| `pentoscopeSolutionsProvider` | `FutureProvider.family<SolutionMatcher, SolutionTable>` — chargement paresseux d'une table, une entrée par table |
+
+> `solutionsReadyProvider` et le singleton global `solutionMatcher` ont été **supprimés**
+> avec le mode classique : chaque table a désormais son instance, dimensionnée par elle.
 
 ### Backend multijoueur
 
@@ -322,15 +372,17 @@ lib/
 
 | Écran | Rôle |
 |---|---|
-| `home_screen.dart` | menu principal |
-| `pentoscope_menu_screen.dart` | choix taille, difficulté, solo/MP |
-| `pentoscope_game_screen.dart` | gameplay Pentoscope solo |
-| `pentoscope_mp_lobby_screen.dart` | création/jointure de room |
-| `pentoscope_mp_game_screen.dart` | gameplay multijoueur |
-| `pentoscope_mp_result_screen.dart` | classement final |
-| `pentomino_game_screen.dart` | garde d'initialisation + gameplay 6×10 |
-| `solutions_browser_screen.dart` | parcourir les solutions compatibles |
-| `settings_screen.dart` | configuration |
+| `pentoscope/screens/pentoscope_game_screen.dart` | **l'écran unique** : gameplay, AppBar, dialogue « Nouvelle partie », bilan |
+| `pentoscope/screens/solutions_browser_screen.dart` | parcourir les solutions compatibles (tailles à table) |
+| `pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart` | création/jointure de room |
+| `pentoscope_multiplayer/screens/pentoscope_mp_game_screen.dart` | gameplay multijoueur |
+| `pentoscope_multiplayer/screens/pentoscope_mp_result_screen.dart` | classement final |
+| `screens/settings_screen.dart` | configuration |
+| `screens/custom_colors_screen.dart` | couleurs des pièces (depuis les Réglages) |
+| `debug/database_debug_screen.dart` | **orphelin** — plus aucun écran n'y mène |
+
+> Supprimés le 2026-08-29/30 : `home_screen.dart`, `pentoscope_menu_screen.dart`,
+> `pentomino_game_screen.dart` et tout `lib/screens/pentomino_game/`.
 
 ---
 
@@ -338,17 +390,41 @@ lib/
 
 Utile à savoir avant de partir sur une fausse piste :
 
+Vérifié au `grep` le 2026-08-30 — aucun de ces fichiers n'est importé hors de lui-même :
+
 | Fichier | Statut |
 |---|---|
-| `common/isometry_transforms.dart` | importé seulement par `isometry_transformation_service.dart` |
-| `common/isometry_transformation_service.dart` | **importé par personne** — le couple est mort |
-| `common/bigint_plateau.dart` | orphelin, mais meilleur que le code qui le remplace |
-| `config/ui_layout_provider.dart` | orphelin — `uiLayoutProvider` n'est utilisé nulle part |
-| `services/pentomino_solver.dart` | atteint uniquement via `utils/solution_collector.dart`, lui-même orphelin → **inactif dans l'app** ; ne sert qu'à l'outil hors-ligne `tools/generate_6x10_solutions.dart` |
+| `common/bigint_plateau.dart` | orphelin, **et la meilleure des implémentations** du couple (pieces, mask). À faire adopter, pas à supprimer |
+| `common/shape_recognizer.dart` | orphelin |
+| `config/ui_layout_provider.dart` | orphelin — ses **9** providers (`uiLayoutProvider`, `isLandscapeProvider`, `boardDimensionsProvider`…) ne sont utilisés nulle part |
+| `utils/solution_collector.dart` | orphelin |
+| `services/pentomino_solver.dart` | atteint uniquement via `solution_collector`, lui-même orphelin → **inactif dans l'app** ; ne sert qu'à l'outil hors-ligne `tools/generate_6x10_solutions.dart` |
 
-`isometry_transforms.dart` implémente une rotation **opposée** à celle du chemin vivant
-(`(x,y) → (−y, x)` contre le `rotateAroundPoint` inverse). C'est sans effet puisque le
-fichier est mort, mais c'est une source de confusion à la lecture.
+> `common/isometry_transforms.dart` et `common/isometry_transformation_service.dart`,
+> listés ici dans la version précédente, ont depuis été **supprimés**.
+
+> ⚠️ `services/pentomino_solver.dart` porte un défaut à corriger avant toute génération de
+> nouvelle table : `maxSeconds = 30` n'est pas paramétrable et une troncature par timeout
+> est **invisible** pour l'appelant. C'est ce qui a produit un fichier de solutions brutes
+> incomplet (8175 sur 9356) sans que rien ne le signale.
+> → `docs/PLAN_6X10_DANS_PENTOSCOPE.md` §5.1.
+
+---
+
+## Corrections apportées le 2026-08-30
+
+| Point | Version précédente | Réalité du code |
+|---|---|---|
+| **Modes de jeu** | trois modes, dont « Mode Classique » | **deux** : Pentoscope solo (toutes tailles) et multijoueur. Le module `classical` est supprimé ; le 6×10 est une **taille**, pas un mode |
+| Flux utilisateur | `HomeScreen` → Classique / Pentoscope / Réglages | plus d'écran d'accueil : `main.dart` monte `PentoscopeGameScreen` ; Réglages dans l'AppBar |
+| Gestion des solutions | deux sections séparées, « mode classique » et « mode Pentoscope » | **une** interface `SolutionSource`, deux implémentations, choisie une fois dans `startPuzzle` |
+| `PlateauSolutionCounter` | décrit comme le compteur | **fichier supprimé** ; le masque est construit par `TableSolutionSource._mask` |
+| `solutionsReadyProvider`, singleton `solutionMatcher` | providers actifs | **supprimés** ; remplacés par `pentoscopeSolutionsProvider`, famille indexée par table |
+| Persistance | trois tables actives | `GameSessions` et `SolutionStats` n'ont **plus aucun écrivain** ; suppression décidée (plan §9) |
+| Scoring | `calculateScore` du mode classique | supprimé avec lui ; seule `calculateNote()` (sur 20) subsiste |
+| Compensation paysage H/V | située dans `pentomino_game_provider.dart` | dans `pentoscope_provider.dart`, sur `state.viewOrientation` |
+| Code inactif | 5 fichiers, dont 2 depuis supprimés | 5 fichiers, liste re-vérifiée au `grep` |
+| Écrans | 9, dont 3 supprimés depuis | 8, chemins complets |
 
 ---
 

@@ -1,7 +1,11 @@
 # Mémo : Gestion des déplacements de pièces dans Pentoscope
 
 > Mis à jour le 2026-08-27 : `PentoscopePlacedPiece` a été fusionné dans
-> `common/PlacedPiece`, classe désormais partagée avec le mode classique.
+> `common/PlacedPiece`.
+>
+> ⚠️ **Révision du 2026-08-30** : la mention « classe désormais partagée avec le mode
+> classique » n'a plus d'objet — ce module a été supprimé le 2026-08-29. `PlacedPiece` est
+> partagée entre Pentoscope et le multijoueur.
 
 ## Vue d'ensemble
 

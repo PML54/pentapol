@@ -1,5 +1,11 @@
 # Plan — supprimer la démo automatique et la machinerie de tutoriel
 
+> 🗄️ **ARCHIVE — plan exécuté le 2026-08-28, conservé pour l'histoire.** Les chemins
+> `lib/classical/…`, `lib/screens/demo_screen.dart` et
+> `lib/screens/pentomino_game/…` qu'il cite n'existent plus : le module classique a été
+> supprimé le 2026-08-29. **Ne pas les « corriger »** — un plan exécuté décrit l'état
+> d'alors, c'est ce qui lui donne sa valeur.
+
 > Établi le 2026-08-28 18:14. Décidé par Paul : la démonstration automatique ne lui
 > plaît pas, elle disparaît, avec toute l'infrastructure de tutoriel qui la sert et les
 > deux « modes » qui n'ont jamais été branchés.
