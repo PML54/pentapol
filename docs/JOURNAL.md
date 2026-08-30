@@ -6,7 +6,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session CLI (persistance étape 2)
+## §ÉTAT — au 2026-08-30, fin de session CLI (persistance complète, 4 étapes)
 
 **Changement d'horizon.** Paul vise une mise sur l'**App Store**. Ce n'est plus un outil
 personnel : ce qui était acceptable pour un usage privé ne l'est plus, et plusieurs décisions
@@ -35,9 +35,7 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 | chantier | où | état |
 |---|---|---|
 | chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
-| persistance étape 1 (ménage) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`) |
-| persistance étape 2 (schéma) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`2abaeb9`) — voir ci-dessous |
-| persistance étapes 3-4 | `PLAN_PERSISTANCE.md` §7 | prêt ; **attend validation de Paul** |
+| persistance (4 étapes) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`, `2abaeb9`, `7d71c19`, `7dc4f0f`) — voir ci-dessous |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
 | §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
 
@@ -51,23 +49,35 @@ La stratégie destructive de drift **2.30.0** est bien `destructiveFallback`, ma
 **pas** « à passer en `onUpgrade` » — c'est un getter d'extension qui retourne une
 `MigrationStrategy` complète, à assigner à `migration`. Plan §5 corrigé, code écrit ainsi.
 
-**Persistance étape 2 (schéma) faite** (`2abaeb9`), suit le plan à la lettre, aucune décision
-non prévue : les deux tables mortes de l'ancien historique et **toutes leurs méthodes**
-retirées (aucun appelant) ; ajout de `CurrentGame`, `SolvedSolutions` (clé `(board,
-solutionNumber)`), `PuzzleStats` ; `Settings` inchangée ; `schemaVersion` 2 +
-`migration => destructiveFallback`. `build_runner` régénéré, `flutter analyze` 0 warning,
-grep `GameSession`/`SolutionStat` → aucun. **Les méthodes d'accès (records, `restoreGame`)
-sont vides pour l'instant — elles viennent aux étapes 3-4.**
+**Persistance étapes 2 à 4 faites** (`2abaeb9`, `7d71c19`, `7dc4f0f`) :
+- **§2 schéma** : deux tables mortes + toutes leurs méthodes retirées ; ajout de `CurrentGame`,
+  `SolvedSolutions` (clé `(board, solutionNumber)`), `PuzzleStats` ; `schemaVersion` 2 +
+  `destructiveFallback`.
+- **§3 records** : 5e méthode `solutionIndexOf` sur `SolutionSource` (numéro 1-based ou null) ;
+  `_saveCompletedLevel` (préférences clé/valeur jamais relues) remplacé par `_saveCompletionRecord`
+  qui écrit dans `SolvedSolutions`/`PuzzleStats` ; `SharedPreferences` retiré de `pubspec.yaml`.
+- **§4 partie en cours** : `saveCurrentGame`/`clearCurrentGame`/`loadCurrentGame` ; `restoreGame`
+  reconstruit le puzzle **sans générateur** ; `restoreTimerOrigin` reprend le chrono ; `main.dart`
+  restaure au lancement et fige la partie en arrière-plan (`WidgetsBindingObserver`).
+
+**Deux décisions non prévues** (52, 53) : la persistance est **solo uniquement** — le multijoueur
+partage ce provider, neutralisé par un champ `_isMultiplayer` (records et `CurrentGame` désactivés
+en mp) ; et `applyHint` enregistre désormais le record quand un indice complète le puzzle (il ne
+sauvegardait rien avant). `flutter analyze` 0 warning à chaque étape.
 
 > ⚠️ Pour cowork : `settings_database.g.dart` est **gitignoré** (convention du projet, jamais
 > suivi). Le schéma généré n'est donc **pas dans git** — après un `git pull`, il faut
 > `dart run build_runner build --delete-conflicting-outputs` pour le régénérer.
 
+> ⚠️ **Rien de tout ceci n'est testé sur appareil** (records écrits, reprise après kill, gel du
+> temps en arrière-plan, non-interférence du multijoueur) — dû par Paul. La migration destructive
+> **efface la base existante au premier lancement** (réglages perdus une fois).
+
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : poussé jusqu'à `7897758`. **Non poussés** : `2abaeb9` (persistance étape 2) et ce
-commit de journal.
+**Git** : poussé jusqu'à `40908cd`. **Non poussés** : `2abaeb9` (schéma), `7d71c19` (records),
+`7dc4f0f` (partie en cours) et ce commit de journal.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -442,6 +452,22 @@ détaillé.
     → `ea23af7`. (Note : le plan §6 supposait `shared_preferences` déjà dans `pubspec.yaml` ;
     il n'y était pas — d'où le lint `depend_on_referenced_packages` qui traînait.)
 
+52. **2026-08-30 — CLI** — **la persistance est SOLO uniquement.** Non prévu au plan, mais
+    imposé par le code : le multijoueur **partage `pentoscopeProvider`**
+    (`pentoscope_mp_game_screen` appelle `startPuzzleFromSeed` et `tryPlacePiece`). Persister
+    sans distinction ferait qu'une partie mp écraserait la partie solo sauvegardée, et qu'une
+    reprise au lancement restaurerait un plateau mp. Un champ privé `_isMultiplayer`
+    (posé par `startPuzzleFromSeed`, remis à false par `startPuzzle`/`reset`/`restoreGame`)
+    neutralise `CurrentGame` **et** les records en mode mp. Conforme au critère §8 « le
+    multijoueur n'est pas touché ». Avant, `_saveCompletedLevel` écrivait en mp aussi, mais
+    dans une donnée jamais relue — aucun changement visible. → `7dc4f0f`.
+53. **2026-08-30 — CLI** — **`applyHint` enregistre désormais le record à la complétion.**
+    `applyHint` peut compléter le puzzle (dernière pièce posée par l'indice), mais l'ancien
+    `_saveCompletedLevel` n'était appelé **que** dans `tryPlacePiece` : finir par un indice ne
+    sauvegardait rien. Le nouveau `_saveCompletionRecord` est appelé aux **deux** complétions.
+    Petit écart au comportement antérieur, mais c'est la correction d'un oubli, pas une
+    régression. → `7d71c19`.
+
 ---
 
 ## §PASSATIONS
@@ -653,3 +679,16 @@ vides — elles viennent aux étapes 3-4. Rappel : le `.g.dart` est gitignoré (
 **À faire, dû par Paul** : le test appareil de l'étape 2 ne vaut qu'**avec l'étape 3** (rien
 n'écrit encore dans les tables) ; à tester ensemble. La réécriture destructive effacera la
 base existante au premier lancement.
+
+**2026-08-30 — CLI → cowork (persistance étapes 3 ET 4, FINI).** Paul a donné le Go pour 3 et 4.
+**Persistance complète** en 2 commits : `7d71c19` (records — `solutionIndexOf`, écriture à la
+complétion, `SharedPreferences` retiré) et `7dc4f0f` (partie en cours — `saveCurrentGame`/
+`clearCurrentGame`/`loadCurrentGame`, `restoreGame` sans générateur, `restoreTimerOrigin`,
+`WidgetsBindingObserver` dans `main.dart`). `flutter analyze` 0 warning, grep `SharedPreferences`
+→ aucun. **Deux décisions non prévues (52, 53)** : persistance solo-only via `_isMultiplayer` (le
+mp partage le provider, à ne pas polluer) ; `applyHint` enregistre le record à la complétion
+(oubli antérieur corrigé). Vérifié avant l'étape 2 et écrit ainsi : `destructiveFallback` est un
+getter, pas un `onUpgrade`.
+**Rien n'est testé sur appareil** — dû par Paul, scénarios listés au §ÉTAT. La migration
+destructive efface la base au 1er lancement.
+**Reste** : tables 5×12/4×15 (`PLAN_6X10` §5, préalable `maxSeconds`) et la `CHECKLIST_APPSTORE`.
