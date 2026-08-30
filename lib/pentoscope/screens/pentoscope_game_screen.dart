@@ -1,8 +1,8 @@
-// Modified: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : la barre est ancrée sur le plateau —
-//           helper _barMetrics (pieceCellSize = boardCellSize × k, dépendance circulaire résolue) ;
-//           hauteur/largeur de la barre dérivées de pieceCellSize (plus de 160 ni de 100-180 en
-//           dur) ; pieceCellSize transmis au slider en portrait et paysage.
+// Modified: 2026-08-30 13:45 — PLAN_ERGONOMIE §6 étape 3 : helper unique _uiIconSize/_uiAppBarHeight
+//           dérivé de MediaQuery.shortestSide, remplace les quatre constantes (56, 42, clamp 28-50,
+//           clamp 20-36). (Étape 2 : barre ancrée sur le plateau via _barMetrics.)
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : barre ancrée sur le plateau (_barMetrics).
 // Historique: 2026-08-30 06:12 — PLAN_BILAN §2 : dialogue modal de fin de partie → bandeau non modal.
 // Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait de la ligne Score et de son calcul
 //             du score (rapport non homogène) et de son calcul, dans le dialogue de fin.
@@ -121,9 +121,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       appBar: isLandscape
           ? null
           : PreferredSize(
-        preferredSize: const Size.fromHeight(56.0),
+        preferredSize: Size.fromHeight(_uiAppBarHeight(context)),
         child: AppBar(
-          toolbarHeight: 56.0,
+          toolbarHeight: _uiAppBarHeight(context),
           backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
           // 🔑 En mode transformation: pas de leading, les icônes prennent toute la place
@@ -541,9 +541,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       PentoscopeState state,
       PentoscopeNotifier notifier,
       ) {
-    // Hauteur AppBar = 56, on prend ~75% pour les icônes
-    const double iconSize = 42.0;
-    
+    // Icônes de la barre de transformation, à l'échelle de l'interface (§4d).
+    final double iconSize = _uiIconSize(context);
+
     final hasDeleteButton = state.selectedPlacedPiece != null;
     
     return Row(
@@ -624,8 +624,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       PentoscopeNotifier notifier,
       double columnWidth,
       ) {
-    // Icônes ~80% de la largeur de la colonne
-    final iconSize = (columnWidth * 0.75).clamp(28.0, 50.0);
+    // Icônes de la barre de transformation (paysage), à l'échelle de l'interface (§4d).
+    final iconSize = _uiIconSize(context);
     final hasDeleteButton = state.selectedPlacedPiece != null;
     
     return Column(
@@ -793,6 +793,16 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // LAYOUTS
   // ============================================================================
 
+  /// Échelle de l'interface hors plateau, ancrée sur la plus petite dimension de l'écran
+  /// (PLAN_ERGONOMIE §4d). Un seul point de réglage pour les icônes et la hauteur d'AppBar,
+  /// au lieu des quatre constantes improvisées (56, 42, clamp 28-50, clamp 20-36). Clamps
+  /// calés pour ≈ conserver l'iPhone et grandir sur tablette ; **à régler à l'œil**.
+  double _uiIconSize(BuildContext context) =>
+      (MediaQuery.of(context).size.shortestSide * 0.075).clamp(30.0, 64.0);
+
+  double _uiAppBarHeight(BuildContext context) =>
+      (MediaQuery.of(context).size.shortestSide * 0.14).clamp(50.0, 100.0);
+
   /// Marge verticale/horizontale de la barre autour de la boîte de pièce (padding ListView +
   /// jeu). Sert à la fois à dimensionner la barre et à réserver la place au plateau.
   static const double _kSliderPad = 32.0;
@@ -882,7 +892,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         // Adapter les tailles selon l'espace disponible (iPad vs iPhone)
         final screenHeight = constraints.maxHeight;
         final actionColumnWidth = (screenHeight * 0.08).clamp(44.0, 70.0);
-        final iconSize = (screenHeight * 0.045).clamp(20.0, 36.0);
+        final iconSize = _uiIconSize(context);
         // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
         final m = _barMetrics(
             constraints.biggest, state.puzzle!.size, true, actionColumnWidth);
