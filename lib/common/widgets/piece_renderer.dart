@@ -1,7 +1,9 @@
-// Modified: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique  vers
-//           lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
-//           et le multijoueur, sorti avant la suppression du dossier classique.
+// Modified: 2026-08-30 13:30 — PLAN_ERGONOMIE §6 étape 1 : cellSize devient un paramètre (défaut
+//           22.0), au lieu d'une constante locale. Changement additif : aucun appelant modifié,
+//           rendu identique. C'est le filet avant de brancher la taille sur le plateau (étape 2).
 // lib/common/widgets/piece_renderer.dart
+// Historique: 2026-08-29 13:43 — déménagé de l'ancien dossier du mode classique vers
+//             lib/common/widgets/ : partagé par Pentoscope et le multijoueur.
 // Widget pour afficher visuellement une pièce de pentomino
 
 import 'package:flutter/material.dart';
@@ -20,12 +22,17 @@ class PieceRenderer extends StatelessWidget {
   final bool isDragging;
   final Color Function(int pieceId) getPieceColor;
 
+  /// Taille d'une case de la pièce, en points. Défaut 22 : le rendu reste identique
+  /// pour tout appelant qui ne le précise pas (changement additif, PLAN_ERGONOMIE §4a).
+  final double cellSize;
+
   const PieceRenderer({
     super.key,
     required this.piece,
     required this.positionIndex,
     this.isDragging = false,
     required this.getPieceColor,
+    this.cellSize = 22.0,
   });
 
   @override
@@ -56,7 +63,6 @@ class PieceRenderer extends StatelessWidget {
 
     final width = maxX - minX + 1;
     final height = maxY - minY + 1;
-    const cellSize = 22.0; // Taille des petits carrés (augmentée de 16 à 22)
 
     return Container(
       width: width * cellSize + 8,
