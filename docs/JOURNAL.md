@@ -6,7 +6,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session CLI (persistance complète, 4 étapes)
+## §ÉTAT — au 2026-08-30, fin de session CLI (ergonomie tablette, étapes 1-4)
 
 **Changement d'horizon.** Paul vise une mise sur l'**App Store**. Ce n'est plus un outil
 personnel : ce qui était acceptable pour un usage privé ne l'est plus, et plusieurs décisions
@@ -30,12 +30,27 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 4. **partie en cours** — écriture, effacement, `restoreGame`, observateur de cycle de vie.
    L'étape la plus délicate, isolée à dessein.
 
+**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1 à 4 faites** (`453ae49`,
+`eb131f7`, `b462a0c`, `c098ce0`), décisions 55-58, `flutter analyze` 0 warning, critères §6
+verts (grep) :
+1. `PieceRenderer.cellSize` paramétrable (défaut 22, filet — rien ne bouge à l'écran) ;
+2. barre et feedback de drag ancrés sur le plateau (`pieceCellSize = boardCellSize × k`,
+   `k=0.45`), hauteur/largeur de barre dérivées, dépendance circulaire résolue (décision 58) ;
+3. helper unique `_uiIconSize`/`_uiAppBarHeight` (shortestSide) remplaçant les 4 constantes ;
+4. textes (numéro de case, badge de pièce) proportionnels à leur case.
+**L'étape 5 (suppression des ~980 lignes orphelines) n'est PAS faite** — sur consigne de Paul,
+elles servent d'inspiration aux formules tant que le réglage n'est pas validé sur appareil. Le
+plafond de la case du plateau reste reporté (décision 57). **Toutes les valeurs numériques sont
+à régler à l'œil sur iPhone ET iPad** — c'est tout l'objet du plan, et rien n'est encore testé.
+
 **Chantiers en attente, par ordre de valeur :**
 
 | chantier | où | état |
 |---|---|---|
 | chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
-| persistance (4 étapes) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`, `2abaeb9`, `7d71c19`, `7dc4f0f`) — voir ci-dessous |
+| persistance (4 étapes) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`, `2abaeb9`, `7d71c19`, `7dc4f0f`) |
+| ergonomie tablette étapes 1-4 | `PLAN_ERGONOMIE_TABLETTE.md` §6 | ✅ **faite** — voir ci-dessus ; **réglage à l'œil dû** |
+| ergonomie étape 5 (−980 l. orphelines) | idem | ⏸️ **reportée** — inspiration des formules jusqu'au test |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
 | améliorations duel | — | 💤 **non prioritaire** (décision 54) — gardé tel quel, vu ensuite |
 | §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
@@ -77,8 +92,9 @@ sauvegardait rien avant). `flutter analyze` 0 warning à chaque étape.
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : poussé jusqu'à `40908cd`. **Non poussés** : `2abaeb9` (schéma), `7d71c19` (records),
-`7dc4f0f` (partie en cours) et ce commit de journal.
+**Git** : persistance poussée jusqu'à `e93d3be`. **Non poussés** : les 4 commits d'ergonomie
+`453ae49`, `eb131f7`, `b462a0c`, `c098ce0` et ce commit de journal (qui joint aussi le plan
+`PLAN_ERGONOMIE_TABLETTE.md`, resté non tracké).
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -474,6 +490,53 @@ détaillé.
     reste (il isole le duel de la persistance sans toucher à son déroulement). Aucun chantier
     duel n'est ouvert.
 
+55. **2026-08-30 — cowork** — **l'écart d'échelle sur tablette : diagnostic.** (Renuméroté
+    52 → 55 par le CLI : collision avec la décision 52 déjà poussée.) Sur capture
+    iPad de Paul. Ce n'est pas « tout est trop petit » : c'est que **ce qui s'adapte
+    sur-adapte et ce qui ne s'adapte pas sous-adapte**. Calculé pour un iPad Pro 12,9″,
+    plateau 5×6 : case du plateau ≈ **156 pt** (formule pleinement adaptative), case d'une
+    pièce dans la barre **22 pt** (`PieceRenderer`, en dur) → rapport **≈ 7,1×**, contre 3,5×
+    sur iPhone. Et les icônes de l'iPad font **exactement la même taille** que celles de
+    l'iPhone : le plafond des `clamp` mord des deux côtés (`(h×0.045).clamp(20,36)` → 36
+    partout) ou la constante est fixe (`42.0`, `56.0`).
+    **Quatre systèmes de dimensionnement coexistent, trois sont morts** : 893 lignes de
+    moteur responsive complet (`ui_layout_manager` + `ui_layout_provider` + `ui_dimensions`,
+    avec détection phone/tablet/largeTablet et facteur 1.0/1.25/1.5) **jamais branchées**,
+    87 lignes de `UISizes` orphelines aussi, `PieceRenderer` en dur, et quatre constantes
+    improvisées dans l'écran. → `PLAN_ERGONOMIE_TABLETTE.md`.
+56. **2026-08-30 — cowork** — **ne pas brancher les 893 lignes orphelines ; ancrer la barre
+    sur le plateau.** (Renuméroté 53 → 56 par le CLI : collision.) Recommandation contre le réflexe : du code jamais exécuté n'est pas un
+    actif mais une dette — l'écran a changé trois fois depuis son écriture. Et son facteur
+    d'échelle par type d'appareil est le mauvais concept : il ne dit pas *par rapport à quoi*.
+    Le bon ancrage est que **la barre se dimensionne sur le plateau**
+    (`pieceCellSize = boardCellSize × k`, k ≈ 0,45) : une pièce dans la barre et la même
+    pièce sur le plateau sont la même chose, c'est ce qui rend le glisser lisible. Aucun seuil,
+    aucune détection d'appareil, tout écran traité — y compris ceux qui n'existent pas encore.
+    Corollaire : **la « miniature » signalée par Paul au déplacement est le même défaut** — le
+    retour de drag fait 22 pt pendant qu'on manipule des cases de 156. Un correctif, deux
+    symptômes. → §3 et §4.
+
+57. **2026-08-30 — cowork, sur délégation de Paul** — **on ne plafonne pas la case du
+    plateau maintenant.** (Renuméroté 54 → 57 par le CLI : collision avec la 54 « duel ».)
+    Paul n'a pas de préférence et laisse le choix. Étapes 1 à 4 sans
+    toucher au plateau ; la question se rouvre après un regard sur l'appareil. Raison : c'est
+    le seul point du plan qui se juge **à l'œil et nulle part ailleurs**, et cowork n'a jamais
+    vu l'application tourner ; surtout, les étapes 1 à 4 **changent la donnée du problème** —
+    une fois la barre et les icônes proportionnées, le plateau cessera peut-être de paraître
+    démesuré. Coût du report : nul, le plafond est un `clamp` d'une ligne ajoutable après.
+    `k` se règle sur l'écran non plafonné et reste valable si un plafond arrive — il porte sur
+    un rapport, pas sur une valeur absolue. → `PLAN_ERGONOMIE_TABLETTE.md` §5.
+
+58. **2026-08-30 — CLI** — **la dépendance circulaire barre↔plateau résolue analytiquement.**
+    Non explicité au plan. `pieceCellSize = boardCellSize × k`, mais la barre **prend de la
+    place au plateau qui la dimensionne** (hauteur de barre ≈ 5·pieceCell). Sur iPad la case
+    est height-bound : agrandir la barre rétrécirait le plateau, donc la barre, en boucle.
+    Résolu dans `_barMetrics` en comptant la barre comme **~5k rangées** (portrait) ou colonnes
+    (paysage) : `boardCell = min((W−m)/cols, (H−pad)/(rows+5k))`. L'estimation coïncide alors
+    exactement avec la case réelle du plateau. Les valeurs numériques (`k=0.45`, clamps icônes/
+    AppBar, ratios de texte) sont des **points de départ à régler à l'œil**, comme prévu. →
+    `eb131f7`, `b462a0c`, `c098ce0`.
+
 ---
 
 ## §PASSATIONS
@@ -706,3 +769,24 @@ isole le duel de la persistance sans changer son déroulement). État à jour, `
 vide. **Priorités pour la suite** : (1) le test appareil de la persistance par Paul — c'est le
 seul vrai bloquant avant d'aller plus loin ; (2) les tables 5×12/4×15 ; (3) la
 `CHECKLIST_APPSTORE`. Le duel est explicitement **hors périmètre** pour l'instant.
+
+**2026-08-30 — cowork → toi (ergonomie tablette).** Diagnostic chiffré de l'écart d'échelle
+sur iPad et plan en cinq étapes (`PLAN_ERGONOMIE_TABLETTE.md`). Décisions 55 et 56 — dont une
+recommandation **contre** le réflexe : ne pas brancher les 893 lignes de moteur responsive
+orphelines. **Aucun code touché.** (Décisions renumérotées 52/53 → 55/56 par le CLI, collision.)
+**En attente de Paul** : plafonner ou non la case du plateau (§5 du plan).
+
+**2026-08-30 — cowork → toi (suite ergonomie).** Décision 57 prise sur délégation de Paul :
+pas de plafond sur la case du plateau pour l'instant. Le plan est complet et exécutable en
+l'état, étapes 1 à 4. **Aucun code touché.**
+
+**2026-08-30 — CLI → cowork (ergonomie étapes 1-4 FAITES).** Appliquées un commit par étape
+(`453ae49`, `eb131f7`, `b462a0c`, `c098ce0`), `flutter analyze` 0 warning, critères §6 verts.
+**Étape 5 NON faite** (consigne de Paul : garder les orphelines comme inspiration jusqu'au
+test). Décision 58 ajoutée (résolution analytique de la dépendance circulaire barre↔plateau).
+**Collision de numérotation réglée** : tes décisions ergonomie 52/53/54 entraient en conflit
+avec les miennes déjà poussées (persistance/duel) — renumérotées **55/56/57** ici, renvois du
+plan et du journal corrigés. Ce commit joint le plan, resté non tracké.
+**Dû par Paul, et c'est tout l'objet du plan** : régler à l'œil sur iPhone **et** iPad
+(`k`, clamps d'icônes/AppBar, ratios de texte) ; puis trancher le plafond du plateau (57) et
+l'étape 5. Rien n'est testé sur appareil.
