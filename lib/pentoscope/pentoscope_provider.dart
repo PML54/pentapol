@@ -1,7 +1,9 @@
-// Modified: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait du champ de score théorique (min.
-//           d'isométries) et de ses deux boucles de calcul (startPuzzle, startPuzzleFromSeed) —
-//           le score de fin de partie qui en dépendait est supprimé. firstSolution conservée.
+// Modified: 2026-08-30 06:58 — PLAN_BILAN §5 : le chrono ne s'arrêtait pas en fin de partie.
+//           (A) garde de tryPlacePiece exclut isComplete ; (B) resetTimer() aux 3 démarrages
+//           (reset, startPuzzle, startPuzzleFromSeed) au lieu de stopTimer() — efface l'origine.
 // lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait du champ de score théorique (min.
+//             d'isométries) et de ses deux boucles de calcul (startPuzzle, startPuzzleFromSeed).
 // Historique: 2026-08-29 20:22 — §8 étape 3 : retrait de changeBoardSize, sans appelant depuis
 //             que le dialogue « Nouvelle partie » appelle startPuzzle directement.
 // Historique: 2026-08-29 13:43 — suppression du mode classique (§3.1) : méthode publique
@@ -433,9 +435,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       firstSolution = newPuzzle.solutions[0];
     }
 
-    // ⏱️ Reset sans démarrer le timer
-    stopTimer();
-    
+    // ⏱️ Reset sans démarrer le timer — efface l'origine, la partie suivante repart de zéro
+    resetTimer();
+
     state = PentoscopeState(
       viewOrientation: state.viewOrientation,
       puzzle: newPuzzle,
@@ -600,8 +602,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final Solution? firstSolution =
         (showSolution && puzzle.solutions.isNotEmpty) ? puzzle.solutions[0] : null;
 
-    // ⏱️ Reset timer sans démarrer
-    stopTimer();
+    // ⏱️ Reset timer sans démarrer — efface l'origine, la partie repart de zéro
+    resetTimer();
 
     state = PentoscopeState(
       viewOrientation: ViewOrientation.portrait,
@@ -648,8 +650,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       piecePositionIndices[piece.id] = randomPos;
     }
 
-    // Reset timer sans démarrer
-    stopTimer();
+    // Reset timer sans démarrer — efface l'origine, la partie repart de zéro
+    resetTimer();
 
     state = PentoscopeState(
       viewOrientation: ViewOrientation.portrait,
@@ -796,8 +798,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       solutionsCount: solutionsCount, // 🔢
     );
 
-    // ⏱️ Démarrer le timer au premier placement depuis le slider
-    if (!isTimerRunning && !wasPlacedPiece) {
+    // ⏱️ Démarrer le timer au premier placement depuis le slider — mais jamais sur une
+    // partie qui vient d'être complétée (le stopTimer ci-dessus a mis isTimerRunning à false).
+    if (!isComplete && !isTimerRunning && !wasPlacedPiece) {
       startTimer();
     }
 
