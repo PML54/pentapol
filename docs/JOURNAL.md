@@ -37,6 +37,7 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 | chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
 | persistance (4 étapes) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`, `2abaeb9`, `7d71c19`, `7dc4f0f`) — voir ci-dessous |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
+| améliorations duel | — | 💤 **non prioritaire** (décision 54) — gardé tel quel, vu ensuite |
 | §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
 
 **Persistance étape 1 (ménage) faite** (`ea23af7`) : `supabase_flutter`, `lib/bootstrap.dart`
@@ -467,6 +468,11 @@ détaillé.
     sauvegardait rien. Le nouveau `_saveCompletionRecord` est appelé aux **deux** complétions.
     Petit écart au comportement antérieur, mais c'est la correction d'un oubli, pas une
     régression. → `7d71c19`.
+54. **2026-08-30 — Paul** — **le duel est gardé tel quel et n'est pas prioritaire.** Suite à
+    l'explication de la décision 52 (persistance solo-only), Paul confirme : ne rien changer au
+    duel pour l'instant, ses améliorations seront vues **ensuite**. Le drapeau `_isMultiplayer`
+    reste (il isole le duel de la persistance sans toucher à son déroulement). Aucun chantier
+    duel n'est ouvert.
 
 ---
 
@@ -692,3 +698,11 @@ getter, pas un `onUpgrade`.
 **Rien n'est testé sur appareil** — dû par Paul, scénarios listés au §ÉTAT. La migration
 destructive efface la base au 1er lancement.
 **Reste** : tables 5×12/4×15 (`PLAN_6X10` §5, préalable `maxSeconds`) et la `CHECKLIST_APPSTORE`.
+
+**2026-08-30 — CLI → cowork (passation, Paul repasse avec toi).** Rien de nouveau côté code
+depuis `30e4fae`. Une seule décision ajoutée : **54 — le duel est gardé tel quel et n'est pas
+prioritaire**, ses améliorations seront vues ensuite ; le drapeau `_isMultiplayer` reste (il
+isole le duel de la persistance sans changer son déroulement). État à jour, `git status -s docs/`
+vide. **Priorités pour la suite** : (1) le test appareil de la persistance par Paul — c'est le
+seul vrai bloquant avant d'aller plus loin ; (2) les tables 5×12/4×15 ; (3) la
+`CHECKLIST_APPSTORE`. Le duel est explicitement **hors périmètre** pour l'instant.
