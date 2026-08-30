@@ -1,8 +1,9 @@
-// Modified: 2026-08-30 06:12 — PLAN_BILAN §2 : le dialogue modal de fin de partie est remplacé
-//           par un bandeau non modal (_BilanBanner) à la place de la barre de pièces (portrait
-//           ET paysage) ; l'écouteur de complétion et la rangée de bilan disparaissent ; état
-//           local _bilanFerme piloté en build par state.isComplete.
+// Modified: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : la barre est ancrée sur le plateau —
+//           helper _barMetrics (pieceCellSize = boardCellSize × k, dépendance circulaire résolue) ;
+//           hauteur/largeur de la barre dérivées de pieceCellSize (plus de 160 ni de 100-180 en
+//           dur) ; pieceCellSize transmis au slider en portrait et paysage.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-30 06:12 — PLAN_BILAN §2 : dialogue modal de fin de partie → bandeau non modal.
 // Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait de la ligne Score et de son calcul
 //             du score (rapport non homogène) et de son calcul, dans le dialogue de fin.
 // Historique: 2026-08-29 20:22 — dialogue « Nouvelle partie » (§8 étape 3) : _showSizeChangeDialog
@@ -20,6 +21,8 @@
 // Modified: 2604221500
 // Dialogue bilan : déplacements, suppressions
 // CHANGEMENTS: (1) dialogue de bilan, (2) rangées déplacements et suppressions ajoutées
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -790,6 +793,36 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // LAYOUTS
   // ============================================================================
 
+  /// Marge verticale/horizontale de la barre autour de la boîte de pièce (padding ListView +
+  /// jeu). Sert à la fois à dimensionner la barre et à réserver la place au plateau.
+  static const double _kSliderPad = 32.0;
+
+  /// `(taille de case d'une pièce de la barre, épaisseur de la barre)` — la barre est ancrée
+  /// sur le plateau : `pieceCellSize = boardCellSize × k` (§3). La dépendance circulaire (la
+  /// barre prend de la place au plateau qui la dimensionne) est résolue en comptant la barre
+  /// comme ~5k rangées (portrait) ou colonnes (paysage). [reserve] = largeur déjà prise à côté
+  /// (la colonne d'actions, en paysage). Garde-fou : jamais sous 8 pt.
+  ({double cell, double extent}) _barMetrics(
+      Size body, PentoscopeSize size, bool isLandscape, double reserve) {
+    final cols = isLandscape ? size.height : size.width;
+    final rows = isLandscape ? size.width : size.height;
+    const k = kPieceToBoardCellRatio;
+    final double boardCell;
+    if (isLandscape) {
+      boardCell = math.min(
+        (body.width - reserve - _kSliderPad) / (cols + 5 * k),
+        body.height / rows,
+      );
+    } else {
+      boardCell = math.min(
+        (body.width - 8) / cols,
+        (body.height - _kSliderPad) / (rows + 5 * k),
+      );
+    }
+    final cell = math.max(8.0, boardCell * k);
+    return (cell: cell, extent: cell * 5 + _kSliderPad);
+  }
+
   /// Layout portrait : plateau en haut, actions + slider en bas
   Widget _buildPortraitLayout(
       BuildContext context,
@@ -799,31 +832,38 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       bool isSliderPieceSelected,
       bool isPlacedPieceSelected,
       ) {
-    return Column(
-      children: [
-        // Plateau de jeu
-        const Expanded(flex: 3, child: PentoscopeBoard(isLandscape: false)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Taille des pièces de la barre, ancrée sur le plateau ; hauteur de barre dérivée.
+        final m = _barMetrics(constraints.biggest, state.puzzle!.size, false, 0);
+        return Column(
+          children: [
+            // Plateau de jeu
+            const Expanded(flex: 3, child: PentoscopeBoard(isLandscape: false)),
 
-        // Slider de pièces horizontal
-        _buildSliderWithDragTarget(
-          ref: ref,
-          isLandscape: false,
-          height: 160,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
+            // Slider de pièces horizontal
+            _buildSliderWithDragTarget(
+              ref: ref,
+              isLandscape: false,
+              height: m.extent,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          sliderChild: (state.isComplete && !_bilanFerme)
-              ? _buildBilanBanner(false, state, notifier)
-              : const PentoscopePieceSlider(isLandscape: false),
-        ),
-      ],
+              sliderChild: (state.isComplete && !_bilanFerme)
+                  ? _buildBilanBanner(false, state, notifier)
+                  : PentoscopePieceSlider(
+                      isLandscape: false, pieceCellSize: m.cell),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -842,8 +882,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         // Adapter les tailles selon l'espace disponible (iPad vs iPhone)
         final screenHeight = constraints.maxHeight;
         final actionColumnWidth = (screenHeight * 0.08).clamp(44.0, 70.0);
-        final sliderWidth = (screenHeight * 0.18).clamp(100.0, 180.0);
         final iconSize = (screenHeight * 0.045).clamp(20.0, 36.0);
+        // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
+        final m = _barMetrics(
+            constraints.biggest, state.puzzle!.size, true, actionColumnWidth);
+        final sliderWidth = m.extent;
 
         return Row(
           children: [
@@ -960,7 +1003,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   ),
                   sliderChild: (state.isComplete && !_bilanFerme)
                       ? _buildBilanBanner(true, state, notifier)
-                      : const PentoscopePieceSlider(isLandscape: true),
+                      : PentoscopePieceSlider(
+                          isLandscape: true, pieceCellSize: m.cell),
                 ),
               ],
             ),

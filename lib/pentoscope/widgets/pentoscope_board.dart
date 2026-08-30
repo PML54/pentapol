@@ -1,10 +1,10 @@
-// Modified: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
-//           méthodes de surbrillance locale et des deux méthodes de démonstration du State,
-//           plus leur bloc lecteur dans _buildCell (tous inatteignables, aucune GlobalKey).
+// Modified: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : le feedback de drag (la « miniature »
+//           sous le doigt) prend la taille de case du plateau × k au lieu du défaut 22 —
+//           _buildCell reçoit cellSize. Constante partagée kPieceToBoardCellRatio définie ici.
 // lib/pentoscope/widgets/pentoscope_board.dart
-// Historique: 2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes).
-// Plateau Pentoscope - calqué sur game_board.dart
-// v2: Support du snap visuel
+// Historique: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
+//             méthodes de surbrillance locale et des deux méthodes de démonstration du State.
+//             2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes).
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +15,12 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/piece_border_calculator.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
+
+/// Rapport entre la case d'une pièce (barre / feedback de drag) et la case du plateau
+/// (PLAN_ERGONOMIE §3) : `pieceCellSize = boardCellSize × k`. Ancrer la barre sur le plateau
+/// plutôt que sur un type d'appareil traite tout écran sans seuil ni facteur magique.
+/// **À régler à l'œil sur appareil** — c'est la seule valeur du plan qui ne se calcule pas.
+const double kPieceToBoardCellRatio = 0.45;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
@@ -238,6 +244,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                         logicalX,
                         logicalY,
                         widget.isLandscape,
+                        cellSize,
                       );
                     },
                   ),
@@ -267,6 +274,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       int logicalX,
       int logicalY,
       bool isLandscape,
+      double cellSize,
       ) {
     // 1️⃣ RÉCUPÉRER LES DONNÉES DE BASE
     var cellValue = state.plateau.getCell(logicalX, logicalY);
@@ -421,6 +429,8 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               isLandscape,
             ),
             isDragging: true,
+            // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
+            cellSize: cellSize * kPieceToBoardCellRatio,
             getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
           ),
         ),

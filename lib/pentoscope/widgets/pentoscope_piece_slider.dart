@@ -1,8 +1,9 @@
-// Modified: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
-//           méthodes de surbrillance locale et du bloc lecteur ; l'enveloppe Container de
-//           surbrillance disparaît (rendu identique, décoration toujours nulle).
-// lib/pentapol/pentoscope/widgets/pentoscope_piece_slider.dart
-// Historique: 2512100457 — FIX _getDisplayPositionIndex() rotation paysage stable.
+// Modified: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : la barre reçoit pieceCellSize (défaut
+//           22) ; la boîte de pièce et PieceRenderer en dérivent, au lieu de la taille figée 118.
+// lib/pentoscope/widgets/pentoscope_piece_slider.dart
+// Historique: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
+//             méthodes de surbrillance locale et du bloc lecteur ; l'enveloppe Container disparaît.
+//             2512100457 — FIX _getDisplayPositionIndex() rotation paysage stable.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,9 +20,14 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 class PentoscopePieceSlider extends ConsumerStatefulWidget {
   final bool isLandscape;
 
+  /// Taille de case des pièces de la barre, ancrée sur le plateau (PLAN_ERGONOMIE §3).
+  /// Défaut 22 : comportement d'avant l'ergonomie tablette pour tout appelant non modifié.
+  final double pieceCellSize;
+
   const PentoscopePieceSlider({
     super.key,
     required this.isLandscape,
+    this.pieceCellSize = 22.0,
   });
 
   @override
@@ -91,8 +97,8 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       settings,
       bool isLandscape,
       ) {
-    // Taille fixe 5x5 pour éviter les chevauchements (cellSize=22, 5*22+8=118)
-    const double fixedSize = 118;
+    // Boîte carrée d'une pièce : 5 cases + 8 de marge (PieceRenderer). Suit pieceCellSize.
+    final double fixedSize = widget.pieceCellSize * 5 + 8;
     int positionIndex = state.selectedPiece?.id == piece.id
         ? state.selectedPositionIndex
         : state.getPiecePositionIndex(piece.id);
@@ -143,6 +149,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                 piece: piece,
                 positionIndex: displayPositionIndex,
                 isDragging: isDragging,
+                cellSize: widget.pieceCellSize,
                 getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
               ),
             ),
