@@ -1,7 +1,7 @@
-// Modified: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : méthodes d'écriture des records —
-//           recordSolvedSolution (upsert SolvedSolutions, meilleur temps/actions) et
-//           recordPuzzleCompleted (upsert PuzzleStats). CurrentGame reste sans méthode (étape 4).
+// Modified: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : méthodes CurrentGame —
+//           saveCurrentGame (upsert de la ligne unique), clearCurrentGame, loadCurrentGame.
 // lib/database/settings_database.dart
+// Historique: 2026-08-30 11:40 — étape 3 : recordSolvedSolution et recordPuzzleCompleted (records).
 // Historique: 2026-08-30 11:10 — étape 2 : schéma. Tables mortes de l'ancien historique retirées ;
 //             ajout de CurrentGame, SolvedSolutions, PuzzleStats ; schemaVersion 2 +
 //             destructiveFallback.
@@ -204,6 +204,51 @@ class SettingsDatabase extends _$SettingsDatabase {
         ),
       );
     }
+  }
+
+  // ============================================================================
+  // CURRENT GAME - la partie en cours (une seule ligne, id 0, écrasée)
+  // ============================================================================
+
+  /// Écrit la partie en cours (upsert sur la ligne unique). Les listes sont
+  /// sérialisées en JSON par l'appelant (PLAN_PERSISTANCE §2.1).
+  Future<void> saveCurrentGame({
+    required String sizeName,
+    required String pieceIds,
+    required int solutionCount,
+    required String placedPieces,
+    required String positionIndices,
+    required int elapsedSeconds,
+    required int isometryCount,
+    required int translationCount,
+    required int deleteCount,
+    required int hintCount,
+  }) async {
+    await into(currentGame).insertOnConflictUpdate(
+      CurrentGameCompanion.insert(
+        sizeName: sizeName,
+        pieceIds: pieceIds,
+        solutionCount: solutionCount,
+        placedPieces: placedPieces,
+        positionIndices: positionIndices,
+        elapsedSeconds: elapsedSeconds,
+        isometryCount: isometryCount,
+        translationCount: translationCount,
+        deleteCount: deleteCount,
+        hintCount: hintCount,
+        savedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  /// Efface la partie en cours (complétion, ou démarrage d'une partie neuve).
+  Future<void> clearCurrentGame() async {
+    await delete(currentGame).go();
+  }
+
+  /// La partie en cours, ou `null` s'il n'y en a pas.
+  Future<CurrentGameData?> loadCurrentGame() async {
+    return (select(currentGame)..where((g) => g.id.equals(0))).getSingleOrNull();
   }
 
 }

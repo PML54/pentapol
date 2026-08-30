@@ -1,15 +1,15 @@
-// Modified: 2026-08-30 — §8 étape 4 : abandon de l'écran d'accueil — retrait de l'unique
-//           route nommée (vers cet écran) et de son import ; l'écran est supprimé. Les
-//           Réglages passent par l'AppBar de Pentoscope (étape 2). Le bloc routes disparaît.
+// Modified: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : reprise de la partie en cours.
+//           Au lancement, on lit CurrentGame et on la restaure ; sinon on génère le 5×5.
+//           WidgetsBindingObserver : au passage en arrière-plan, on fige la partie (§2.2).
 // lib/main.dart
-// Historique: 2026-08-29 14:09 — étape 7 : retrait de l'amorce solutionsReadyProvider.
-//             2026-08-27 16:04 — suppression de la course au démarrage (P4) : chargement des
-//             solutions via solutionsReadyProvider, amorcé ici.
-//             2025-12-06 16:00 → 251226 (Avec numérotation)
-// Version adaptée avec pré-chargement des solutions BigInt + Numérotation
+// Historique: 2026-08-30 — §8 étape 4 : abandon de l'écran d'accueil — retrait de l'unique
+//             route nommée et de son import ; les Réglages passent par l'AppBar de Pentoscope.
+//             2026-08-29 14:09 — étape 7 : retrait de l'amorce solutionsReadyProvider.
+//             2026-08-27 16:04 — suppression de la course au démarrage (P4).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
@@ -27,26 +27,59 @@ class PentapolApp extends ConsumerStatefulWidget {
   ConsumerState<PentapolApp> createState() => _PentapolAppState();
 }
 
-class _PentapolAppState extends ConsumerState<PentapolApp> {
+class _PentapolAppState extends ConsumerState<PentapolApp>
+    with WidgetsBindingObserver {
   bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Le singleton global des 9356 (solutionsReadyProvider) servait le mode classique,
     // supprimé : Pentoscope charge ses tables via pentoscopeSolutionsProvider.
     _initializeApp();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Au passage en arrière-plan, figer la partie en cours pour capturer elapsedSeconds
+    // avant que l'app soit suspendue (PLAN_PERSISTANCE §2.2). No-op en multijoueur.
+    if (state == AppLifecycleState.paused) {
+      ref.read(pentoscopeProvider.notifier).saveCurrentGameSnapshot();
+    }
+  }
+
   Future<void> _initializeApp() async {
+    final notifier = ref.read(pentoscopeProvider.notifier);
     try {
-      // Initialiser un puzzle 5x3 au démarrage
-      final notifier = ref.read(pentoscopeProvider.notifier);
-      await notifier.startPuzzle(
-        PentoscopeSize.size5x5, // 5x5 qui correspond à 5 pièces
-        difficulty: PentoscopeDifficulty.random,
-        showSolution: false,
-      );
+      // Reprise : lire la partie en cours d'abord ; ne générer un puzzle neuf que s'il n'y
+      // en a pas (PLAN_PERSISTANCE §2.4). Une partie corrompue est effacée et remplacée.
+      final saved = await ref.read(settingsDatabaseProvider).loadCurrentGame();
+      if (saved != null) {
+        try {
+          await notifier.restoreGame(saved);
+        } catch (e) {
+          debugPrint('❌ Reprise impossible, partie effacée: $e');
+          await ref.read(settingsDatabaseProvider).clearCurrentGame();
+          await notifier.startPuzzle(
+            PentoscopeSize.size5x5,
+            difficulty: PentoscopeDifficulty.random,
+            showSolution: false,
+          );
+        }
+      } else {
+        await notifier.startPuzzle(
+          PentoscopeSize.size5x5, // 5x5 qui correspond à 5 pièces
+          difficulty: PentoscopeDifficulty.random,
+          showSolution: false,
+        );
+      }
 
       if (mounted) {
         setState(() => _isInitialized = true);

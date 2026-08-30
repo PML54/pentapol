@@ -34,11 +34,13 @@
 // Pentoscope: translation mastercase / snap
 // CHANGEMENTS: (1) selectedMasterAbs et _calculateDesiredAnchorFromDrag, (2) snap sur ancre désirée + synchro masterAbs après isométries
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/providers/settings_provider.dart';
+import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
@@ -97,6 +99,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// création de puzzle par _makeSolutionSource (seul site lisant size.table).
   /// Défaut : solveur à la volée, tant qu'aucun puzzle n'est démarré.
   late SolutionSource _solutions;
+
+  /// Le puzzle courant vient-il d'une partie multijoueur (startPuzzleFromSeed) ?
+  /// La persistance (CurrentGame, records) est **solo uniquement** : le multijoueur
+  /// partage ce provider mais ne doit ni sauvegarder ni enregistrer de record.
+  bool _isMultiplayer = false;
 
   // ⏱️ Timer
   
@@ -292,9 +299,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       validPlacements: [],
     );
 
-    // 💾 Un indice peut compléter le puzzle : enregistrer le record comme pour un placement.
+    // 💾 Un indice peut compléter le puzzle : même traitement que pour un placement.
     if (isComplete) {
       _saveCompletionRecord();
+      if (!_isMultiplayer) _clearCurrentGame();
+    } else {
+      _saveCurrentGame();
     }
   }
 
@@ -418,6 +428,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution,
       deleteCount: state.deleteCount + 1, // 🗑️ Incrémenter le compteur de suppressions
     );
+
+    // 🗄️ Persister l'avancement (no-op en multijoueur).
+    _saveCurrentGame();
   }
 
   // ==========================================================================
@@ -428,6 +441,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final puzzle = state.puzzle;
     if (puzzle == null) return;
 
+    _isMultiplayer = false;
     // Générer un nouveau puzzle avec la même taille
     final newPuzzle = await _generator.generate(puzzle.size);
     _solutions = await _makeSolutionSource(newPuzzle.size);
@@ -465,7 +479,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0, // ⏱️ Reset timer
     );
-    
+
+    // 🗄️ Recommencer efface la partie en cours précédente (§2.3).
+    _clearCurrentGame();
   }
 
   // ==========================================================================
@@ -584,6 +600,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     PentoscopeDifficulty difficulty = PentoscopeDifficulty.random,
     bool showSolution = false,
   }) async {
+    _isMultiplayer = false;
     final puzzle = await switch (difficulty) {
       PentoscopeDifficulty.easy => _generator.generateEasy(size),
       PentoscopeDifficulty.hard => _generator.generateHard(size),
@@ -631,6 +648,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       elapsedSeconds: 0,
     );
 
+    // 🗄️ Nouvelle partie solo : efface la partie en cours précédente (§2.3).
+    _clearCurrentGame();
   }
 
   /// 🎮 Démarre un puzzle avec un seed et des pièces spécifiques (mode multiplayer)
@@ -639,6 +658,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     int seed,
     List<int> pieceIds,
   ) async {
+    // Partie multijoueur : la persistance solo (CurrentGame, records) est désactivée.
+    _isMultiplayer = true;
     // Générer le puzzle avec les paramètres fournis
     final puzzle = await _generator.generateFromSeed(size, seed, pieceIds);
     _solutions = await _makeSolutionSource(size);
@@ -687,7 +708,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// autre taille n'a pas de numéro → `PuzzleStats`. Aucun test de taille ici.
   Future<void> _saveCompletionRecord() async {
     final puzzle = state.puzzle;
-    if (puzzle == null) return;
+    if (puzzle == null || _isMultiplayer) return;
 
     final board = _rebuildPlateau();
     final solutionNumber = _solutions.solutionIndexOf(board);
@@ -713,6 +734,135 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     } catch (e) {
       debugPrint('❌ Enregistrement du record échoué: $e');
     }
+  }
+
+  // ==========================================================================
+  // PARTIE EN COURS - persistance (PLAN_PERSISTANCE §2)
+  // ==========================================================================
+
+  /// Écrit la partie en cours dans `CurrentGame`. Appelé après chaque changement de
+  /// `placedPieces` et au passage en arrière-plan. Ne stocke ni le plateau (reconstruit)
+  /// ni les solutions. No-op si aucune partie, ou si elle est déjà complète (la ligne
+  /// est alors effacée, pas réécrite).
+  Future<void> _saveCurrentGame() async {
+    final puzzle = state.puzzle;
+    if (puzzle == null || state.isComplete || _isMultiplayer) return;
+
+    final placedJson = jsonEncode([
+      for (final p in state.placedPieces)
+        {'id': p.piece.id, 'pos': p.positionIndex, 'x': p.gridX, 'y': p.gridY},
+    ]);
+    final indicesJson = jsonEncode(
+      state.piecePositionIndices.map((k, v) => MapEntry(k.toString(), v)),
+    );
+
+    try {
+      await ref.read(settingsDatabaseProvider).saveCurrentGame(
+            sizeName: puzzle.size.name,
+            pieceIds: puzzle.pieceIds.join(','),
+            solutionCount: puzzle.solutionCount,
+            placedPieces: placedJson,
+            positionIndices: indicesJson,
+            elapsedSeconds: getElapsedSeconds(),
+            isometryCount: state.isometryCount,
+            translationCount: state.translationCount,
+            deleteCount: state.deleteCount,
+            hintCount: state.hintCount,
+          );
+    } catch (e) {
+      debugPrint('❌ Sauvegarde partie en cours échouée: $e');
+    }
+  }
+
+  /// Efface la partie en cours (complétion, ou démarrage d'une partie neuve).
+  Future<void> _clearCurrentGame() async {
+    try {
+      await ref.read(settingsDatabaseProvider).clearCurrentGame();
+    } catch (e) {
+      debugPrint('❌ Effacement partie en cours échoué: $e');
+    }
+  }
+
+  /// Fige la partie en cours — appelé par `main.dart` au passage en arrière-plan,
+  /// pour capturer `elapsedSeconds` avant que l'app soit suspendue.
+  Future<void> saveCurrentGameSnapshot() => _saveCurrentGame();
+
+  /// Reprend une partie sauvegardée **sans** passer par le générateur : reconstruit le
+  /// `PentoscopePuzzle` depuis les champs stockés, rejoue les placements, restaure les
+  /// compteurs et l'origine du chrono. `showSolution` n'est pas restaurable (§2.4).
+  Future<void> restoreGame(CurrentGameData row) async {
+    _isMultiplayer = false;
+    final size = PentoscopeSize.values.firstWhere((s) => s.name == row.sizeName);
+    final pieceIds = row.pieceIds.split(',').map(int.parse).toList();
+    final puzzle = PentoscopePuzzle(
+      size: size,
+      pieceIds: pieceIds,
+      solutionCount: row.solutionCount,
+      solutions: const [],
+    );
+    _solutions = await _makeSolutionSource(size);
+
+    final piecePositionIndices =
+        (jsonDecode(row.positionIndices) as Map<String, dynamic>)
+            .map((k, v) => MapEntry(int.parse(k), v as int));
+
+    final placedPieces = [
+      for (final e in jsonDecode(row.placedPieces) as List)
+        PlacedPiece(
+          piece: pentominos[(e['id'] as int) - 1],
+          positionIndex: e['pos'] as int,
+          gridX: e['x'] as int,
+          gridY: e['y'] as int,
+        ),
+    ];
+
+    final placedIds = placedPieces.map((p) => p.piece.id).toSet();
+    final availablePieces = pieceIds
+        .map((id) => pentominos.firstWhere((p) => p.id == id))
+        .where((p) => !placedIds.contains(p.id))
+        .toList();
+
+    // Reconstruire le plateau depuis les placements.
+    final plateau = Plateau.allVisible(size.width, size.height);
+    for (final pp in placedPieces) {
+      for (final cell in pp.absoluteCells) {
+        plateau.setCell(cell.x, cell.y, pp.piece.id);
+      }
+    }
+
+    // État des solutions (même logique que _solutionStatus, mais l'état n'est pas encore posé).
+    final count = _solutions.countFrom(plateau);
+    final bool hasPossibleSolution;
+    if (availablePieces.isEmpty) {
+      hasPossibleSolution = false;
+    } else if (count != null) {
+      hasPossibleSolution = count > 0;
+    } else {
+      hasPossibleSolution = _solutions.hasSolutionFrom(plateau, availablePieces);
+    }
+
+    // ⏱️ Reprendre le chrono à la valeur restaurée, sans démarrer le tic.
+    restoreTimerOrigin(row.elapsedSeconds);
+
+    state = PentoscopeState(
+      viewOrientation: ViewOrientation.portrait,
+      puzzle: puzzle,
+      plateau: plateau,
+      availablePieces: availablePieces,
+      placedPieces: placedPieces,
+      piecePositionIndices: piecePositionIndices,
+      isComplete: false,
+      isometryCount: row.isometryCount,
+      translationCount: row.translationCount,
+      deleteCount: row.deleteCount,
+      hintCount: row.hintCount,
+      showSolution: false, // non restaurable (§2.4)
+      currentSolution: null,
+      validPlacements: [],
+      hasPossibleSolution: hasPossibleSolution,
+      solutionsCount: count,
+      elapsedSeconds: row.elapsedSeconds,
+    );
   }
 
   // ==========================================================================
@@ -816,9 +966,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       solutionsCount: solutionsCount, // 🔢
     );
 
-    // 💾 Enregistrer le record à la complétion (après màj de l'état : le plateau est complet)
+    // 💾 À la complétion : enregistrer le record et effacer la partie en cours. Sinon,
+    //    persister l'avancement (no-op en multijoueur, où _isMultiplayer est vrai).
     if (isComplete) {
       _saveCompletionRecord();
+      if (!_isMultiplayer) _clearCurrentGame();
+    } else {
+      _saveCurrentGame();
     }
 
     // ⏱️ Démarrer le timer au premier placement depuis le slider — mais jamais sur une

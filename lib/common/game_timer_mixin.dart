@@ -1,7 +1,9 @@
-// Modified: 2026-08-27 20:50 — création : étape 3 du plan d'unification, famille Chrono.
-//           Les trois méthodes de chronomètre étaient dupliquées dans les deux
-//           providers. Voir docs/PLAN_UNIFICATION_PIECES.md.
+// Modified: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : restoreTimerOrigin(elapsedSeconds)
+//           — reprend le chrono à une valeur restaurée sans démarrer le tic (partie reprise
+//           au lancement). Le prochain startTimer continue au lieu de repartir de zéro.
 // lib/common/game_timer_mixin.dart
+// Historique: 2026-08-27 20:50 — création : étape 3 du plan d'unification, famille Chrono.
+//             Les trois méthodes de chronomètre étaient dupliquées dans les deux providers.
 
 import 'dart:async';
 
@@ -70,6 +72,14 @@ mixin GameTimerMixin<S> on Notifier<S> {
   void resetTimer() {
     stopTimer();
     _startTime = null;
+  }
+
+  /// Restaure l'origine pour reprendre à [elapsedSeconds], **sans** démarrer le tic
+  /// (partie restaurée au lancement, PLAN_PERSISTANCE §2.4). Le prochain [startTimer]
+  /// continuera à partir de cette valeur au lieu de repartir de zéro.
+  void restoreTimerOrigin(int elapsedSeconds) {
+    stopTimer();
+    _startTime = DateTime.now().subtract(Duration(seconds: elapsedSeconds));
   }
 
   /// Temps écoulé depuis l'origine, en secondes. 0 si le chrono n'a jamais démarré.
