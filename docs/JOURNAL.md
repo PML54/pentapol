@@ -6,29 +6,39 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session cowork (passe documentaire)
+## §ÉTAT — au 2026-08-30, fin de session CLI (bilan de fin de partie)
 
 **Code : §8 appliquée et testée sur appareil par Paul.** L'application est désormais un
 module de jeu unique — Pentoscope, tailles `size3x5`…`size9x5` plus `size6x10` — avec le
 multijoueur qui réutilise son provider. Plus d'écran d'accueil, plus de route nommée :
 `main.dart` monte `PentoscopeGameScreen`. Réglages dans l'AppBar, dialogue « Nouvelle
-partie » (taille + difficulté + montrer la solution). `lib/` = **19 415 lignes**.
+partie » (taille + difficulté + montrer la solution).
 
-**Documentation remise en accord avec le code** (décisions 39 et 40) :
+**`PLAN_BILAN_FIN_PARTIE.md` appliqué** — 2 commits (`d987530`, `5ea4ebe`), `flutter analyze`
+0 warning, critères §4 tous verts (grep) :
+1. **§3 — score retiré** (`d987530`). Le score de fin de partie était faux deux fois
+   (décision 41) : retiré avec son calcul (`scorePercent`, `scoreColor`, `minTotal`,
+   `realTotal`), le champ de score théorique de `PentoscopeState` et sa plomberie `copyWith`,
+   et ses **deux boucles** de calcul dans `startPuzzle`/`startPuzzleFromSeed` (une passe sur
+   toutes les solutions × placements au démarrage). `Pento.minIsometriesToReach` est
+   **conservée et signalée orpheline** dans `common/pentominos.dart` (primitive juste,
+   réutilisable par le scoring multijoueur).
+2. **§2 — bandeau non modal** (`5ea4ebe`). Le dialogue modal, qui masquait le plateau,
+   est remplacé par `_BilanBanner` à la place de la barre de pièces (vide à la complétion),
+   portrait ET paysage. Le `ref.listen` de complétion disparaît ; le bandeau est déclaratif,
+   piloté par `state.isComplete` ; seul état neuf `_bilanFerme`, remis à false en `build`
+   dès que le puzzle n'est plus complet (décision 44).
 
-| fichier | ce qui a été corrigé |
-|---|---|
-| `CLAUDE.md` | arborescence, table des modules, exemple d'en-tête, docs de référence. **Priorité** : le CLI le charge à chaque session |
-| `FONCTIONNEMENT.md` | trois modes → deux ; flux utilisateur ; les deux sections « solutions » fusionnées en une, autour de `SolutionSource` ; persistance ; providers ; écrans ; code inactif re-vérifié au grep ; table de corrections datée |
-| `services.md` | `plateau_solution_counter` marqué supprimé, singleton retiré, chargeur paramétrable, cause du 8175/9356 élucidée |
-| `PENTOSCOPE.md` | Pentoscope n'est plus « un mode » ; menu supprimé ; « Différences avec Classical » marquée SECTION HISTORIQUE |
-| `ANALYSE_STOCKAGE_POSITIONS.md` | encadré complété : 7 chemins morts nommés, dont un **déménagé** et non supprimé |
-| `MEMO_DEPLACEMENT_PIECES.md`, `BILAN_DUEL_ISOMETRIES.md` | une mention périmée chacun |
-| `PLAN_SUPPRESSION_DEMO.md`, `PLAN_UNIFICATION_PIECES.md` | bandeau 🗄️ **ARCHIVE** — leurs chemins morts ne sont pas à corriger |
-| `PLAN_SUPPRESSION_CLASSICAL.md` | en-tête d'état : §1-§8 appliquées, reste §9 |
+> **Effet de bord favorable** (relevé au plan §3) : la boucle de score était l'argument
+> principal du §4.5 du plan 6×10 (« ne PAS remplir `puzzle.solutions` »). Elle disparaît,
+> mais les deux autres raisons subsistent — la règle du §4.5 reste valable, avec un argument
+> de moins.
 
-**Contrôle** : plus aucun chemin `lib/…` mort dans la documentation **descriptive**. Ceux
-qui subsistent sont tous dans des archives ou nommés dans un encadré.
+**Documentation** remise en accord avec le code lors de la passe précédente (décisions 39,
+40, commit `19945c9` : `CLAUDE.md`, `FONCTIONNEMENT.md`, `services.md`, `PENTOSCOPE.md`,
+`ANALYSE_STOCKAGE_POSITIONS.md`, `MEMO_DEPLACEMENT_PIECES.md`, `BILAN_DUEL_ISOMETRIES.md`,
+bandeaux ARCHIVE, en-tête de `PLAN_SUPPRESSION_CLASSICAL.md`). Plus aucun chemin `lib/…`
+mort dans la documentation descriptive.
 
 **Deux chantiers restent à appliquer** :
 
@@ -45,9 +55,8 @@ qui subsistent sont tous dans des archives ou nommés dans un encadré.
 client**. Rien à défaire, mais à ne pas hériter sans l'examiner. Le commentaire de
 `piece_manipulation_state.dart` l.14 cite encore `PentominoGameState`, qui n'existe plus.
 
-**Git** : code poussé jusqu'à `fe3c331`. Non commité : `CLAUDE.md` et les huit fichiers de
-`docs/` ci-dessus. Ces docs ne pilotent pas de code immédiat — à commiter **seuls, en
-début de prochaine session du CLI**, avant toute modification de `lib/`.
+**Git** : documentation poussée jusqu'à `fe3c331` ; **non poussés** : `19945c9` (passe
+documentaire), `d987530`+`5ea4ebe` (bilan) et ce commit de journal.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -310,6 +319,49 @@ détaillé.
     lui donne sa valeur de trace. Ils portent désormais un bandeau 🗄️ ARCHIVE en tête. Ne
     corriger que la documentation **descriptive**, jamais l'historique.
 
+41. **2026-08-30 — cowork** — **le score du bilan de fin de partie est faux, deux fois.**
+    Signalé indirectement par Paul (« trop de détail ») ; vérifié dans
+    `pentoscope_game_screen.dart` l.950-956.
+    `scorePercent = (minIsometries + numPieces) / (isometryCount + translationCount +
+    deleteCount) × 100`.
+    a) **Rapport non homogène** : `numPieces` compte une pose par pièce au numérateur, mais
+       le dénominateur **ne compte aucune pose** — `translationCount` ne s'incrémente que
+       lors du déplacement d'une pièce **déjà posée** (`tryPlacePiece` l.796-798). Les deux
+       erreurs se compensent partiellement sur les petits puzzles, d'où l'effet « ça marche ».
+    b) **Sur le 6×10, `minIsometries` vaut toujours 0** : il n'est calculé que
+       `if (puzzle.solutions.isNotEmpty)` (l.596-611) et `_buildFullRectanglePuzzle` laisse
+       cette liste **délibérément vide** (décision de conception, plan §4.5 — la remplir
+       coûterait 9356 × 12 appels au démarrage). Le numérateur se réduit donc à 12 : il
+       faudrait résoudre un 6×10 en **15 actions au total** pour atteindre 80 %. Le score y
+       est **rouge en toutes circonstances**.
+    Conséquence : afficher moins de détail ne suffit pas — le chiffre mis en avant est
+    précisément celui qui est faux. À corriger avant, ou en même temps que, la refonte du
+    bilan.
+
+42. **2026-08-30 — Paul** — **le bilan de fin de partie devient un bandeau non modal**,
+    à la place de la barre de pièces — qui n'a plus rien à montrer une fois le puzzle
+    complété. Le plateau reste entièrement visible. Le `ref.listen` et sa garde « afficher
+    une seule fois » disparaissent (widget déclaratif piloté par `isComplete`) ; un seul
+    état neuf, `_bilanFerme`. → `PLAN_BILAN_FIN_PARTIE.md` §2.
+43. **2026-08-30 — Paul** — **le score est retiré du bilan**, pas corrigé. Motif : mieux
+    vaut pas de note qu'une fausse note (décision 41). Contenu retenu : temps, isométries,
+    déplacements, plus suppressions et indices s'ils sont non nuls — des faits bruts, tous
+    justes. Sans le score, tout tient sur une ligne et aucun bouton « Détail » n'est
+    nécessaire.
+    Entraîne la mort de `state.minIsometries` (unique lecteur : la ligne de score) et de ses
+    deux boucles de calcul dans `startPuzzle` / `startPuzzleFromSeed`.
+    **`Pento.minIsometriesToReach` est conservée** malgré son orphelinat : primitive juste,
+    non triviale, réutilisable par le scoring du multijoueur. → §3.
+
+44. **2026-08-30 — CLI** — **`_bilanFerme` remis à false en `build`, pas dans les handlers.**
+    Le plan §2 disait « remis à false au démarrage d'une partie ». Plutôt que de le répéter
+    dans chaque site de démarrage (bouton Recommencer ×2, « Lancer » du dialogue, bouton du
+    bandeau, init) — dispersé et fragile à l'ajout d'un nouveau chemin — je le remets à false
+    en `build` dès que `!state.isComplete`. Un seul point, déclaratif, qui couvre aussi le
+    retrait d'une pièce après complétion. Simple assignation de champ pendant le build (pas de
+    `setState`), le rebuild étant déjà déclenché par le changement d'état du provider. → §2,
+    `5ea4ebe`.
+
 ---
 
 ## §PASSATIONS
@@ -454,3 +506,20 @@ l'application du §8. Deux règles posées : la documentation descriptive se cor
 plans exécutés se **marquent** (décision 40). §ÉTAT réécrit. **Aucun code touché.**
 **Prochain pas** : commiter ces docs seuls, puis §9 (abandon de l'historique) ou §5 du plan
 6×10 (tables 5×12 et 4×15) — au choix de Paul, les deux sont indépendants.
+
+**2026-08-30 — cowork → toi (bilan de fin de partie).** Constat de Paul décomposé en trois
+problèmes distincts, dont un qu'il n'avait pas vu : **le score affiché est faux, deux fois**
+(décision 41), et il est rouge en permanence sur le 6×10. Décisions 42 et 43 prises ;
+`docs/PLAN_BILAN_FIN_PARTIE.md` écrit (136 l.), en deux étapes séparées — retrait du score
+et de `minIsometries` d'abord, bandeau ensuite. **Aucun code touché.**
+
+**2026-08-30 — CLI → cowork (bilan FAIT).** `PLAN_BILAN_FIN_PARTIE.md` appliqué en 2 commits
+(`d987530` §3 retrait du score + champ de score théorique + ses deux boucles ; `5ea4ebe` §2
+bandeau non modal `_BilanBanner`, portrait + paysage). `flutter analyze` 0 warning, critères
+§4 tous verts (grep : score/dialogue/`ref.listen`/champ de score → néant hors `pentominos`).
+`Pento.minIsometriesToReach` conservée et signalée orpheline. Décision 44 ajoutée (reset de
+`_bilanFerme` en `build`, pas dans les handlers). Ce commit joint aussi le plan lui-même,
+resté non tracké. **Non poussé** — `19945c9` + `d987530` + `5ea4ebe` + ce commit de journal.
+**À faire, dû par Paul** : test appareil du bandeau (plateau visible, Fermer/Nouvelle partie,
+plus de pourcentage rouge sur 6×10, portrait ET paysage, multijoueur inchangé).
+**Reste** : §9 (historique) et §5 du plan 6×10 (tables 5×12, 4×15).
