@@ -399,7 +399,17 @@ supplémentaire.
 
 ---
 
-## 9. Abandonner l'historique de parties — décision 32
+## 9. Abandonner l'historique de parties — ⛔ ANNULÉ le 2026-08-30
+
+> **Cette section ne doit pas être appliquée.** Paul a décidé de **rétablir** les records en
+> préparation d'une mise sur l'App Store (décision 48) : sans progression ni meilleur temps,
+> une partie finie ne compte pas demain. On ne supprime donc pas les deux tables avec
+> précaution — on repart d'un schéma propre. → `docs/PLAN_PERSISTANCE.md`.
+>
+> Ce qui reste vrai de cette section : les anciennes tables `GameSessions` et `SolutionStats`
+> n'ont plus aucun écrivain, et `DatabaseDebugScreen` disparaît. La suite ci-dessous est
+> conservée pour l'analyse du coût qui a mené à la décision.
+
 
 > Paul, 2026-08-29 : l'historique est **abandonné**, pas porté. Motif : les lignes déjà
 > enregistrées sont des parties du mode classique, qui n'existe plus ; le portage demandait

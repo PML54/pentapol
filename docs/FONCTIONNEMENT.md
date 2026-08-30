@@ -275,7 +275,17 @@ mortes** :
 
 `SolutionStats` permettait de suivre, solution par solution parmi les 9356, combien de fois
 elle avait été résolue et le meilleur temps obtenu. Le pseudo multijoueur est stocké à part,
-via `SharedPreferences`, de même que le dernier niveau réussi (`_saveCompletedLevel`).
+via `SharedPreferences`.
+
+> ⚠️ **Correction du 2026-08-30** — cette dernière phrase était fausse, et elle l'était déjà
+> dans la version précédente de ce document. Le pseudo multijoueur n'est **pas** dans
+> `SharedPreferences` : il vit dans `DuelSettings.playerName`, donc dans le JSON `app_settings`
+> de la table `Settings`, comme le reste des réglages.
+>
+> Le **seul** usage de `SharedPreferences` dans tout `lib/` est
+> `pentoscope_last_completed`, écrit par `_saveCompletedLevel` (`pentoscope_provider.dart`
+> l.680-690) — et **jamais relu** : aucun `getString` nulle part. C'est une donnée en
+> écriture seule.
 
 > Le projet n'a **jamais migré** : `schemaVersion => 1`, aucune `MigrationStrategy`. La
 > suppression des deux tables sera sa première migration.

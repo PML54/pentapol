@@ -6,64 +6,47 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session CLI (chronomètre)
+## §ÉTAT — au 2026-08-30, fin de session cowork (cap App Store)
 
-**Code : §8 appliquée et testée sur appareil par Paul.** L'application est désormais un
-module de jeu unique — Pentoscope, tailles `size3x5`…`size9x5` plus `size6x10` — avec le
-multijoueur qui réutilise son provider. Plus d'écran d'accueil, plus de route nommée :
-`main.dart` monte `PentoscopeGameScreen`. Réglages dans l'AppBar, dialogue « Nouvelle
-partie » (taille + difficulté + montrer la solution).
+**Changement d'horizon.** Paul vise une mise sur l'**App Store**. Ce n'est plus un outil
+personnel : ce qui était acceptable pour un usage privé ne l'est plus, et plusieurs décisions
+récentes sont rouvertes en conséquence (32 → 48).
 
-**`PLAN_BILAN_FIN_PARTIE.md` appliqué en entier** — 3 commits, `flutter analyze` 0 warning,
-critères de fin tous verts (grep) :
-0. **§5 — chronomètre corrigé** (`0eb95f2`). Le temps continuait après complétion. Deux
-   défauts qui se masquaient : (A) `tryPlacePiece` relançait le chrono juste après l'avoir
-   arrêté — garde de démarrage étendue à `!isComplete` ; (B) `resetTimer()` n'avait **aucun
-   appelant** (écrit à l'unification, jamais branché — décision 45), les trois démarrages de
-   partie appelaient `stopTimer()` qui conserve l'origine, si bien que chaque partie
-   réutilisait l'origine de la première. Les trois passent à `resetTimer()`. Sites de fin
-   (`applyHint`, `tryPlacePiece`) et `onDispose` gardent `stopTimer()`.
-1. **§3 — score retiré** (`d987530`). Le score de fin de partie était faux deux fois
-   (décision 41) : retiré avec son calcul (`scorePercent`, `scoreColor`, `minTotal`,
-   `realTotal`), le champ de score théorique de `PentoscopeState` et sa plomberie `copyWith`,
-   et ses **deux boucles** de calcul dans `startPuzzle`/`startPuzzleFromSeed` (une passe sur
-   toutes les solutions × placements au démarrage). `Pento.minIsometriesToReach` est
-   **conservée et signalée orpheline** dans `common/pentominos.dart` (primitive juste,
-   réutilisable par le scoring multijoueur).
-2. **§2 — bandeau non modal** (`5ea4ebe`). Le dialogue modal, qui masquait le plateau,
-   est remplacé par `_BilanBanner` à la place de la barre de pièces (vide à la complétion),
-   portrait ET paysage. Le `ref.listen` de complétion disparaît ; le bandeau est déclaratif,
-   piloté par `state.isComplete` ; seul état neuf `_bilanFerme`, remis à false en `build`
-   dès que le puzzle n'est plus complet (décision 44).
+**Nouveau document permanent : `docs/CHECKLIST_APPSTORE.md`** — ce qui doit être fait ou
+défait avant la première soumission. Il **s'allonge au fil du travail** ; c'est le seul
+endroit où ces dettes sont rassemblées. Sept bloquants techniques (dont `flutter test` qui
+est **rouge** — `widget_test.dart` est le template par défaut de Flutter), quatre bloquants
+produit, quatre points de conformité, et une section qui dit franchement ce que cowork ne
+peut pas juger : **il n'a jamais vu l'application tourner.**
 
-> **Effet de bord favorable** (relevé au plan §3) : la boucle de score était l'argument
-> principal du §4.5 du plan 6×10 (« ne PAS remplir `puzzle.solutions` »). Elle disparaît,
-> mais les deux autres raisons subsistent — la règle du §4.5 reste valable, avec un argument
-> de moins.
+**Nouveau plan : `docs/PLAN_PERSISTANCE.md`** (252 l.) — ce que l'app garde sur l'appareil.
+Une seule base, drift/SQLite, quatre tables, en quatre commits :
 
-**Documentation** remise en accord avec le code lors de la passe précédente (décisions 39,
-40, commit `19945c9` : `CLAUDE.md`, `FONCTIONNEMENT.md`, `services.md`, `PENTOSCOPE.md`,
-`ANALYSE_STOCKAGE_POSITIONS.md`, `MEMO_DEPLACEMENT_PIECES.md`, `BILAN_DUEL_ISOMETRIES.md`,
-bandeaux ARCHIVE, en-tête de `PLAN_SUPPRESSION_CLASSICAL.md`). Plus aucun chemin `lib/…`
-mort dans la documentation descriptive.
+1. ménage — `supabase_flutter`, `bootstrap.dart`, `DatabaseDebugScreen` ;
+2. schéma — `CurrentGame`, `SolvedSolutions`, `PuzzleStats`, `schemaVersion` 2 + stratégie
+   destructive, `build_runner` ;
+3. records — `solutionIndexOf` sur `SolutionSource`, écriture à la complétion,
+   `SharedPreferences` retiré ;
+4. **partie en cours** — écriture, effacement, `restoreGame`, observateur de cycle de vie.
+   L'étape la plus délicate, isolée à dessein.
 
-**Deux chantiers restent à appliquer** :
+**Chantiers en attente, par ordre de valeur :**
 
-- **§9 de `PLAN_SUPPRESSION_CLASSICAL.md`** — abandon de l'historique de parties
-  (décision 32). Rien n'a d'appelant vivant ; le seul point non mécanique est la
-  **migration drift**, la première du projet (`schemaVersion => 1`, aucune
-  `MigrationStrategy`). `DatabaseDebugScreen` est franchement orphelin depuis §8 étape 4.
-- **§5 du plan 6×10** — tables 5×12 et 4×15. Préalable strict : rendre
-  `PentominoSolver.maxSeconds` paramétrable **et la troncature observable** (décision 10,
-  plan §5.1), sinon les nouvelles tables seront tronquées en silence.
+| chantier | où | état |
+|---|---|---|
+| chronomètre : deux défauts | `PLAN_BILAN_FIN_PARTIE.md` §5 | **prêt, prioritaire** — bug visible |
+| bilan : retrait du score, bandeau | idem §2-§4 | prêt |
+| persistance, 4 étapes | `PLAN_PERSISTANCE.md` | prêt |
+| tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
+| §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
 
-**Observation d'architecture** (décision 29), toujours ouverte : `PieceManipulationState`,
-`GameTimerMixin`, `PieceInteractionMixin`, `PentominoGameMixin` n'ont plus qu'**un seul
-client**. Rien à défaire, mais à ne pas hériter sans l'examiner. Le commentaire de
-`piece_manipulation_state.dart` l.14 cite encore `PentominoGameState`, qui n'existe plus.
+**Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
+erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : poussé jusqu'à `6696867` (passe documentaire `19945c9`, bilan `d987530`+`5ea4ebe`,
-journal). **Non poussés** : `0eb95f2` (chrono §5) et ce commit de journal.
+**Git** : code poussé jusqu'à `fe3c331`. Non commités : `CLAUDE.md` et neuf fichiers de
+`docs/`, dont deux **nouveaux** — `PLAN_PERSISTANCE.md` et `CHECKLIST_APPSTORE.md`. Aucun ne
+pilote de code immédiat : à commiter **seuls, en début de prochaine session du CLI**, avant
+toute modification de `lib/`.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -72,12 +55,10 @@ flutter run --release -d 00008150-000165D4027B401C
 ```
 
 > ⚠️ En `--release`, `debugPrint` supprimé : critère console → observation écran.
+> ⚠️ La réécriture destructive de la base ne se teste que **sur une base existante** — une
+> installation neuve ne l'exécute jamais.
 
-**Dette technique** : `flutter pub add collection` ; preview cyan morte dans
-`pentoscope_board.dart` ; 3e chrono dans `pentoscope_mp_provider.dart` ; cinq fichiers
-orphelins (`bigint_plateau`, `shape_recognizer`, `ui_layout_provider` et ses 9 providers,
-`solution_collector`, `pentomino_solver` par ricochet) ; le paramètre `cellSize` de
-`PieceRenderer` (la miniature signalée par Paul) ; l'index de `check_orphan_files` périmé.
+**Dette technique** : voir `CHECKLIST_APPSTORE.md` §4, qui la rassemble désormais.
 
 ---
 
@@ -390,6 +371,45 @@ détaillé.
     `CLAUDE.md` : `flutter analyze` ne signale pas une méthode publique sans appelant.
     → `PLAN_BILAN_FIN_PARTIE.md` §5, à appliquer **avant** le reste de ce plan.
 
+46. **2026-08-30 — Paul** — **drift/SQLite est conservé, `supabase_flutter` est retiré.**
+    Supabase n'aurait pas remplacé SQLite : une base réseau impose de garder une base locale
+    pour le hors-ligne, donc de la synchronisation en plus. Et l'app fait déjà tourner des
+    Cloudflare Workers : ajouter Supabase ferait **deux** fournisseurs pour une app. Le jour
+    où un classement partagé sera voulu, le choix cohérent sera Cloudflare D1, sur la
+    plateforme déjà déployée — et ce sera une **décision de produit**, pas de stockage.
+    Aujourd'hui la dépendance est inutilisée (`bootstrap.dart` : « Vide - Supabase n'est pas
+    utilisé ») : tous les inconvénients, aucun bénéfice.
+47. **2026-08-30 — Paul** — **réécriture destructive de la base, pas migration.** L'app n'est
+    pas publiée (`1.0.0+1`) : il n'existe aucune base ailleurs que sur ses appareils de test,
+    et ses lignes sont des parties du mode classique supprimé. ⚠️ Mais réécrire ne suffit pas :
+    `onCreate` ne s'exécute que si le fichier SQLite **n'existe pas** — sur un appareil déjà
+    installé, l'ancien fichier reste et le premier accès lève un `no such table`, invisible
+    pour `flutter analyze`. D'où `schemaVersion` à 2 **et** une stratégie destructive
+    déclarée. **Date de péremption : la première soumission App Store** — inscrite au
+    point 3 de `CHECKLIST_APPSTORE.md`. → `PLAN_PERSISTANCE.md` §5.
+48. **2026-08-30 — Paul** — **les records sont rétablis. Annule la décision 32 et le §9 de
+    `PLAN_SUPPRESSION_CLASSICAL.md`.** Motif : abandonner l'historique était juste pour un
+    outil personnel ; pour une app publiée, records et progression sont ce qui fait revenir
+    un joueur. Schéma **refait**, pas restauré : deux tables parce que les deux familles ne
+    sont pas comparables — `SolvedSolutions` clé `(board, solutionNumber)` pour les
+    rectangles complets, `PuzzleStats` par taille pour les puzzles à pièces tirées. Des
+    **agrégats, pas un journal** : l'ancienne `GameSessions` écrivait une ligne par partie et
+    n'a jamais été lue. → `PLAN_PERSISTANCE.md` §4.
+49. **2026-08-30 — cowork** — **la donnée manquante la plus coûteuse n'est pas les records,
+    c'est la partie en cours.** Quitter l'app au milieu d'un 6×10 perd tout. Deux constats
+    liés : `SharedPreferences` n'a qu'**un seul usage** dans tout `lib/`,
+    `pentoscope_last_completed`, écrit par `_saveCompletedLevel` et **jamais relu** — donnée
+    en écriture seule, le paquet disparaît entièrement ; et le pseudo multijoueur n'est
+    **pas** dans `SharedPreferences` contrairement à ce qu'affirmait `FONCTIONNEMENT.md`
+    (erreur héritée, propagée par cowork le 2026-08-30, corrigée depuis) — il est dans
+    `DuelSettings.playerName`. → `PLAN_PERSISTANCE.md` §2 et §6.
+50. **2026-08-30 — cowork** — **ouverture de `docs/CHECKLIST_APPSTORE.md`**, document
+    permanent qui rassemble ce qui ne doit pas partir en production. Motif : ces dettes
+    naissent une par une, au fil de décisions justifiées sur le moment (la réécriture
+    destructive, Supabase, le `widget_test` par défaut), et le journal les disperse. Sept
+    bloquants techniques, quatre produit, quatre points de conformité. **S'allonge au fil du
+    travail** ; toute décision qui crée une dette de production s'y inscrit avec sa raison.
+
 ---
 
 ## §PASSATIONS
@@ -569,3 +589,11 @@ de cowork renumérotée 44 → 45 (collision avec la 44 `_bilanFerme`). **Non po
 **À faire, dû par Paul** : test appareil du chrono (fin en posant depuis la barre → le temps
 se fige ; deux parties d'affilée → la 2ᵉ repart de 00:00) et du bandeau (hérité).
 **Reste** : §9 (historique) et §5 du plan 6×10 (tables 5×12, 4×15).
+
+**2026-08-30 — cowork → toi (cap App Store).** Écrit `docs/PLAN_PERSISTANCE.md` (252 l.) et
+ouvert `docs/CHECKLIST_APPSTORE.md` (73 l.). Décisions 45 à 49 ; la 48 **annule la 32** et le
+§9 du plan de suppression, marqué en conséquence. Deux corrections d'erreurs de cowork au
+passage : le pseudo multijoueur n'est pas dans `SharedPreferences`, et `_saveCompletedLevel`
+écrit une donnée que personne ne lit. **Aucun code touché.**
+**Prochain pas recommandé** : le chronomètre (`PLAN_BILAN_FIN_PARTIE.md` §5) — c'est le seul
+bug visible, il est court. Puis la persistance, étape par étape.

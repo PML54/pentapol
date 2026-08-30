@@ -122,7 +122,12 @@ done
 3. **Expliquer avant d'agir** : décrire ce qui va être modifié avant de toucher au code.
 4. **Imports absolus uniquement** — jamais de `../` dans les imports Dart.
 5. **0 erreur de compilation** avant tout commit (`flutter analyze`).
-6. **Vérifier plutôt qu'affirmer.** Ce projet contient des invariants combinatoires
+6. **Base de données — tant que l'app n'est pas publiée** : réécriture destructive,
+   `schemaVersion` incrémenté, pas de migration. **À partir de la première version sur
+   l'App Store** : migration réelle, et **jamais** de stratégie destructive — elle
+   effacerait les données des joueurs, des mois plus tard, quand personne ne se souviendra
+   qu'elle est là. Son retrait fait partie de `docs/CHECKLIST_APPSTORE.md`.
+7. **Vérifier plutôt qu'affirmer.** Ce projet contient des invariants combinatoires
    (2339 solutions canoniques, 9356 après expansion) : ils se contrôlent par
    exécution, pas par raisonnement.
 
@@ -174,8 +179,13 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - `docs/JOURNAL.md` — **à lire en premier** : état courant, décisions, passations
 - `docs/PLAN_6X10_DANS_PENTOSCOPE.md` — le 6×10 et les tables de solutions
   pré-calculées ; §5 (tables 5×12 et 4×15) reste à appliquer
+- `docs/CHECKLIST_APPSTORE.md` — **ce qui doit être fait ou défait avant la première
+  soumission**. S'allonge au fil du travail : toute décision qui crée une dette de
+  production s'y inscrit avec sa raison
+- `docs/PLAN_PERSISTANCE.md` — ce que l'app garde sur l'appareil : quatre tables drift,
+  la partie en cours, les records
 - `docs/PLAN_SUPPRESSION_CLASSICAL.md` — la suppression du mode classique et sa suite ;
-  §9 (abandon de l'historique de parties) reste à appliquer
+  §1-§8 appliquées, **§9 annulée** par la décision 48
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
   des modules) alimentant `tools/db/pentapol.db`
 
