@@ -1,5 +1,8 @@
-// Modified: 2026-08-29 14:02 — suppression du mode classique (§2, étape 6) : retrait du
-//           _MenuCard « Pentominos Classique » et de son import. HomeScreen est conservé :
+// Modified: 2026-08-29 20:22 — §8 étape 3 : retrait de la carte « Pentominos Speed » et de
+//           l'import de PentoscopeMenuScreen (supprimé, absorbé par le dialogue « Nouvelle
+//           partie »). HomeScreen reste jusqu'à l'étape 4 (filet vers Réglages/Debug).
+// lib/screens/home_screen.dart
+// Historique: 2026-08-29 14:02 — étape 6 : retrait du _MenuCard « Pentominos Classique ».
 //           il porte l'accès aux Réglages (§2.1).
 // lib/screens/home_screen.dart
 // Historique: 2604221500
@@ -9,7 +12,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:pentapol/pentoscope/screens/pentoscope_menu_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/debug/database_debug_screen.dart';
 
@@ -81,20 +83,8 @@ class HomeScreen extends ConsumerWidget {
                     child: Column(
                       children: [
                         const SizedBox(height: 12),
-                        _MenuCard(
-                          icon: Icons.person,
-                          title: 'Pentominos Speed',
-                          subtitle: 'Placer de 3 à 6 pieces',
-                          color: colorScheme.secondary,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const PentoscopeMenuScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        // Mode classique retiré (suppression du module).
+                        // Menu Pentoscope retiré : « Nouvelle partie » est passé
+                        // dans l'AppBar de Pentoscope (§8). Mode classique retiré.
 
 
 

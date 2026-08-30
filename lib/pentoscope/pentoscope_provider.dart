@@ -1,7 +1,8 @@
-// Modified: 2026-08-29 13:43 — suppression du mode classique (§3.1) : méthode publique
-//           compatibleSolutions() (via _solutions, plateau reconstruit sans exclude) pour le
-//           navigateur de solutions branché dans Pentoscope.
+// Modified: 2026-08-29 20:22 — §8 étape 3 : retrait de changeBoardSize, sans appelant depuis
+//           que le dialogue « Nouvelle partie » appelle startPuzzle directement.
 // lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-29 13:43 — suppression du mode classique (§3.1) : méthode publique
+//             compatibleSolutions() pour le navigateur branché dans Pentoscope.
 // Historique: 2026-08-29 10:05 — 6×10 temps 2 étape 5 : champ solutionsCount, helper
 //             _solutionStatus (remplace _checkHasPossibleSolutionWith).
 // Historique: 2026-08-29 09:26 — temps 2 étapes 4/6 : champ _solutions (SolutionSource) posé
@@ -696,20 +697,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       elapsedSeconds: 0,
       minIsometries: minIsometries,
     );
-  }
-
-  /// 🔄 Change la taille du plateau (redémarre avec un nouveau puzzle)
-  Future<void> changeBoardSize(PentoscopeSize newSize) async {
-    // Sauvegarder le temps actuel pour le niveau actuel
-
-    // Générer un nouveau puzzle avec la nouvelle taille
-    await startPuzzle(
-      newSize,
-      difficulty: PentoscopeDifficulty.random,
-      showSolution: false,
-    );
-
-    debugPrint('📏 Plateau changé vers ${newSize.label} (${newSize.width}x${newSize.height})');
   }
 
   /// 💾 Sauvegarder le niveau terminé

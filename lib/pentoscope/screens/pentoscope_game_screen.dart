@@ -1,8 +1,10 @@
-// Modified: 2026-08-29 20:18 — Réglages dans l'AppBar (§8 étape 2) : bouton ⚙️ en portrait et
-//           paysage ouvrant SettingsScreen — seul accès depuis l'abandon annoncé de
-//           HomeScreen. Débloque le point 3 du test du temps 2 (bascule du compteur).
+// Modified: 2026-08-29 20:22 — dialogue « Nouvelle partie » (§8 étape 3) : _showSizeChangeDialog
+//           devient _showNewGameDialog (StatefulBuilder : taille + difficulté + montrer la
+//           solution, bouton « Lancer » → startPuzzle direct). Absorbe PentoscopeMenuScreen.
+//           Bouton reset renommé « Recommencer (même taille) » pour lever l'ambiguïté.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
-// Historique: 2026-08-29 14:02 — étape 6 : retrait du bouton « Mode Classique ».
+// Historique: 2026-08-29 20:18 — étape 2 : bouton Réglages dans l'AppBar.
+//             2026-08-29 14:02 — étape 6 : retrait du bouton « Mode Classique ».
 // Historique: 2026-08-29 13:43 — étape 3 : bouton « Solutions compatibles » (navigateur),
 //             gaté par solutionsCount != null.
 //             2026-08-29 10:05 — 6×10 temps 2 étape 5 : compteur de solutions dans l'AppBar.
@@ -186,12 +188,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           actions: (isPlacedPieceSelected || isSliderPieceSelected)
               ? null
               : [
-            // ➕ Bouton augmenter taille plateau
+            // 🆕 Nouvelle partie (taille + difficulté + montrer la solution)
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
               color: Colors.blue,
-              onPressed: () => _showSizeChangeDialog(context, ref),
-              tooltip: 'Changer taille plateau',
+              onPressed: () => _showNewGameDialog(context, ref),
+              tooltip: 'Nouvelle partie',
             ),
             // 👥 Bouton multijoueur
             IconButton(
@@ -210,7 +212,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 HapticFeedback.mediumImpact();
                 notifier.reset();
               },
-              tooltip: 'Nouvelle partie',
+              tooltip: 'Recommencer (même taille)',
             ),
             // 💡 Bouton Hint (lampe) — amber si solution possible, rouge sinon
             if (!state.isComplete && state.availablePieces.isNotEmpty)
@@ -1012,39 +1014,85 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   }
 
   /// 📏 Affiche le dialogue de changement de taille de plateau
-  void _showSizeChangeDialog(BuildContext context, WidgetRef ref) {
-    final currentSize = ref.read(pentoscopeProvider).puzzle?.size;
+  /// Dialogue « Nouvelle partie » : taille + difficulté + montrer la solution,
+  /// avec un bouton « Lancer » qui appelle startPuzzle directement (§8.2).
+  /// Absorbe l'ancien PentoscopeMenuScreen ; état local via StatefulBuilder.
+  void _showNewGameDialog(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(pentoscopeProvider.notifier);
+    var selectedSize =
+        ref.read(pentoscopeProvider).puzzle?.size ?? PentoscopeSize.size5x5;
+    var difficulty = PentoscopeDifficulty.random;
+    var showSolution = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Changer la taille du plateau'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Sélectionnez la nouvelle taille :'),
-            const SizedBox(height: 16),
-            ...PentoscopeSize.values.map((size) => RadioListTile<PentoscopeSize>(
-              title: Text('${size.label} (${size.width}x${size.height})'),
-
-              value: size,
-              groupValue: currentSize,
-              onChanged: (value) {
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Nouvelle partie'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Taille du plateau',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                ...PentoscopeSize.values.map(
+                  (size) => RadioListTile<PentoscopeSize>(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('${size.label} (${size.width}×${size.height})'),
+                    value: size,
+                    groupValue: selectedSize,
+                    onChanged: (value) => setState(() => selectedSize = value!),
+                  ),
+                ),
+                const Divider(),
+                const Text('Difficulté',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                SegmentedButton<PentoscopeDifficulty>(
+                  segments: const [
+                    ButtonSegment(
+                        value: PentoscopeDifficulty.easy, label: Text('Facile')),
+                    ButtonSegment(
+                        value: PentoscopeDifficulty.random,
+                        label: Text('Aléatoire')),
+                    ButtonSegment(
+                        value: PentoscopeDifficulty.hard,
+                        label: Text('Difficile')),
+                  ],
+                  selected: {difficulty},
+                  onSelectionChanged: (s) =>
+                      setState(() => difficulty = s.first),
+                ),
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Montrer la solution'),
+                  value: showSolution,
+                  onChanged: (value) => setState(() => showSolution = value),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 Navigator.pop(context);
-                if (value != null && value != currentSize) {
-                  notifier.changeBoardSize(value);
-                }
+                notifier.startPuzzle(
+                  selectedSize,
+                  difficulty: difficulty,
+                  showSolution: showSolution,
+                );
               },
-            )),
+              child: const Text('Lancer'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-        ],
       ),
     );
   }
