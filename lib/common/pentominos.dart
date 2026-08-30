@@ -2,9 +2,10 @@
 import 'package:pentapol/common/point.dart';
 import 'package:flutter/foundation.dart';
 
-// lib/models/pentominos.dart
-// Modified: 2512092000
-// Pentominos avec numéros de cases sur grille 5×5
+// Modified: 2026-08-30 06:04 — PLAN_BILAN §3 : minIsometriesToReach signalée orpheline (son
+//           unique appelant, le score de fin de partie, est retiré) mais conservée.
+// lib/common/pentominos.dart
+// Historique: 2512092000 — Pentominos avec numéros de cases sur grille 5×5
 // Numérotation: ligne 1 (bas) = cases 1-5, ligne 2 = cases 6-10, etc.
 // Les orientations préservent l'ordre géométrique des cellules pour le tracking
 
@@ -769,7 +770,11 @@ class Pento {
   int symmetryVRelativeToMastercase(int currentPositionIndex, Point mastercase) =>
       _applySymmetryRelativeToPoint(currentPositionIndex, mastercase, isHorizontal: false);
 
-  /// Retourne le nombre MIN d'isométries pour aller de startPos à endPos
+  /// Retourne le nombre MIN d'isométries pour aller de startPos à endPos.
+  ///
+  /// ⚠️ ORPHELINE depuis PLAN_BILAN §3 (2026-08-30) : son seul appelant était le calcul de
+  /// score de fin de partie, retiré. Conservée à dessein — c'est une primitive juste (BFS sur
+  /// les 4 isométries) et non triviale, réutilisable par le scoring isométrique du multijoueur.
   int minIsometriesToReach(int startPos, int endPos) {
     if (startPos == endPos) return 0;
 

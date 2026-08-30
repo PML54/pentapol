@@ -1,6 +1,9 @@
-// Modified: 2026-08-29 20:22 — §8 étape 3 : retrait de changeBoardSize, sans appelant depuis
-//           que le dialogue « Nouvelle partie » appelle startPuzzle directement.
+// Modified: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait du champ de score théorique (min.
+//           d'isométries) et de ses deux boucles de calcul (startPuzzle, startPuzzleFromSeed) —
+//           le score de fin de partie qui en dépendait est supprimé. firstSolution conservée.
 // lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-29 20:22 — §8 étape 3 : retrait de changeBoardSize, sans appelant depuis
+//             que le dialogue « Nouvelle partie » appelle startPuzzle directement.
 // Historique: 2026-08-29 13:43 — suppression du mode classique (§3.1) : méthode publique
 //             compatibleSolutions() pour le navigateur branché dans Pentoscope.
 // Historique: 2026-08-29 10:05 — 6×10 temps 2 étape 5 : champ solutionsCount, helper
@@ -23,8 +26,8 @@
 //           de comportement (aucune comparaison objet à objet dans ce fichier).
 // lib/pentoscope/pentoscope_provider.dart
 // Modified: 2605030800
-// Pentoscope: min isométries théoriques + translation mastercase / snap
-// CHANGEMENTS: (1) minIsometries + calcul sur toutes les solutions, (2) selectedMasterAbs et _calculateDesiredAnchorFromDrag, (3) snap sur ancre désirée + synchro masterAbs après isométries
+// Pentoscope: translation mastercase / snap
+// CHANGEMENTS: (1) selectedMasterAbs et _calculateDesiredAnchorFromDrag, (2) snap sur ancre désirée + synchro masterAbs après isométries
 import 'dart:async';
 import 'dart:math';
 
@@ -593,23 +596,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       piecePositionIndices[piece.id] = randomPos;
     }
 
-    // 🏆 Calculer le minimum théorique d'isométries sur toutes les solutions
-    int minIsometries = 0;
-    Solution? firstSolution;
-    if (puzzle.solutions.isNotEmpty) {
-      firstSolution = showSolution ? puzzle.solutions[0] : null;
-      int bestTotal = -1;
-      for (final solution in puzzle.solutions) {
-        int total = 0;
-        for (final placement in solution) {
-          final pento = pentominos.firstWhere((p) => p.id == placement.pieceId);
-          final initialPos = piecePositionIndices[placement.pieceId] ?? 0;
-          total += pento.minIsometriesToReach(initialPos, placement.positionIndex);
-        }
-        if (bestTotal < 0 || total < bestTotal) bestTotal = total;
-      }
-      if (bestTotal >= 0) minIsometries = bestTotal;
-    }
+    // Solution à afficher si l'option « montrer la solution » est active
+    final Solution? firstSolution =
+        (showSolution && puzzle.solutions.isNotEmpty) ? puzzle.solutions[0] : null;
 
     // ⏱️ Reset timer sans démarrer
     stopTimer();
@@ -630,9 +619,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: true,
       solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
-      minIsometries: minIsometries,
     );
-    
+
   }
 
   /// 🎮 Démarre un puzzle avec un seed et des pièces spécifiques (mode multiplayer)
@@ -660,22 +648,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       piecePositionIndices[piece.id] = randomPos;
     }
 
-    // 🏆 Minimum théorique d'isométries
-    int minIsometries = 0;
-    if (puzzle.solutions.isNotEmpty) {
-      int bestTotal = -1;
-      for (final solution in puzzle.solutions) {
-        int total = 0;
-        for (final placement in solution) {
-          final pento = pentominos.firstWhere((p) => p.id == placement.pieceId);
-          final initialPos = piecePositionIndices[placement.pieceId] ?? 0;
-          total += pento.minIsometriesToReach(initialPos, placement.positionIndex);
-        }
-        if (bestTotal < 0 || total < bestTotal) bestTotal = total;
-      }
-      if (bestTotal >= 0) minIsometries = bestTotal;
-    }
-
     // Reset timer sans démarrer
     stopTimer();
 
@@ -695,7 +667,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: true,
       solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
-      minIsometries: minIsometries,
     );
   }
 
@@ -1865,9 +1836,6 @@ class PentoscopeState implements PieceManipulationState {
   // ⏱️ Timer
   final int elapsedSeconds;
 
-  // 🏆 Score théorique minimum (isométries BFS sur toutes solutions)
-  final int minIsometries;
-
   const PentoscopeState({
     this.viewOrientation = ViewOrientation.portrait,
     this.puzzle,
@@ -1896,7 +1864,6 @@ class PentoscopeState implements PieceManipulationState {
     this.hasPossibleSolution = true, // 💡 Par défaut true au démarrage
     this.solutionsCount, // 🔢 null tant qu'aucun puzzle à table n'est démarré
     this.elapsedSeconds = 0, // ⏱️ Timer
-    this.minIsometries = 0, // 🏆
   });
 
   factory PentoscopeState.initial() {
@@ -1971,7 +1938,6 @@ class PentoscopeState implements PieceManipulationState {
     bool? hasPossibleSolution, // 💡 HINT
     int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer
-    int? minIsometries, // 🏆
   }) {
     return PentoscopeState(
       viewOrientation: viewOrientation ?? this.viewOrientation,
@@ -2014,7 +1980,6 @@ class PentoscopeState implements PieceManipulationState {
       hasPossibleSolution: hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
-      minIsometries: minIsometries ?? this.minIsometries, // 🏆
     );
   }
 
