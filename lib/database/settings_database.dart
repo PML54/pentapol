@@ -1,9 +1,10 @@
-// Modified: 2026-08-30 11:10 — PLAN_PERSISTANCE §7 étape 2 : schéma. Les deux tables mortes de
-//           l'ancien historique de parties retirées (et toutes leurs méthodes) ; ajout de
-//           CurrentGame, SolvedSolutions, PuzzleStats. schemaVersion 2 + migration destructive
-//           (destructiveFallback) — efface et recrée à tout changement de version. Les méthodes
-//           (écriture des records, restoreGame) viennent aux étapes 3-4.
+// Modified: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : méthodes d'écriture des records —
+//           recordSolvedSolution (upsert SolvedSolutions, meilleur temps/actions) et
+//           recordPuzzleCompleted (upsert PuzzleStats). CurrentGame reste sans méthode (étape 4).
 // lib/database/settings_database.dart
+// Historique: 2026-08-30 11:10 — étape 2 : schéma. Tables mortes de l'ancien historique retirées ;
+//             ajout de CurrentGame, SolvedSolutions, PuzzleStats ; schemaVersion 2 +
+//             destructiveFallback.
 // Historique: 2025-11-16 10:15:00 → 251226 — base SQLite Pentapol (Drift), version corrigée.
 
 import 'dart:io';
@@ -125,9 +126,84 @@ class SettingsDatabase extends _$SettingsDatabase {
   }
 
   // ============================================================================
-  // Records (SolvedSolutions / PuzzleStats) et partie en cours (CurrentGame) :
-  // les tables sont définies ci-dessus ; leurs méthodes d'accès viennent aux
-  // étapes 3 et 4 du PLAN_PERSISTANCE.
+  // RECORDS - SolvedSolutions (rectangles complets) / PuzzleStats (pièces tirées)
   // ============================================================================
+
+  /// Enregistre une solution découverte sur un rectangle complet. Upsert : incrémente
+  /// `timesSolved`, ne garde que le meilleur temps et le meilleur nombre d'actions.
+  Future<void> recordSolvedSolution({
+    required String board,
+    required int solutionNumber,
+    required int timeSeconds,
+    int? actions,
+  }) async {
+    final existing = await (select(solvedSolutions)
+          ..where((s) =>
+              s.board.equals(board) & s.solutionNumber.equals(solutionNumber)))
+        .getSingleOrNull();
+    final now = DateTime.now();
+
+    if (existing == null) {
+      await into(solvedSolutions).insert(
+        SolvedSolutionsCompanion.insert(
+          board: board,
+          solutionNumber: solutionNumber,
+          bestTimeSeconds: timeSeconds,
+          bestActions: Value(actions),
+          firstSolvedAt: now,
+          lastSolvedAt: now,
+        ),
+      );
+    } else {
+      final bestActions = (existing.bestActions == null)
+          ? actions
+          : (actions == null
+              ? existing.bestActions
+              : (actions < existing.bestActions! ? actions : existing.bestActions));
+      await (update(solvedSolutions)
+            ..where((s) =>
+                s.board.equals(board) & s.solutionNumber.equals(solutionNumber)))
+          .write(
+        SolvedSolutionsCompanion(
+          timesSolved: Value(existing.timesSolved + 1),
+          bestTimeSeconds: Value(
+              timeSeconds < existing.bestTimeSeconds ? timeSeconds : existing.bestTimeSeconds),
+          bestActions: Value(bestActions),
+          lastSolvedAt: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Enregistre la complétion d'un puzzle à pièces tirées (pas de numéro de solution).
+  /// Upsert : incrémente `completed`, ne garde que le meilleur temps.
+  Future<void> recordPuzzleCompleted({
+    required String sizeName,
+    required int timeSeconds,
+  }) async {
+    final existing = await (select(puzzleStats)
+          ..where((s) => s.sizeName.equals(sizeName)))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      await into(puzzleStats).insert(
+        PuzzleStatsCompanion.insert(
+          sizeName: sizeName,
+          completed: const Value(1),
+          bestTimeSeconds: Value(timeSeconds),
+        ),
+      );
+    } else {
+      final best = (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!)
+          ? timeSeconds
+          : existing.bestTimeSeconds;
+      await (update(puzzleStats)..where((s) => s.sizeName.equals(sizeName))).write(
+        PuzzleStatsCompanion(
+          completed: Value(existing.completed + 1),
+          bestTimeSeconds: Value(best),
+        ),
+      );
+    }
+  }
 
 }

@@ -1,7 +1,10 @@
-// Modified: 2026-08-30 06:58 — PLAN_BILAN §5 : le chrono ne s'arrêtait pas en fin de partie.
-//           (A) garde de tryPlacePiece exclut isComplete ; (B) resetTimer() aux 3 démarrages
-//           (reset, startPuzzle, startPuzzleFromSeed) au lieu de stopTimer() — efface l'origine.
+// Modified: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : records. _saveCompletedLevel (qui
+//           écrivait dans les préférences clé/valeur une donnée jamais relue) remplacé par
+//           _saveCompletionRecord qui écrit dans SolvedSolutions/PuzzleStats via solutionIndexOf ;
+//           appelé aux DEUX complétions (placement ET indice). Import du paquet de prefs retiré.
 // lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-08-30 06:58 — PLAN_BILAN §5 : le chrono ne s'arrêtait pas en fin de partie.
+//             (A) garde de tryPlacePiece exclut isComplete ; (B) resetTimer() aux 3 démarrages.
 // Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait du champ de score théorique (min.
 //             d'isométries) et de ses deux boucles de calcul (startPuzzle, startPuzzleFromSeed).
 // Historique: 2026-08-29 20:22 — §8 étape 3 : retrait de changeBoardSize, sans appelant depuis
@@ -35,7 +38,7 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
@@ -288,6 +291,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       clearPreview: true,
       validPlacements: [],
     );
+
+    // 💾 Un indice peut compléter le puzzle : enregistrer le record comme pour un placement.
+    if (isComplete) {
+      _saveCompletionRecord();
+    }
   }
 
   /// `(hasPossibleSolution, solutionsCount)` pour un plateau donné par ses pièces.
@@ -672,26 +680,38 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  /// 💾 Sauvegarder le niveau terminé
-  Future<void> _saveCompletedLevel() async {
-    if (state.puzzle == null) return;
+  /// 💾 Enregistre le record d'un puzzle terminé (appelé à la complétion, état déjà à jour).
+  ///
+  /// La frontière entre les deux tables passe par `solutionIndexOf` (PLAN_PERSISTANCE §4.3) :
+  /// un rectangle complet adossé à une table nomme sa solution → `SolvedSolutions` ; toute
+  /// autre taille n'a pas de numéro → `PuzzleStats`. Aucun test de taille ici.
+  Future<void> _saveCompletionRecord() async {
+    final puzzle = state.puzzle;
+    if (puzzle == null) return;
+
+    final board = _rebuildPlateau();
+    final solutionNumber = _solutions.solutionIndexOf(board);
+    final seconds = getElapsedSeconds();
+    final actions =
+        state.isometryCount + state.translationCount + state.deleteCount;
+    final db = ref.read(settingsDatabaseProvider);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final progressData = {
-        'boardSize': '${state.puzzle!.size.width}x${state.puzzle!.size.height}',
-        'pieceIds': state.puzzle!.pieceIds.join(','),
-        'completionTime': getElapsedSeconds(),
-        'completedAt': DateTime.now().toIso8601String(),
-      };
-
-      // Sauvegarder sous forme de chaîne JSON-like
-      final progressString = progressData.entries.map((e) => '${e.key}:${e.value}').join('|');
-      await prefs.setString('pentoscope_last_completed', progressString);
-
-      debugPrint('💾 Niveau sauvegardé: ${state.puzzle!.size.label}, temps: ${getElapsedSeconds()}s');
+      if (solutionNumber != null) {
+        await db.recordSolvedSolution(
+          board: '${puzzle.size.width}x${puzzle.size.height}',
+          solutionNumber: solutionNumber,
+          timeSeconds: seconds,
+          actions: actions,
+        );
+      } else {
+        await db.recordPuzzleCompleted(
+          sizeName: puzzle.size.name,
+          timeSeconds: seconds,
+        );
+      }
     } catch (e) {
-      debugPrint('❌ Erreur lors de la sauvegarde du niveau: $e');
+      debugPrint('❌ Enregistrement du record échoué: $e');
     }
   }
 
@@ -773,8 +793,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // ⏱️ Arrêter le timer si puzzle complet
     if (isComplete) {
       stopTimer();
-      // 💾 Sauvegarder le progrès du niveau réussi
-      _saveCompletedLevel();
     }
 
     // 💡 HINT: Vérifier si une solution est encore possible + le compte
@@ -797,6 +815,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount, // 🔢
     );
+
+    // 💾 Enregistrer le record à la complétion (après màj de l'état : le plateau est complet)
+    if (isComplete) {
+      _saveCompletionRecord();
+    }
 
     // ⏱️ Démarrer le timer au premier placement depuis le slider — mais jamais sur une
     // partie qui vient d'être complétée (le stopTimer ci-dessus a mis isTimerRunning à false).

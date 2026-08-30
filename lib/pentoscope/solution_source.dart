@@ -1,7 +1,10 @@
-// Modified: 2026-08-29 13:43 — suppression du mode classique (§3.1) : 4e méthode
-//           compatibleSolutions(plateau) — la table renvoie les solutions compatibles en
-//           BigInt (pour le navigateur), le solveur à la volée renvoie [].
+// Modified: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : 5e méthode solutionIndexOf(plateau)
+//           — numéro 1-based de la solution atteinte (table) ou null (solveur à la volée) ;
+//           c'est la frontière SolvedSolutions / PuzzleStats pour les records.
 // lib/pentoscope/solution_source.dart
+// Historique: 2026-08-29 13:43 — suppression du mode classique (§3.1) : 4e méthode
+//             compatibleSolutions(plateau) — la table renvoie les solutions compatibles en
+//             BigInt (pour le navigateur), le solveur à la volée renvoie [].
 // Historique: 2026-08-29 09:26 — 6×10 temps 2 étape 2 : interface SolutionSource + 2 impls.
 // D'où viennent les réponses « solution » d'un puzzle Pentoscope :
 // - rectangle complet adossé à une table (6×10 aujourd'hui) → TableSolutionSource ;
@@ -36,6 +39,13 @@ abstract interface class SolutionSource {
   /// navigateur de solutions). Liste vide pour la source à la volée, qui ne les
   /// énumère pas.
   List<BigInt> compatibleSolutions(Plateau plateau);
+
+  /// Le **numéro** (1-based) de la solution atteinte sur un plateau **complet**, ou
+  /// `null` si la source ne sait pas la nommer (solveur à la volée) ou si le plateau
+  /// ne correspond à aucune solution de la table. C'est la frontière entre les deux
+  /// familles de records : `null` → PuzzleStats, un entier → SolvedSolutions
+  /// (PLAN_PERSISTANCE §4.3).
+  int? solutionIndexOf(Plateau plateau);
 }
 
 /// Grille `[y][x]` attendue par le solveur, construite depuis un plateau.
@@ -86,6 +96,9 @@ class LiveSolutionSource implements SolutionSource {
 
   @override
   List<BigInt> compatibleSolutions(Plateau plateau) => const [];
+
+  @override
+  int? solutionIndexOf(Plateau plateau) => null;
 }
 
 /// Source adossée à une table pré-calculée (rectangle complet), au-dessus d'un
@@ -147,5 +160,15 @@ class TableSolutionSource implements SolutionSource {
   List<BigInt> compatibleSolutions(Plateau plateau) {
     final (pieces, m) = _mask(plateau);
     return _matcher.getCompatibleSolutionsFromBigInts(pieces, m);
+  }
+
+  @override
+  int? solutionIndexOf(Plateau plateau) {
+    // Sur un plateau complet, `pieces` est exactement le BigInt d'une solution du
+    // .bin ; findSolutionIndex renvoie son rang 0-based (-1 si absent). On expose un
+    // numéro 1-based, aligné sur SolvedSolutions.solutionNumber (1..9356).
+    final (pieces, _) = _mask(plateau);
+    final idx = _matcher.findSolutionIndex(pieces);
+    return idx < 0 ? null : idx + 1;
   }
 }
