@@ -30,18 +30,22 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 4. **partie en cours** — écriture, effacement, `restoreGame`, observateur de cycle de vie.
    L'étape la plus délicate, isolée à dessein.
 
-**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1 à 4 faites** (`453ae49`,
-`eb131f7`, `b462a0c`, `c098ce0`), décisions 55-58, `flutter analyze` 0 warning, critères §6
-verts (grep) :
+**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1 à 4 + correctif §4d faites**
+(`453ae49`, `eb131f7`, `b462a0c`, `c098ce0`, `e762836`), décisions 55-60, `flutter analyze`
+0 warning, critères §6 verts :
 1. `PieceRenderer.cellSize` paramétrable (défaut 22, filet — rien ne bouge à l'écran) ;
 2. barre et feedback de drag ancrés sur le plateau (`pieceCellSize = boardCellSize × k`,
    `k=0.45`), hauteur/largeur de barre dérivées, dépendance circulaire résolue (décision 58) ;
 3. helper unique `_uiIconSize`/`_uiAppBarHeight` (shortestSide) remplaçant les 4 constantes ;
-4. textes (numéro de case, badge de pièce) proportionnels à leur case.
+4. textes (numéro de case, badge de pièce) proportionnels à leur case ;
+- **§4d, correctif (décision 59)** : les icônes de l'AppBar ne grandissaient pas — les
+  `IconButton` du bloc `actions:` n'ont pas de `size:`, ils héritent de l'`IconTheme`. Réglé
+  par `iconTheme`/`actionsIconTheme` (héritage) + `_uiLabelSize` pour le chrono/pictos/compteurs
+  du titre et `leadingWidth`. Test appareil de Paul (iPad Pro 13″) : pièces OK, icônes non → réglé.
 **L'étape 5 (suppression des ~980 lignes orphelines) n'est PAS faite** — sur consigne de Paul,
 elles servent d'inspiration aux formules tant que le réglage n'est pas validé sur appareil. Le
-plafond de la case du plateau reste reporté (décision 57). **Toutes les valeurs numériques sont
-à régler à l'œil sur iPhone ET iPad** — c'est tout l'objet du plan, et rien n'est encore testé.
+plafond de la case du plateau reste reporté (décision 57). **Les valeurs numériques restent à
+régler à l'œil** ; seul le premier retour iPad (les icônes) a été traité.
 
 **Chantiers en attente, par ordre de valeur :**
 
@@ -92,9 +96,8 @@ sauvegardait rien avant). `flutter analyze` 0 warning à chaque étape.
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : persistance poussée jusqu'à `e93d3be`. **Non poussés** : les 4 commits d'ergonomie
-`453ae49`, `eb131f7`, `b462a0c`, `c098ce0` et ce commit de journal (qui joint aussi le plan
-`PLAN_ERGONOMIE_TABLETTE.md`, resté non tracké).
+**Git** : ergonomie 1-4 poussée jusqu'à `b378cd8`. **Non poussés** : `e762836` (correctif §4d)
+et ce commit de journal (qui joint la mise à jour §4d du plan par cowork).
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -537,6 +540,30 @@ détaillé.
     AppBar, ratios de texte) sont des **points de départ à régler à l'œil**, comme prévu. →
     `eb131f7`, `b462a0c`, `c098ce0`.
 
+59. **2026-08-30 — cowork** — **§4d du plan ergonomie était incomplet : erreur d'énumération
+    de cowork, pas défaut d'exécution du CLI.** Constat de Paul au test iPad Pro 13″ : les
+    pièces de la barre ont bien grandi, **les icônes de l'AppBar non**. Cause : j'avais
+    énuméré les sites en cherchant les **constantes de taille existantes** (`42.0`,
+    `clamp(20,36)`, `clamp(28,50)`, `56.0`). Or les `IconButton` du bloc `actions:`
+    (l.188-250) n'ont **aucun `size:`** — ils héritent du défaut Flutter, 24 pt. Il n'y avait
+    rien à remplacer, donc rien n'a bougé. Effet pervers : la hauteur de barre étant bien
+    passée à ~100 pt sur iPad, les icônes **paraissent plus petites qu'avant**.
+    Même angle mort pour le reste du contenu de la barre, figé aux tailles du téléphone :
+    `leadingWidth: 60`, chrono `fontSize: 14`, titre `Icon(size: 14)` ×4 et `Text(fontSize: 12)` ×3.
+    **Leçon de méthode** : énumérer les valeurs qui existent rate les widgets qui n'en ont pas.
+    Le correctif passe donc par **héritage** — `AppBar.iconTheme` et `actionsIconTheme` — et
+    non par une seconde énumération : ça règle aussi les boutons qu'on ajoutera demain.
+    → `PLAN_ERGONOMIE_TABLETTE.md` §4d.
+
+60. **2026-08-30 — CLI** — **deux précisions à l'exécution de §4d.** (a) `_uiLabelSize` reçoit
+    un **plancher à 13** : le plan disait « ≈ `_uiIconSize × 0.35` », mais sur iPhone
+    `_uiIconSize` plafonne à 30, donc ×0.35 = 10,5 — **plus petit** que l'actuel (12-14), ce qui
+    violait le garde-fou « iPhone proche de l'actuel ». Le plancher tient le garde-fou sans
+    empêcher la croissance sur tablette. (b) Le **numéro du compteur de solutions** du titre
+    (`Text(fontSize: 13)`) n'était **pas** dans la liste de §4d (« trois `Text(fontSize: 12)` »),
+    laissé tel quel ; son picto voisin, lui, est l'un des quatre `Icon(14)` et suit `_uiLabelSize`.
+    Léger décalage à surveiller au test — à trancher par cowork si gênant. → `e762836`.
+
 ---
 
 ## §PASSATIONS
@@ -790,3 +817,17 @@ plan et du journal corrigés. Ce commit joint le plan, resté non tracké.
 **Dû par Paul, et c'est tout l'objet du plan** : régler à l'œil sur iPhone **et** iPad
 (`k`, clamps d'icônes/AppBar, ratios de texte) ; puis trancher le plafond du plateau (57) et
 l'étape 5. Rien n'est testé sur appareil.
+
+**2026-08-30 — cowork → toi (correctif §4d).** Le test de Paul a mis au jour une erreur de
+**mon** plan, pas du travail du CLI : §4d n'énumérait que les constantes de taille existantes
+et manquait les `IconButton` qui n'en ont aucune. Correctif écrit, par héritage
+(`AppBar.iconTheme` / `actionsIconTheme`) plutôt que par une seconde énumération.
+Décision 59. **Aucun code touché.**
+
+**2026-08-30 — CLI → cowork (correctif §4d FAIT).** Appliqué en un commit (`e762836`) :
+`iconTheme`/`actionsIconTheme` = `_uiIconSize` (héritage, aucun `size:` par bouton) ; helper
+`_uiLabelSize` pour le chrono, les 4 `Icon(14)` et 3 `Text(12)` du titre ; `leadingWidth`
+dérivé. `flutter analyze` 0 warning. Décision 60 (deux précisions) : plancher 13 sur
+`_uiLabelSize` pour tenir l'iPhone proche de l'actuel ; le numéro du compteur (`Text(13)`),
+hors liste de §4d, laissé tel quel — **léger décalage à regarder au test, à toi de trancher
+s'il gêne**. Reste : le réglage à l'œil des valeurs, le plafond (57), l'étape 5.

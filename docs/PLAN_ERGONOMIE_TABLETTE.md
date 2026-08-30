@@ -124,6 +124,41 @@ la marge. Sinon on agrandit les pièces dans un contenant qui ne bouge pas.
 `.clamp(28, 50)` (l.625), `.clamp(20, 36)` (l.846). Un seul helper, dérivé de
 `MediaQuery.size.shortestSide`, remplace les quatre.
 
+> 🔴 **§4d était incomplet — constaté au test du 2026-08-30 (décision 59).** Les icônes de
+> l'AppBar principale n'ont **pas** grandi, et l'étape 3 n'y est pour rien : j'avais énuméré
+> les sites en cherchant les **constantes de taille existantes**. Or les `IconButton` du bloc
+> `actions:` (l.188-250) n'ont **aucun `size:`** — ils héritent du défaut de Flutter, 24 pt.
+> Il n'y avait rien à remplacer, donc rien n'a changé. Et comme la hauteur de barre, elle, est
+> bien passée à ~100 pt sur iPad, les icônes paraissent **plus petites qu'avant**.
+>
+> Même angle mort pour tout le contenu de la barre, figé aux tailles du téléphone :
+> `leadingWidth: 60`, chrono `fontSize: 14`, et dans le titre `Icon(size: 14)` ×4 avec
+> `Text(fontSize: 12)` ×3.
+>
+> **Correctif — par héritage, pas par énumération.** `AppBar` expose `iconTheme` et
+> `actionsIconTheme` : les y poser règle **tous** les `IconButton` du bloc en une fois, y
+> compris ceux qu'on ajoutera demain.
+>
+> ```dart
+> AppBar(
+>   toolbarHeight: _uiAppBarHeight(context),
+>   iconTheme:        IconThemeData(size: _uiIconSize(context)),
+>   actionsIconTheme: IconThemeData(size: _uiIconSize(context)),
+>   …
+> )
+> ```
+>
+> `IconButton` prend sa taille dans `IconTheme` quand `iconSize` n'est pas donné : c'est le
+> mécanisme prévu, et il rend l'énumération inutile. Restent à dériver explicitement, parce
+> qu'ils ne relèvent pas de l'`IconTheme` : `leadingWidth`, et les tailles de texte du
+> `leading` et du `title` — un second helper `_uiLabelSize(context)` (≈ `_uiIconSize × 0.35`)
+> suffit.
+>
+> ⚠️ `IconButton` ajoute son `padding` (8) et ses `constraints` (48 min). À 64 pt d'icône, un
+> bouton fait ~80 pt ; cinq boutons ~400 pt sur une barre de 1032 — ça passe, mais c'est à
+> regarder si un sixième revient (le navigateur de solutions n'apparaît que sur les tailles à
+> table).
+
 **e) Les textes** — le numéro de pièce sur le plateau (`fontSize` 14/16) et les badges de la
 barre. Même ancrage que leur contenant : proportionnels à la case, pas fixes.
 
