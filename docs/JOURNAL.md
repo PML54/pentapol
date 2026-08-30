@@ -6,7 +6,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session CLI (bilan de fin de partie)
+## §ÉTAT — au 2026-08-30, fin de session CLI (chronomètre)
 
 **Code : §8 appliquée et testée sur appareil par Paul.** L'application est désormais un
 module de jeu unique — Pentoscope, tailles `size3x5`…`size9x5` plus `size6x10` — avec le
@@ -14,8 +14,15 @@ multijoueur qui réutilise son provider. Plus d'écran d'accueil, plus de route 
 `main.dart` monte `PentoscopeGameScreen`. Réglages dans l'AppBar, dialogue « Nouvelle
 partie » (taille + difficulté + montrer la solution).
 
-**`PLAN_BILAN_FIN_PARTIE.md` appliqué** — 2 commits (`d987530`, `5ea4ebe`), `flutter analyze`
-0 warning, critères §4 tous verts (grep) :
+**`PLAN_BILAN_FIN_PARTIE.md` appliqué en entier** — 3 commits, `flutter analyze` 0 warning,
+critères de fin tous verts (grep) :
+0. **§5 — chronomètre corrigé** (`0eb95f2`). Le temps continuait après complétion. Deux
+   défauts qui se masquaient : (A) `tryPlacePiece` relançait le chrono juste après l'avoir
+   arrêté — garde de démarrage étendue à `!isComplete` ; (B) `resetTimer()` n'avait **aucun
+   appelant** (écrit à l'unification, jamais branché — décision 45), les trois démarrages de
+   partie appelaient `stopTimer()` qui conserve l'origine, si bien que chaque partie
+   réutilisait l'origine de la première. Les trois passent à `resetTimer()`. Sites de fin
+   (`applyHint`, `tryPlacePiece`) et `onDispose` gardent `stopTimer()`.
 1. **§3 — score retiré** (`d987530`). Le score de fin de partie était faux deux fois
    (décision 41) : retiré avec son calcul (`scorePercent`, `scoreColor`, `minTotal`,
    `realTotal`), le champ de score théorique de `PentoscopeState` et sa plomberie `copyWith`,
@@ -55,8 +62,8 @@ mort dans la documentation descriptive.
 client**. Rien à défaire, mais à ne pas hériter sans l'examiner. Le commentaire de
 `piece_manipulation_state.dart` l.14 cite encore `PentominoGameState`, qui n'existe plus.
 
-**Git** : documentation poussée jusqu'à `fe3c331` ; **non poussés** : `19945c9` (passe
-documentaire), `d987530`+`5ea4ebe` (bilan) et ce commit de journal.
+**Git** : poussé jusqu'à `6696867` (passe documentaire `19945c9`, bilan `d987530`+`5ea4ebe`,
+journal). **Non poussés** : `0eb95f2` (chrono §5) et ce commit de journal.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -362,6 +369,27 @@ détaillé.
     `setState`), le rebuild étant déjà déclenché par le changement d'état du provider. → §2,
     `5ea4ebe`.
 
+45. **2026-08-30 — cowork** — **« le temps continue quand le puzzle est complet » : deux
+    défauts, pas un.** Signalé par Paul, diagnostiqué dans `pentoscope_provider.dart`.
+    (Renuméroté 44 → 45 par le CLI : collision avec la décision 44 `_bilanFerme`.)
+    a) `tryPlacePiece` arrête le chrono à la complétion (l.773) puis le **relance** vingt-cinq
+       lignes plus bas : `if (!isTimerRunning && !wasPlacedPiece) startTimer();` (l.799-801).
+       En posant la dernière pièce depuis la barre, `isTimerRunning` vient de passer à faux
+       *parce qu'on vient de l'arrêter* → la garde est satisfaite. Ne se manifeste donc que
+       dans le cas normal ; finir en déplaçant une pièce posée, ou par un indice, arrête bien
+       le temps.
+    b) **`resetTimer()` n'est appelé nulle part** — `grep` ne trouve que sa déclaration.
+       Les trois sites qui démarrent une partie neuve (`reset` l.437, `startPuzzle` l.604,
+       `startPuzzleFromSeed` l.652) appellent `stopTimer()`, qui **conserve l'origine**.
+       `_startTime` n'est donc jamais effacé de toute la vie de l'app : la partie suivante
+       repart du temps cumulé depuis le lancement. Le commentaire de la l.436 dit « Reset »,
+       l'appel dit `stop`.
+    **b est masqué par a** : corriger a seul rendrait b immédiatement visible. Un seul commit.
+    Ironie : `resetTimer()` a été créée exactement pour ce cas lors de l'unification (famille
+    Chrono) — écrite, documentée, jamais branchée. Cas d'école de l'avertissement de
+    `CLAUDE.md` : `flutter analyze` ne signale pas une méthode publique sans appelant.
+    → `PLAN_BILAN_FIN_PARTIE.md` §5, à appliquer **avant** le reste de ce plan.
+
 ---
 
 ## §PASSATIONS
@@ -522,4 +550,22 @@ bandeau non modal `_BilanBanner`, portrait + paysage). `flutter analyze` 0 warni
 resté non tracké. **Non poussé** — `19945c9` + `d987530` + `5ea4ebe` + ce commit de journal.
 **À faire, dû par Paul** : test appareil du bandeau (plateau visible, Fermer/Nouvelle partie,
 plus de pourcentage rouge sur 6×10, portrait ET paysage, multijoueur inchangé).
+**Reste** : §9 (historique) et §5 du plan 6×10 (tables 5×12, 4×15).
+
+**2026-08-30 — cowork → toi (chronomètre).** Bug rapporté par Paul diagnostiqué : deux
+défauts, dont un qu'il n'a pas encore pu voir parce que le premier le masque (décision 45).
+§5 ajoutée à `PLAN_BILAN_FIN_PARTIE.md`, placée en étape 0 — le bandeau affiche le temps,
+autant qu'il affiche le bon. **Aucun code touché.**
+
+**2026-08-30 — CLI → cowork (chrono FAIT).** §5 appliquée en **un seul commit** (`0eb95f2`),
+les deux défauts ensemble (ils se masquent). (A) garde de `tryPlacePiece` étendue à
+`!isComplete` ; (B) `resetTimer()` aux trois démarrages (`reset`, `startPuzzle`,
+`startPuzzleFromSeed`), `stopTimer()` conservé aux sites de fin et à `onDispose`. Critères
+§5.3 verts (resetTimer ×3, stopTimer ×3, garde ×1), `flutter analyze` 0 warning. Les numéros
+de ligne de §5 tombaient juste (cowork a diagnostiqué après le §3). **Les étapes 1 et 2 du
+plan étaient déjà faites et poussées** (`d987530`, `5ea4ebe`) — rien à ré-enchaîner. Décision
+de cowork renumérotée 44 → 45 (collision avec la 44 `_bilanFerme`). **Non poussé** :
+`0eb95f2` + ce commit de journal.
+**À faire, dû par Paul** : test appareil du chrono (fin en posant depuis la barre → le temps
+se fige ; deux parties d'affilée → la 2ᵉ repart de 00:00) et du bandeau (hérité).
 **Reste** : §9 (historique) et §5 du plan 6×10 (tables 5×12, 4×15).

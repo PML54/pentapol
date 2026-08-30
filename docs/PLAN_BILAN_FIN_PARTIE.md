@@ -102,6 +102,7 @@ hors du provider est la l.951. Sont à retirer avec lui :
 
 ## 4. Ordre et critères de fin
 
+0. **Corriger le chronomètre** (§5) — commit seul, **en premier**.
 1. **Retirer le score et `minIsometries`** — commit seul. Le dialogue existe encore, il
    perd sa dernière ligne.
 2. **Remplacer le dialogue par le bandeau** — commit seul.
@@ -127,6 +128,116 @@ Test appareil :
 - terminer un 6×10 : plus de pourcentage rouge ;
 - portrait **et** paysage ;
 - le multijoueur n'est pas touché (écran distinct) — mais le tester, il partage le provider.
+
+---
+
+## 5. Le chronomètre ne s'arrête pas — deux défauts
+
+> Signalé par Paul le 2026-08-30 : « quand le puzzle est complet le temps continue ».
+> Diagnostiqué dans `pentoscope_provider.dart`. **Deux défauts distincts**, dont le second
+> est masqué par le premier — corriger l'un sans l'autre rendrait l'autre visible.
+
+### 5.1 Défaut A — le chrono est relancé juste après avoir été arrêté
+
+`tryPlacePiece` arrête le chrono à la complétion (l.771-776) :
+
+```dart
+if (isComplete) {
+  stopTimer();
+  _saveCompletedLevel();
+}
+```
+
+…puis, **vingt-cinq lignes plus bas, après le `copyWith`** (l.799-801) :
+
+```dart
+// ⏱️ Démarrer le timer au premier placement depuis le slider
+if (!isTimerRunning && !wasPlacedPiece) {
+  startTimer();
+}
+```
+
+À la pose de la **dernière** pièce depuis la barre : `wasPlacedPiece` est faux, et
+`isTimerRunning` vient de passer à faux **parce qu'on vient de l'arrêter**. La garde est
+donc satisfaite et le chrono **repart immédiatement**. C'est exactement le symptôme.
+
+> Le bug ne se voit pas quand on termine en **déplaçant** une pièce déjà posée :
+> `wasPlacedPiece` est alors vrai et la relance n'a pas lieu. Il ne se manifeste donc que
+> dans le cas normal — finir en posant une pièce de la barre.
+>
+> `applyHint` (l.267-270) n'a **pas** ce défaut : il arrête le chrono et ne le relance
+> jamais. Finir par un indice arrête donc correctement le temps.
+
+**Correctif** — exclure la complétion de la garde de démarrage :
+
+```dart
+if (!isComplete && !isTimerRunning && !wasPlacedPiece) {
+  startTimer();
+}
+```
+
+Préférer la garde au déplacement du bloc `stopTimer()` : elle dit l'intention (« on ne
+démarre pas un chrono sur une partie finie ») au lieu de dépendre d'un ordre de lignes.
+
+### 5.2 Défaut B — `resetTimer()` n'est appelé nulle part
+
+Vérifié : `grep -rn "resetTimer" lib/` ne trouve que sa **déclaration** et sa
+**documentation** dans `common/game_timer_mixin.dart`. Aucun appelant.
+
+Or le mixin distingue explicitement deux intentions :
+
+| Méthode | Effet | Reprise après |
+|---|---|---|
+| `stopTimer()` | arrête le tic, **conserve** l'origine | reprend là où on s'était arrêté |
+| `resetTimer()` | arrête le tic et **efface** l'origine | repart de zéro |
+
+Les trois sites qui **démarrent une partie neuve** appellent `stopTimer()` :
+
+| ligne | méthode | commentaire du code |
+|---|---|---|
+| 437 | `reset()` | « ⏱️ **Reset** sans démarrer le timer » — le commentaire dit reset, l'appel dit stop |
+| 604 | `startPuzzle` | |
+| 652 | `startPuzzleFromSeed` | |
+
+`_startTime` n'est donc **jamais effacé de toute la vie de l'application**. Au premier
+placement de la partie suivante, `startTimer()` exécute `_startTime ??= DateTime.now()` :
+l'origine de la **toute première** partie est réutilisée. L'état neuf affiche `0`, puis le
+premier tic écrit le temps écoulé depuis le lancement de l'app.
+
+**Correctif** : `resetTimer()` aux lignes 437, 604 et 652. Les deux sites de **fin** de
+partie — `applyHint` l.269 et `tryPlacePiece` l.773 — gardent `stopTimer()`, qui est le bon
+appel : la partie est finie, l'origine doit rester lisible pour `_saveCompletedLevel`. Le
+`ref.onDispose` l.157-159 garde `stopTimer()` également.
+
+> **Ironie à consigner.** `resetTimer()` a été créée **exactement pour ce cas**, lors de
+> l'unification (famille Chrono) : la séparation stop/reset répondait à deux `startTimer`
+> aux gardes incompatibles. La méthode a été écrite, documentée… et jamais branchée. C'est
+> le cas d'école de l'avertissement de `CLAUDE.md` : **`flutter analyze` ne signale pas une
+> méthode publique sans appelant.**
+
+> Le multijoueur n'est pas concerné : `pentoscope_mp_provider.dart` a son propre chrono, avec
+> son propre `_startTime` qu'il réaffecte à chaque démarrage (l.603, l.621).
+
+### 5.3 Ordre et critères de fin
+
+**Ces deux correctifs passent AVANT le reste de ce plan** : le bandeau affiche le temps, il
+vaut mieux qu'il affiche le bon. Un seul commit — les deux défauts touchent le même sujet et
+se masquent l'un l'autre, les séparer laisserait un état intermédiaire trompeur.
+
+```bash
+P=lib/pentoscope/pentoscope_provider.dart
+grep -n 'resetTimer' $P          # attendu : 3 (reset, startPuzzle, startPuzzleFromSeed)
+grep -n 'stopTimer' $P           # attendu : 3 (onDispose, applyHint, tryPlacePiece)
+grep -n 'isComplete && !isTimerRunning' $P   # attendu : 1
+```
+
+Test appareil :
+
+- terminer un puzzle en posant la dernière pièce **depuis la barre** : le temps **se fige** ;
+- terminer un puzzle **en déplaçant** une pièce déjà posée : idem (cas déjà correct) ;
+- terminer par un **indice** : idem ;
+- enchaîner deux parties : la seconde repart bien de **00:00**, pas du temps cumulé ;
+- « Nouvelle partie » depuis le bandeau, et changement de taille : même vérification.
 
 ---
 
