@@ -1,7 +1,10 @@
-// Modified: 2025-11-16 10:15:00 → 251226
+// Modified: 2026-08-30 11:10 — PLAN_PERSISTANCE §7 étape 2 : schéma. Les deux tables mortes de
+//           l'ancien historique de parties retirées (et toutes leurs méthodes) ; ajout de
+//           CurrentGame, SolvedSolutions, PuzzleStats. schemaVersion 2 + migration destructive
+//           (destructiveFallback) — efface et recrée à tout changement de version. Les méthodes
+//           (écriture des records, restoreGame) viennent aux étapes 3-4.
 // lib/database/settings_database.dart
-// Base de données SQLite pour Pentapol (Drift)
-// VERSION CORRIGÉE - Sans erreurs d'initialisation
+// Historique: 2025-11-16 10:15:00 → 251226 — base SQLite Pentapol (Drift), version corrigée.
 
 import 'dart:io';
 import 'package:drift/drift.dart';
@@ -29,75 +32,66 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-/// Table pour sauvegarder les sessions de jeu (solutions résolues)
-@DataClassName('GameSession')
-class GameSessions extends Table {
-  IntColumn get id => integer().autoIncrement()();
-
-  // Le numéro unique de la solution trouvée (1, 2, 3, ...)
-  IntColumn get solutionNumber => integer()();
-
-  // Temps écoulé en secondes (225 = 3:45)
+/// La partie en cours — une seule ligne (id fixe 0), écrasée. Voir PLAN_PERSISTANCE §2.
+/// Ne stocke ni le plateau (reconstruit depuis placedPieces) ni les solutions.
+class CurrentGame extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))(); // ligne unique
+  TextColumn get sizeName => text()();          // PentoscopeSize.name, ex. 'size6x10'
+  TextColumn get pieceIds => text()();          // '1,2,3,…' — le tirage du puzzle
+  IntColumn get solutionCount => integer()();   // repris de PentoscopePuzzle
+  TextColumn get placedPieces => text()();      // JSON : [{id,pos,x,y}, …]
+  TextColumn get positionIndices => text()();   // JSON : {pieceId: orientation}
   IntColumn get elapsedSeconds => integer()();
+  IntColumn get isometryCount => integer()();
+  IntColumn get translationCount => integer()();
+  IntColumn get deleteCount => integer()();
+  IntColumn get hintCount => integer()();
+  DateTimeColumn get savedAt => dateTime()();
 
-  // Score calculé (1000 - seconds, clamped 0-1000)
-  IntColumn get score => integer().nullable()();
-
-  // Nombre de pièces placées (pour vérifier completion)
-  IntColumn get piecesPlaced => integer().nullable()();
-
-  // Nombre de "mauvaises tentatives" (placements annulés)
-  IntColumn get numUndos => integer().nullable()();
-
-  // 🆕 Nombre d'isométries appliquées pendant la session
-  IntColumn get isometriesCount => integer().nullable()();
-
-  // 🆕 Nombre de fois où le user a consulté les solutions
-  IntColumn get solutionsViewCount => integer().nullable()();
-
-  // Timestamp de complétion
-  DateTimeColumn get completedAt => dateTime().withDefault(currentDateAndTime)();
-
-  // Notes utilisateur (optionnel)
-  TextColumn get playerNotes => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
-/// Table pour les statistiques agrégées par solution
-@DataClassName('SolutionStat')
-class SolutionStats extends Table {
-  IntColumn get id => integer().autoIncrement()();
+/// Rectangles complets : une ligne par SOLUTION DÉCOUVERTE. Voir PLAN_PERSISTANCE §4.1.
+/// board en clé dès maintenant : la solution n° 5 du 6×10 et celle du 5×12 ne se confondent pas.
+class SolvedSolutions extends Table {
+  TextColumn get board => text()();                 // '6x10', '5x12', '4x15'
+  IntColumn get solutionNumber => integer()();      // 1..9356 pour le 6×10
+  IntColumn get timesSolved => integer().withDefault(const Constant(1))();
+  IntColumn get bestTimeSeconds => integer()();
+  IntColumn get bestActions => integer().nullable()();
+  DateTimeColumn get firstSolvedAt => dateTime()();
+  DateTimeColumn get lastSolvedAt => dateTime()();
 
-  // Numéro de solution (1, 2, 3, ...)
-  IntColumn get solutionNumber => integer().unique()();
+  @override
+  Set<Column> get primaryKey => {board, solutionNumber};
+}
 
-  // Nombre de fois cette solution a été jouée
-  IntColumn get timesPlayed => integer().withDefault(const Constant(0))();
+/// Puzzles à pièces tirées : pas de numéro de solution, un agrégat par taille.
+class PuzzleStats extends Table {
+  TextColumn get sizeName => text()();               // 'size4x5'
+  IntColumn get completed => integer().withDefault(const Constant(0))();
+  IntColumn get bestTimeSeconds => integer().nullable()();
 
-  // Meilleur temps en secondes (-1 si jamais jouée)
-  IntColumn get bestTime => integer().withDefault(const Constant(-1))();
-
-  // Temps moyen en secondes
-  IntColumn get averageTime => integer().nullable()();
-
-  // Meilleur score
-  IntColumn get bestScore => integer().nullable()();
-
-  // Quand cette solution a été jouée pour la première fois
-  DateTimeColumn get firstPlayed => dateTime().nullable()();
-
-  // Quand elle a été jouée pour la dernière fois
-  DateTimeColumn get lastPlayed => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {sizeName};
 }
 
 
 // ✨ MAINTENANT la classe (après la fonction et les tables)
-@DriftDatabase(tables: [Settings, GameSessions, SolutionStats])
+@DriftDatabase(tables: [Settings, CurrentGame, SolvedSolutions, PuzzleStats])
 class SettingsDatabase extends _$SettingsDatabase {
   // ✨ CORRECTION: super(_openConnection()) au lieu de super._openConnection()
   SettingsDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
+  // tables. L'app n'est pas publiée, il n'y a rien à migrer (PLAN_PERSISTANCE §5).
+  // 🚨 À RETIRER avant la première soumission App Store — cf. docs/CHECKLIST_APPSTORE.md.
+  @override
+  MigrationStrategy get migration => destructiveFallback;
 
   // ============================================================================
   // SETTINGS - Paramètres de l'application (ancien code, intacte)
@@ -131,160 +125,9 @@ class SettingsDatabase extends _$SettingsDatabase {
   }
 
   // ============================================================================
-  // GAME SESSIONS - Sauvegarder les solutions résolues
+  // Records (SolvedSolutions / PuzzleStats) et partie en cours (CurrentGame) :
+  // les tables sont définies ci-dessus ; leurs méthodes d'accès viennent aux
+  // étapes 3 et 4 du PLAN_PERSISTANCE.
   // ============================================================================
-
-  /// Sauvegarder une session de jeu complétée
-  Future<void> saveGameSession({
-    required int solutionNumber,
-    required int elapsedSeconds,
-    int? score,
-    int? piecesPlaced,
-    int? numUndos,
-    int? isometriesCount,
-    int? solutionsViewCount,
-    String? playerNotes,
-  }) async {
-    await into(gameSessions).insert(
-      GameSessionsCompanion(
-        solutionNumber: Value(solutionNumber),
-        elapsedSeconds: Value(elapsedSeconds),
-        score: Value(score),
-        piecesPlaced: Value(piecesPlaced),
-        numUndos: Value(numUndos),
-        isometriesCount: Value(isometriesCount),
-        solutionsViewCount: Value(solutionsViewCount),
-        playerNotes: Value(playerNotes),
-      ),
-    );
-
-    // Mettre à jour les stats
-    await _updateSolutionStats(solutionNumber, elapsedSeconds, score);
-  }
-
-  /// Récupérer l'historique des sessions (les plus récentes en premier)
-  Future<List<GameSession>> getGameHistory({int limit = 20}) async {
-    return (select(gameSessions)
-      ..orderBy([(t) => OrderingTerm(expression: t.completedAt, mode: OrderingMode.desc)])
-      ..limit(limit))
-        .get();
-  }
-
-  /// Récupérer les sessions pour une solution spécifique
-  Future<List<GameSession>> getSolutionHistory(int solutionNumber) async {
-    return (select(gameSessions)
-      ..where((s) => s.solutionNumber.equals(solutionNumber))
-      ..orderBy([(t) => OrderingTerm(expression: t.completedAt, mode: OrderingMode.desc)]))
-        .get();
-  }
-
-  /// Récupérer le record du meilleur temps
-  Future<GameSession?> getFastestCompletion() async {
-    return (select(gameSessions)
-      ..orderBy([(t) => OrderingTerm(expression: t.elapsedSeconds, mode: OrderingMode.asc)])
-      ..limit(1))
-        .getSingleOrNull();
-  }
-
-  /// Récupérer le meilleur score
-  Future<GameSession?> getHighestScore() async {
-    return (select(gameSessions)
-      ..orderBy([(t) => OrderingTerm(expression: t.score, mode: OrderingMode.desc)])
-      ..limit(1))
-        .getSingleOrNull();
-  }
-
-  /// Nombre total de sessions complétées
-  Future<int> getTotalSessionsCount() async {
-    return (select(gameSessions)).get().then((list) => list.length);
-  }
-
-  /// Nombre de solutions uniques résolues
-  Future<int> getUniqueSolutionsCount() async {
-    return (select(gameSessions).get()).then((list) {
-      final unique = <int>{};
-      for (var session in list) {
-        unique.add(session.solutionNumber);
-      }
-      return unique.length;
-    });
-  }
-
-  // ============================================================================
-  // SOLUTION STATS - Statistiques agrégées
-  // ============================================================================
-
-  /// Récupérer les stats d'une solution
-  Future<SolutionStat?> getSolutionStats(int solutionNumber) async {
-    return (select(solutionStats)
-      ..where((s) => s.solutionNumber.equals(solutionNumber)))
-        .getSingleOrNull();
-  }
-
-  /// Mettre à jour les stats après une completion
-  Future<void> _updateSolutionStats(int solutionNumber, int seconds, int? score) async {
-    final existing = await getSolutionStats(solutionNumber);
-
-    if (existing != null) {
-      // UPDATE
-      final newAverage = ((existing.averageTime ?? 0) * existing.timesPlayed + seconds) ~/ (existing.timesPlayed + 1);
-      final newBestScore = score != null && score > (existing.bestScore ?? 0) ? score : existing.bestScore;
-
-      await update(solutionStats).replace(
-        SolutionStatsCompanion(
-          id: Value(existing.id),
-          solutionNumber: Value(solutionNumber),
-          timesPlayed: Value(existing.timesPlayed + 1),
-          bestTime: Value(seconds < existing.bestTime ? seconds : existing.bestTime),
-          averageTime: Value(newAverage),
-          bestScore: Value(newBestScore),
-          lastPlayed: Value(DateTime.now()),
-        ),
-      );
-    } else {
-      // INSERT - première fois cette solution
-      await into(solutionStats).insert(
-        SolutionStatsCompanion(
-          solutionNumber: Value(solutionNumber),
-          timesPlayed: Value(1),
-          bestTime: Value(seconds),
-          averageTime: Value(seconds),
-          bestScore: Value(score),
-          firstPlayed: Value(DateTime.now()),
-          lastPlayed: Value(DateTime.now()),
-        ),
-      );
-    }
-  }
-
-  /// Récupérer les stats générales
-  Future<Map<String, dynamic>> getGlobalStats() async {
-    final sessions = await select(gameSessions).get();
-    if (sessions.isEmpty) {
-      return {
-        'totalSessions': 0,
-        'uniqueSolutions': 0,
-        'totalTime': 0,
-        'averageTime': 0,
-        'bestScore': 0,
-      };
-    }
-
-    final totalTime = sessions.fold<int>(0, (sum, s) => sum + s.elapsedSeconds);
-    final avgTime = totalTime ~/ sessions.length;
-    final bestScore = sessions.fold<int>(0, (max, s) => max > (s.score ?? 0) ? max : (s.score ?? 0));
-    final unique = <int>{};
-    for (var session in sessions) {
-      unique.add(session.solutionNumber);
-    }
-
-    return {
-      'totalSessions': sessions.length,
-      'uniqueSolutions': unique.length,
-      'totalTime': totalTime,
-      'averageTime': avgTime,
-      'bestScore': bestScore,
-    };
-  }
 
 }
