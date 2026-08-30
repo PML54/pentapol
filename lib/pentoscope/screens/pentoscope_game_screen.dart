@@ -1,7 +1,10 @@
-// Modified: 2026-08-30 13:45 — PLAN_ERGONOMIE §6 étape 3 : helper unique _uiIconSize/_uiAppBarHeight
-//           dérivé de MediaQuery.shortestSide, remplace les quatre constantes (56, 42, clamp 28-50,
-//           clamp 20-36). (Étape 2 : barre ancrée sur le plateau via _barMetrics.)
+// Modified: 2026-08-30 15:10 — PLAN_ERGONOMIE §4d (décision 59) : les icônes de l'AppBar ne
+//           grandissaient pas — les IconButton du bloc actions n'ont pas de size:, ils héritent
+//           de l'IconTheme. Ajout de iconTheme/actionsIconTheme (_uiIconSize) ; helper _uiLabelSize
+//           pour le chrono, les pictos et compteurs du titre, et leadingWidth.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-30 13:45 — PLAN_ERGONOMIE §6 étape 3 : helper _uiIconSize/_uiAppBarHeight,
+//             remplace les quatre constantes (56, 42, clamp 28-50, clamp 20-36).
 // Historique: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : barre ancrée sur le plateau (_barMetrics).
 // Historique: 2026-08-30 06:12 — PLAN_BILAN §2 : dialogue modal de fin de partie → bandeau non modal.
 // Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait de la ligne Score et de son calcul
@@ -124,6 +127,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         preferredSize: Size.fromHeight(_uiAppBarHeight(context)),
         child: AppBar(
           toolbarHeight: _uiAppBarHeight(context),
+          // Les IconButton du bloc actions n'ont pas de size: ; ils héritent de l'IconTheme.
+          // Poser les deux thèmes règle tous les boutons d'un coup, y compris les futurs (§4d).
+          iconTheme: IconThemeData(size: _uiIconSize(context)),
+          actionsIconTheme: IconThemeData(size: _uiIconSize(context)),
           backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
           // 🔑 En mode transformation: pas de leading, les icônes prennent toute la place
@@ -135,15 +142,17 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                     // ⏱️ Chronomètre
                     Text(
                       _formatTime(state.elapsedSeconds),
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: TextStyle(
+                        fontSize: _uiLabelSize(context),
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
                     ),
                   ],
                 ),
-          leadingWidth: (isPlacedPieceSelected || isSliderPieceSelected) ? 0 : 60,
+          leadingWidth: (isPlacedPieceSelected || isSliderPieceSelected)
+              ? 0
+              : _uiLabelSize(context) * 4.5,
           // 🔑 En mode transformation: icônes isométrie pleine largeur
           title: (isPlacedPieceSelected || isSliderPieceSelected)
               ? _buildFullWidthIsometryBar(state, notifier)
@@ -159,14 +168,14 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Indicateurs de performance
-                    Icon(Icons.rotate_right, size: 14, color: Colors.blue.shade600),
-                    Text('${state.isometryCount}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                    Icon(Icons.rotate_right, size: _uiLabelSize(context), color: Colors.blue.shade600),
+                    Text('${state.isometryCount}', style: TextStyle(fontSize: _uiLabelSize(context), color: Colors.black54)),
                     const SizedBox(width: 6),
-                    Icon(Icons.open_with, size: 14, color: Colors.purple.shade600),
-                    Text('${state.translationCount}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                    Icon(Icons.open_with, size: _uiLabelSize(context), color: Colors.purple.shade600),
+                    Text('${state.translationCount}', style: TextStyle(fontSize: _uiLabelSize(context), color: Colors.black54)),
                     const SizedBox(width: 6),
-                    Icon(Icons.delete_outline, size: 14, color: Colors.red.shade600),
-                    Text('${state.deleteCount}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                    Icon(Icons.delete_outline, size: _uiLabelSize(context), color: Colors.red.shade600),
+                    Text('${state.deleteCount}', style: TextStyle(fontSize: _uiLabelSize(context), color: Colors.black54)),
                   ],
                 ),
               );
@@ -179,7 +188,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.grid_view_rounded,
-                            size: 14, color: Colors.indigo.shade400),
+                            size: _uiLabelSize(context), color: Colors.indigo.shade400),
                         const SizedBox(width: 4),
                         Text(
                           '${state.solutionsCount}',
@@ -802,6 +811,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   double _uiAppBarHeight(BuildContext context) =>
       (MediaQuery.of(context).size.shortestSide * 0.14).clamp(50.0, 100.0);
+
+  /// Taille des petits textes/pictos d'information de l'AppBar (chrono, compteurs du titre),
+  /// ≈ _uiIconSize × 0.35 (PLAN_ERGONOMIE §4d, décision 59). Plancher 13 : sur iPhone
+  /// _uiIconSize plafonne à 30, ×0.35 = 10,5 < actuel ; le plancher tient le garde-fou
+  /// « iPhone proche de l'actuel » tout en laissant grandir sur tablette.
+  double _uiLabelSize(BuildContext context) =>
+      (_uiIconSize(context) * 0.35).clamp(13.0, 40.0);
 
   /// Marge verticale/horizontale de la barre autour de la boîte de pièce (padding ListView +
   /// jeu). Sert à la fois à dimensionner la barre et à réserver la place au plateau.
