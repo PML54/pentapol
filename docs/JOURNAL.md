@@ -6,7 +6,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session CLI (persistance étape 1)
+## §ÉTAT — au 2026-08-30, fin de session CLI (persistance étape 2)
 
 **Changement d'horizon.** Paul vise une mise sur l'**App Store**. Ce n'est plus un outil
 personnel : ce qui était acceptable pour un usage privé ne l'est plus, et plusieurs décisions
@@ -35,8 +35,9 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 | chantier | où | état |
 |---|---|---|
 | chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
-| persistance étape 1 (ménage) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`) — voir ci-dessous |
-| persistance étapes 2-4 | `PLAN_PERSISTANCE.md` §7 | prêt ; **attend validation de Paul** |
+| persistance étape 1 (ménage) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`) |
+| persistance étape 2 (schéma) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`2abaeb9`) — voir ci-dessous |
+| persistance étapes 3-4 | `PLAN_PERSISTANCE.md` §7 | prêt ; **attend validation de Paul** |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
 | §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
 
@@ -46,16 +47,27 @@ et `lib/debug/database_debug_screen.dart` retirés ; `flutter pub get` −27 dé
 n'arrivait que **transitivement via supabase** et non de `pubspec.yaml` ; déclaré explicitement
 pour garder la compilation, retrait effectif à l'étape 3.
 
-**Vérification demandée avant l'étape 2** : la stratégie destructive de drift **2.30.0** est
-bien `destructiveFallback`, mais ce n'est **pas** « à passer en `onUpgrade` » — c'est un getter
-d'extension qui retourne une `MigrationStrategy` complète, à assigner à `migration`. Plan §5
-corrigé en conséquence.
+La stratégie destructive de drift **2.30.0** est bien `destructiveFallback`, mais ce n'est
+**pas** « à passer en `onUpgrade` » — c'est un getter d'extension qui retourne une
+`MigrationStrategy` complète, à assigner à `migration`. Plan §5 corrigé, code écrit ainsi.
+
+**Persistance étape 2 (schéma) faite** (`2abaeb9`), suit le plan à la lettre, aucune décision
+non prévue : les deux tables mortes de l'ancien historique et **toutes leurs méthodes**
+retirées (aucun appelant) ; ajout de `CurrentGame`, `SolvedSolutions` (clé `(board,
+solutionNumber)`), `PuzzleStats` ; `Settings` inchangée ; `schemaVersion` 2 +
+`migration => destructiveFallback`. `build_runner` régénéré, `flutter analyze` 0 warning,
+grep `GameSession`/`SolutionStat` → aucun. **Les méthodes d'accès (records, `restoreGame`)
+sont vides pour l'instant — elles viennent aux étapes 3-4.**
+
+> ⚠️ Pour cowork : `settings_database.g.dart` est **gitignoré** (convention du projet, jamais
+> suivi). Le schéma généré n'est donc **pas dans git** — après un `git pull`, il faut
+> `dart run build_runner build --delete-conflicting-outputs` pour le régénérer.
 
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : poussé jusqu'à `d5563f4`. **Non poussés** : `102346e` (docs cap App Store),
-`ea23af7` (persistance étape 1) et ce commit de journal.
+**Git** : poussé jusqu'à `7897758`. **Non poussés** : `2abaeb9` (persistance étape 2) et ce
+commit de journal.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -629,3 +641,15 @@ compilation, retrait réel à l'étape 3. **Vérification que tu m'as demandée*
 `onUpgrade` »), à assigner à `migration` ; plan §5 corrigé.
 **Je m'arrête là** : étapes 2-4 en attente de la validation de Paul (consigne).
 **Non poussé** : `102346e`, `ea23af7`, ce commit de journal.
+
+**2026-08-30 — CLI → cowork (persistance étape 2).** Paul a donné le Go. **Schéma appliqué**
+→ `2abaeb9`, suit le plan à la lettre : deux tables mortes + toutes leurs méthodes retirées
+(aucun appelant, vérifié), ajout de `CurrentGame`/`SolvedSolutions`/`PuzzleStats`,
+`schemaVersion` 2 + `destructiveFallback`, `build_runner` régénéré. `analyze` 0 warning, grep
+`GameSession`/`SolutionStat` → aucun. **Aucune décision non prévue.** Les méthodes d'accès sont
+vides — elles viennent aux étapes 3-4. Rappel : le `.g.dart` est gitignoré (régénérer après
+`pull`). **Je m'arrête là** : étapes 3-4 en attente de la validation de Paul.
+**Non poussé** : `2abaeb9` + ce commit de journal.
+**À faire, dû par Paul** : le test appareil de l'étape 2 ne vaut qu'**avec l'étape 3** (rien
+n'écrit encore dans les tables) ; à tester ensemble. La réécriture destructive effacera la
+base existante au premier lancement.
