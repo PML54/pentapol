@@ -1,7 +1,10 @@
-// Modified: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait de la ligne Score et de son calcul
-//           (scorePercent, scoreColor, minTotal, realTotal) du dialogue de fin de partie ;
-//           le score reposait sur le champ de score théorique, désormais retiré du provider.
+// Modified: 2026-08-30 06:12 — PLAN_BILAN §2 : le dialogue modal de fin de partie est remplacé
+//           par un bandeau non modal (_BilanBanner) à la place de la barre de pièces (portrait
+//           ET paysage) ; l'écouteur de complétion et la rangée de bilan disparaissent ; état
+//           local _bilanFerme piloté en build par state.isComplete.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : retrait de la ligne Score et de son calcul
+//             du score (rapport non homogène) et de son calcul, dans le dialogue de fin.
 // Historique: 2026-08-29 20:22 — dialogue « Nouvelle partie » (§8 étape 3) : _showSizeChangeDialog
 //             devient _showNewGameDialog (StatefulBuilder : taille + difficulté + montrer la
 //             solution, bouton « Lancer » → startPuzzle direct). Absorbe l'ancien écran de menu.
@@ -16,7 +19,7 @@
 //             2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece.
 // Modified: 2604221500
 // Dialogue bilan : déplacements, suppressions
-// CHANGEMENTS: (1) _showCompletionDialog, (2) rows déplacements et suppressions ajoutées
+// CHANGEMENTS: (1) dialogue de bilan, (2) rangées déplacements et suppressions ajoutées
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,9 +53,13 @@ class PentoscopeGameScreen extends ConsumerStatefulWidget {
 class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // 👁️ État du mini-plateau adversaire
   bool _showOpponentOverlay = false;
-  
+
   // 📍 Position du mini-plateau (draggable)
   Offset? _overlayPosition; // null = position par défaut (coin bas-droit)
+
+  // 🏁 Bandeau de bilan fermé par « Fermer » alors que le puzzle reste complet.
+  // Remis à false en build dès que le puzzle n'est plus complet (voir build()).
+  bool _bilanFerme = false;
 
   /// Gère l'affichage des messages et vibrations selon le résultat de transformation
   void _handleTransformationResult(BuildContext context, TransformationResult result) {
@@ -89,12 +96,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
 
-    // Bilan affiché une seule fois à la complétion
-    ref.listen<PentoscopeState>(pentoscopeProvider, (prev, next) {
-      if (next.isComplete && !(prev?.isComplete ?? false)) {
-        _showCompletionDialog(context, next, notifier);
-      }
-    });
+    // Bilan non modal : piloté par state.isComplete. _bilanFerme se remet à false dès que le
+    // puzzle n'est plus complet (reset, nouvelle partie, retrait d'une pièce), ce qui couvre
+    // tous les démarrages sans avoir à le faire dans chaque handler.
+    if (!state.isComplete && _bilanFerme) _bilanFerme = false;
 
     if (state.puzzle == null) {
       return const Scaffold(body: Center(child: Text('Aucun puzzle')));
@@ -693,6 +698,24 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // ============================================================================
 
   /// Construit le slider avec DragTarget (drag pièce vers slider = suppression)
+  /// 🏁 Bandeau de bilan non modal, à la place de la barre de pièces (vide à la complétion).
+  Widget _buildBilanBanner(
+      bool isLandscape, PentoscopeState state, PentoscopeNotifier notifier) {
+    return _BilanBanner(
+      isLandscape: isLandscape,
+      elapsedSeconds: state.elapsedSeconds,
+      isometryCount: state.isometryCount,
+      translationCount: state.translationCount,
+      deleteCount: state.deleteCount,
+      hintCount: state.hintCount,
+      onClose: () => setState(() => _bilanFerme = true),
+      onNewGame: () {
+        HapticFeedback.mediumImpact();
+        notifier.reset();
+      },
+    );
+  }
+
   Widget _buildSliderWithDragTarget({
     required WidgetRef ref,
     required bool isLandscape,
@@ -796,7 +819,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               ),
             ],
           ),
-          sliderChild: const PentoscopePieceSlider(isLandscape: false),
+          sliderChild: (state.isComplete && !_bilanFerme)
+              ? _buildBilanBanner(false, state, notifier)
+              : const PentoscopePieceSlider(isLandscape: false),
         ),
       ],
     );
@@ -933,70 +958,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                       ),
                     ],
                   ),
-                  sliderChild: const PentoscopePieceSlider(isLandscape: true),
+                  sliderChild: (state.isComplete && !_bilanFerme)
+                      ? _buildBilanBanner(true, state, notifier)
+                      : const PentoscopePieceSlider(isLandscape: true),
                 ),
               ],
             ),
           ],
         );
       },
-    );
-  }
-
-  /// 🏆 Bilan affiché à la complétion du puzzle
-  void _showCompletionDialog(BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
-    final seconds = state.elapsedSeconds;
-    final mm = (seconds ~/ 60).toString().padLeft(2, '0');
-    final ss = (seconds % 60).toString().padLeft(2, '0');
-    final timeStr = '$mm:$ss';
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.emoji_events, color: Colors.amber, size: 28),
-            SizedBox(width: 8),
-            Text('Puzzle réussi !'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Divider(),
-            const SizedBox(height: 8),
-            _BilanRow(icon: Icons.timer_outlined, label: 'Temps', value: timeStr),
-            const SizedBox(height: 12),
-            _BilanRow(icon: Icons.rotate_right, label: 'Isométries', value: '${state.isometryCount}'),
-            const SizedBox(height: 12),
-            _BilanRow(icon: Icons.open_with, label: 'Déplacements', value: '${state.translationCount}'),
-            if (state.deleteCount > 0) ...[
-              const SizedBox(height: 12),
-              _BilanRow(icon: Icons.delete_outline, label: 'Suppressions', value: '${state.deleteCount}', valueColor: Colors.orange),
-            ],
-            if (state.hintCount > 0) ...[
-              const SizedBox(height: 12),
-              _BilanRow(icon: Icons.lightbulb, label: 'Indices', value: '${state.hintCount}', valueColor: Colors.orange),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Nouvelle partie'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              notifier.reset();
-            },
-          ),
-        ],
-      ),
     );
   }
 
@@ -1095,34 +1065,127 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   }
 }
 
-class _BilanRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color? valueColor;
+/// 🏁 Bandeau de bilan non modal, affiché à la place de la barre de pièces (vide à la
+/// complétion). Une ligne de puces `icône + valeur` sans libellés, plus « Fermer » et
+/// « Nouvelle partie ». Se dispose horizontalement en portrait, verticalement en paysage
+/// (la barre y est une colonne étroite).
+class _BilanBanner extends StatelessWidget {
+  final bool isLandscape;
+  final int elapsedSeconds;
+  final int isometryCount;
+  final int translationCount;
+  final int deleteCount;
+  final int hintCount;
+  final VoidCallback onClose;
+  final VoidCallback onNewGame;
 
-  const _BilanRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueColor,
+  const _BilanBanner({
+    required this.isLandscape,
+    required this.elapsedSeconds,
+    required this.isometryCount,
+    required this.translationCount,
+    required this.deleteCount,
+    required this.hintCount,
+    required this.onClose,
+    required this.onNewGame,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final mm = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
+    final ss = (elapsedSeconds % 60).toString().padLeft(2, '0');
+
+    final chips = <Widget>[
+      _BilanChip(icon: Icons.timer_outlined, value: '$mm:$ss'),
+      _BilanChip(icon: Icons.rotate_right, value: '$isometryCount'),
+      _BilanChip(icon: Icons.open_with, value: '$translationCount'),
+      if (deleteCount > 0)
+        _BilanChip(
+            icon: Icons.delete_outline, value: '$deleteCount', color: Colors.orange),
+      if (hintCount > 0)
+        _BilanChip(icon: Icons.lightbulb, value: '$hintCount', color: Colors.orange),
+    ];
+
+    final closeButton = TextButton(
+      onPressed: onClose,
+      child: const Text('Fermer'),
+    );
+    final newGameButton = FilledButton.icon(
+      onPressed: onNewGame,
+      icon: const Icon(Icons.refresh, size: 18),
+      label: const Text('Nouvelle partie'),
+    );
+    const trophy = Icon(Icons.emoji_events, color: Colors.amber, size: 28);
+
+    if (isLandscape) {
+      // Colonne étroite : tout empilé, défilable si l'espace manque.
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              trophy,
+              const SizedBox(height: 12),
+              for (final chip in chips)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: chip,
+                ),
+              const SizedBox(height: 12),
+              closeButton,
+              const SizedBox(height: 4),
+              newGameButton,
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Portrait : une ligne — trophée, puces, puis les deux boutons.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          trophy,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: chips,
+            ),
+          ),
+          const SizedBox(width: 8),
+          closeButton,
+          const SizedBox(width: 8),
+          newGameButton,
+        ],
+      ),
+    );
+  }
+}
+
+/// Puce `icône + valeur` du bandeau de bilan, sans libellé.
+class _BilanChip extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final Color? color;
+
+  const _BilanChip({required this.icon, required this.value, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? Theme.of(context).colorScheme.primary;
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: theme.colorScheme.primary),
-        const SizedBox(width: 10),
-        Text(label, style: theme.textTheme.bodyMedium),
-        const Spacer(),
+        Icon(icon, size: 20, color: c),
+        const SizedBox(width: 4),
         Text(
           value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: valueColor ?? theme.colorScheme.primary,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: c, fontSize: 16),
         ),
       ],
     );
