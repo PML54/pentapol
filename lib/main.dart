@@ -1,9 +1,9 @@
-// Modified: 2026-08-29 14:09 — suppression du mode classique (§2/§3.1, étape 7) : retrait de
-//           l'amorce de solutionsReadyProvider et de son import (le provider et le singleton
-//           global des 9356 disparaissent avec le module). L'entrée du mode classique avait
-//           déjà été coupée à l'étape 6.
+// Modified: 2026-08-30 — §8 étape 4 : abandon de l'écran d'accueil — retrait de l'unique
+//           route nommée (vers cet écran) et de son import ; l'écran est supprimé. Les
+//           Réglages passent par l'AppBar de Pentoscope (étape 2). Le bloc routes disparaît.
 // lib/main.dart
-// Historique: 2026-08-27 16:04 — suppression de la course au démarrage (P4) : chargement des
+// Historique: 2026-08-29 14:09 — étape 7 : retrait de l'amorce solutionsReadyProvider.
+//             2026-08-27 16:04 — suppression de la course au démarrage (P4) : chargement des
 //             solutions via solutionsReadyProvider, amorcé ici.
 //             2025-12-06 16:00 → 251226 (Avec numérotation)
 // Version adaptée avec pré-chargement des solutions BigInt + Numérotation
@@ -13,8 +13,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
-
-import 'package:pentapol/screens/home_screen.dart';
 
 
 void main() async {
@@ -55,7 +53,7 @@ class _PentapolAppState extends ConsumerState<PentapolApp> {
       }
     } catch (e) {
       debugPrint('❌ Erreur lors de l\'initialisation du puzzle: $e');
-      // En cas d'erreur, on lance quand même l'app avec HomeScreen
+      // En cas d'erreur, on lance quand même l'app (écran Pentoscope)
       if (mounted) {
         setState(() => _isInitialized = true);
       }
@@ -71,10 +69,6 @@ class _PentapolAppState extends ConsumerState<PentapolApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       home: _isInitialized ? const PentoscopeGameScreen() : _buildLoadingScreen(),
-
-      routes: {
-        '/home': (context) => const HomeScreen(),
-      },
     );
   }
 

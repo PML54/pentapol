@@ -1,6 +1,6 @@
 // Modified: 2026-08-29 20:22 — dialogue « Nouvelle partie » (§8 étape 3) : _showSizeChangeDialog
 //           devient _showNewGameDialog (StatefulBuilder : taille + difficulté + montrer la
-//           solution, bouton « Lancer » → startPuzzle direct). Absorbe PentoscopeMenuScreen.
+//           solution, bouton « Lancer » → startPuzzle direct). Absorbe l'ancien écran de menu.
 //           Bouton reset renommé « Recommencer (même taille) » pour lever l'ambiguïté.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-08-29 20:18 — étape 2 : bouton Réglages dans l'AppBar.
@@ -251,7 +251,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 },
                 tooltip: 'Solutions compatibles',
               ),
-            // ⚙️ Réglages (seul accès depuis l'abandon de HomeScreen, §8.1)
+            // ⚙️ Réglages (seul accès aux Réglages, depuis l'AppBar — §8.1)
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () {
@@ -1016,7 +1016,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// 📏 Affiche le dialogue de changement de taille de plateau
   /// Dialogue « Nouvelle partie » : taille + difficulté + montrer la solution,
   /// avec un bouton « Lancer » qui appelle startPuzzle directement (§8.2).
-  /// Absorbe l'ancien PentoscopeMenuScreen ; état local via StatefulBuilder.
+  /// Absorbe l'ancien écran de menu de démarrage ; état local via StatefulBuilder.
   void _showNewGameDialog(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(pentoscopeProvider.notifier);
     var selectedSize =
