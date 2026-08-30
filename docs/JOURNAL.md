@@ -6,7 +6,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-30, fin de session cowork (cap App Store)
+## §ÉTAT — au 2026-08-30, fin de session CLI (persistance étape 1)
 
 **Changement d'horizon.** Paul vise une mise sur l'**App Store**. Ce n'est plus un outil
 personnel : ce qui était acceptable pour un usage privé ne l'est plus, et plusieurs décisions
@@ -34,19 +34,28 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 
 | chantier | où | état |
 |---|---|---|
-| chronomètre : deux défauts | `PLAN_BILAN_FIN_PARTIE.md` §5 | **prêt, prioritaire** — bug visible |
-| bilan : retrait du score, bandeau | idem §2-§4 | prêt |
-| persistance, 4 étapes | `PLAN_PERSISTANCE.md` | prêt |
+| chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
+| persistance étape 1 (ménage) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`) — voir ci-dessous |
+| persistance étapes 2-4 | `PLAN_PERSISTANCE.md` §7 | prêt ; **attend validation de Paul** |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
 | §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
+
+**Persistance étape 1 (ménage) faite** (`ea23af7`) : `supabase_flutter`, `lib/bootstrap.dart`
+et `lib/debug/database_debug_screen.dart` retirés ; `flutter pub get` −27 dépendances ;
+`flutter analyze` 0 warning. Un couplage non anticipé (décision 51) : `shared_preferences`
+n'arrivait que **transitivement via supabase** et non de `pubspec.yaml` ; déclaré explicitement
+pour garder la compilation, retrait effectif à l'étape 3.
+
+**Vérification demandée avant l'étape 2** : la stratégie destructive de drift **2.30.0** est
+bien `destructiveFallback`, mais ce n'est **pas** « à passer en `onUpgrade` » — c'est un getter
+d'extension qui retourne une `MigrationStrategy` complète, à assigner à `migration`. Plan §5
+corrigé en conséquence.
 
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : code poussé jusqu'à `fe3c331`. Non commités : `CLAUDE.md` et neuf fichiers de
-`docs/`, dont deux **nouveaux** — `PLAN_PERSISTANCE.md` et `CHECKLIST_APPSTORE.md`. Aucun ne
-pilote de code immédiat : à commiter **seuls, en début de prochaine session du CLI**, avant
-toute modification de `lib/`.
+**Git** : poussé jusqu'à `d5563f4`. **Non poussés** : `102346e` (docs cap App Store),
+`ea23af7` (persistance étape 1) et ce commit de journal.
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -410,6 +419,17 @@ détaillé.
     bloquants techniques, quatre produit, quatre points de conformité. **S'allonge au fil du
     travail** ; toute décision qui crée une dette de production s'y inscrit avec sa raison.
 
+51. **2026-08-30 — CLI** — **`shared_preferences` déclaré explicitement dans `pubspec.yaml`
+    à l'étape 1 du ménage.** Non prévu au plan. En retirant `supabase_flutter`, `pub get` a
+    aussi retiré `shared_preferences` : il n'était **pas** une dépendance directe, il
+    n'arrivait que **transitivement via supabase**. Or `pentoscope_provider._saveCompletedLevel`
+    l'importe directement → 2 erreurs de compilation. Le plan §6 ne retire `SharedPreferences`
+    qu'à l'étape 3 (elle dépend du schéma de l'étape 2). Pour tenir « 0 erreur » et « aucune
+    fonctionnalité touchée » à l'étape 1, je l'ai déclaré explicitement (`^2.5.5`) : comportement
+    identique, dépendance simplement rendue visible. Son retrait effectif reste à l'étape 3.
+    → `ea23af7`. (Note : le plan §6 supposait `shared_preferences` déjà dans `pubspec.yaml` ;
+    il n'y était pas — d'où le lint `depend_on_referenced_packages` qui traînait.)
+
 ---
 
 ## §PASSATIONS
@@ -597,3 +617,15 @@ passage : le pseudo multijoueur n'est pas dans `SharedPreferences`, et `_saveCom
 écrit une donnée que personne ne lit. **Aucun code touché.**
 **Prochain pas recommandé** : le chronomètre (`PLAN_BILAN_FIN_PARTIE.md` §5) — c'est le seul
 bug visible, il est court. Puis la persistance, étape par étape.
+
+**2026-08-30 — CLI → cowork (docs App Store + persistance étape 1).** Commité seuls `CLAUDE.md`
++ 5 docs (règle impérative n°6, décisions 46-50, §9 annulée, plan persistance + checklist) →
+`102346e`. Puis **étape 1 du ménage** appliquée seule → `ea23af7` : `supabase_flutter`,
+`bootstrap.dart`, `database_debug_screen.dart` retirés, `analyze` 0 warning. Vérifié avant :
+les trois cibles étaient bien orphelines. **Une décision non prévue (51)** : `shared_preferences`
+venait transitivement de supabase, pas de `pubspec.yaml` — déclaré explicitement pour tenir la
+compilation, retrait réel à l'étape 3. **Vérification que tu m'as demandée** : drift 2.30.0 →
+`destructiveFallback` est un getter retournant une `MigrationStrategy` complète (pas « en
+`onUpgrade` »), à assigner à `migration` ; plan §5 corrigé.
+**Je m'arrête là** : étapes 2-4 en attente de la validation de Paul (consigne).
+**Non poussé** : `102346e`, `ea23af7`, ce commit de journal.

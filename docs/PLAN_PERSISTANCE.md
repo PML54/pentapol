@@ -170,9 +170,19 @@ premier accès à `SolvedSolutions` lève un `no such table` — à l'exécution
 `flutter analyze`.
 
 **Donc : `schemaVersion` passe à 2, avec une stratégie qui efface et recrée à tout changement
-de version.** Drift fournit ça tout prêt ; de mémoire `destructiveFallback`, à passer en
-`onUpgrade` de la `MigrationStrategy`. **Vérifier le nom exact** dans le paquet installé
-(drift **2.30.0**) avant de l'écrire — cowork n'a pas accès au pub-cache.
+de version.** Drift fournit ça tout prêt. **Vérifié dans le pub-cache (drift 2.30.0) par le
+CLI le 2026-08-30** : le nom est bien `destructiveFallback`, mais ce n'est **pas** « à passer
+en `onUpgrade` » — c'est un *getter* d'extension (`DestructiveMigrationExtension on
+GeneratedDatabase`) qui **retourne une `MigrationStrategy` complète** (avec son propre
+`onCreate` et un `onUpgrade` qui drop+recrée toutes les entités). On l'assigne directement au
+getter `migration` de la base :
+
+```dart
+@override
+MigrationStrategy get migration => destructiveFallback;
+```
+
+Réf. : `.../drift-2.30.0/lib/src/runtime/query_builder/migration.dart` l.645.
 
 C'est la réécriture voulue, mais déclarée dans le code plutôt que dans la tête : aucun geste
 manuel à retenir, et l'intention est lisible.
