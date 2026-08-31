@@ -17,10 +17,11 @@
 
 ### L'application
 
-Un seul module de jeu, **Pentoscope** : tailles `size3x5`…`size9x5` (pièces tirées au hasard,
-solutions calculées à la volée) plus `size6x10` (rectangle complet, adossé aux 9356 solutions
+Un seul module de jeu, **Pentoscope** : tailles `size3x5`…`size10x5` (tirage d'un masque de
+pièces parmi les solubles d'une table précalculée `subset_counts.bin` — le nombre de solutions
+est connu et affiché au tirage) plus `size6x10` (rectangle complet, adossé aux 9356 solutions
 pré-calculées). Plus le **multijoueur**, qui réutilise son provider. Démarrage direct sur
-`PentoscopeGameScreen`, pas d'écran d'accueil. **19 608 lignes** de Dart.
+`PentoscopeGameScreen`, pas d'écran d'accueil. Plus de notion de difficulté.
 
 ### Chantiers terminés
 
@@ -30,6 +31,10 @@ pré-calculées). Plus le **multijoueur**, qui réutilise son provider. Démarra
 - **Ergonomie hors plateau** — tailles ancrées sur le plateau, barre d'actions unique pour les
   deux orientations, ordre des zones aligné, écran de réglages minimal.
 - **Persistance, étape 1** — Supabase, `bootstrap.dart` et `DatabaseDebugScreen` retirés.
+- **Suppression de la difficulté puis tirages précalculés (étape A)** — `subset_counts.bin`
+  (4096 × uint16, 8 Ko) donne le nombre de solutions de tout tirage 5×n ; le générateur tire un
+  masque parmi les solubles (plus d'appel-boucle au solveur, plus de difficulté), le compte est
+  affiché au dialogue avec « autre tirage ». Table validée contre `REFERENCE_TIRAGES.md` §2.
 
 Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVENDI` §5).
 
@@ -37,19 +42,21 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
+| **Tirages étape B** | `REFERENCE_TIRAGES.md` §8 B / §9 | corpus complet (~2,5 Mo), retrait de `LiveSolutionSource`/`PentoscopeSolver` du runtime. **Conditionné à 2 mesures** : n°1 (durée de génération) **acquise** — 9 parcours en 11,6 s, B non-sujet ; n°2 (fluidité `_solutionStatus` sur appareil) **à faire** (voir §9) |
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
-| **Tables 5×12 et 4×15** | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | préalable strict : `PentominoSolver.maxSeconds` paramétrable **et** troncature observable |
-| **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | 7 bloquants techniques, 4 produit, 4 conformité — s'allonge au fil du travail |
+| **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail |
 
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
-— quitter l'app au milieu d'un 6×10 perd tout), puis la checklist App Store.
+— quitter l'app au milieu d'un 6×10 perd tout), puis la mesure n°2 pour décider de B.
 
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
 le 2026-08-31 l'ancien `PENTOSCOPE.md`, devenu un doublon partiel une fois qu'il n'est resté
 qu'un module de jeu. `UI_PROPERTIES_GUIDE.md`, guide Flutter générique sans rapport avec
-l'état du projet, est supprimé.
+l'état du projet, est supprimé. `REFERENCE_TIRAGES.md` est le **test d'acceptation** du
+générateur de tirages (`tools/generate_subset_counts.dart`) : sa sortie doit reproduire les
+nombres du §2 (ce que le générateur vérifie, exit 1 sinon).
 
 ### Test
 
@@ -66,8 +73,11 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `8746b04` (regroupement des constantes). **Non poussés** : `f1f26cf` (suppression
-de la difficulté) et ce commit de journal (qui joint la mise à jour de `CHECKLIST_APPSTORE`).
+Poussé jusqu'à `80e6cd0`. **Non poussés** : les 3 commits des tirages (`68188eb`, `05f8039`,
+`af6a2d3`) et ce commit de journal.
+
+> ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
+> `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
 
 ---
 
@@ -75,29 +85,27 @@ de la difficulté) et ce commit de journal (qui joint la mise à jour de `CHECKL
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-08-31 — CLI → cowork (suppression de la difficulté).** Chantier fait en un commit
-(`f1f26cf`). `PentoscopeDifficulty`, `generateEasy`/`generateHard`, le `SegmentedButton` du
-dialogue retirés. `generate` fait désormais **une seule passe** (`findSolutionFrom` sur plateau
-vide) et stocke la solution trouvée → « afficher la solution » **marche maintenant hors 6×10**.
-Boucle bornée (200) au lieu d'infinie ; pas de timeout au solveur (question « insoluble vs pas
-fini » renvoyée au chantier de mesure). `solutionCount` → `int?` ; `CurrentGame.solutionCount`
-nullable, `schemaVersion` 2→3 (destructif, pas de migration). `findAllSolutions` **gardée**
-(outil de génération + mp). `flutter analyze` 0 error. CHECKLIST : cowork ajoute le point 17
-(« afficher la solution » toujours mort sur le **6×10**) et étoffe le point 10 (futur
-`ListSolutionSource`, hors périmètre). **Dû par Paul** : test sur les petites tailles (tirage,
-« afficher la solution ») + réécriture destructive de la base au 1er lancement.
+**2026-08-31 — CLI → cowork (tirages précalculés, étape A).** REFERENCE_TIRAGES §8 A appliquée
+en 3 commits. **1** (`68188eb`) : `tools/generate_subset_counts.dart` (Flutter-free) + asset
+`subset_counts.bin` (8 Ko) + `test/subset_counts_test.dart` ; `widget_test.dart` supprimé (suite
+verte). Les 9 totaux reproduisent le §2 exactement (dont popcount 12 = 4040) ; **mesure n°1
+acquise** : 9 parcours en 11,6 s → B non-sujet côté génération. **2** (`05f8039`) : `generate`
+tire un masque par table (aucun appel-boucle au solveur), `solutionCount` **redevient
+non-nullable** (annule le `int?`/`nullable()` du matin) ; `schemaVersion` **3→4** (règle n°6 : la
+colonne rechange ; v3 a tourné sur l'iPad, un retour à v2 serait un downgrade → crash). **3**
+(`af6a2d3`) : le tirage passe au dialogue (« n solutions » + « autre tirage »), masque transmis à
+la partie. `analyze` 0 error, `test` vert. **Hors périmètre** (étape B) non touché : ni corpus,
+ni `ListSolutionSource`, ni retrait de `PentoscopeSolver`. **Dû par Paul** (vérif §Affichage) :
+le dialogue affiche un nombre plausible et « autre tirage » le change ; 3×5 → 7 tirages tous à 4 ;
+nouvelles parties instantanées sur toutes les tailles (10×5 compris) ; base réécrite au 1er
+lancement (v4). **Mesure n°2 pour B** (fluidité `_solutionStatus`) reste à instrumenter/jouer.
 
-**2026-08-31 — CLI → cowork (fix iOS + dégraissage exécuté).** `git rm` des 7 documents fait
-(`ebdf7ab`). Puis bug iOS corrigé (`3f09e1d`) : le body de `pentoscope_game_screen` n'avait
-aucun `SafeArea` — en paysage (`appBar: null`) le corps passait sous l'îlot dynamique, en
-portrait la barre sous l'indicateur d'accueil. Body enveloppé dans un `SafeArea` (tous bords,
-pas de padding directionnel) ; le `LayoutBuilder` voit les contraintes réduites. `flutter
-analyze` 0 warning. **Dû par Paul** : test iPhone, les deux sens de rotation en paysage + portrait.
-Puis réglage à l'œil (`034ddff`) : barre de pièces trop grosse → `k` 0.45→0.35 et `_kSliderPad`
-32→20. Puis regroupement (`af2f5e0`) des **7 valeurs de réglage visuel** en un bloc de constantes
-nommées en tête de `pentoscope_game_screen.dart` (comportement inchangé ; `kPieceToBoardCellRatio`
-rapatrié de `pentoscope_board.dart`, d'où un import croisé board→screen — smell léger, alternative
-`config/` proposée à Paul). Idée d'un panneau de tuning on-device en discussion (phrase à cowork).
+**2026-08-31 — CLI → cowork (suppression de la difficulté).** Fait ce matin en un commit
+(`f1f26cf`), **révisé par l'étape A** : l'approche `findSolutionFrom`+boucle bornée et le
+`nullable()` du matin sont annulés au profit du tirage par table. La suppression de la difficulté
+elle-même (enum, generateEasy/Hard, SegmentedButton, main.dart) survit. `findAllSolutions` gardée.
+(Rappels hérités : correctif iOS `SafeArea` `3f09e1d` ; réglage barre `k`=0.35 `034ddff` ;
+regroupement des 7 constantes de réglage `af2f5e0`.)
 
 **2026-08-31 — cowork → toi (dégraissage).** Sur constat chiffré (8 676 l. de doc pour 19 608
 de code). Cinq plans terminés supprimés, §DÉCISIONS supprimée, règles vivantes remontées dans
