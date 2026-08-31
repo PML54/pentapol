@@ -1,7 +1,9 @@
+// Modified: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : retrait des 9 setters des
+//           réglages morts (setDifficulty, setEnableAnimations, setEnableHints, setEnableTimer,
+//           setIconSize, setIsometriesAppBarColor, setPieceOpacity, setShowGridLines,
+//           setShowPieceNumbers). Les setters Duel et les vivants restent.
 // lib/providers/settings_provider.dart
-// Modified: 2604221200
-// Fix print() → debugPrint() dans les catch
-// CHANGEMENTS: (1) _loadSettings catch ligne 311, (2) _saveSettings catch ligne 321
+// Historique: 2604221200 — Fix print() → debugPrint() dans les catch.
 
 import 'dart:convert';
 
@@ -93,14 +95,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
         customColors: colors,
         colorScheme: PieceColorScheme.custom,
       ),
-    );
-    await _saveSettings();
-  }
-
-  /// Change le niveau de difficulté
-  Future<void> setDifficulty(GameDifficulty difficulty) async {
-    state = state.copyWith(
-      game: state.game.copyWith(difficulty: difficulty),
     );
     await _saveSettings();
   }
@@ -211,14 +205,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
-  /// Active/désactive les animations
-  Future<void> setEnableAnimations(bool enable) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(enableAnimations: enable),
-    );
-    await _saveSettings();
-  }
-
   /// Active/désactive le retour haptique
   Future<void> setEnableHaptics(bool enable) async {
     state = state.copyWith(
@@ -227,66 +213,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
-  /// Active/désactive les indices
-  Future<void> setEnableHints(bool enable) async {
-    state = state.copyWith(
-      game: state.game.copyWith(enableHints: enable),
-    );
-    await _saveSettings();
-  }
-
-  /// Active/désactive le chronomètre
-  Future<void> setEnableTimer(bool enable) async {
-    state = state.copyWith(
-      game: state.game.copyWith(enableTimer: enable),
-    );
-    await _saveSettings();
-  }
-
-  /// Change la taille des icônes
-  Future<void> setIconSize(double size) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(iconSize: size),
-    );
-    await _saveSettings();
-  }
-
-  /// Change la couleur de fond de l'AppBar en mode isométries
-  Future<void> setIsometriesAppBarColor(Color color) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(isometriesAppBarColor: color),
-    );
-    await _saveSettings();
-  }
-
   /// Change la durée du long press
   Future<void> setLongPressDuration(int duration) async {
     state = state.copyWith(
       game: state.game.copyWith(longPressDuration: duration),
-    );
-    await _saveSettings();
-  }
-
-  /// Change l'opacité des pièces
-  Future<void> setPieceOpacity(double opacity) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(pieceOpacity: opacity),
-    );
-    await _saveSettings();
-  }
-
-  /// Active/désactive l'affichage des lignes de grille
-  Future<void> setShowGridLines(bool show) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(showGridLines: show),
-    );
-    await _saveSettings();
-  }
-
-  /// Active/désactive l'affichage des numéros sur les pièces
-  Future<void> setShowPieceNumbers(bool show) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(showPieceNumbers: show),
     );
     await _saveSettings();
   }

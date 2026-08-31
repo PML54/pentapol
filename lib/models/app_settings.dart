@@ -1,6 +1,8 @@
-// Modified: 2026-08-27 20:46 — retrait de _getDuelColor, orpheline (26 lignes).
+// Modified: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : écran de réglages minimal —
+//           retrait des 9 champs morts (6 dans UISettings, 3 dans GameSettings) et de l'enum
+//           GameDifficulty orphelin. Sérialisation JSON : clés disparues ignorées, pas de migration.
 // lib/models/app_settings.dart
-// Modèles pour les paramètres de l'application
+// Historique: 2026-08-27 20:46 — retrait de _getDuelColor, orpheline (26 lignes).
 
 import 'package:flutter/material.dart';
 
@@ -12,14 +14,6 @@ enum PieceColorScheme {
   monochrome, // Nuances de gris
   rainbow,    // Arc-en-ciel
   custom,     // Couleurs personnalisées
-}
-
-/// Niveau de difficulté du jeu
-enum GameDifficulty {
-  easy,       // Facile : indices visuels, pas de limite de temps
-  normal,     // Normal : jeu standard
-  hard,       // Difficile : moins d'indices, chronomètre
-  expert,     // Expert : mode compétition
 }
 
 /// Durée de partie Duel prédéfinie
@@ -81,47 +75,26 @@ extension DuelDurationExtension on DuelDuration {
   }
 }
 
-/// Paramètres UI
+/// Paramètres UI. Écran de réglages minimal (PLAN_ERGONOMIE §8) : seuls les réglages qui
+/// ont un effet visible sont conservés (schéma de couleurs, couleurs personnalisées). Les six
+/// champs UI qui ne faisaient rien ont été retirés — `AppSettings` étant sérialisé en JSON,
+/// les clés disparues sont ignorées à la relecture, aucune migration.
 class UISettings {
   final PieceColorScheme colorScheme;
   final List<Color> customColors;   // Couleurs personnalisées (12 pièces)
-  final bool showPieceNumbers;      // Afficher les numéros sur les pièces
-  final bool showGridLines;         // Afficher les lignes de grille
-  final bool enableAnimations;      // Activer les animations
-  final double pieceOpacity;        // Opacité des pièces (0.0 - 1.0)
-  final Color isometriesAppBarColor; // Couleur de fond AppBar en mode isométries
-  final double iconSize;            // Taille des icônes (16.0 - 48.0)
 
   const UISettings({
     this.colorScheme = PieceColorScheme.classic,
     this.customColors = const [],
-    this.showPieceNumbers = true,
-    this.showGridLines = false,
-    this.enableAnimations = true,
-    this.pieceOpacity = 1.0,
-    this.isometriesAppBarColor = const Color(0xFF9575CD), // Violet clair par défaut
-    this.iconSize = 48.0, // Taille par défaut : 48px (max)
   });
 
   UISettings copyWith({
     PieceColorScheme? colorScheme,
     List<Color>? customColors,
-    bool? showPieceNumbers,
-    bool? showGridLines,
-    bool? enableAnimations,
-    double? pieceOpacity,
-    Color? isometriesAppBarColor,
-    double? iconSize,
   }) {
     return UISettings(
       colorScheme: colorScheme ?? this.colorScheme,
       customColors: customColors ?? this.customColors,
-      showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
-      showGridLines: showGridLines ?? this.showGridLines,
-      enableAnimations: enableAnimations ?? this.enableAnimations,
-      pieceOpacity: pieceOpacity ?? this.pieceOpacity,
-      isometriesAppBarColor: isometriesAppBarColor ?? this.isometriesAppBarColor,
-      iconSize: iconSize ?? this.iconSize,
     );
   }
 
@@ -245,12 +218,6 @@ class UISettings {
     return {
       'colorScheme': colorScheme.index,
       'customColors': customColors.map((c) => c.value).toList(), // ignore: deprecated_member_use
-      'showPieceNumbers': showPieceNumbers,
-      'showGridLines': showGridLines,
-      'enableAnimations': enableAnimations,
-      'pieceOpacity': pieceOpacity,
-      'isometriesAppBarColor': isometriesAppBarColor.value, // ignore: deprecated_member_use
-      'iconSize': iconSize,
     };
   }
 
@@ -261,47 +228,31 @@ class UISettings {
     return UISettings(
       colorScheme: PieceColorScheme.values[json['colorScheme'] ?? 0],
       customColors: customColors,
-      showPieceNumbers: json['showPieceNumbers'] ?? true,
-      showGridLines: json['showGridLines'] ?? false,
-      enableAnimations: json['enableAnimations'] ?? true,
-      pieceOpacity: json['pieceOpacity'] ?? 1.0,
-      isometriesAppBarColor: Color(json['isometriesAppBarColor'] ?? 0xFF9575CD),
-      iconSize: json['iconSize'] ?? 28.0,
     );
   }
 }
 
-/// Paramètres de jeu
+/// Paramètres de jeu. Écran minimal (PLAN_ERGONOMIE §8) : trois champs morts retirés — la
+/// difficulté (elle se choisit dans le dialogue « Nouvelle partie »), l'activation des indices
+/// et celle du chrono (l'un et l'autre s'affichent toujours). JSON → aucune migration.
 class GameSettings {
-  final GameDifficulty difficulty;
   final bool showSolutionCounter;   // Afficher le compteur de solutions
-  final bool enableHints;           // Activer les indices
-  final bool enableTimer;           // Activer le chronomètre
   final bool enableHaptics;         // Activer le retour haptique
   final int longPressDuration;      // Durée du long press en ms
 
   const GameSettings({
-    this.difficulty = GameDifficulty.normal,
     this.showSolutionCounter = true,
-    this.enableHints = false,
-    this.enableTimer = false,
     this.enableHaptics = true,
     this.longPressDuration = 200,
   });
 
   GameSettings copyWith({
-    GameDifficulty? difficulty,
     bool? showSolutionCounter,
-    bool? enableHints,
-    bool? enableTimer,
     bool? enableHaptics,
     int? longPressDuration,
   }) {
     return GameSettings(
-      difficulty: difficulty ?? this.difficulty,
       showSolutionCounter: showSolutionCounter ?? this.showSolutionCounter,
-      enableHints: enableHints ?? this.enableHints,
-      enableTimer: enableTimer ?? this.enableTimer,
       enableHaptics: enableHaptics ?? this.enableHaptics,
       longPressDuration: longPressDuration ?? this.longPressDuration,
     );
@@ -309,10 +260,7 @@ class GameSettings {
 
   Map<String, dynamic> toJson() {
     return {
-      'difficulty': difficulty.index,
       'showSolutionCounter': showSolutionCounter,
-      'enableHints': enableHints,
-      'enableTimer': enableTimer,
       'enableHaptics': enableHaptics,
       'longPressDuration': longPressDuration,
     };
@@ -320,10 +268,7 @@ class GameSettings {
 
   factory GameSettings.fromJson(Map<String, dynamic> json) {
     return GameSettings(
-      difficulty: GameDifficulty.values[json['difficulty'] ?? 1],
       showSolutionCounter: json['showSolutionCounter'] ?? true,
-      enableHints: json['enableHints'] ?? false,
-      enableTimer: json['enableTimer'] ?? false,
       enableHaptics: json['enableHaptics'] ?? true,
       longPressDuration: json['longPressDuration'] ?? 200,
     );
