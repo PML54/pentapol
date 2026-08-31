@@ -1,8 +1,8 @@
-// Modified: 2026-08-31 14:20 — bug iOS : le body du Scaffold n'avait aucun SafeArea — en paysage
-//           (appBar null) le corps passait sous l'îlot dynamique, en portrait la barre sous
-//           l'indicateur d'accueil. Body enveloppé dans un SafeArea (tous bords, pas de padding
-//           directionnel) ; le LayoutBuilder voit les contraintes réduites, le plateau se recalcule.
+// Modified: 2026-08-31 15:00 — réglage à l'œil (retour de Paul) : _kSliderPad 32 → 20, barre de
+//           pièces resserrée (les pièces rétrécissent aussi via k 0.45→0.35 dans pentoscope_board).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-31 14:20 — bug iOS : body enveloppé dans un SafeArea (îlot dynamique /
+//             indicateur d'accueil) ; le LayoutBuilder voit les contraintes réduites.
 // Historique: 2026-08-31 11:00 — PLAN_ERGONOMIE §9 (décisions 65-68) : une seule barre d'actions
 //             pour les deux orientations — _buildBarItems rendue en Row (portrait) / Column (paysage) ;
 //             retrait de actions:/leading ; chrono central ; trois compteurs sortis ; supersède §4d.
@@ -814,7 +814,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   /// Marge verticale/horizontale de la barre autour de la boîte de pièce (padding ListView +
   /// jeu). Sert à la fois à dimensionner la barre et à réserver la place au plateau.
-  static const double _kSliderPad = 32.0;
+  /// Réglage 2026-08-31 (retour de Paul) : 32 → 20, barre resserrée sur des pièces plus petites.
+  static const double _kSliderPad = 20.0;
 
   /// `(taille de case d'une pièce de la barre, épaisseur de la barre)` — la barre est ancrée
   /// sur le plateau : `pieceCellSize = boardCellSize × k` (§3). La dépendance circulaire (la

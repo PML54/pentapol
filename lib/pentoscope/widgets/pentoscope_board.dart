@@ -1,6 +1,7 @@
-// Modified: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro sur une case suit cellSize
-//           (via _getTextSize) au lieu de 14/16 fixes.
+// Modified: 2026-08-31 15:00 — réglage à l'œil (retour de Paul) : kPieceToBoardCellRatio 0.45 → 0.35
+//           — pièces de la barre trop grosses. Réduit aussi l'épaisseur de la barre (dérivée).
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro sur une case suit cellSize.
 // Historique: 2026-08-30 13:35 — étape 2 : le feedback de drag (« miniature ») prend la taille de
 //             case du plateau × k ; _buildCell reçoit cellSize ; constante kPieceToBoardCellRatio.
 // Historique: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
@@ -21,7 +22,8 @@ import 'package:pentapol/common/widgets/piece_renderer.dart';
 /// (PLAN_ERGONOMIE §3) : `pieceCellSize = boardCellSize × k`. Ancrer la barre sur le plateau
 /// plutôt que sur un type d'appareil traite tout écran sans seuil ni facteur magique.
 /// **À régler à l'œil sur appareil** — c'est la seule valeur du plan qui ne se calcule pas.
-const double kPieceToBoardCellRatio = 0.45;
+/// Réglage 2026-08-31 (retour de Paul) : 0.45 → 0.35, pièces et barre jugées trop grosses.
+const double kPieceToBoardCellRatio = 0.35;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
