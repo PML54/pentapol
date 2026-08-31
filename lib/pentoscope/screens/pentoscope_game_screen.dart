@@ -1,9 +1,12 @@
-// Modified: 2026-08-31 09:30 — PLAN_ERGONOMIE §7 (décision 61) : en paysage, ordre des trois zones
-//           aligné sur le portrait — colonne d'actions / plateau / barre, aplati en un seul Row ;
-//           l'ombre de la colonne passe de Offset(-1,0) à Offset(1,0) (elle porte vers le plateau).
+// Modified: 2026-08-31 11:00 — PLAN_ERGONOMIE §9 (décisions 65-68) : une seule barre d'actions
+//           pour les deux orientations — _buildBarItems (nouvelle partie, multijoueur, recommencer,
+//           indice, solutions, réglages) rendue en Row (portrait, dans le title) ou Column (paysage),
+//           spaceEvenly. Retrait de actions:/leading/leadingWidth ; chrono au centre en _uiLabelSize×1.4 ;
+//           trois compteurs sortis de la barre (décision 68) ; largeur colonne paysage = _uiIconSize+24.
+//           Supersède le §4d (iconTheme, décision 69) : chaque IconButton porte iconSize.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
-// Historique: 2026-08-30 15:10 — §4d (décision 59) : icônes de l'AppBar via iconTheme/actionsIconTheme
-//             (_uiIconSize) + helper _uiLabelSize (chrono/pictos/compteurs du titre) + leadingWidth.
+// Historique: 2026-08-31 09:30 — §7 (décision 61) : ordre des zones en paysage aligné sur le portrait.
+// Historique: 2026-08-30 15:10 — §4d (décision 59) : icônes de l'AppBar via iconTheme (superseédé par §9).
 // Historique: 2026-08-30 13:45 — PLAN_ERGONOMIE §6 étape 3 : helper _uiIconSize/_uiAppBarHeight,
 //             remplace les quatre constantes (56, 42, clamp 28-50, clamp 20-36).
 // Historique: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : barre ancrée sur le plateau (_barMetrics).
@@ -128,163 +131,19 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         preferredSize: Size.fromHeight(_uiAppBarHeight(context)),
         child: AppBar(
           toolbarHeight: _uiAppBarHeight(context),
-          // Les IconButton du bloc actions n'ont pas de size: ; ils héritent de l'IconTheme.
-          // Poser les deux thèmes règle tous les boutons d'un coup, y compris les futurs (§4d).
-          iconTheme: IconThemeData(size: _uiIconSize(context)),
-          actionsIconTheme: IconThemeData(size: _uiIconSize(context)),
           backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
-          // 🔑 En mode transformation: pas de leading, les icônes prennent toute la place
-          leading: (isPlacedPieceSelected || isSliderPieceSelected)
-              ? null
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ⏱️ Chronomètre
-                    Text(
-                      _formatTime(state.elapsedSeconds),
-                      style: TextStyle(
-                        fontSize: _uiLabelSize(context),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
-          leadingWidth: (isPlacedPieceSelected || isSliderPieceSelected)
-              ? 0
-              : _uiLabelSize(context) * 4.5,
-          // 🔑 En mode transformation: icônes isométrie pleine largeur
+          titleSpacing: 0,
+          centerTitle: false,
+          // §9 : une seule barre d'actions, répartie. `actions:` tasserait les boutons à droite
+          // et ne couvre pas le paysage — la barre vit dans le `title`, via _buildBarItems, qui
+          // sert aussi le paysage. Mode transformation : la barre d'isométrie prend la place.
           title: (isPlacedPieceSelected || isSliderPieceSelected)
               ? _buildFullWidthIsometryBar(state, notifier)
-              : state.isComplete
-              ? TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.elasticOut,
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Indicateurs de performance
-                    Icon(Icons.rotate_right, size: _uiLabelSize(context), color: Colors.blue.shade600),
-                    Text('${state.isometryCount}', style: TextStyle(fontSize: _uiLabelSize(context), color: Colors.black54)),
-                    const SizedBox(width: 6),
-                    Icon(Icons.open_with, size: _uiLabelSize(context), color: Colors.purple.shade600),
-                    Text('${state.translationCount}', style: TextStyle(fontSize: _uiLabelSize(context), color: Colors.black54)),
-                    const SizedBox(width: 6),
-                    Icon(Icons.delete_outline, size: _uiLabelSize(context), color: Colors.red.shade600),
-                    Text('${state.deleteCount}', style: TextStyle(fontSize: _uiLabelSize(context), color: Colors.black54)),
-                  ],
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: _buildBarItems(context, state, notifier),
                 ),
-              );
-            },
-          )
-              : (settings.game.showSolutionCounter && state.solutionsCount != null)
-                  // 🔢 Compteur de solutions (tailles adossées à une table, ex. 6×10).
-                  // Rouge à 0 : cohérent avec le bouton d'indice qui vire au rouge.
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.grid_view_rounded,
-                            size: _uiLabelSize(context), color: Colors.indigo.shade400),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${state.solutionsCount}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: state.hasPossibleSolution
-                                ? Colors.black87
-                                : Colors.red.shade700,
-                          ),
-                        ),
-                      ],
-                    )
-                  : null,
-          centerTitle: true,
-          // 🔑 En mode transformation: pas d'actions, tout est dans le title
-          actions: (isPlacedPieceSelected || isSliderPieceSelected)
-              ? null
-              : [
-            // 🆕 Nouvelle partie (taille + difficulté + montrer la solution)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              color: Colors.blue,
-              onPressed: () => _showNewGameDialog(context, ref),
-              tooltip: 'Nouvelle partie',
-            ),
-            // 👥 Bouton multijoueur
-            IconButton(
-              icon: const Icon(Icons.people_outline),
-              color: Colors.purple,
-              onPressed: () => _navigateToMultiplayer(context),
-              tooltip: 'Mode multijoueur',
-            ),
-            // 👤 Solo — réinitialiser
-            IconButton(
-              icon: Icon(
-                Icons.person,
-                color: state.isComplete ? Colors.green : Colors.indigo,
-              ),
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                notifier.reset();
-              },
-              tooltip: 'Recommencer (même taille)',
-            ),
-            // 💡 Bouton Hint (lampe) — amber si solution possible, rouge sinon
-            if (!state.isComplete && state.availablePieces.isNotEmpty)
-              IconButton(
-                icon: Icon(
-                  state.hasPossibleSolution
-                      ? Icons.lightbulb
-                      : Icons.lightbulb,
-                  color: state.hasPossibleSolution ? Colors.amber : Colors.red,
-                ),
-                onPressed: () {
-                  if (state.hasPossibleSolution) {
-                    HapticFeedback.mediumImpact();
-                    notifier.applyHint();
-                  }
-                },
-                tooltip: state.hasPossibleSolution ? 'Indice' : 'Aucune solution possible',
-              ),
-            // 🔎 Navigateur de solutions (tailles adossées à une table)
-            if (state.solutionsCount != null)
-              IconButton(
-                icon: const Icon(Icons.view_carousel),
-                color: Colors.indigo,
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  final sols = notifier.compatibleSolutions();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SolutionsBrowserScreen.forSolutions(
-                        solutions: sols,
-                        title: '${sols.length} solution(s) compatible(s)',
-                      ),
-                    ),
-                  );
-                },
-                tooltip: 'Solutions compatibles',
-              ),
-            // ⚙️ Réglages (seul accès aux Réglages, depuis l'AppBar — §8.1)
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                );
-              },
-              tooltip: 'Réglages',
-            ),
-          ],
         ),
       ),
       body: Stack(
@@ -820,6 +679,132 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   double _uiLabelSize(BuildContext context) =>
       (_uiIconSize(context) * 0.35).clamp(13.0, 40.0);
 
+  /// Les actions de la barre, dans l'ordre, **communes aux deux orientations** (PLAN_ERGONOMIE
+  /// §9). Une seule source garantit que portrait et paysage proposent la même chose — pas la
+  /// discipline de qui édite le fichier. Rendue en `Row` (portrait) ou `Column` (paysage), en
+  /// `spaceEvenly`. Le chrono est inséré au centre ; le compteur de solutions reste, les
+  /// compteurs iso/déplacements/suppressions sont sortis de la barre (décision 66) — ils vivent
+  /// dans le bandeau de fin de partie.
+  List<Widget> _buildBarItems(
+      BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
+    final iconSize = _uiIconSize(context);
+    final showCounter = ref.read(settingsProvider).game.showSolutionCounter &&
+        state.solutionsCount != null;
+
+    final items = <Widget>[
+      IconButton(
+        icon: const Icon(Icons.add_circle_outline),
+        iconSize: iconSize,
+        color: Colors.blue,
+        onPressed: () => _showNewGameDialog(context, ref),
+        tooltip: 'Nouvelle partie',
+      ),
+      IconButton(
+        icon: const Icon(Icons.people_outline),
+        iconSize: iconSize,
+        color: Colors.purple,
+        onPressed: () => _navigateToMultiplayer(context),
+        tooltip: 'Mode multijoueur',
+      ),
+      IconButton(
+        icon: Icon(Icons.person,
+            color: state.isComplete ? Colors.green : Colors.indigo),
+        iconSize: iconSize,
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          notifier.reset();
+        },
+        tooltip: 'Recommencer (même taille)',
+      ),
+      if (!state.isComplete && state.availablePieces.isNotEmpty)
+        IconButton(
+          icon: Icon(Icons.lightbulb,
+              color: state.hasPossibleSolution ? Colors.amber : Colors.red),
+          iconSize: iconSize,
+          onPressed: () {
+            if (state.hasPossibleSolution) {
+              HapticFeedback.mediumImpact();
+              notifier.applyHint();
+            }
+          },
+          tooltip:
+              state.hasPossibleSolution ? 'Indice' : 'Aucune solution possible',
+        ),
+      if (state.solutionsCount != null)
+        IconButton(
+          icon: const Icon(Icons.view_carousel),
+          iconSize: iconSize,
+          color: Colors.indigo,
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            final sols = notifier.compatibleSolutions();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SolutionsBrowserScreen.forSolutions(
+                  solutions: sols,
+                  title: '${sols.length} solution(s) compatible(s)',
+                ),
+              ),
+            );
+          },
+          tooltip: 'Solutions compatibles',
+        ),
+      if (showCounter) _buildSolutionCounter(context, state),
+      IconButton(
+        icon: const Icon(Icons.settings),
+        iconSize: iconSize,
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          );
+        },
+        tooltip: 'Réglages',
+      ),
+    ];
+
+    // ⏱️ Chrono au centre : avec spaceEvenly il reste au milieu quel que soit le nombre
+    // d'icônes conditionnelles affichées (§9.3). leading/leadingWidth disparaissent avec.
+    items.insert(items.length ~/ 2, _buildChrono(context, state));
+    return items;
+  }
+
+  /// Chronomètre de la barre — lisible : `_uiLabelSize × 1.4`, gras (§9.3).
+  Widget _buildChrono(BuildContext context, PentoscopeState state) {
+    return Text(
+      _formatTime(state.elapsedSeconds),
+      style: TextStyle(
+        fontSize: _uiLabelSize(context) * 1.4,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    );
+  }
+
+  /// Compteur de solutions (nombre restant) — reste dans la barre (§9.4). Rouge à 0, cohérent
+  /// avec le bouton d'indice.
+  Widget _buildSolutionCounter(BuildContext context, PentoscopeState state) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.grid_view_rounded,
+            size: _uiLabelSize(context), color: Colors.indigo.shade400),
+        const SizedBox(width: 4),
+        Text(
+          '${state.solutionsCount}',
+          style: TextStyle(
+            fontSize: _uiLabelSize(context),
+            fontWeight: FontWeight.bold,
+            color:
+                state.hasPossibleSolution ? Colors.black87 : Colors.red.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Marge verticale/horizontale de la barre autour de la boîte de pièce (padding ListView +
   /// jeu). Sert à la fois à dimensionner la barre et à réserver la place au plateau.
   static const double _kSliderPad = 32.0;
@@ -907,10 +892,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Adapter les tailles selon l'espace disponible (iPad vs iPhone)
-        final screenHeight = constraints.maxHeight;
-        final actionColumnWidth = (screenHeight * 0.08).clamp(44.0, 70.0);
-        final iconSize = _uiIconSize(context);
+        // Largeur de la colonne d'actions : assez pour un IconButton à _uiIconSize + son padding,
+        // sinon les boutons débordent sur iPad (§9). L'ancienne formule (0.08 × hauteur) plafonnait.
+        final actionColumnWidth = _uiIconSize(context) + 24;
         // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
         final m = _barMetrics(
             constraints.biggest, state.puzzle!.size, true, actionColumnWidth);
@@ -937,78 +921,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   child: (isPlacedPieceSelected || isSliderPieceSelected)
                       // 🔑 Mode transformation: icônes pleine hauteur, réparties uniformément
                       ? _buildFullHeightIsometryBar(state, notifier, actionColumnWidth)
-                      // Mode normal: actions centrées
+                      // Mode normal : la MÊME liste qu'en portrait, en colonne, répartie (§9).
                       : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // ⏱️ Chronomètre
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          _formatTime(state.elapsedSeconds),
-                          style: TextStyle(
-                            fontSize: (iconSize * 0.5).clamp(10.0, 16.0),
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: _buildBarItems(context, state, notifier),
                         ),
-                      ),
-                      // Actions générales (reset, close, hint)
-                      IconButton(
-                        icon: Icon(Icons.games, size: iconSize),
-                        onPressed: () {
-                          HapticFeedback.mediumImpact();
-                          notifier.reset();
-                        },
-                        tooltip: 'Recommencer',
-                      ),
-                      // 💡 Bouton Hint (lampe)
-                      if (!state.isComplete &&
-                          state.hasPossibleSolution &&
-                          state.availablePieces.isNotEmpty)
-                        IconButton(
-                          icon: Icon(Icons.lightbulb_outline, size: iconSize),
-                          color: Colors.amber,
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            notifier.applyHint();
-                          },
-                          tooltip: 'Indice',
-                        ),
-                      // 🔎 Navigateur de solutions (tailles adossées à une table)
-                      if (state.solutionsCount != null)
-                        IconButton(
-                          icon: Icon(Icons.view_carousel, size: iconSize),
-                          color: Colors.indigo,
-                          onPressed: () {
-                            HapticFeedback.selectionClick();
-                            final sols = notifier.compatibleSolutions();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SolutionsBrowserScreen.forSolutions(
-                                  solutions: sols,
-                                  title: '${sols.length} solution(s) compatible(s)',
-                                ),
-                              ),
-                            );
-                          },
-                          tooltip: 'Solutions compatibles',
-                        ),
-                      // ⚙️ Réglages
-                      IconButton(
-                        icon: Icon(Icons.settings, size: iconSize),
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                          );
-                        },
-                        tooltip: 'Réglages',
-                      ),
-                    ],
-                  ),
                 ),
 
                 // Plateau de jeu — au milieu
