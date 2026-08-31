@@ -17,11 +17,35 @@ un **sous-ensemble de pièces**, codable sur 12 bits. Une seule table indexée p
 
 4096 entrées sur 16 bits (compte max observé 4664) = **8 Ko**. Sur 32 bits, 16 Ko.
 
-Le générateur ne doit **pas** faire une énumération par tirage (4004 énumérations) : un seul
-parcours par plateau suffit. On remplit le plateau par la case libre la plus basse en essayant
-toutes les pièces non encore utilisées ; à plateau plein, on incrémente `table[masqueUtilisé]`.
-Huit parcours au total. Coût mesuré (implémentation Python naïve, sans élagage de régions
-isolées) : **11 s pour les huit tailles**. En Dart avec l'élagage existant, moins.
+### 1.1 Méthode — un seul parcours par plateau, jamais un par tirage
+
+C'est le point à ne pas rater à l'implémentation. L'intuition naturelle est fausse : on ne
+choisit **pas** un tirage, on ne compte **pas** ses solutions, on ne recommence **pas** avec le
+tirage suivant. Ce serait 4 004 énumérations.
+
+Le parcours ne choisit aucun tirage à l'avance. Il remplit la **case libre la plus basse** en
+essayant toutes les pièces non encore utilisées, quelles qu'elles soient. Quand le plateau est
+plein, on regarde quelles pièces ont servi — nécessairement n d'entre elles — et on incrémente
+`table[masqueUtilisé]`. Les C(12,n) comptes tombent **d'un seul parcours**. Neuf parcours au
+total (n ∈ 3…10, plus 12), pas 4 004.
+
+**Pourquoi c'est plus rapide.** Deux tirages qui partagent leurs premières pièces posées
+partagent le même début d'arbre de recherche ; l'énumération séparée le reparcourt à chaque
+fois. Et l'écart grandit là où beaucoup de tirages sont insolubles : en 5×6, 924 tirages
+possibles pour 172 solubles — l'approche « un par un » lance 752 recherches qui n'aboutissent à
+rien, le parcours unique n'explore jamais un tirage qui ne se complète pas.
+
+**Mesuré sur le 5×10** (Python naïf, sans élagage des régions isolées) : 8 tirages traités un
+par un coûtent 2,4 s, soit ~20 s pour les 66 ; le parcours unique fait le même travail en
+**4,1 s**. Facteur 5. Sur les huit plateaux 5×n : **11 s au total**. En Dart avec un élagage
+correct, moins.
+
+**Formulation exacte, qui n'est pas cosmétique.** 27 804 n'est pas *une somme de comptes* :
+c'est **le nombre de pavages du 5×10 par dix pentominos distincts**, quantité qui existe sans
+qu'on parle de tirages. La ventilation par tirage est une **partition** de cet ensemble — on
+range chaque pavage dans la case du sous-ensemble qu'il utilise. Le découpage par tirage est
+donc une conséquence du parcours, pas une hypothèse de départ. C'est exactement pourquoi le
+calcul se fait naturellement en un passage.
 
 ## 2. Résultats
 
@@ -86,6 +110,13 @@ disponible sur **toutes** les tailles, pas seulement le 6×10.
   la durée de vie du mode.
 
 ## 7. Détail des petites tailles (pièces dans l'ordre Pentapol X P T F Y V U L N W Z I)
+
+**5×10 — 65 tirages sur 66.** Il est plus parlant de raisonner sur les **deux pièces écartées**
+(C(12,2) = 66). Le seul tirage impossible est celui qui écarte **P et F**. Le plus riche écarte
+**X et W** : 4 664 pavages — sans surprise, X est le pentomino le plus contraignant et W presque
+autant, les retirer libère tout ; quatre des cinq tirages les plus riches écartent le X. Le
+minimum, 4 pavages — soit **un seul à symétrie près** — est atteint en écartant P et I, P et N,
+P et Y, ou L et I. Moyenne : 428 pavages par tirage, pour un écart de 4 à 4 664.
 
 **3×5 — 7 tirages, 4 solutions chacun :**
 PFU, PUN, PVL, PVU, PYU, TYL, VLN
