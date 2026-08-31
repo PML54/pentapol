@@ -1,10 +1,11 @@
-// Modified: 2026-08-31 11:00 — PLAN_ERGONOMIE §9 (décisions 65-68) : une seule barre d'actions
-//           pour les deux orientations — _buildBarItems (nouvelle partie, multijoueur, recommencer,
-//           indice, solutions, réglages) rendue en Row (portrait, dans le title) ou Column (paysage),
-//           spaceEvenly. Retrait de actions:/leading/leadingWidth ; chrono au centre en _uiLabelSize×1.4 ;
-//           trois compteurs sortis de la barre (décision 68) ; largeur colonne paysage = _uiIconSize+24.
-//           Supersède le §4d (iconTheme, décision 69) : chaque IconButton porte iconSize.
+// Modified: 2026-08-31 14:20 — bug iOS : le body du Scaffold n'avait aucun SafeArea — en paysage
+//           (appBar null) le corps passait sous l'îlot dynamique, en portrait la barre sous
+//           l'indicateur d'accueil. Body enveloppé dans un SafeArea (tous bords, pas de padding
+//           directionnel) ; le LayoutBuilder voit les contraintes réduites, le plateau se recalcule.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-31 11:00 — PLAN_ERGONOMIE §9 (décisions 65-68) : une seule barre d'actions
+//             pour les deux orientations — _buildBarItems rendue en Row (portrait) / Column (paysage) ;
+//             retrait de actions:/leading ; chrono central ; trois compteurs sortis ; supersède §4d.
 // Historique: 2026-08-31 09:30 — §7 (décision 61) : ordre des zones en paysage aligné sur le portrait.
 // Historique: 2026-08-30 15:10 — §4d (décision 59) : icônes de l'AppBar via iconTheme (superseédé par §9).
 // Historique: 2026-08-30 13:45 — PLAN_ERGONOMIE §6 étape 3 : helper _uiIconSize/_uiAppBarHeight,
@@ -146,7 +147,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 ),
         ),
       ),
-      body: Stack(
+      // §iOS : sans SafeArea le corps passe sous l'îlot dynamique (paysage, appBar null) et sous
+      // l'indicateur d'accueil (portrait). SafeArea par défaut couvre TOUS les bords — donc les
+      // deux sens de rotation, sans padding directionnel en dur. Le LayoutBuilder interne voit
+      // alors les contraintes réduites, et le plateau se recalcule sur la place restante.
+      body: SafeArea(
+        child: Stack(
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
@@ -179,6 +185,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           if (_showOpponentOverlay)
             _buildOpponentOverlay(context, state, settings),
         ],
+      ),
       ),
     );
   }
