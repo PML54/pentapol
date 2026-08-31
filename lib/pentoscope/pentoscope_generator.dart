@@ -1,8 +1,9 @@
-// Modified: 2026-08-29 07:46 — 6×10 dans Pentoscope (temps 1) : enum SolutionTable (r6x10),
-//           taille size6x10 (12 pièces) portant sa table, et court-circuit
-//           _buildFullRectanglePuzzle dans les 4 points d'entrée du générateur (solutions
-//           laissées vides, compte 9356) pour éviter tirage forcé et timeout silencieux.
+// Modified: 2026-08-31 17:00 — suppression de la difficulté : generateEasy/generateHard retirés ;
+//           generate ne fait plus qu'une passe (findSolutionFrom sur plateau vide) au lieu de
+//           findFirstSolution + findAllSolutions ; boucle bornée (200) au lieu d'infinie ;
+//           solutions: [solutionTrouvée] (répare « afficher la solution ») ; solutionCount → int?.
 // lib/pentoscope/pentoscope_generator.dart
+// Historique: 2026-08-29 07:46 — 6×10 (temps 1) : court-circuit _buildFullRectanglePuzzle (9356).
 // Historique: 2512161105 — Générateur lazy : solutions en live (pas de table).
 // Dimensions transposées: 3×5 = 3 colonnes × 5 lignes (portrait)
 
@@ -20,11 +21,9 @@ class PentoscopeGenerator {
     _solver = PentoscopeSolver();
   }
 
-  /// Court-circuit pour le rectangle complet 6×10 : tirage forcé des 12 pièces,
-  /// compte connu (9356), solutions laissées **vides** — elles seront branchées
-  /// au temps 2. Évite le chemin normal du générateur, qui sur 12 pièces donne un
-  /// tirage forcé, un compte partiel silencieux à l'expiration du timeout, et une
-  /// boucle infinie côté generateEasy (voir PLAN_6X10_DANS_PENTOSCOPE.md §3.1).
+  /// Court-circuit pour le rectangle complet 6×10 : tirage forcé des 12 pièces, compte connu
+  /// (9356), solutions laissées **vides** (branchées via la table au temps 2). Évite le chemin
+  /// normal du générateur, qui sur 12 pièces coûterait très cher (voir PLAN_6X10 §3.1).
   PentoscopePuzzle _buildFullRectanglePuzzle(PentoscopeSize size) =>
       PentoscopePuzzle(
         size: size,
@@ -33,118 +32,51 @@ class PentoscopeGenerator {
         solutions: const [],
       );
 
-  /// Génère un puzzle aléatoire pour une taille donnée
-  /// Boucle jusqu'à trouver une combinaison valide (avec 1+ solution)
+  /// Génère un puzzle aléatoire pour une taille donnée.
+  ///
+  /// Une seule passe du solveur par tirage : `findSolutionFrom` sur le plateau vide renvoie
+  /// `null` si le tirage est insoluble (⟹ nouveau tirage), sinon **la** solution trouvée, qu'on
+  /// stocke — ce qui répare l'option « afficher la solution » sur ces tailles. On n'énumère plus
+  /// toutes les solutions (calcul mort depuis la suppression de la difficulté), donc `solutionCount`
+  /// n'a pas de valeur honnête hors 6×10 : `null`.
+  ///
+  /// Boucle **bornée** (pas de timeout au solveur : « insoluble » et « pas terminé » doivent
+  /// rester distincts — question renvoyée au chantier de mesure). Sur ces petites tailles un
+  /// tirage aléatoire est presque toujours soluble ; atteindre la borne signalerait une anomalie.
   Future<PentoscopePuzzle> generate(PentoscopeSize size) async {
     if (size == PentoscopeSize.size6x10) return _buildFullRectanglePuzzle(size);
-    while (true) {
+
+    final emptyGrid = List<List<int>>.generate(
+      size.height,
+      (_) => List<int>.filled(size.width, 0),
+    );
+
+    const maxAttempts = 200;
+    List<int> lastPieceIds = const [];
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       final pieceIds = _selectRandomPieces(size.numPieces);
+      lastPieceIds = pieceIds;
 
-      // Étape 2: chercher rapidement si solution existe
-      final hasFirst = _solver.findFirstSolution(
-        pieceIds,
-        size.width,
-        size.height,
-      );
-
-      if (!hasFirst) {
-        continue; // Retry
-      }
-
-      // Étape 3: chercher TOUTES les solutions avec timeout 2s
-      final result = await _solver.findAllSolutions(
-        pieceIds,
-        size.width,
-        size.height,
-        timeout: const Duration(seconds: 2),
-      );
-
-      // Étape 4: créer puzzle
-      return PentoscopePuzzle(
-        size: size,
-        pieceIds: pieceIds,
-        solutionCount: result.solutionCount,
-        solutions: result.solutions,
-      );
-    }
-  }
-
-  /// Génère un puzzle en favorisant ceux avec plus de solutions (faciles)
-  /// Boucle jusqu'à solutionCount >= threshold
-  Future<PentoscopePuzzle> generateEasy(PentoscopeSize size) async {
-    if (size == PentoscopeSize.size6x10) return _buildFullRectanglePuzzle(size);
-    const minSolutions = 4; // Au moins 4 solutions pour être "facile"
-
-    while (true) {
-      final pieceIds = _selectRandomPieces(size.numPieces);
-
-      final hasFirst = _solver.findFirstSolution(
-        pieceIds,
-        size.width,
-        size.height,
-      );
-
-      if (!hasFirst) {
-        continue;
-      }
-
-      final result = await _solver.findAllSolutions(
-        pieceIds,
-        size.width,
-        size.height,
-        timeout: const Duration(seconds: 2),
-      );
-
-      // Garder si assez de solutions
-      if (result.solutionCount >= minSolutions) {
+      final solution =
+          _solver.findSolutionFrom(pieceIds, size.width, size.height, emptyGrid);
+      if (solution != null) {
         return PentoscopePuzzle(
           size: size,
           pieceIds: pieceIds,
-          solutionCount: result.solutionCount,
-          solutions: result.solutions,
+          solutionCount: null, // hors 6×10 : aucun compte honnête (plus d'énumération)
+          solutions: [solution],
         );
       }
-      // Sinon: retry
     }
-  }
 
-  /// Génère un puzzle en favorisant ceux avec peu de solutions (durs)
-  /// Boucle jusqu'à solutionCount <= threshold
-  Future<PentoscopePuzzle> generateHard(PentoscopeSize size) async {
-    if (size == PentoscopeSize.size6x10) return _buildFullRectanglePuzzle(size);
-    const maxSolutions = 2; // Max 2 solutions pour être "difficile"
-
-    while (true) {
-      final pieceIds = _selectRandomPieces(size.numPieces);
-
-      final hasFirst = _solver.findFirstSolution(
-        pieceIds,
-        size.width,
-        size.height,
-      );
-
-      if (!hasFirst) {
-        continue;
-      }
-
-      final result = await _solver.findAllSolutions(
-        pieceIds,
-        size.width,
-        size.height,
-        timeout: const Duration(seconds: 2),
-      );
-
-      // Garder si peu de solutions
-      if (result.solutionCount <= maxSolutions) {
-        return PentoscopePuzzle(
-          size: size,
-          pieceIds: pieceIds,
-          solutionCount: result.solutionCount,
-          solutions: result.solutions,
-        );
-      }
-      // Sinon: retry
-    }
+    // Repli explicite : borne atteinte. On rend le dernier tirage sans solution — la partie
+    // démarre quand même et le joueur peut relancer (ne devrait jamais arriver sur ces tailles).
+    return PentoscopePuzzle(
+      size: size,
+      pieceIds: lastPieceIds,
+      solutionCount: null,
+      solutions: const [],
+    );
   }
 
   /// Sélectionne N pièces aléatoires parmi les 12 disponibles
@@ -199,8 +131,11 @@ class PentoscopePuzzle {
 
   final PentoscopeSize size;
   final List<int> pieceIds;
-  final int solutionCount;
-  final List<Solution> solutions; // Toutes les solutions trouvées
+
+  /// Nombre de solutions du puzzle, ou `null` quand il n'est pas connu de façon honnête :
+  /// hors 6×10, on ne fait plus d'énumération (une seule solution est trouvée et stockée).
+  final int? solutionCount;
+  final List<Solution> solutions; // La (ou les) solution(s) trouvée(s)
 
   const PentoscopePuzzle({
     required this.size,
@@ -210,8 +145,12 @@ class PentoscopePuzzle {
   });
 
   /// Description lisible
-  String get description =>
-      '${size.label} avec ${pieceNames.join(", ")} ($solutionCount solution${solutionCount > 1 ? "s" : ""})';
+  String get description {
+    final count = solutionCount;
+    final countPart =
+        count != null ? ' ($count solution${count > 1 ? "s" : ""})' : '';
+    return '${size.label} avec ${pieceNames.join(", ")}$countPart';
+  }
 
   /// Retourne les noms des pièces du puzzle
   List<String> get pieceNames =>

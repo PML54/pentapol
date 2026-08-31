@@ -1,4 +1,7 @@
-// Modified: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : méthodes CurrentGame —
+// Modified: 2026-08-31 17:00 — suppression de la difficulté : CurrentGame.solutionCount devient
+//           nullable() (null hors 6×10) ; schemaVersion 2 → 3 (réécriture destructive, pas de
+//           migration — l'app n'est pas publiée, règle n°6). saveCurrentGame prend un int?.
+// Historique: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : méthodes CurrentGame —
 //           saveCurrentGame (upsert de la ligne unique), clearCurrentGame, loadCurrentGame.
 // lib/database/settings_database.dart
 // Historique: 2026-08-30 11:40 — étape 3 : recordSolvedSolution et recordPuzzleCompleted (records).
@@ -39,7 +42,7 @@ class CurrentGame extends Table {
   IntColumn get id => integer().withDefault(const Constant(0))(); // ligne unique
   TextColumn get sizeName => text()();          // PentoscopeSize.name, ex. 'size6x10'
   TextColumn get pieceIds => text()();          // '1,2,3,…' — le tirage du puzzle
-  IntColumn get solutionCount => integer()();   // repris de PentoscopePuzzle
+  IntColumn get solutionCount => integer().nullable()(); // repris de PentoscopePuzzle (null hors 6×10)
   TextColumn get placedPieces => text()();      // JSON : [{id,pos,x,y}, …]
   TextColumn get positionIndices => text()();   // JSON : {pieceId: orientation}
   IntColumn get elapsedSeconds => integer()();
@@ -86,7 +89,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3; // 2 → 3 : CurrentGame.solutionCount devient nullable.
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
   // tables. L'app n'est pas publiée, il n'y a rien à migrer (PLAN_PERSISTANCE §5).
@@ -215,7 +218,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   Future<void> saveCurrentGame({
     required String sizeName,
     required String pieceIds,
-    required int solutionCount,
+    required int? solutionCount,
     required String placedPieces,
     required String positionIndices,
     required int elapsedSeconds,
@@ -228,7 +231,7 @@ class SettingsDatabase extends _$SettingsDatabase {
       CurrentGameCompanion.insert(
         sizeName: sizeName,
         pieceIds: pieceIds,
-        solutionCount: solutionCount,
+        solutionCount: Value(solutionCount),
         placedPieces: placedPieces,
         positionIndices: positionIndices,
         elapsedSeconds: elapsedSeconds,

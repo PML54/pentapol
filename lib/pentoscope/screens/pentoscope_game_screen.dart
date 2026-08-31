@@ -1,7 +1,9 @@
-// Modified: 2026-08-31 16:00 — regroupement des sept valeurs de réglage visuel en un bloc de
-//           constantes nommées en tête de fichier (dont kPieceToBoardCellRatio, rapatrié de
-//           pentoscope_board.dart). Regroupement pur : valeurs et comportement inchangés.
+// Modified: 2026-08-31 17:00 — suppression de la difficulté : le dialogue « Nouvelle partie »
+//           perd le SegmentedButton et la variable difficulty ; startPuzzle sans ce paramètre.
+//           L'interrupteur « Montrer la solution » est conservé.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-31 16:00 — regroupement des sept valeurs de réglage visuel en un bloc de
+//             constantes nommées en tête de fichier (dont kPieceToBoardCellRatio, rapatrié du board).
 // Historique: 2026-08-31 15:00 — réglage à l'œil : _kSliderPad 32 → 20 ; k 0.45 → 0.35 (board).
 // Historique: 2026-08-31 14:20 — bug iOS : body enveloppé dans un SafeArea.
 // Historique: 2026-08-31 11:00 — PLAN_ERGONOMIE §9 (décisions 65-68) : une seule barre d'actions
@@ -58,7 +60,7 @@ import 'package:pentapol/screens/settings_screen.dart';
 
 /// Rapport pièce/plateau : `pieceCellSize = boardCellSize × k`. Gouverne la taille des pièces
 /// de la barre **et** du feedback de drag ; l'épaisseur de la barre en dérive.
-const double kPieceToBoardCellRatio = 0.35;
+const double kPieceToBoardCellRatio = 0.22;
 
 /// Icônes (AppBar + colonne d'actions) : `shortestSide × facteur`, borné.
 const double _kIconSizeFactor = 0.075;
@@ -1004,7 +1006,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final notifier = ref.read(pentoscopeProvider.notifier);
     var selectedSize =
         ref.read(pentoscopeProvider).puzzle?.size ?? PentoscopeSize.size5x5;
-    var difficulty = PentoscopeDifficulty.random;
     var showSolution = false;
 
     showDialog(
@@ -1030,24 +1031,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   ),
                 ),
                 const Divider(),
-                const Text('Difficulté',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                SegmentedButton<PentoscopeDifficulty>(
-                  segments: const [
-                    ButtonSegment(
-                        value: PentoscopeDifficulty.easy, label: Text('Facile')),
-                    ButtonSegment(
-                        value: PentoscopeDifficulty.random,
-                        label: Text('Aléatoire')),
-                    ButtonSegment(
-                        value: PentoscopeDifficulty.hard,
-                        label: Text('Difficile')),
-                  ],
-                  selected: {difficulty},
-                  onSelectionChanged: (s) =>
-                      setState(() => difficulty = s.first),
-                ),
                 SwitchListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -1068,7 +1051,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 Navigator.pop(context);
                 notifier.startPuzzle(
                   selectedSize,
-                  difficulty: difficulty,
                   showSolution: showSolution,
                 );
               },

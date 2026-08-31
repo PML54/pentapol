@@ -1,7 +1,9 @@
-// Modified: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : records. _saveCompletedLevel (qui
-//           écrivait dans les préférences clé/valeur une donnée jamais relue) remplacé par
-//           _saveCompletionRecord qui écrit dans SolvedSolutions/PuzzleStats via solutionIndexOf ;
-//           appelé aux DEUX complétions (placement ET indice). Import du paquet de prefs retiré.
+// Modified: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
+//           startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
+//           solutionCount de PentoscopePuzzle devient int? (aucun compte honnête hors 6×10).
+// Historique: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : records. _saveCompletedLevel (qui
+//             écrivait dans les préférences clé/valeur une donnée jamais relue) remplacé par
+//             _saveCompletionRecord qui écrit dans SolvedSolutions/PuzzleStats via solutionIndexOf.
 // lib/pentoscope/pentoscope_provider.dart
 // Historique: 2026-08-30 06:58 — PLAN_BILAN §5 : le chrono ne s'arrêtait pas en fin de partie.
 //             (A) garde de tryPlacePiece exclut isComplete ; (B) resetTimer() aux 3 démarrages.
@@ -72,8 +74,6 @@ final pentoscopeProvider =
 // ============================================================================
 // PROVIDER
 // ============================================================================
-
-enum PentoscopeDifficulty { easy, random, hard }
 
 // TransformationResult vit désormais dans common/transformation_result.dart,
 // ré-exporté ci-dessus pour que les imports existants continuent de fonctionner.
@@ -597,15 +597,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   Future<void> startPuzzle(
     PentoscopeSize size, {
-    PentoscopeDifficulty difficulty = PentoscopeDifficulty.random,
     bool showSolution = false,
   }) async {
     _isMultiplayer = false;
-    final puzzle = await switch (difficulty) {
-      PentoscopeDifficulty.easy => _generator.generateEasy(size),
-      PentoscopeDifficulty.hard => _generator.generateHard(size),
-      PentoscopeDifficulty.random => _generator.generate(size),
-    };
+    final puzzle = await _generator.generate(size);
     _solutions = await _makeSolutionSource(size);
 
     final pieces = puzzle.pieceIds

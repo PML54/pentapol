@@ -1,7 +1,8 @@
-// Modified: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : reprise de la partie en cours.
-//           Au lancement, on lit CurrentGame et on la restaure ; sinon on génère le 5×5.
-//           WidgetsBindingObserver : au passage en arrière-plan, on fige la partie (§2.2).
+// Modified: 2026-08-31 17:00 — suppression de la difficulté : les deux appels startPuzzle ne
+//           passent plus difficulty (paramètre retiré).
 // lib/main.dart
+// Historique: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : reprise de la partie en cours ;
+//             WidgetsBindingObserver ; au lancement, restaure CurrentGame sinon génère le 5×5.
 // Historique: 2026-08-30 — §8 étape 4 : abandon de l'écran d'accueil — retrait de l'unique
 //             route nommée et de son import ; les Réglages passent par l'AppBar de Pentoscope.
 //             2026-08-29 14:09 — étape 7 : retrait de l'amorce solutionsReadyProvider.
@@ -69,14 +70,12 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
           await ref.read(settingsDatabaseProvider).clearCurrentGame();
           await notifier.startPuzzle(
             PentoscopeSize.size5x5,
-            difficulty: PentoscopeDifficulty.random,
             showSolution: false,
           );
         }
       } else {
         await notifier.startPuzzle(
           PentoscopeSize.size5x5, // 5x5 qui correspond à 5 pièces
-          difficulty: PentoscopeDifficulty.random,
           showSolution: false,
         );
       }
