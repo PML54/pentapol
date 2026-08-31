@@ -57,7 +57,6 @@ import 'package:pentapol/common/piece_interaction_mixin.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
-import 'package:pentapol/pentoscope/pentoscope_solver.dart' show Solution;
 import 'package:pentapol/pentoscope/solution_source.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
 import 'package:pentapol/pentoscope/corpus_provider.dart';
@@ -470,10 +469,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final plateau = Plateau.allVisible(puzzle.size.width, puzzle.size.height);
 
-    Solution? firstSolution;
-    if (state.showSolution && newPuzzle.solutions.isNotEmpty) {
-      firstSolution = newPuzzle.solutions[0];
-    }
+    // Solution « à afficher » : une solution complète du tirage, servie par la SolutionSource
+    // (corpus/table) sur le plateau vide. Plus de solveur.
+    final firstSolution =
+        state.showSolution ? _solutions.hintFrom(plateau, pieces) : null;
 
     // ⏱️ Reset sans démarrer le timer — efface l'origine, la partie suivante repart de zéro
     resetTimer();
@@ -647,9 +646,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       piecePositionIndices[piece.id] = randomPos;
     }
 
-    // Solution à afficher si l'option « montrer la solution » est active
-    final Solution? firstSolution =
-        (showSolution && puzzle.solutions.isNotEmpty) ? puzzle.solutions[0] : null;
+    // Solution à afficher si l'option « montrer la solution » est active : servie par la
+    // SolutionSource (corpus/table) sur le plateau vide. Plus de solveur.
+    final firstSolution =
+        showSolution ? _solutions.hintFrom(plateau, pieces) : null;
 
     // ⏱️ Reset timer sans démarrer — efface l'origine, la partie repart de zéro
     resetTimer();
@@ -822,7 +822,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       size: size,
       pieceIds: pieceIds,
       solutionCount: row.solutionCount,
-      solutions: const [],
     );
     _solutions = await _makeSolutionSource(size, pieceIds);
 
@@ -2028,7 +2027,10 @@ class PentoscopeState implements PieceManipulationState {
   final bool isSnapped;
   final bool isDragging;
   final bool showSolution;
-  final Solution? currentSolution;
+
+  /// Solution complète « à afficher » (guide), sous forme de placements. Vient de la
+  /// SolutionSource via hintFrom ; `null` si l'option est désactivée.
+  final List<PlacedPiece>? currentSolution;
 
   // 💡 HINT: Indique si au moins une solution est encore possible
   final bool hasPossibleSolution;
@@ -2138,7 +2140,7 @@ class PentoscopeState implements PieceManipulationState {
     bool? isSnapped,
     bool? isDragging,
     bool? showSolution, // ✅ NOUVEAU
-    Solution? currentSolution, // ✅ NOUVEAU
+    List<PlacedPiece>? currentSolution,
     bool? hasPossibleSolution, // 💡 HINT
     int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer

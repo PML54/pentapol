@@ -18,10 +18,12 @@
 ### L'application
 
 Un seul module de jeu, **Pentoscope** : tailles `size3x5`…`size10x5` (tirage d'un masque de
-pièces parmi les solubles d'une table précalculée `subset_counts.bin` — le nombre de solutions
-est connu et affiché au tirage) plus `size6x10` (rectangle complet, adossé aux 9356 solutions
-pré-calculées). Plus le **multijoueur**, qui réutilise son provider. Démarrage direct sur
-`PentoscopeGameScreen`, pas d'écran d'accueil. Plus de notion de difficulté.
+pièces parmi les solubles) plus `size6x10` (rectangle complet). **Toutes** les réponses
+« solution » (compte décroissant, disponibilité, guide) sont désormais adossées à des tables
+pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 5×n, 3,13 Mo) et
+`solutions_6x10_normalisees.bin`. **Plus aucun solveur backtracking dans l'app livrée.** Plus le
+**multijoueur**, qui réutilise son provider. Démarrage direct sur `PentoscopeGameScreen`, pas
+d'écran d'accueil. Plus de notion de difficulté.
 
 ### Chantiers terminés
 
@@ -35,6 +37,13 @@ pré-calculées). Plus le **multijoueur**, qui réutilise son provider. Démarra
   (4096 × uint16, 8 Ko) donne le nombre de solutions de tout tirage 5×n ; le générateur tire un
   masque parmi les solubles (plus d'appel-boucle au solveur, plus de difficulté), le compte est
   affiché au dialogue avec « autre tirage ». Table validée contre `REFERENCE_TIRAGES.md` §2.
+- **Tirages précalculés (étape B)** — corpus complet `solutions_corpus.bin` (3,13 Mo, octet/case,
+  73 876 solutions 5×n) ; `CorpusSolutionSource` adosse **toutes** les tailles à une table,
+  appariement d'octets sans allocation (`common/byte_matching.dart`), compteur décroissant partout,
+  et **`PentoscopeSolver` supprimé du dépôt** (les outils réimplémentent l'énumération Flutter-free
+  — inutile de le garder dans `tools/`). Motivé par la mesure n°2 : le pire `_solutionStatus`
+  (38–78 ms) venait du solveur live, pas du comptage par table (~0,6 ms). Choix : **2 sources
+  table-backed** (6×10 via `SolutionMatcher`/BigInt pour son navigateur ; 5×n via corpus/bytes).
 
 Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVENDI` §5).
 
@@ -42,12 +51,11 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Tirages étape B** | `REFERENCE_TIRAGES.md` §8 B / §9 | **en cours.** Faits : commit 1 (corpus `solutions_corpus.bin`, 3,13 Mo, octet/case, 73 876 solutions) ; commit 2 (source unifiée — `LiveSolutionSource` supprimée, `CorpusSolutionSource` adosse **toutes** les tailles au corpus, appariement d'octets factorisé dans `common/byte_matching.dart`). Commit 4 (compteur décroissant partout) **acquis gratuitement** par le commit 2 : `solutionsCount` non-nul via `CorpusSolutionSource` suffit, le widget existait ; le bouton « solutions compatibles » a été regaté au 6×10 (sinon vide). Reste : commit 3 (sortir `PentoscopeSolver` du runtime — touche générateur + multijoueur). Les 2 mesures §9 acquises : le pire `_solutionStatus` (38–78 ms) venait du solveur live des petites tailles, pas du comptage par table (~0,6 ms). **Décision : 2 sources table-backed** (6×10 via `SolutionMatcher`/BigInt pour son navigateur ; 5×n via corpus/bytes) plutôt qu'une seule classe — l'appariement, lui, est unifié |
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail |
 
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
-— quitter l'app au milieu d'un 6×10 perd tout), puis la mesure n°2 pour décider de B.
+— quitter l'app au milieu d'un 6×10 perd tout).
 
 ### Documentation
 
@@ -74,9 +82,9 @@ flutter run --release -d 00008150-000165D4027B401C
 ### Git
 
 Poussé jusqu'à `64ec104`. **Non poussés** : enrichissement `REFERENCE_TIRAGES.md` (cowork,
-`ceff658`), byte-matcher (`ef669cf`), corpus étape B commit 1 (`86dcea6`), et le commit 2
-(source unifiée corpus + ce journal). **À tester sur appareil** avant le commit 3 : jouer une
-petite taille (5×10, 4×5) — jeu normal, sans à-coup.
+`ceff658`), byte-matcher (`ef669cf`), et l'étape B — corpus (`86dcea6`), source unifiée
+(`8ce7a56`), compteur/navigateur (`3cd14a2`), retrait du solveur (+ ce journal). **Testé sur
+appareil** (5×10 fluide, guide OK, 6×10 intact). À pousser.
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
@@ -86,6 +94,21 @@ petite taille (5×10, 4×5) — jeu normal, sans à-coup.
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-08-31 — CLI → cowork (tirages étape B, terminée).** Corpus complet + source unifiée +
+retrait du solveur, en 4 commits, testés sur iPad. **`86dcea6`** : `tools/generate_solutions_corpus.dart`
++ `assets/data/solutions_corpus.bin` (3,13 Mo, octet/case, 73 876 solutions 5×n) + test structurel ;
+compte par masque identique à `subset_counts.bin`. **`8ce7a56`** : `common/byte_matching.dart`
+(appariement d'octets partagé), `corpus_provider.dart` (découpe par masque), `LiveSolutionSource`
+→ `CorpusSolutionSource` ; `SolutionMatcher.countCompatibleBytes` délègue au partagé. **`3cd14a2`** :
+compteur décroissant actif sur toutes les tailles (gratuit — `solutionsCount` non-nul), bouton
+« solutions compatibles » regaté au 6×10. **retrait solveur** : `PentoscopeSolver` **supprimé du
+dépôt** (outils Flutter-free autonomes), `puzzleFromMask`/`generateFromSeed` ne l'appellent plus
+(compte via `subset_counts.bin`, exact, sans troncature `maxSeconds=30`), `PentoscopePuzzle.solutions`
+supprimé, `currentSolution` typé `List<PlacedPiece>?` servi par `hintFrom`. **Décision : 2 sources
+table-backed** (6×10/BigInt, 5×n/bytes), appariement unifié. `analyze` 0, `test` 12/12. **À noter
+pour cowork** : le §7 de `REFERENCE_TIRAGES` dit « max 5×10 écarte X et W », mais ce masque donne
+2612, pas 4664 — lettre ou exemple à corriger (sans incidence code, le §2 est respecté).
 
 **2026-08-31 — CLI → cowork (mesure n°2 + appariement Uint8List).** Mesure n°2 (§9) jouée sur
 iPad en `--release`, affichage à l'écran (le debug WiFi crashe chez Paul). Le pire
@@ -112,10 +135,3 @@ ni `ListSolutionSource`, ni retrait de `PentoscopeSolver`. **Dû par Paul** (vé
 le dialogue affiche un nombre plausible et « autre tirage » le change ; 3×5 → 7 tirages tous à 4 ;
 nouvelles parties instantanées sur toutes les tailles (10×5 compris) ; base réécrite au 1er
 lancement (v4). **Mesure n°2 pour B** (fluidité `_solutionStatus`) reste à instrumenter/jouer.
-
-**2026-08-31 — CLI → cowork (suppression de la difficulté).** Fait ce matin en un commit
-(`f1f26cf`), **révisé par l'étape A** : l'approche `findSolutionFrom`+boucle bornée et le
-`nullable()` du matin sont annulés au profit du tirage par table. La suppression de la difficulté
-elle-même (enum, generateEasy/Hard, SegmentedButton, main.dart) survit. `findAllSolutions` gardée.
-(Rappels hérités : correctif iOS `SafeArea` `3f09e1d` ; réglage barre `k`=0.35 `034ddff` ;
-regroupement des 7 constantes de réglage `af2f5e0`.)

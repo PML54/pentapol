@@ -1,9 +1,10 @@
-// Modified: 2026-08-31 18:00 — tirage par table (REFERENCE_TIRAGES §8 A, commit 2) : generate()
-//           tire un masque au hasard parmi les solubles de subset_counts.bin (aucun appel-boucle
-//           au solveur), pose solutionCount = table[masque] — compte honnête, donc solutionCount
-//           redevient int (annule le int?/nullable du matin). Un unique findSolutionFrom alimente
-//           puzzle.solutions[0] (« afficher la solution »), soluble par construction.
+// Modified: 2026-08-31 16:39 — étape B (§8 B) : PentoscopeSolver sort du générateur. puzzleFromMask
+//           ne calcule plus de solution (le champ PentoscopePuzzle.solutions est supprimé — la
+//           solution « à afficher » vient désormais de la SolutionSource via hintFrom, côté
+//           provider). generateFromSeed lit le compte dans subset_counts.bin au lieu du solveur.
 // lib/pentoscope/pentoscope_generator.dart
+// Historique: 2026-08-31 18:00 — tirage par table (§8 A) : generate() tire un masque parmi les
+//             solubles de subset_counts.bin ; solutionCount = table[masque], non-nullable.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté (generateEasy/Hard, switch retirés).
 // Historique: 2026-08-29 07:46 — 6×10 (temps 1) : court-circuit _buildFullRectanglePuzzle (9356).
 // Dimensions transposées: 3×5 = 3 colonnes × 5 lignes (portrait)
@@ -12,7 +13,6 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:pentapol/pentoscope/pentoscope_solver.dart';
 
 /// Table des comptes par sous-ensemble : 4096 × uint16 (voir tools/generate_subset_counts.dart
 /// et REFERENCE_TIRAGES.md). Index = masque 12 bits, bit (id − 1). 0 ⟺ tirage insoluble.
@@ -21,16 +21,12 @@ const String _subsetCountsAsset = 'assets/data/subset_counts.bin';
 /// Générateur de puzzles Pentoscope.
 class PentoscopeGenerator {
   final Random _random;
-  late final PentoscopeSolver _solver;
 
   /// Chargés paresseusement à la première génération hors 6×10.
   List<int>? _counts; // table[masque] = nombre de solutions
   Map<int, List<int>>? _solubleByPopcount; // popcount → masques avec compte > 0
 
-  PentoscopeGenerator([Random? random])
-      : _random = random ?? Random() {
-    _solver = PentoscopeSolver();
-  }
+  PentoscopeGenerator([Random? random]) : _random = random ?? Random();
 
   /// Charge `subset_counts.bin` une fois et en déduit, par un balayage des 4096 entrées, la
   /// liste des masques solubles regroupés par popcount (= nombre de pièces = taille du plateau).
@@ -85,7 +81,6 @@ class PentoscopeGenerator {
         size: size,
         pieceIds: List.generate(12, (i) => i + 1),
         solutionCount: 9356,
-        solutions: const [],
       );
 
   /// Génère un puzzle aléatoire pour une taille donnée.
@@ -101,47 +96,35 @@ class PentoscopeGenerator {
     return puzzleFromMask(size, masks[_random.nextInt(masks.length)]);
   }
 
-  /// Construit le puzzle d'un masque donné. Le compte vient de la table ; une **unique** passe du
-  /// solveur sur le plateau vide alimente `puzzle.solutions[0]` (option « afficher la solution »).
-  /// Elle réussit par construction — le masque est soluble, la solubilité est invariante par
-  /// transposition entre 5×n et n×5.
+  /// Construit le puzzle d'un masque donné : pièces + compte (`table[masque]`). La solution
+  /// « à afficher » n'est plus calculée ici — elle vient de la SolutionSource (corpus/table) via
+  /// `hintFrom`, côté provider. La table doit être chargée (via `drawMask`/`generate`).
   PentoscopePuzzle puzzleFromMask(PentoscopeSize size, int mask) {
-    final pieceIds = _piecesOfMask(mask);
-    final emptyGrid = List<List<int>>.generate(
-      size.height,
-      (_) => List<int>.filled(size.width, 0),
-    );
-    final solution =
-        _solver.findSolutionFrom(pieceIds, size.width, size.height, emptyGrid);
     return PentoscopePuzzle(
       size: size,
-      pieceIds: pieceIds,
+      pieceIds: _piecesOfMask(mask),
       solutionCount: _counts![mask],
-      solutions: solution != null ? [solution] : const [],
     );
   }
 
-  /// 🎮 Génère un puzzle avec un seed et des pièces spécifiques (mode multiplayer)
-  /// Ne vérifie pas les solutions - on fait confiance aux paramètres fournis
+  /// 🎮 Génère un puzzle avec des pièces spécifiques (mode multiplayer). Le compte vient de la
+  /// table (`subset_counts.bin`), plus du solveur : exact, sans troncature. [seed] n'entre pas
+  /// dans le compte (il pilote le tirage des pièces, fait en amont côté duel).
   Future<PentoscopePuzzle> generateFromSeed(
     PentoscopeSize size,
     int seed,
     List<int> pieceIds,
   ) async {
     if (size == PentoscopeSize.size6x10) return _buildFullRectanglePuzzle(size);
-    // Chercher les solutions (optionnel, pour le scoring)
-    final result = await _solver.findAllSolutions(
-      pieceIds,
-      size.width,
-      size.height,
-      timeout: const Duration(seconds: 2),
-    );
-
+    await _ensureTable();
+    var mask = 0;
+    for (final id in pieceIds) {
+      mask |= 1 << (id - 1);
+    }
     return PentoscopePuzzle(
       size: size,
       pieceIds: pieceIds,
-      solutionCount: result.solutionCount,
-      solutions: result.solutions,
+      solutionCount: _counts![mask],
     );
   }
 }
@@ -169,13 +152,11 @@ class PentoscopePuzzle {
 
   /// Nombre de solutions du puzzle (connu : table pour les petites tailles, 9356 pour le 6×10).
   final int solutionCount;
-  final List<Solution> solutions; // La (ou les) solution(s) trouvée(s)
 
   const PentoscopePuzzle({
     required this.size,
     required this.pieceIds,
     required this.solutionCount,
-    required this.solutions,
   });
 
   /// Description lisible

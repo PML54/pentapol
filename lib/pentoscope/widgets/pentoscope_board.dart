@@ -705,7 +705,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     if (state.currentSolution == null) return null;
 
     for (final placement in state.currentSolution!) {
-      final piece = pentominos.firstWhere((p) => p.id == placement.pieceId);
+      final piece = placement.piece;
       final position = piece.orientations[placement.positionIndex];
 
       // Calculer le minOffset pour normalisation
@@ -725,7 +725,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         final absY = placement.gridY + localY;
 
         if (absX == logicalX && absY == logicalY) {
-          return placement.pieceId;
+          return placement.piece.id;
         }
       }
     }
