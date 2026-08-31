@@ -81,8 +81,8 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `aadb520` (étape B). **Non poussés** : corrections doc lettres (`1128e1f`),
-chantier 1 « table de lettres unique » (`3e3beaf`), chantier 2 « retrait solveur » (+ ce journal).
+Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). Rien en attente hors ce
+commit de journal.
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
