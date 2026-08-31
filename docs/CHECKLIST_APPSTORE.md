@@ -24,9 +24,11 @@
 
 | 16 | **Six réglages d'affichage ne font rien** | L'écran Réglages expose « Taille des icônes » (curseur 16-48 px), `showPieceNumbers`, `showGridLines`, `enableAnimations`, `pieceOpacity`, `isometriesAppBarColor`. **Aucun n'est lu par le jeu** — vérifié au grep le 2026-08-30 : leurs seuls lecteurs sont le modèle, le provider et l'écran de réglages lui-même (plus `ui_dimensions.dart`, orphelin). L'utilisateur bouge le curseur, la valeur est enregistrée en base, et rien ne change. C'est le genre de détail qui vaut des avis à une étoile | `lib/screens/settings_screen.dart`, `lib/models/app_settings.dart` |
 
-| 17 | **« Afficher la solution » ne fait rien sur le 6×10** | L'interrupteur du dialogue de nouvelle partie (`pentoscope_game_screen.dart` l.1055) n'a d'effet que si `puzzle.solutions` est non vide. `_buildFullRectanglePuzzle` pose `solutions: const []` — le 6×10, taille phare, ignore donc l'interrupteur. Connu et différé (« branchées au temps 2 »), mais c'est un contrôle mort de plus dans une app publiée | `lib/pentoscope/pentoscope_generator.dart` l.28-34, `pentoscope_provider.dart` l.456, l.628 |
-
-| 18 | **Les lettres des pièces sont fausses, sur un écran visible** | Deux tables de nomenclature coexistent dans `lib/` et aucune ne correspond à la géométrie de `pentominos.dart`. `piece_utils.dart` l.9 est entièrement périmée (elle nomme la pièce 2 « I » alors qu'elle a 8 orientations) et alimente `custom_colors_screen.dart` l.57 : **l'utilisateur voit des lettres fausses**. `pentoscope_generator.dart` l.135 est juste sauf les pièces 10 et 11, interverties. Vérité mesurée et correctif dans `REFERENCE_TIRAGES.md` §10. Un jeu de pentominos se nomme selon une nomenclature standard connue de tous les amateurs — se tromper dessus est visible par le premier joueur averti | `lib/utils/piece_utils.dart`, `lib/pentoscope/pentoscope_generator.dart` |
+> **Points 17 et 18 résolus le 2026-08-31, retirés.** 17 (« Afficher la solution » morte sur le
+> 6×10) : réglé par l'étape B (commit `3c287c3`) — `currentSolution` vient de `hintFrom`, donc
+> fonctionne sur toutes les tailles, 6×10 compris. 18 (lettres fausses) : réglé par le chantier
+> « table de lettres unique » (commit `3e3beaf`) — `pentominoLetters` unique, adossée à la
+> géométrie, gardée par `test/pentomino_letters_test.dart`.
 
 ---
 
@@ -56,14 +58,14 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 
 ## 4. Recommandé, non bloquant
 
-- Quatre fichiers orphelins dans `lib/` — `bigint_plateau`, `shape_recognizer`,
-  `ui_layout_provider` (et ses 9 providers), `solution_collector`. Sans effet à l'exécution,
-  mais ils alourdissent toute relecture future.
-- **`lib/services/pentomino_solver.dart` n'est PAS orphelin** — corrigé le 2026-08-31 :
-  `tools/generate_6x10_solutions.dart` l.12 l'importe. Le supprimer casse le générateur des
-  solutions. Il est mort dans l'application livrée, vivant dans `tools/`. Le geste juste est
-  donc un **déplacement** vers `tools/`, pas une suppression — et pas avant l'étape B, qui
-  décidera du sort du solveur côté application.
+- Trois fichiers orphelins dans `lib/` — `bigint_plateau`, `shape_recognizer`,
+  `ui_layout_provider` (et ses 9 providers). Sans effet à l'exécution, mais ils alourdissent
+  toute relecture future.
+- ~~`pentomino_solver.dart`~~ **résolu le 2026-08-31 (étape B, chantier 2)** : `pentomino_solver.dart`,
+  `tools/generate_6x10_solutions.dart` et `solution_collector.dart` **supprimés**. Retrait par
+  **substitution** : l'énumération du 6×10 est reprise par `tools/generate_solutions_corpus.dart`
+  (`_verify6x10`), qui vérifie `solutions_6x10_normalisees.bin` par égalité d'ensembles (9356 =
+  énumération = asset expansé ×4). Plus aucun solveur backtracking dans le dépôt.
 - `flutter pub add collection` — lint `depend_on_referenced_packages` préexistant.
 - La preview cyan morte dans `pentoscope_board.dart` (lit `state.isSnapped`, que personne
   n'écrit).

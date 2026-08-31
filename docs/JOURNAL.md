@@ -81,7 +81,8 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `3c287c3` (étape B complète, testée sur appareil). Rien en attente.
+Poussé jusqu'à `aadb520` (étape B). **Non poussés** : corrections doc lettres (`1128e1f`),
+chantier 1 « table de lettres unique » (`3e3beaf`), chantier 2 « retrait solveur » (+ ce journal).
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
@@ -91,6 +92,24 @@ Poussé jusqu'à `3c287c3` (étape B complète, testée sur appareil). Rien en a
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-08-31 — CLI → cowork (deux chantiers courts : lettres, solveur).** Suite au Message CLI de
+cowork. **Chantier 1 — table de lettres unique** (`3e3beaf`) : les deux tables périmées
+(`_pieceNames` du générateur, 10/11 intervertis ; `pieceNames` de `piece_utils`, entièrement fausse,
+lue par `custom_colors_screen` → l'utilisateur voyait des lettres fausses) remplacées par
+`pentominoLetters` (unique, dans `common/pentominos.dart`, adossée à la géométrie). Gardée par
+`test/pentomino_letters_test.dart`, qui reconstruit la lettre depuis `cartesianCoords` (clé
+canonique/8 orientations) contre les 12 formes standard — il confirme Z=10, W=11 par une seconde
+dérivation. **Chantier 2 — retrait du solveur par substitution** : `generate_solutions_corpus.dart`
+étendu (`_verify6x10`) énumère le 6×10 et vérifie `solutions_6x10_normalisees.bin` par **égalité
+d'ensembles** (9356 = énumération = asset expansé ×4, 16 s) ; **seulement alors** `git rm` de
+`pentomino_solver.dart`, `tools/generate_6x10_solutions.dart`, `solution_collector.dart`. Plus aucun
+solveur backtracking dans le dépôt. `analyze` 0, `test` 15/15. **Checklist mise à jour** : points 17
+(afficher-solution 6×10, réglé par l'étape B) et 18 (lettres) retirés, §4 corrigé.
+**À reconsidérer par cowork** : le **point 10** (« compteur/navigateur seulement sur 6×10 ») est en
+partie réglé — le compteur décroissant est désormais sur toutes les tailles ; reste le navigateur de
+solutions, laissé au 6×10 (décision 2 sources). La glose « ListSolutionSource » du point 10 est
+caduque : c'est `CorpusSolutionSource` qui l'a fait.
 
 **2026-08-31 — CLI → cowork (tirages étape B, terminée).** Corpus complet + source unifiée +
 retrait du solveur, en 4 commits, testés sur iPad. **`86dcea6`** : `tools/generate_solutions_corpus.dart`
@@ -117,18 +136,3 @@ B n'est pas conditionnée, elle est **motivée** — elle supprime ce solveur. S
 `countFrom`/`hasSolutionFrom` du 6×10 ; `_mask` BigInt réservé aux chemins froids (navigateur,
 index). Garde d'équivalence byte≡BigInt sur 10 000 plateaux (`test/solution_matcher_bytes_test.dart`).
 `analyze` 0, `test` 7/7. **Enchaîne sur B.**
-
-**2026-08-31 — CLI → cowork (tirages précalculés, étape A).** REFERENCE_TIRAGES §8 A appliquée
-en 3 commits. **1** (`68188eb`) : `tools/generate_subset_counts.dart` (Flutter-free) + asset
-`subset_counts.bin` (8 Ko) + `test/subset_counts_test.dart` ; `widget_test.dart` supprimé (suite
-verte). Les 9 totaux reproduisent le §2 exactement (dont popcount 12 = 4040) ; **mesure n°1
-acquise** : 9 parcours en 11,6 s → B non-sujet côté génération. **2** (`05f8039`) : `generate`
-tire un masque par table (aucun appel-boucle au solveur), `solutionCount` **redevient
-non-nullable** (annule le `int?`/`nullable()` du matin) ; `schemaVersion` **3→4** (règle n°6 : la
-colonne rechange ; v3 a tourné sur l'iPad, un retour à v2 serait un downgrade → crash). **3**
-(`af6a2d3`) : le tirage passe au dialogue (« n solutions » + « autre tirage »), masque transmis à
-la partie. `analyze` 0 error, `test` vert. **Hors périmètre** (étape B) non touché : ni corpus,
-ni `ListSolutionSource`, ni retrait de `PentoscopeSolver`. **Dû par Paul** (vérif §Affichage) :
-le dialogue affiche un nombre plausible et « autre tirage » le change ; 3×5 → 7 tirages tous à 4 ;
-nouvelles parties instantanées sur toutes les tailles (10×5 compris) ; base réécrite au 1er
-lancement (v4). **Mesure n°2 pour B** (fluidité `_solutionStatus`) reste à instrumenter/jouer.

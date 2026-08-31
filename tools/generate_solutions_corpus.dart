@@ -1,7 +1,10 @@
-// Modified: 2026-08-31 16:39 — création (REFERENCE_TIRAGES.md §8 B) : corpus complet des solutions
-//           de tous les tirages solubles, toutes tailles 5×n, pour donner à chaque taille une
-//           source adossée à une table (comme le 6×10) et supprimer le solveur live du runtime.
+// Modified: 2026-08-31 16:39 — ajout de _verify6x10 (chantier 2) : la même énumération Flutter-free
+//           reproduit le 6×10, comparé en égalité d'ensembles à solutions_6x10_normalisees.bin
+//           expansé ×4 — le filet qui autorise le retrait de pentomino_solver.dart et de
+//           generate_6x10_solutions.dart. _enumerate prend désormais un callback « plateau plein ».
 // tools/generate_solutions_corpus.dart
+// Historique: 2026-08-31 16:39 — création (§8 B) : corpus complet des solutions de tous les tirages
+//             solubles 5×n, pour adosser chaque taille à une table (comme le 6×10).
 //
 // MÊME parcours que generate_subset_counts.dart (§9.1 : « A et B font le même parcours, B écrit
 // des octets en plus »). Différences :
@@ -87,7 +90,8 @@ void main() {
     );
 
     final sw = Stopwatch()..start();
-    _enumerate(plateau, width, height, 0);
+    _enumerate(plateau, width, height, 0,
+        (p, usedMask) => _record(p, width, height, usedMask));
     sw.stop();
 
     var total = 0, soluble = 0, min = 1 << 30, max = 0;
@@ -134,10 +138,114 @@ void main() {
   file.writeAsBytesSync(bytes);
   stdout.writeln('\n✓ Écrit ${file.path} : ${bytes.length} octets '
       '(${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} Mo).');
+
+  _verify6x10();
 }
 
-/// Énumère tous les pavages depuis l'état courant ; à plateau plein, écrit le plateau.
-void _enumerate(List<List<int>> p, int w, int h, int usedMask) {
+/// Vérifie que la MÊME énumération (Flutter-free) reproduit le 6×10 : l'ensemble des pavages
+/// énumérés doit être identique à l'ensemble des 9356 solutions obtenues en expansant les 2339
+/// canoniques de `solutions_6x10_normalisees.bin` (identité + rot180 + miroirs H/V). Égalité
+/// d'ENSEMBLES (l'ordre diffère). C'est le filet qui autorise le retrait du vieux solveur
+/// (`pentomino_solver.dart` + `tools/generate_6x10_solutions.dart`).
+void _verify6x10() {
+  const w = 6, h = 10, cells = 60;
+
+  // 1. Énumération indépendante.
+  final board = List<List<int>>.generate(h, (_) => List<int>.filled(w, 0));
+  final enumerated = <String>{};
+  final sw = Stopwatch()..start();
+  _enumerate(board, w, h, 0, (p, _) => enumerated.add(_keyOfIds(p, w, h)));
+  sw.stop();
+
+  // 2. Asset expansé ×4.
+  final f = File('assets/data/solutions_6x10_normalisees.bin');
+  if (!f.existsSync()) {
+    stderr.writeln('❌ solutions_6x10_normalisees.bin absent.');
+    exit(1);
+  }
+  final data = f.readAsBytesSync();
+  const bytesPerSolution = 45;
+  final asset = <String>{};
+  for (int off = 0; off + bytesPerSolution <= data.length; off += bytesPerSolution) {
+    final codes = _unpack6x10(data, off, cells);
+    asset.add(codes.join(','));
+    asset.add(_rot180(codes).join(','));
+    asset.add(_mirrorH(codes, w, h).join(','));
+    asset.add(_mirrorV(codes, w, h).join(','));
+  }
+
+  // 3. Égalité d'ensembles.
+  final onlyEnum = enumerated.difference(asset);
+  final onlyAsset = asset.difference(enumerated);
+  stdout.writeln('\n6×10 : énumération ${enumerated.length}, asset expansé ${asset.length} '
+      '(${sw.elapsedMilliseconds} ms)');
+  if (onlyEnum.isEmpty && onlyAsset.isEmpty) {
+    stdout.writeln('✓ Ensembles identiques — l\'asset 6×10 est reproduit exactement.');
+  } else {
+    stderr.writeln('❌ Divergence : ${onlyEnum.length} seulement énuméré(s), '
+        '${onlyAsset.length} seulement dans l\'asset. NE RIEN SUPPRIMER.');
+    exit(1);
+  }
+}
+
+/// Clé d'un plateau plein d'ids : les codes bit6, cellIndex = y·w+x, joints par ','.
+String _keyOfIds(List<List<int>> p, int w, int h) {
+  final codes = <int>[];
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      codes.add(_bit6[p[y][x] - 1]);
+    }
+  }
+  return codes.join(',');
+}
+
+/// Décode 45 octets (60 cases × 6 bits, poids fort en premier) en 60 codes bit6.
+List<int> _unpack6x10(List<int> bytes, int off, int cells) {
+  final codes = List<int>.filled(cells, 0);
+  int byteIndex = off, currentByte = 0, bitsLeft = 0;
+  for (int cell = 0; cell < cells; cell++) {
+    int code = 0;
+    for (int i = 0; i < 6; i++) {
+      if (bitsLeft == 0) {
+        currentByte = bytes[byteIndex++];
+        bitsLeft = 8;
+      }
+      code = (code << 1) | ((currentByte >> (bitsLeft - 1)) & 1);
+      bitsLeft--;
+    }
+    codes[cell] = code;
+  }
+  return codes;
+}
+
+List<int> _rot180(List<int> codes) {
+  final n = codes.length;
+  return List<int>.generate(n, (i) => codes[n - 1 - i]);
+}
+
+List<int> _mirrorH(List<int> codes, int w, int h) {
+  final out = List<int>.filled(codes.length, 0);
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      out[y * w + (w - 1 - x)] = codes[y * w + x];
+    }
+  }
+  return out;
+}
+
+List<int> _mirrorV(List<int> codes, int w, int h) {
+  final out = List<int>.filled(codes.length, 0);
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      out[(h - 1 - y) * w + x] = codes[y * w + x];
+    }
+  }
+  return out;
+}
+
+/// Énumère tous les pavages depuis l'état courant ; à plateau plein, appelle [onFull].
+void _enumerate(List<List<int>> p, int w, int h, int usedMask,
+    void Function(List<List<int>> p, int usedMask) onFull) {
   int? target;
   outer:
   for (int y = 0; y < h; y++) {
@@ -149,7 +257,7 @@ void _enumerate(List<List<int>> p, int w, int h, int usedMask) {
     }
   }
   if (target == null) {
-    _record(p, w, h, usedMask);
+    onFull(p, usedMask);
     return;
   }
   final tx = target % w;
@@ -165,7 +273,7 @@ void _enumerate(List<List<int>> p, int w, int h, int usedMask) {
         if (_canPlace(coords, gx, gy, w, h, p)) {
           _fill(coords, gx, gy, id, p);
           if (_regionsValid(p, w, h)) {
-            _enumerate(p, w, h, usedMask | bit);
+            _enumerate(p, w, h, usedMask | bit, onFull);
           }
           _fill(coords, gx, gy, 0, p);
         }
