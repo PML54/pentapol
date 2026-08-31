@@ -113,26 +113,27 @@ disponible sur **toutes** les tailles, pas seulement le 6×10.
 
 **5×10 — 65 tirages sur 66.** Il est plus parlant de raisonner sur les **deux pièces écartées**
 (C(12,2) = 66). Le seul tirage impossible est celui qui écarte **P et F**. Le plus riche écarte
-**X et W** : 4 664 pavages — sans surprise, X est le pentomino le plus contraignant et W presque
-autant, les retirer libère tout ; quatre des cinq tirages les plus riches écartent le X. Le
-minimum, 4 pavages — soit **un seul à symétrie près** — est atteint en écartant P et I, P et N,
-P et Y, ou L et I. Moyenne : 428 pavages par tirage, pour un écart de 4 à 4 664.
+**X et Z** : 4 664 pavages. Viennent ensuite X+N (2 868), X+W (2 612), X+T (2 084), Z+W (1 896) —
+quatre des cinq écartent le X, qui est le pentomino le plus contraignant (une croix ne se case
+nulle part) ; le retirer libère tout. Le minimum, 4 pavages — soit **un seul à symétrie près** —
+est atteint en écartant P et I, P et N, P et Y, ou L et I. Moyenne : 428 pavages par tirage, pour
+un écart de 4 à 4 664.
 
 **3×5 — 7 tirages, 4 solutions chacun :**
 PFU, PUN, PVL, PVU, PYU, TYL, VLN
 
 **4×5 — 26 tirages :**
-PYLW 20 · PTVL 16 · FYUL 12 · PYVL 12 · FVUL 8 · PFUI 8 · PTVW 8 · PULN 8 · PUNI 8 · PVLI 8 ·
-PVLZ 8 · PVUI 8 · PYUI 8 · TYLI 8 · VLNI 8 · VLNZ 8 · YVUL 8 · PFUL 4 · PFYU 4 · PTYL 4 ·
-PVUZ 4 · PYLZ 4 · PYUL 4 · PYUN 4 · TFYL 4 · TYVN 4
+PYLZ 20 · PTVL 16 · FYUL 12 · PYVL 12 · FVUL 8 · PFUI 8 · PTVZ 8 · PULN 8 · PUNI 8 · PVLI 8 ·
+PVLW 8 · PVUI 8 · PYUI 8 · TYLI 8 · VLNI 8 · VLNW 8 · YVUL 8 · PFUL 4 · PFYU 4 · PTYL 4 ·
+PVUW 4 · PYLW 4 · PYUL 4 · PYUN 4 · TFYL 4 · TYVN 4
 
 **5×5 — 45 tirages :**
-PYLWI 80 · PTVLI 64 · FYULI 48 · PYVLI 48 · FVULI 32 · PTVWI 32 · PULNI 32 · PVLZI 32 ·
-VLNZI 32 · YVULI 32 · PYVLN 24 · PYVNW 24 · PFULI 16 · PFVUN 16 · PFYUI 16 · PTLNW 16 ·
-PTYLI 16 · PULNZ 16 · PVUZI 16 · PYLWZ 16 · PYLZI 16 · PYULI 16 · PYUNI 16 · TFYLI 16 ·
-TYVLW 16 · TYVNI 16 · FYULZ 8 · PFULW 8 · PFVLW 8 · PFYVL 8 · PTFYU 8 · PTULZ 8 · PTYLW 8 ·
-PVULW 8 · PYLNW 8 · PYUNZ 8 · PYVLZ 8 · PYVUN 8 · PYVWZ 8 · TFYVN 8 · VULNZ 8 · XPFUL 8 ·
-XPTUL 8 · YULNW 8 · YVULZ 8
+PYLZI 80 · PTVLI 64 · FYULI 48 · PYVLI 48 · FVULI 32 · PTVZI 32 · PULNI 32 · PVLWI 32 ·
+VLNWI 32 · YVULI 32 · PYVLN 24 · PYVNZ 24 · PFULI 16 · PFVUN 16 · PFYUI 16 · PTLNZ 16 ·
+PTYLI 16 · PULNW 16 · PVUWI 16 · PYLZW 16 · PYLWI 16 · PYULI 16 · PYUNI 16 · TFYLI 16 ·
+TYVLZ 16 · TYVNI 16 · FYULW 8 · PFULZ 8 · PFVLZ 8 · PFYVL 8 · PTFYU 8 · PTULW 8 · PTYLZ 8 ·
+PVULZ 8 · PYLNZ 8 · PYUNW 8 · PYVLW 8 · PYVUN 8 · PYVZW 8 · TFYVN 8 · VULNW 8 · XPFUL 8 ·
+XPTUL 8 · YULNZ 8 · YVULW 8
 
 ---
 
@@ -143,7 +144,8 @@ Chantier découpé en deux temps. **A n'engage rien de B ; B réutilise l'asset 
 **A — table des comptes (certain, rien à mesurer).**
 `tools/generate_subset_counts.dart` → `assets/data/subset_counts.bin`, 4096 × uint16 = 8 Ko.
 Index = masque 12 bits, **bit (id − 1)** dans l'ordre `pentominos.dart` (X=1, P=2, T=3, F=4,
-Y=5, V=6, U=7, L=8, N=9, W=10, Z=11, I=12). Le générateur fait **un parcours par plateau**
+Y=5, V=6, U=7, L=8, N=9, **Z=10, W=11**, I=12 — vérifié le 2026-08-31 contre
+`cartesianCoords`, voir §10). Le générateur fait **un parcours par plateau**
 (n ∈ 3…10 plus 12), pas un par tirage, et **échoue** si ses totaux ne reproduisent pas le §2.
 Conséquences côté app : le tirage devient un choix au hasard parmi les masques solubles
 (distribution identique à l'actuel rejet successif), la boucle de tirage disparaît, la question
@@ -179,3 +181,33 @@ de toute façon nécessaire à B.
    ~5 ms, B passe sans rien changer ; au-delà de ~10 ms, réécrire l'appariement en `Uint8List`
    (comparaison octet à octet, sans allocation) **avant** B — `BigInt` est boxé et coûteux, et
    c'est le mauvais outil pour un appariement de masques.
+
+## 10. Défaut découvert le 2026-08-31 — les lettres des pièces sont fausses dans `lib/`
+
+Signalé par le CLI (un compte de §7 ne correspondait pas au sien), puis instruit : **le compte
+était juste, l'étiquette était fausse.** Le calcul n'utilise jamais les lettres ni les ids, seulement
+les douze formes — le §2 est donc intact, ce que le CLI avait correctement diagnostiqué.
+
+**Vérité mesurée**, reconstruite depuis `cartesianCoords` de `lib/common/pentominos.dart` :
+
+| id | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| lettre | X | P | T | F | Y | V | U | L | N | **Z** | **W** | I |
+| orientations | 1 | 8 | 4 | 8 | 8 | 4 | 4 | 8 | 8 | 4 | 4 | 2 |
+
+**Deux tables de lettres coexistent dans `lib/`, et aucune n'est juste.**
+
+1. `pentoscope_generator.dart` l.135 `_pieceNames` : `X P T F Y V U L N W Z I` — **10 et 11
+   intervertis**. C'est cette table que cowork a prise pour argent comptant, d'où les lettres
+   erronées du §7 (corrigées).
+2. `lib/utils/piece_utils.dart` l.9 `pieceNames` : `1:X 2:I 3:Z 4:V 5:T 6:W 7:U 8:F 9:P 10:N
+   11:Y 12:L` — **entièrement périmée**, vestige d'un ordre de pièces antérieur. Preuve interne
+   qu'elle ne peut pas être juste : elle nomme la pièce 2 « I, la barre », alors que
+   `pentominos.dart` donne à la pièce 2 `numOrientations: 8` — une barre en a 2.
+   Elle est lue par `custom_colors_screen.dart` l.57, **écran visible par l'utilisateur**.
+
+`tools/verify_pentomino_order.dart` ne l'attrape pas : il vérifie l'ordre géométrique des
+cellules et la cohérence positions/cartesianCoords, pas la nomenclature.
+
+**Correctif** : une seule table de lettres, adossée à la géométrie, plus un test qui refait la
+reconstruction ci-dessus et échoue si elle diverge. Voir point 18 de la checklist App Store.

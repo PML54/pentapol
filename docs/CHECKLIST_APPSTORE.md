@@ -26,6 +26,8 @@
 
 | 17 | **« Afficher la solution » ne fait rien sur le 6×10** | L'interrupteur du dialogue de nouvelle partie (`pentoscope_game_screen.dart` l.1055) n'a d'effet que si `puzzle.solutions` est non vide. `_buildFullRectanglePuzzle` pose `solutions: const []` — le 6×10, taille phare, ignore donc l'interrupteur. Connu et différé (« branchées au temps 2 »), mais c'est un contrôle mort de plus dans une app publiée | `lib/pentoscope/pentoscope_generator.dart` l.28-34, `pentoscope_provider.dart` l.456, l.628 |
 
+| 18 | **Les lettres des pièces sont fausses, sur un écran visible** | Deux tables de nomenclature coexistent dans `lib/` et aucune ne correspond à la géométrie de `pentominos.dart`. `piece_utils.dart` l.9 est entièrement périmée (elle nomme la pièce 2 « I » alors qu'elle a 8 orientations) et alimente `custom_colors_screen.dart` l.57 : **l'utilisateur voit des lettres fausses**. `pentoscope_generator.dart` l.135 est juste sauf les pièces 10 et 11, interverties. Vérité mesurée et correctif dans `REFERENCE_TIRAGES.md` §10. Un jeu de pentominos se nomme selon une nomenclature standard connue de tous les amateurs — se tromper dessus est visible par le premier joueur averti | `lib/utils/piece_utils.dart`, `lib/pentoscope/pentoscope_generator.dart` |
+
 ---
 
 ## 2. Bloquants produit
@@ -54,9 +56,14 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 
 ## 4. Recommandé, non bloquant
 
-- Cinq fichiers orphelins dans `lib/` — `bigint_plateau`, `shape_recognizer`,
-  `ui_layout_provider` (et ses 9 providers), `solution_collector`, `pentomino_solver` par
-  ricochet. Sans effet à l'exécution, mais ils alourdissent toute relecture future.
+- Quatre fichiers orphelins dans `lib/` — `bigint_plateau`, `shape_recognizer`,
+  `ui_layout_provider` (et ses 9 providers), `solution_collector`. Sans effet à l'exécution,
+  mais ils alourdissent toute relecture future.
+- **`lib/services/pentomino_solver.dart` n'est PAS orphelin** — corrigé le 2026-08-31 :
+  `tools/generate_6x10_solutions.dart` l.12 l'importe. Le supprimer casse le générateur des
+  solutions. Il est mort dans l'application livrée, vivant dans `tools/`. Le geste juste est
+  donc un **déplacement** vers `tools/`, pas une suppression — et pas avant l'étape B, qui
+  décidera du sort du solveur côté application.
 - `flutter pub add collection` — lint `depend_on_referenced_packages` préexistant.
 - La preview cyan morte dans `pentoscope_board.dart` (lit `state.isSnapped`, que personne
   n'écrit).
