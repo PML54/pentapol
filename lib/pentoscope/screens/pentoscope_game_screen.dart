@@ -1,7 +1,8 @@
-// Modified: 2026-08-31 17:00 — suppression de la difficulté : le dialogue « Nouvelle partie »
-//           perd le SegmentedButton et la variable difficulty ; startPuzzle sans ce paramètre.
-//           L'interrupteur « Montrer la solution » est conservé.
+// Modified: 2026-08-31 18:00 — tirage au dialogue (REFERENCE_TIRAGES §Affichage, commit 3) : le
+//           dialogue « Nouvelle partie » tire un masque, affiche « n solutions » et un bouton
+//           « autre tirage » (hors 6×10), et transmet le masque à startPuzzle. showSolution gardé.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-31 17:00 — suppression de la difficulté : retrait du SegmentedButton du dialogue.
 // Historique: 2026-08-31 16:00 — regroupement des sept valeurs de réglage visuel en un bloc de
 //             constantes nommées en tête de fichier (dont kPieceToBoardCellRatio, rapatrié du board).
 // Historique: 2026-08-31 15:00 — réglage à l'œil : _kSliderPad 32 → 20 ; k 0.45 → 0.35 (board).
@@ -998,66 +999,108 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  /// 📏 Affiche le dialogue de changement de taille de plateau
-  /// Dialogue « Nouvelle partie » : taille + difficulté + montrer la solution,
-  /// avec un bouton « Lancer » qui appelle startPuzzle directement (§8.2).
-  /// Absorbe l'ancien écran de menu de démarrage ; état local via StatefulBuilder.
-  void _showNewGameDialog(BuildContext context, WidgetRef ref) {
+  /// Tire un puzzle pour une taille : `(masque, nombre de solutions)`. Le 6×10 est un cas à part
+  /// (un seul tirage possible, 12 pièces) : pas de masque, compte = 9356 (la table du 6×10).
+  Future<({int? mask, int count})> _drawTirage(
+      PentoscopeNotifier notifier, PentoscopeSize size) async {
+    if (size == PentoscopeSize.size6x10) {
+      return (mask: null, count: size.table!.totalCount);
+    }
+    final mask = await notifier.drawMask(size);
+    return (mask: mask, count: notifier.countOfMask(mask));
+  }
+
+  /// Dialogue « Nouvelle partie » : taille + tirage (« n solutions » + « autre tirage ») +
+  /// montrer la solution. Le tirage se fait ICI (REFERENCE_TIRAGES §Affichage) : le compte n'est
+  /// vrai qu'au tirage, et le masque tiré est transmis à la partie via startPuzzle.
+  Future<void> _showNewGameDialog(BuildContext context, WidgetRef ref) async {
     final notifier = ref.read(pentoscopeProvider.notifier);
     var selectedSize =
         ref.read(pentoscopeProvider).puzzle?.size ?? PentoscopeSize.size5x5;
     var showSolution = false;
 
-    showDialog(
+    // Tirage initial avant l'ouverture (charge la table au besoin).
+    var tirage = await _drawTirage(notifier, selectedSize);
+    if (!context.mounted) return;
+
+    await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Nouvelle partie'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Taille du plateau',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                ...PentoscopeSize.values.map(
-                  (size) => RadioListTile<PentoscopeSize>(
+        builder: (context, setState) {
+          Future<void> redraw() async {
+            final t = await _drawTirage(notifier, selectedSize);
+            setState(() => tirage = t);
+          }
+
+          return AlertDialog(
+            title: const Text('Nouvelle partie'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Taille du plateau',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  ...PentoscopeSize.values.map(
+                    (size) => RadioListTile<PentoscopeSize>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title:
+                          Text('${size.label} (${size.width}×${size.height})'),
+                      value: size,
+                      groupValue: selectedSize,
+                      onChanged: (value) async {
+                        setState(() => selectedSize = value!);
+                        await redraw(); // nouveau tirage pour la nouvelle taille
+                      },
+                    ),
+                  ),
+                  const Divider(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${tirage.count} solution${tirage.count > 1 ? "s" : ""}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (selectedSize != PentoscopeSize.size6x10)
+                        TextButton.icon(
+                          onPressed: redraw,
+                          icon: const Icon(Icons.casino_outlined),
+                          label: const Text('Autre tirage'),
+                        ),
+                    ],
+                  ),
+                  SwitchListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text('${size.label} (${size.width}×${size.height})'),
-                    value: size,
-                    groupValue: selectedSize,
-                    onChanged: (value) => setState(() => selectedSize = value!),
+                    title: const Text('Montrer la solution'),
+                    value: showSolution,
+                    onChanged: (value) => setState(() => showSolution = value),
                   ),
-                ),
-                const Divider(),
-                SwitchListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Montrer la solution'),
-                  value: showSolution,
-                  onChanged: (value) => setState(() => showSolution = value),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                notifier.startPuzzle(
-                  selectedSize,
-                  showSolution: showSolution,
-                );
-              },
-              child: const Text('Lancer'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  notifier.startPuzzle(
+                    selectedSize,
+                    mask: tirage.mask,
+                    showSolution: showSolution,
+                  );
+                },
+                child: const Text('Lancer'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -58,6 +58,16 @@ class PentoscopeGenerator {
     return c;
   }
 
+  /// Tire au hasard un masque soluble pour une taille (hors 6×10). Charge la table au besoin.
+  Future<int> drawMask(PentoscopeSize size) async {
+    await _ensureTable();
+    final masks = _solubleByPopcount![size.numPieces]!;
+    return masks[_random.nextInt(masks.length)];
+  }
+
+  /// Nombre de solutions d'un masque (la table doit être chargée — via drawMask ou generate).
+  int countOfMask(int mask) => _counts![mask];
+
   /// Les ids de pièces (1..12) présents dans le masque.
   List<int> _piecesOfMask(int mask) {
     final ids = <int>[];

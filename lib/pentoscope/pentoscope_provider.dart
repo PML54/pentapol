@@ -595,12 +595,23 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // DÉMARRAGE
   // ==========================================================================
 
+  /// Tire au hasard un masque soluble (dialogue de nouvelle partie, hors 6×10).
+  Future<int> drawMask(PentoscopeSize size) => _generator.drawMask(size);
+
+  /// Nombre de solutions d'un masque tiré (la table est chargée par drawMask).
+  int countOfMask(int mask) => _generator.countOfMask(mask);
+
+  /// Démarre une partie. Si [mask] est fourni (tirage fait au dialogue), la partie l'utilise
+  /// tel quel ; sinon un tirage est fait en interne (main.dart au lancement, ou le 6×10).
   Future<void> startPuzzle(
     PentoscopeSize size, {
+    int? mask,
     bool showSolution = false,
   }) async {
     _isMultiplayer = false;
-    final puzzle = await _generator.generate(size);
+    final puzzle = mask != null
+        ? _generator.puzzleFromMask(size, mask)
+        : await _generator.generate(size);
     _solutions = await _makeSolutionSource(size);
 
     final pieces = puzzle.pieceIds
