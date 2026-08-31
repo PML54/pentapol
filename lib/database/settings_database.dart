@@ -1,6 +1,8 @@
-// Modified: 2026-08-31 17:00 — suppression de la difficulté : CurrentGame.solutionCount devient
-//           nullable() (null hors 6×10) ; schemaVersion 2 → 3 (réécriture destructive, pas de
-//           migration — l'app n'est pas publiée, règle n°6). saveCurrentGame prend un int?.
+// Modified: 2026-08-31 18:00 — tirage par table (REFERENCE §8 A) : CurrentGame.solutionCount
+//           REDEVIENT non-nullable (la table donne toujours un compte) — annule le nullable() du
+//           matin. schemaVersion 3 → 4 : la colonne change encore, règle n°6 (bump + destructif ;
+//           la v3 a tourné sur l'iPad, un retour à v2 serait un downgrade → crash).
+// Historique: 2026-08-31 17:00 — suppression de la difficulté : solutionCount nullable, schemaVersion 3.
 // Historique: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : méthodes CurrentGame —
 //           saveCurrentGame (upsert de la ligne unique), clearCurrentGame, loadCurrentGame.
 // lib/database/settings_database.dart
@@ -42,7 +44,7 @@ class CurrentGame extends Table {
   IntColumn get id => integer().withDefault(const Constant(0))(); // ligne unique
   TextColumn get sizeName => text()();          // PentoscopeSize.name, ex. 'size6x10'
   TextColumn get pieceIds => text()();          // '1,2,3,…' — le tirage du puzzle
-  IntColumn get solutionCount => integer().nullable()(); // repris de PentoscopePuzzle (null hors 6×10)
+  IntColumn get solutionCount => integer()();   // repris de PentoscopePuzzle (toujours connu)
   TextColumn get placedPieces => text()();      // JSON : [{id,pos,x,y}, …]
   TextColumn get positionIndices => text()();   // JSON : {pieceId: orientation}
   IntColumn get elapsedSeconds => integer()();
@@ -89,7 +91,8 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3; // 2 → 3 : CurrentGame.solutionCount devient nullable.
+  int get schemaVersion => 4; // 3 → 4 : CurrentGame.solutionCount redevient non-nullable
+  //                              (annule le nullable() du matin ; règle n°6 : bump + destructif).
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
   // tables. L'app n'est pas publiée, il n'y a rien à migrer (PLAN_PERSISTANCE §5).
@@ -218,7 +221,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   Future<void> saveCurrentGame({
     required String sizeName,
     required String pieceIds,
-    required int? solutionCount,
+    required int solutionCount,
     required String placedPieces,
     required String positionIndices,
     required int elapsedSeconds,
@@ -231,7 +234,7 @@ class SettingsDatabase extends _$SettingsDatabase {
       CurrentGameCompanion.insert(
         sizeName: sizeName,
         pieceIds: pieceIds,
-        solutionCount: Value(solutionCount),
+        solutionCount: solutionCount,
         placedPieces: placedPieces,
         positionIndices: positionIndices,
         elapsedSeconds: elapsedSeconds,
