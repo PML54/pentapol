@@ -1,8 +1,9 @@
-// Modified: 2026-08-30 15:10 — PLAN_ERGONOMIE §4d (décision 59) : les icônes de l'AppBar ne
-//           grandissaient pas — les IconButton du bloc actions n'ont pas de size:, ils héritent
-//           de l'IconTheme. Ajout de iconTheme/actionsIconTheme (_uiIconSize) ; helper _uiLabelSize
-//           pour le chrono, les pictos et compteurs du titre, et leadingWidth.
+// Modified: 2026-08-31 09:30 — PLAN_ERGONOMIE §7 (décision 61) : en paysage, ordre des trois zones
+//           aligné sur le portrait — colonne d'actions / plateau / barre, aplati en un seul Row ;
+//           l'ombre de la colonne passe de Offset(-1,0) à Offset(1,0) (elle porte vers le plateau).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-30 15:10 — §4d (décision 59) : icônes de l'AppBar via iconTheme/actionsIconTheme
+//             (_uiIconSize) + helper _uiLabelSize (chrono/pictos/compteurs du titre) + leadingWidth.
 // Historique: 2026-08-30 13:45 — PLAN_ERGONOMIE §6 étape 3 : helper _uiIconSize/_uiAppBarHeight,
 //             remplace les quatre constantes (56, 42, clamp 28-50, clamp 20-36).
 // Historique: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : barre ancrée sur le plateau (_barMetrics).
@@ -893,7 +894,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  /// Layout paysage : plateau à gauche, actions + slider vertical à droite
+  /// Layout paysage : colonne d'actions à gauche, plateau au milieu, barre à droite —
+  /// même ordre qu'en portrait (haut→bas), un seul Row de trois enfants (§7).
   Widget _buildLandscapeLayout(
       BuildContext context,
       WidgetRef ref,
@@ -914,15 +916,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             constraints.biggest, state.puzzle!.size, true, actionColumnWidth);
         final sliderWidth = m.extent;
 
+        // §7 : ordre identique au portrait — colonne d'actions, plateau, barre, aplati en
+        // un seul Row de trois enfants (plus de Row imbriqué « actions + slider »).
         return Row(
           children: [
-            // Plateau de jeu
-            const Expanded(child: PentoscopeBoard(isLandscape: true)),
-
-            // Colonne de droite : actions + slider
-            Row(
-              children: [
-                // 🎯 Colonne d'actions (contextuelles)
+                // 🎯 Colonne d'actions (contextuelles) — à gauche
                 Container(
                   width: actionColumnWidth,
                   decoration: BoxDecoration(
@@ -931,7 +929,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                       BoxShadow(
                         color: Colors.black.withOpacity(0.05),
                         blurRadius: 2,
-                        offset: const Offset(-1, 0),
+                        // Ombre portée vers le plateau (à droite) : la colonne est à gauche.
+                        offset: const Offset(1, 0),
                       ),
                     ],
                   ),
@@ -1012,7 +1011,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   ),
                 ),
 
-                // Slider de pièces vertical
+                // Plateau de jeu — au milieu
+                const Expanded(child: PentoscopeBoard(isLandscape: true)),
+
+                // Slider de pièces vertical — à droite
                 _buildSliderWithDragTarget(
                   ref: ref,
                   isLandscape: true,
@@ -1032,8 +1034,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                       : PentoscopePieceSlider(
                           isLandscape: true, pieceCellSize: m.cell),
                 ),
-              ],
-            ),
           ],
         );
       },
