@@ -232,6 +232,137 @@ contient.
 
 ---
 
+## 7. L'ordre des trois zones en paysage — décision 61
+
+> Paul, 2026-08-30 : « en vertical on a AppBar, plateau, slider ; en horizontal, de gauche à
+> droite, on a plateau, AppBar, slider. Je voudrais l'ordre de gauche à droite identique à
+> celui de haut en bas. »
+
+### 7.1 Ce qu'il y a
+
+En paysage, `appBar:` du `Scaffold` vaut **`null`** (l.124) : le rôle de la barre est tenu par
+une **colonne d'actions** dessinée dans le corps. La structure est :
+
+```dart
+Row(children: [
+  Expanded(child: PentoscopeBoard(isLandscape: true)),   // plateau
+  Row(children: [
+    Container(width: actionColumnWidth, …),              // la « AppBar » verticale
+    … slider (width: sliderWidth)
+  ]),
+])
+```
+
+→ de gauche à droite : **plateau, barre, slider**. En portrait, de haut en bas : **barre,
+plateau, slider**. Les deux ne se correspondent pas.
+
+### 7.2 Ce qu'on veut
+
+```dart
+Row(children: [
+  Container(width: actionColumnWidth, …),   // barre — à gauche
+  Expanded(child: PentoscopeBoard(…)),      // plateau
+  … slider (width: sliderWidth)             // slider — à droite
+])
+```
+
+Le `Row` imbriqué qui regroupait « colonne de droite : actions + slider » n'a plus lieu
+d'être : **aplatir en un seul `Row` de trois enfants**. C'est plus simple à lire, et ça évite
+qu'un futur réglage de largeur s'applique au mauvais niveau.
+
+> ⚠️ **Le `boxShadow` doit changer de sens.** La colonne d'actions porte
+> `offset: const Offset(-1, 0)` — une ombre portée **vers la gauche**, correcte quand la
+> colonne est à droite du plateau. Passée à l'extrême gauche, elle doit porter vers la
+> droite : `Offset(1, 0)`. Détail, mais c'est exactement le genre d'oubli qui se voit.
+
+### 7.3 Ce que ça vaut, au-delà de la cohérence
+
+L'argument de Paul — même ordre dans les deux orientations — se suffit à lui-même. Il s'en
+ajoute un second : une tablette tenue à deux mains met les **actions sous le pouce gauche** et
+la **barre de pièces sous le pouce droit**, le plateau au milieu. Aujourd'hui les actions sont
+au centre, l'endroit le moins accessible des deux pouces.
+
+Objection honnête, pour être complet : placer le plateau en premier lui donne la position de
+primauté à la lecture. C'est le seul argument en faveur de l'ordre actuel, et il pèse moins
+que les deux autres.
+
+### 7.4 Critères de fin
+
+- portrait inchangé ;
+- paysage : de gauche à droite, colonne d'actions, plateau, barre de pièces ;
+- l'ombre de la colonne porte vers le plateau ;
+- **en mode transformation** (pièce sélectionnée), les icônes d'isométrie pleine hauteur sont
+  bien dans la colonne de gauche — c'est le même `Container`, mais à vérifier à l'écran ;
+- multijoueur non touché (écran distinct).
+
+---
+
+## 8. Écran de réglages minimal — décision 62
+
+> Paul, 2026-08-30 : « repars d'un écran minimal. »
+
+### 8.1 L'inventaire, vérifié au grep
+
+**Neuf des quatorze entrées ne font rien.** Le relevé du 2026-08-30 (décision 63) en comptait
+six ; l'inventaire complet en trouve trois de plus.
+
+| entrée | champ | statut |
+|---|---|---|
+| Couleurs des pièces | `colorScheme` | **vivant** |
+| Personnaliser les couleurs | `customColors` | **vivant** |
+| Numéros sur les pièces | `showPieceNumbers` | mort |
+| Lignes de grille | `showGridLines` | mort |
+| Animations | `enableAnimations` | mort |
+| Opacité des pièces | `pieceOpacity` | mort |
+| Taille des icônes | `iconSize` | mort |
+| Couleur mode isométries | `isometriesAppBarColor` | mort |
+| **Niveau de difficulté** | `game.difficulty` | **mort** — la difficulté se choisit désormais dans le dialogue « Nouvelle partie », qui porte son propre état |
+| Compteur de solutions | `showSolutionCounter` | **vivant** |
+| **Indices** | `enableHints` | **mort** — le bouton indice s'affiche toujours |
+| **Chronomètre** | `enableTimer` | **mort** — le chrono s'affiche toujours |
+| Retour haptique | `enableHaptics` | **vivant** (barre de pièces) |
+| Sensibilité du drag | `longPressDuration` | **vivant** (barre + `DraggablePieceWidget`) |
+
+Sections « Mode Duel » et « À propos » : vivantes, à conserver.
+
+### 8.2 L'écran minimal
+
+**Six entrées au lieu de quatorze** : Couleurs des pièces, Personnaliser les couleurs,
+Compteur de solutions, Retour haptique, Sensibilité du drag, plus Duel et À propos.
+
+Retirer **l'entrée d'écran et le champ du modèle** pour les neuf autres — laisser le champ
+sans son contrôle recréerait la même situation à l'envers. `AppSettings` étant sérialisé en
+JSON, un champ disparu est simplement ignoré à la relecture : **aucune migration**.
+
+### 8.3 Deux réserves
+
+**`showPieceNumbers` est le seul qui vaille d'être rebranché plutôt que retiré.** Sur la
+capture iPad de Paul, les numéros chargent visiblement le plateau, et c'est une vraie
+préférence de lisibilité. Il part avec les autres puisque la consigne est « écran minimal » —
+mais c'est le premier à reconsidérer si l'écran se re-garnit un jour.
+
+**Si `iconSize` revient un jour, il doit revenir en multiplicateur** (≈ 0,7×–1,3×) sur la
+taille dérivée de l'écran, **jamais** en valeur absolue de pixels : 48 px fixes annuleraient
+exactement l'adaptation des §1 à §4 et ramèneraient le défaut d'origine. Le libellé « 48px »
+devrait disparaître avec.
+
+### 8.4 Critères de fin
+
+```bash
+S=lib/screens/settings_screen.dart
+grep -c "SwitchListTile\|Slider(" $S     # doit baisser fortement
+for f in showPieceNumbers showGridLines enableAnimations pieceOpacity iconSize \
+         isometriesAppBarColor enableHints enableTimer difficulty; do
+  printf "%-24s " "$f"; grep -rn "$f" lib/ --include=*.dart | wc -l   # attendu : 0
+done
+flutter analyze                           # 0 warning
+```
+
+Test appareil : chaque contrôle restant **fait quelque chose de visible**. C'est le seul
+critère qui compte, et c'est celui qui manquait.
+
+---
+
 ## Voir aussi
 
 - `docs/CHECKLIST_APPSTORE.md` §4 — la miniature de drag y figurait comme dette isolée ;

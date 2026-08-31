@@ -22,6 +22,8 @@
 | 6 | **Décider du sort du multijoueur** | Il dépend d'un worker Cloudflare hors dépôt, **URL en dur**, sans interrupteur distant. Le jour où il tombe, l'app publiée garde un bouton mort — et un lobby sans joueurs est pire que pas de lobby. *Recommandation cowork : le couper pour la v1* | `pentoscope_mp_provider.dart` l.32-35 |
 | 7 | **Incrémenter le build number** | `version: 1.0.0+1`. Chaque téléversement demande un numéro de build supérieur au précédent | `pubspec.yaml` |
 
+| 16 | **Six réglages d'affichage ne font rien** | L'écran Réglages expose « Taille des icônes » (curseur 16-48 px), `showPieceNumbers`, `showGridLines`, `enableAnimations`, `pieceOpacity`, `isometriesAppBarColor`. **Aucun n'est lu par le jeu** — vérifié au grep le 2026-08-30 : leurs seuls lecteurs sont le modèle, le provider et l'écran de réglages lui-même (plus `ui_dimensions.dart`, orphelin). L'utilisateur bouge le curseur, la valeur est enregistrée en base, et rien ne change. C'est le genre de détail qui vaut des avis à une étoile | `lib/screens/settings_screen.dart`, `lib/models/app_settings.dart` |
+
 ---
 
 ## 2. Bloquants produit

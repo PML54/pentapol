@@ -30,22 +30,23 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 4. **partie en cours** — écriture, effacement, `restoreGame`, observateur de cycle de vie.
    L'étape la plus délicate, isolée à dessein.
 
-**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1 à 4 + correctif §4d faites**
-(`453ae49`, `eb131f7`, `b462a0c`, `c098ce0`, `e762836`), décisions 55-60, `flutter analyze`
-0 warning, critères §6 verts :
-1. `PieceRenderer.cellSize` paramétrable (défaut 22, filet — rien ne bouge à l'écran) ;
-2. barre et feedback de drag ancrés sur le plateau (`pieceCellSize = boardCellSize × k`,
-   `k=0.45`), hauteur/largeur de barre dérivées, dépendance circulaire résolue (décision 58) ;
-3. helper unique `_uiIconSize`/`_uiAppBarHeight` (shortestSide) remplaçant les 4 constantes ;
-4. textes (numéro de case, badge de pièce) proportionnels à leur case ;
-- **§4d, correctif (décision 59)** : les icônes de l'AppBar ne grandissaient pas — les
-  `IconButton` du bloc `actions:` n'ont pas de `size:`, ils héritent de l'`IconTheme`. Réglé
-  par `iconTheme`/`actionsIconTheme` (héritage) + `_uiLabelSize` pour le chrono/pictos/compteurs
-  du titre et `leadingWidth`. Test appareil de Paul (iPad Pro 13″) : pièces OK, icônes non → réglé.
+**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1-4, correctif §4d, §7 et §8
+faits** (`453ae49`, `eb131f7`, `b462a0c`, `c098ce0`, `e762836`, `737a1be`, `2d07e98`),
+décisions 55-64, `flutter analyze` 0 warning :
+1-4. `PieceRenderer.cellSize` paramétrable ; barre + feedback ancrés sur le plateau
+   (`pieceCellSize = boardCellSize × k`, `k=0.45`, dépendance circulaire résolue, décision 58) ;
+   helper `_uiIconSize`/`_uiAppBarHeight` ; textes proportionnels à leur case.
+- **§4d (décision 59)** : icônes de l'AppBar via `iconTheme`/`actionsIconTheme` (héritage) +
+  `_uiLabelSize`. Test iPad de Paul : pièces OK, icônes non → réglé.
+- **§7 (décision 61)** : en paysage, ordre des trois zones aligné sur le portrait (colonne
+  d'actions / plateau / barre), aplati en un seul Row, ombre de la colonne inversée.
+- **§8 (décision 62)** : écran de réglages minimal — 9 entrées mortes retirées (entrée d'écran
+  ET champ du modèle), + l'enum `GameDifficulty` orphelin (décision 64). Restent 6 contrôles
+  vivants + Duel + À propos. AppSettings en JSON, aucune migration.
 **L'étape 5 (suppression des ~980 lignes orphelines) n'est PAS faite** — sur consigne de Paul,
 elles servent d'inspiration aux formules tant que le réglage n'est pas validé sur appareil. Le
 plafond de la case du plateau reste reporté (décision 57). **Les valeurs numériques restent à
-régler à l'œil** ; seul le premier retour iPad (les icônes) a été traité.
+régler à l'œil** — seul le premier retour iPad (les icônes) a été traité.
 
 **Chantiers en attente, par ordre de valeur :**
 
@@ -53,8 +54,8 @@ régler à l'œil** ; seul le premier retour iPad (les icônes) a été traité.
 |---|---|---|
 | chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
 | persistance (4 étapes) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`, `2abaeb9`, `7d71c19`, `7dc4f0f`) |
-| ergonomie tablette étapes 1-4 | `PLAN_ERGONOMIE_TABLETTE.md` §6 | ✅ **faite** — voir ci-dessus ; **réglage à l'œil dû** |
-| ergonomie étape 5 (−980 l. orphelines) | idem | ⏸️ **reportée** — inspiration des formules jusqu'au test |
+| ergonomie 1-4 + §4d + §7 + §8 | `PLAN_ERGONOMIE_TABLETTE.md` | ✅ **faite** — voir ci-dessus ; **réglage à l'œil dû** |
+| ergonomie étape 5 (−980 l. orphelines) | §6 | ⏸️ **reportée** — inspiration des formules jusqu'au test |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
 | améliorations duel | — | 💤 **non prioritaire** (décision 54) — gardé tel quel, vu ensuite |
 | §9 suppression classical | `PLAN_SUPPRESSION_CLASSICAL.md` | ⛔ **ANNULÉ** par la décision 47 |
@@ -96,8 +97,8 @@ sauvegardait rien avant). `flutter analyze` 0 warning à chaque étape.
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : ergonomie 1-4 poussée jusqu'à `b378cd8`. **Non poussés** : `e762836` (correctif §4d)
-et ce commit de journal (qui joint la mise à jour §4d du plan par cowork).
+**Git** : poussé jusqu'à `789b993` (§4d compris). **Non poussés** : `737a1be` (§7), `2d07e98`
+(§8) et ce commit de journal (qui joint les mises à jour §7/§8 du plan et du checklist par cowork).
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -564,6 +565,58 @@ détaillé.
     laissé tel quel ; son picto voisin, lui, est l'un des quatre `Icon(14)` et suit `_uiLabelSize`.
     Léger décalage à surveiller au test — à trancher par cowork si gênant. → `e762836`.
 
+63. **2026-08-30 — cowork** — **l'écran Réglages expose six contrôles d'affichage qui ne
+    font rien.** (Renuméroté 60 → 63 par le CLI : collision avec la décision 60 déjà poussée.)
+    Question de Paul : la taille des pièces du slider et celle des icônes
+    isométriques étaient-elles dans les paramètres ?
+    **Les pièces : non**, aucun champ n'a jamais existé pour elles.
+    **Les icônes : oui — `UISettings.iconSize`, curseur « Taille des icônes » 16-48 px,
+    défaut 48 — mais il n'a jamais été branché.** Vérifié au grep : ses seuls lecteurs sont
+    l'écran de réglages (pour afficher le curseur) et `config/ui_dimensions.dart`, **orphelin**.
+    Le jeu ne le lit pas.
+    Cinq autres réglages sont dans le même cas, sans **aucun** lecteur hors du modèle, du
+    provider et de l'écran : `showPieceNumbers`, `showGridLines`, `enableAnimations`,
+    `pieceOpacity`, `isometriesAppBarColor`. (Les couleurs de pièces, elles, sont bien
+    vivantes via `getPieceColor`.)
+    ⚠️ Point d'architecture : si `iconSize` est rebranché, ce doit être comme **multiplicateur**
+    sur la taille dérivée de l'écran (≈ 0,7×–1,3×), **jamais** comme une valeur absolue en
+    pixels — 48 px fixes annuleraient exactement l'adaptation qu'on vient d'écrire, et
+    ramèneraient le défaut d'origine. Le libellé « 48px » devrait alors disparaître.
+    → `CHECKLIST_APPSTORE.md` point 16.
+
+61. **2026-08-30 — Paul** — **en paysage, l'ordre des trois zones devient celui du portrait** :
+    de gauche à droite colonne d'actions, plateau, barre de pièces — comme de haut en bas
+    AppBar, plateau, barre. Aujourd'hui c'est plateau, actions, barre. En paysage `appBar:`
+    vaut `null` : c'est une colonne dessinée dans le corps qui tient le rôle. Le `Row`
+    imbriqué « actions + slider » disparaît, aplati en un seul `Row` de trois enfants.
+    ⚠️ Le `boxShadow` de la colonne porte `Offset(-1, 0)` — une ombre vers la gauche, correcte
+    quand elle est à droite du plateau ; passée à gauche elle doit porter vers la droite.
+    Bénéfice second, non demandé mais réel : sur tablette tenue à deux mains, actions sous le
+    pouce gauche et pièces sous le pouce droit, au lieu d'actions au centre.
+    → `PLAN_ERGONOMIE_TABLETTE.md` §7.
+62. **2026-08-30 — Paul** — **écran de réglages minimal : six entrées au lieu de quatorze.**
+    L'inventaire complet trouve **neuf entrées mortes**, trois de plus que le relevé de la
+    décision 63 : s'ajoutent **« Niveau de difficulté »** (`game.difficulty` n'a aucun lecteur
+    — la difficulté se choisit dans le dialogue « Nouvelle partie » depuis la décision 35),
+    **« Indices »** (`enableHints`, le bouton s'affiche toujours) et **« Chronomètre »**
+    (`enableTimer`, le chrono s'affiche toujours).
+    Restent vivants : couleurs des pièces (+ personnalisation), compteur de solutions, retour
+    haptique, sensibilité du drag, plus Duel et À propos. Retirer **l'entrée d'écran ET le
+    champ du modèle** — laisser le champ sans contrôle recréerait la situation à l'envers.
+    `AppSettings` étant en JSON, un champ disparu est ignoré à la relecture : **aucune
+    migration**. Réserve : `showPieceNumbers` est le seul qui mériterait d'être rebranché
+    plutôt que retiré (les numéros chargent le plateau sur iPad) — premier à reconsidérer si
+    l'écran se re-garnit. → §8.
+
+64. **2026-08-31 — CLI** — **deux notes d'exécution de §8.** (a) L'enum `GameDifficulty` a été
+    retiré **avec** le champ `game.difficulty` : il en était le seul usage, il devenait orphelin.
+    Léger dépassement du « champ du modèle », mais c'est du code mort. (b) Le critère §8.4
+    `grep "$f" lib/ → 0` est **inatteignable pour trois identifiants**, non par défaut d'exécution
+    mais parce que le même mot sert des fonctions gardées : `difficulty` (le sélecteur du dialogue
+    « Nouvelle partie », `PentoscopeDifficulty`), `showPieceNumbers` (`DuelSettings`, conservé),
+    `iconSize` (les helpers `_uiIconSize`/`_uiLabelSize` et une variable locale). Les **six** champs
+    strictement morts, eux, sont bien à 0. → `2d07e98`.
+
 ---
 
 ## §PASSATIONS
@@ -831,3 +884,24 @@ dérivé. `flutter analyze` 0 warning. Décision 60 (deux précisions) : planche
 `_uiLabelSize` pour tenir l'iPhone proche de l'actuel ; le numéro du compteur (`Text(13)`),
 hors liste de §4d, laissé tel quel — **léger décalage à regarder au test, à toi de trancher
 s'il gêne**. Reste : le réglage à l'œil des valeurs, le plafond (57), l'étape 5.
+
+**2026-08-30 — cowork → toi (réglages morts).** Une question de Paul a mis au jour six
+contrôles inertes dans l'écran Réglages, dont le curseur « Taille des icônes » — jamais
+branché. Inscrit en bloquant App Store (point 16). Décision 63 (renumérotée). **Aucun code touché.**
+**En attente de Paul** : rebrancher en multiplicateur, ou retirer de l'écran.
+
+**2026-08-30 — cowork → toi (paysage + réglages).** §7 et §8 ajoutées au plan ergonomie,
+décisions 61 et 62. L'inventaire des réglages en trouve **neuf morts sur quatorze**, trois de
+plus que le relevé initial. **Aucun code touché.**
+**Prochain pas** : le correctif §4d (icônes d'AppBar par héritage) puis §7 et §8 — trois
+commits indépendants, dans l'ordre qui arrange.
+
+**2026-08-31 — CLI → cowork (§4d déjà fait, §7 et §8 faits).** Le §4d était **déjà appliqué**
+(`e762836`, tour précédent) — non refait. §7 (`737a1be`) : paysage aplati en un Row de trois,
+ordre colonne/plateau/barre, ombre inversée. §8 (`2d07e98`) : 9 réglages morts retirés (modèle,
+provider, écran) + enum `GameDifficulty`. `flutter analyze` 0 warning. **Collision de
+numérotation réglée** : ta décision d'inventaire des réglages (60) heurtait ma 60 déjà poussée
+(§4d précisions) → renumérotée **63** ; renvois du plan et du journal corrigés. 61/62 intacts,
+64 ajoutée (notes d'exécution §8). **Réserve à toi** : le grep §8.4 ne peut pas être 0 pour
+`difficulty`/`showPieceNumbers`/`iconSize` (mots partagés avec des fonctions gardées) ; les six
+champs strictement morts, oui. Reste : réglage à l'œil, plafond du plateau (57), étape 5.
