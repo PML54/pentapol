@@ -1,26 +1,25 @@
-// Modified: 2026-08-31 16:39 — appariement en Uint8List (REFERENCE_TIRAGES §9) : countFrom et
-//           hasSolutionFrom de TableSolutionSource passent par _pieceBytes + countCompatibleBytes
-//           (chemin chaud sans allocation). _mask (BigInt) ne sert plus qu'aux chemins froids
-//           (hintFrom, compatibleSolutions, solutionIndexOf).
+// Modified: 2026-08-31 16:39 — étape B (REFERENCE_TIRAGES §8 B) : LiveSolutionSource (solveur live)
+//           remplacée par CorpusSolutionSource — les petites tailles s'adossent désormais au corpus
+//           précalculé, comme le 6×10, via l'appariement en octets partagé (byte_matching.dart).
+//           countFrom devient non-nullable partout ; le solveur backtracking sort du chemin chaud.
 // lib/pentoscope/solution_source.dart
+// Historique: 2026-08-31 16:39 — appariement Uint8List (§9) : countFrom/hasSolutionFrom du 6×10
+//             passent par countCompatibleBytes ; _mask BigInt réservé aux chemins froids.
 // Historique: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : 5e méthode solutionIndexOf(plateau).
-// Historique: 2026-08-29 13:43 — suppression du mode classique (§3.1) : 4e méthode
-//             compatibleSolutions(plateau) — la table renvoie les solutions compatibles en
-//             BigInt (pour le navigateur), le solveur à la volée renvoie [].
 // Historique: 2026-08-29 09:26 — 6×10 temps 2 étape 2 : interface SolutionSource + 2 impls.
-// D'où viennent les réponses « solution » d'un puzzle Pentoscope :
-// - rectangle complet adossé à une table (6×10 aujourd'hui) → TableSolutionSource ;
-// - toute autre taille → LiveSolutionSource (PentoscopeSolver, à la volée).
-// Voir docs/PLAN_6X10_DANS_PENTOSCOPE.md §4.2 et §4.6.
+// D'où viennent les réponses « solution » d'un puzzle Pentoscope, désormais toutes adossées à une
+// table pré-calculée :
+// - rectangle complet 6×10 → TableSolutionSource (SolutionMatcher, BigInt pour le navigateur) ;
+// - tailles à pièces tirées 5×n → CorpusSolutionSource (corpus découpé par masque).
 
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/placed_piece.dart';
+import 'package:pentapol/common/byte_matching.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show SolutionTable;
-import 'package:pentapol/pentoscope/pentoscope_solver.dart';
 import 'package:pentapol/services/solution_matcher.dart';
 
 /// Origine des réponses « solution » d'un puzzle. Un seul site le lit : `startPuzzle`.
@@ -51,50 +50,68 @@ abstract interface class SolutionSource {
   int? solutionIndexOf(Plateau plateau);
 }
 
-/// Grille `[y][x]` attendue par le solveur, construite depuis un plateau.
-List<List<int>> _grid(Plateau plateau) => List<List<int>>.generate(
-      plateau.height,
-      (y) => List<int>.generate(plateau.width, (x) => plateau.getCell(x, y)),
-    );
-
-/// Source à la volée, au-dessus de [PentoscopeSolver]. Ne sait pas compter.
-class LiveSolutionSource implements SolutionSource {
-  final PentoscopeSolver _solver;
-
-  LiveSolutionSource(this._solver);
-
-  @override
-  bool hasSolutionFrom(Plateau plateau, List<Pento> remaining) {
-    if (remaining.isEmpty) return false;
-    return _solver.canSolveFrom(
-      remaining.map((p) => p.id).toList(),
-      plateau.width,
-      plateau.height,
-      _grid(plateau),
-    );
+/// Octets bit6 d'un plateau (un octet par case, `cellIndex = y·width + x`, 0 si vide) —
+/// l'entrée des appariements de [byte_matching]. Partagé par les deux sources.
+Uint8List _pieceBytes(Plateau plateau) {
+  final bit6ById = {for (final p in pentominos) p.id: p.bit6};
+  final bytes = Uint8List(plateau.width * plateau.height);
+  for (int y = 0; y < plateau.height; y++) {
+    for (int x = 0; x < plateau.width; x++) {
+      final v = plateau.getCell(x, y);
+      if (v == 0) continue;
+      final code = bit6ById[v];
+      if (code != null) bytes[y * plateau.width + x] = code;
+    }
   }
+  return bytes;
+}
+
+/// Source adossée au **corpus** pré-calculé, pour les tailles à pièces tirées (5×n). Reçoit
+/// les solutions du tirage courant à plat (`count × cells` octets, un code bit6 par case) et
+/// répond par appariement d'octets, sans allocation ni solveur — voir REFERENCE_TIRAGES §8 B.
+///
+/// La disponibilité est « compte > 0 », comme pour un rectangle complet : le tirage emploie
+/// toutes ses pièces, donc « une solution reste atteignable » ⟺ « compte > 0 » (§2).
+class CorpusSolutionSource implements SolutionSource {
+  /// Solutions du tirage, à plat. Vue sans copie sur le blob du corpus.
+  final Uint8List _solutions;
+  final int _cells; // 5 × nombre de pièces du tirage
+  final int _width;
+  final int _height;
+  final Random _random;
+
+  CorpusSolutionSource(
+    this._solutions, {
+    required int width,
+    required int height,
+    Random? random,
+  })  : _width = width,
+        _height = height,
+        _cells = width * height,
+        _random = random ?? Random();
+
+  /// Source vide (aucune solution) — état initial avant le premier tirage.
+  CorpusSolutionSource.empty()
+      : _solutions = Uint8List(0),
+        _cells = 0,
+        _width = 0,
+        _height = 0,
+        _random = Random();
 
   @override
-  int? countFrom(Plateau plateau) => null;
+  int? countFrom(Plateau plateau) =>
+      countCompatibleFlat(_solutions, _pieceBytes(plateau), _cells);
+
+  @override
+  bool hasSolutionFrom(Plateau plateau, List<Pento> remaining) =>
+      anyCompatibleFlat(_solutions, _pieceBytes(plateau), _cells);
 
   @override
   List<PlacedPiece>? hintFrom(Plateau plateau, List<Pento> remaining) {
-    if (remaining.isEmpty) return null;
-    final solution = _solver.findSolutionFrom(
-      remaining.map((p) => p.id).toList(),
-      plateau.width,
-      plateau.height,
-      _grid(plateau),
-    );
-    if (solution == null || solution.isEmpty) return null;
-    return solution
-        .map((s) => PlacedPiece(
-              piece: pentominos[s.pieceId - 1],
-              positionIndex: s.positionIndex,
-              gridX: s.gridX,
-              gridY: s.gridY,
-            ))
-        .toList();
+    final bases = compatibleBasesFlat(_solutions, _pieceBytes(plateau), _cells);
+    if (bases.isEmpty) return null;
+    final base = bases[_random.nextInt(bases.length)];
+    return flatBoardToPlacedPieces(_solutions, base, _width, _height);
   }
 
   @override
@@ -113,23 +130,6 @@ class TableSolutionSource implements SolutionSource {
 
   TableSolutionSource(this._matcher, this.table, {Random? random})
       : _random = random ?? Random();
-
-  /// Un octet par case (`cellIndex = y·width + x`), code bit6 de la pièce posée ou
-  /// 0 si vide — l'entrée du chemin chaud [SolutionMatcher.countCompatibleBytes].
-  Uint8List _pieceBytes(Plateau plateau) {
-    final bit6ById = {for (final p in pentominos) p.id: p.bit6};
-    final bytes = Uint8List(table.width * table.height);
-    for (int y = 0; y < table.height; y++) {
-      for (int x = 0; x < table.width; x++) {
-        final v = plateau.getCell(x, y);
-        if (v == 0) continue;
-        final code = bit6ById[v];
-        if (code == null) continue;
-        bytes[y * table.width + x] = code;
-      }
-    }
-    return bytes;
-  }
 
   /// `(piecesBits, maskBits)` du plateau, dans le même ordre de cases que le `.bin`
   /// (cellIndex = y·width + x, bits de poids fort en premier). Chemins froids seulement.

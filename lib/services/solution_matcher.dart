@@ -1,8 +1,9 @@
-// Modified: 2026-08-31 16:39 — appariement en Uint8List (REFERENCE_TIRAGES §9) : à l'init on
-//           construit _solutionsBytes (9356 × 60 octets, 1 code bit6 par case) en plus des
-//           _solutions BigInt, et countCompatibleBytes() remplace le balayage BigInt sur le
-//           chemin chaud (_solutionStatus). Motif : chaque `solution & mask` allouait un BigInt
-//           de 45 o → 78 ms/pose mesurés sur iPad. Les BigInt restent pour le navigateur.
+// Modified: 2026-08-31 16:39 — appariement en Uint8List (REFERENCE_TIRAGES §9, puis §8 B) : à
+//           l'init on construit _solutionsBytes (9356 × 60 octets, 1 code bit6 par case) en plus
+//           des _solutions BigInt ; countCompatibleBytes délègue à common/byte_matching
+//           (countCompatibleFlat), implémentation partagée avec CorpusSolutionSource. Motif :
+//           chaque `solution & mask` en BigInt allouait 45 o → 78 ms/pose. Les BigInt restent
+//           pour le navigateur.
 // lib/services/solution_matcher.dart
 // Historique: 2026-08-29 14:09 — suppression du mode classique (§3.1, étape 7) : retrait du
 //             singleton global. La classe SolutionMatcher reste — Pentoscope crée des instances.
@@ -141,6 +142,7 @@ import 'dart:math' show min;
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:pentapol/common/byte_matching.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/point.dart';
@@ -579,30 +581,7 @@ class SolutionMatcher {
   int countCompatibleBytes(Uint8List pieces) {
     _checkInitialized();
     assert(pieces.length == _cells);
-
-    // Les cases occupées, une seule fois pour tout le balayage.
-    final occupied = <int>[];
-    for (int c = 0; c < _cells; c++) {
-      if (pieces[c] != 0) occupied.add(c);
-    }
-    final m = occupied.length;
-    if (m == 0) return _solutions.length; // plateau vide : tout est compatible
-
-    final sols = _solutionsBytes;
-    final total = _solutions.length;
-    int count = 0;
-    for (int base = 0; base < total * _cells; base += _cells) {
-      bool ok = true;
-      for (int j = 0; j < m; j++) {
-        final c = occupied[j];
-        if (sols[base + c] != pieces[c]) {
-          ok = false;
-          break;
-        }
-      }
-      if (ok) count++;
-    }
-    return count;
+    return countCompatibleFlat(_solutionsBytes, pieces, _cells);
   }
 
   /// Retourne les solutions compatibles sous forme de BigInt.

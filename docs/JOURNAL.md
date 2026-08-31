@@ -42,7 +42,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Tirages étape B** | `REFERENCE_TIRAGES.md` §8 B / §9 | **en cours.** corpus complet (~2,5 Mo), retrait de `LiveSolutionSource`/`PentoscopeSolver` du runtime, compteur décroissant sur toutes les tailles. Les **2 mesures § 9 sont acquises** : n°1 (génération) 9 parcours en 11,6 s ; n°2 (fluidité `_solutionStatus`, iPad `--release`) — le pire (38–78 ms) venait du **solveur live des petites tailles**, pas du comptage par table (~0,6 ms), donc B n'est pas bloquée, elle est motivée (elle supprime ce solveur). Socle livré : appariement `Uint8List` (`countCompatibleBytes`) |
+| **Tirages étape B** | `REFERENCE_TIRAGES.md` §8 B / §9 | **en cours.** Faits : commit 1 (corpus `solutions_corpus.bin`, 3,13 Mo, octet/case, 73 876 solutions) ; commit 2 (source unifiée — `LiveSolutionSource` supprimée, `CorpusSolutionSource` adosse **toutes** les tailles au corpus, appariement d'octets factorisé dans `common/byte_matching.dart`). Reste : commit 3 (sortir `PentoscopeSolver` du runtime — touche générateur + multijoueur), commit 4 (compteur décroissant **affiché** partout). Les 2 mesures §9 acquises : le pire `_solutionStatus` (38–78 ms) venait du solveur live des petites tailles, pas du comptage par table (~0,6 ms). **Décision : 2 sources table-backed** (6×10 via `SolutionMatcher`/BigInt pour son navigateur ; 5×n via corpus/bytes) plutôt qu'une seule classe — l'appariement, lui, est unifié |
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail |
 
@@ -73,9 +73,10 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `64ec104`. **Non poussés** : l'enrichissement `REFERENCE_TIRAGES.md` (cowork,
-commité seul) et le byte-matcher (`solution_matcher`/`solution_source` + test d'équivalence +
-ce journal).
+Poussé jusqu'à `64ec104`. **Non poussés** : enrichissement `REFERENCE_TIRAGES.md` (cowork,
+`ceff658`), byte-matcher (`ef669cf`), corpus étape B commit 1 (`86dcea6`), et le commit 2
+(source unifiée corpus + ce journal). **À tester sur appareil** avant le commit 3 : jouer une
+petite taille (5×10, 4×5) — jeu normal, sans à-coup.
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.

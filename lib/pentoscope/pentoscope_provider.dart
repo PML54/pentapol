@@ -57,10 +57,10 @@ import 'package:pentapol/common/piece_interaction_mixin.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
-import 'package:pentapol/pentoscope/pentoscope_solver.dart'
-    show Solution, PentoscopeSolver;
+import 'package:pentapol/pentoscope/pentoscope_solver.dart' show Solution;
 import 'package:pentapol/pentoscope/solution_source.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
+import 'package:pentapol/pentoscope/corpus_provider.dart';
 
 // ============================================================================
 // ÉTAT
@@ -93,11 +93,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       state.copyWith(elapsedSeconds: elapsedSeconds);
 
   late final PentoscopeGenerator _generator;
-  late final PentoscopeSolver _solver;
 
   /// D'où viennent les réponses « solution » du puzzle courant. Posé à chaque
-  /// création de puzzle par _makeSolutionSource (seul site lisant size.table).
-  /// Défaut : solveur à la volée, tant qu'aucun puzzle n'est démarré.
+  /// création de puzzle par _makeSolutionSource. Défaut : source de corpus vide,
+  /// tant qu'aucun puzzle n'est démarré (aucune requête ne l'atteint avant).
   late SolutionSource _solutions;
 
   /// Le puzzle courant vient-il d'une partie multijoueur (startPuzzleFromSeed) ?
@@ -170,19 +169,38 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       stopTimer();
     });
     _generator = PentoscopeGenerator();
-    _solver = PentoscopeSolver();
-    _solutions = LiveSolutionSource(_solver);
+    _solutions = CorpusSolutionSource.empty();
     return PentoscopeState.initial();
   }
 
-  /// Choisit la source de solutions du puzzle : table pré-calculée si la taille
-  /// en porte une (chargée paresseusement, instance propre à Pentoscope), sinon
-  /// le solveur à la volée. **Seul site lisant `size.table`** (§4.2).
-  Future<SolutionSource> _makeSolutionSource(PentoscopeSize size) async {
+  /// Choisit la source de solutions du puzzle, **toujours adossée à une table**
+  /// pré-calculée (§8 B) : le 6×10 via son [SolutionMatcher] (BigInt, navigateur),
+  /// toute autre taille via le corpus découpé au masque du tirage. Plus de solveur
+  /// à la volée sur le chemin chaud. **Seul site lisant `size.table`** (§4.2).
+  Future<SolutionSource> _makeSolutionSource(
+    PentoscopeSize size,
+    List<int> pieceIds,
+  ) async {
     final table = size.table;
-    if (table == null) return LiveSolutionSource(_solver);
-    final matcher = await ref.read(pentoscopeSolutionsProvider(table).future);
-    return TableSolutionSource(matcher, table);
+    if (table != null) {
+      final matcher = await ref.read(pentoscopeSolutionsProvider(table).future);
+      return TableSolutionSource(matcher, table);
+    }
+    final corpus = await ref.read(tirageCorpusProvider.future);
+    return CorpusSolutionSource(
+      corpus.solutionsFor(_maskOf(pieceIds)),
+      width: size.width,
+      height: size.height,
+    );
+  }
+
+  /// Masque 12 bits d'un tirage : bit (id − 1) par pièce présente.
+  int _maskOf(List<int> pieceIds) {
+    var m = 0;
+    for (final id in pieceIds) {
+      m |= 1 << (id - 1);
+    }
+    return m;
   }
 
   /// Solutions complètes compatibles avec le plateau courant (pour le navigateur
@@ -444,7 +462,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     _isMultiplayer = false;
     // Générer un nouveau puzzle avec la même taille
     final newPuzzle = await _generator.generate(puzzle.size);
-    _solutions = await _makeSolutionSource(newPuzzle.size);
+    _solutions = await _makeSolutionSource(newPuzzle.size, newPuzzle.pieceIds);
 
     final pieces = newPuzzle.pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
@@ -612,7 +630,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final puzzle = mask != null
         ? _generator.puzzleFromMask(size, mask)
         : await _generator.generate(size);
-    _solutions = await _makeSolutionSource(size);
+    _solutions = await _makeSolutionSource(size, puzzle.pieceIds);
 
     final pieces = puzzle.pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
@@ -668,7 +686,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     _isMultiplayer = true;
     // Générer le puzzle avec les paramètres fournis
     final puzzle = await _generator.generateFromSeed(size, seed, pieceIds);
-    _solutions = await _makeSolutionSource(size);
+    _solutions = await _makeSolutionSource(size, pieceIds);
 
     final pieces = pieceIds
         .map((id) => pentominos.firstWhere((p) => p.id == id))
@@ -806,7 +824,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       solutionCount: row.solutionCount,
       solutions: const [],
     );
-    _solutions = await _makeSolutionSource(size);
+    _solutions = await _makeSolutionSource(size, pieceIds);
 
     final piecePositionIndices =
         (jsonDecode(row.positionIndices) as Map<String, dynamic>)
