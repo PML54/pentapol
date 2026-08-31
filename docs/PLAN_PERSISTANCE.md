@@ -1,8 +1,9 @@
 # Plan — ce que Pentapol garde sur l'appareil
 
 > Établi le 2026-08-30 par cowork, en préparation d'une mise sur l'App Store.
-> Décisions 46 à 50. **Annule le §9 de `PLAN_SUPPRESSION_CLASSICAL.md`** : on ne supprime
-> plus l'historique avec précaution, on repart d'un schéma propre.
+> **Étape 1 faite** (`ea23af7`) : Supabase, `bootstrap.dart` et `DatabaseDebugScreen` retirés.
+> Restent les étapes 2 à 4. L'abandon pur et simple de l'historique, un temps envisagé, a été
+> écarté : on repart d'un schéma propre (§4).
 >
 > Numéros de ligne relevés après `fe3c331`.
 
@@ -258,5 +259,4 @@ Test appareil — **sur une base existante**, pas sur une installation neuve :
 ## Voir aussi
 
 - `docs/CHECKLIST_APPSTORE.md` — ce qui doit être fait avant la première soumission
-- `docs/PLAN_SUPPRESSION_CLASSICAL.md` §9 — **annulé** par ce plan
-- `docs/PLAN_6X10_DANS_PENTOSCOPE.md` §4.2 — l'interface `SolutionSource`
+- `docs/FONCTIONNEMENT.md` — l'interface `SolutionSource` et ses deux implémentations

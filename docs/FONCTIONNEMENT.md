@@ -1,7 +1,12 @@
 # Pentapol — Documentation fonctionnelle
 
+> **`docs/PENTOSCOPE.md` a été fusionné ici le 2026-08-31.** Il n'y a plus qu'un module de
+> jeu : deux documents pour le décrire, c'était deux versions du même tableau — dont une
+> fausse (les tailles de plateau y étaient incomplètes, et l'état y portait encore un `score`
+> supprimé depuis).
+>
 > **Révisée contre le code le 2026-08-30**, après la suppression du mode classique
-> (`371c3d5`) et l'application du §8 de `PLAN_SUPPRESSION_CLASSICAL.md`. Chaque
+> (`371c3d5`) et le remaniement de l'interface qui a suivi. Chaque
 > affirmation chiffrée ou algorithmique a été contrôlée dans les sources ; les points
 > non vérifiables sont marqués « ⚠ non vérifié ». Récapitulatif des corrections en fin
 > de document.
@@ -43,6 +48,25 @@ Une seule mécanique, deux familles de tailles, énumérées par `PentoscopeSize
 | **puzzles** | `size3x5` … `size9x5` (largeur 3 à 5, hauteur 5 à 9) | 3 à 9, **tirées au hasard** parmi les 12 | calculées à la volée par `PentoscopeSolver` |
 | **rectangle complet** | `size6x10` — 6 × 10 = 60 cases | les **12**, toujours | **table pré-calculée** : 2339 solutions canoniques dans `assets/data/solutions_6x10_normalisees.bin`, étendues à **9356** en mémoire par les 4 isométries du rectangle |
 
+#### Les neuf tailles, telles que l'enum les déclare
+
+| valeur | largeur × hauteur | pièces | label | table |
+|---|---|---|---|---|
+| `size3x5` | 3 × 5 | 3 | `3` | — |
+| `size4x5` | 4 × 5 | 4 | `4` | — |
+| `size5x5` | 5 × 5 | 5 | `5` | — |
+| `size6x5` | 5 × 6 | 6 | `6` | — |
+| `size7x5` | 5 × 7 | 7 | `7` | — |
+| `size8x5` | 5 × 8 | 8 | `8` | — |
+| `size9x5` | 5 × 9 | 9 | `9` | — |
+| `size10x5` | 5 × 10 | 10 | `10` | — |
+| `size6x10` | **6 × 10** | **12** | `6×10` | `SolutionTable.r6x10` |
+
+> ⚠️ **Les noms de cet enum ne sont pas cohérents** : `size3x5` a bien width=3, height=5, mais
+> `size10x5` a width=**5**, height=**10**. Les quatre premiers se lisent `largeurxhauteur`,
+> les suivants l'inverse. `size6x10` suit la première convention. **Se fier aux champs, jamais
+> au nom.**
+
 Le champ `PentoscopeSize.table` (`SolutionTable?`) porte cette distinction : `null` = calcul
 à la volée. Il n'est lu qu'**au démarrage du puzzle**, pour choisir la `SolutionSource` qui
 répondra ensuite à tout (§ Gestion des solutions).
@@ -68,6 +92,21 @@ répondra ensuite à tout (§ Gestion des solutions).
   - 0 hint → 20/20
   - ≥ (nbPièces − 1) hints → 0/20
   - entre les deux, linéaire : `20 − (nbHints × 20 ~/ maxHints)`
+
+#### Le générateur — `PentoscopeGenerator`
+
+Sans table pré-calculée, en cherchant les solutions à la demande :
+
+1. tirer N pièces au hasard parmi les 12 ;
+2. vérifier vite qu'au moins une solution existe (`findFirstSolution`) ;
+3. chercher toutes les solutions, **timeout 2 s** ;
+4. aucune solution → nouveau tirage ;
+5. pour `easy` / `hard`, vérifier le nombre de solutions avant d'accepter — `generateEasy`
+   exige **≥ 4** solutions, `generateHard` **≤ 2**.
+
+> **Le 6×10 court-circuite tout ce chemin.** À 12 pièces sur 12 le tirage est forcé, et le
+> timeout de 2 s rendrait un compte de solutions **partiel présenté comme exact**.
+> `_buildFullRectanglePuzzle` construit directement le puzzle, sans appeler le solveur.
 
 ### 2. Mode Multijoueur (Pentoscope MP)
 
@@ -255,6 +294,29 @@ Deux modes d'appel :
 - `findAllSolutions(timeout: 2 s)` — collecte jusqu'au **timeout de 2 secondes**,
   valeur utilisée par les quatre points d'appel du générateur
 
+Gains estimés des trois heuristiques, tels que documentés à l'écriture du solveur :
+
+| technique | effet | gain estimé |
+|---|---|---|
+| Smallest Free Cell First | ne teste que les placements couvrant la plus petite case libre | 80-90 % de tentatives en moins |
+| Isolated Region Pruning | flood fill après chaque pose ; coupe si une région fait < 5 cases ou n'est pas multiple de 5 | 50-70 % des branches |
+| Piece Ordering | essaie d'abord les pièces au plus petit `numOrientations` | 10-20 % |
+
+⚠ non vérifié : ces pourcentages viennent de la documentation d'origine, ils n'ont pas été
+re-mesurés.
+
+Types produits :
+
+```dart
+class SolverPlacement { int pieceId, gridX, gridY, positionIndex; }
+typedef Solution = List<SolverPlacement>;
+class SolverResult { int solutionCount; List<Solution> solutions; }
+```
+
+> ⚠️ **À ne pas confondre avec `services/pentomino_solver.dart`**, classe distincte, inactive
+> dans l'application, qui ne sert qu'à l'outil hors-ligne de génération des tables — et dont
+> le timeout non paramétrable est un piège documenté dans `CLAUDE.md` §Invariants.
+
 ---
 
 ## Persistance
@@ -330,6 +392,24 @@ absoluteCells   : cases absolues occupées (calculées à la demande)
 
 ---
 
+### `PentoscopeState` — les champs
+
+Noyau de manipulation, commun au contrat `PieceManipulationState` : `plateau`,
+`availablePieces`, `placedPieces`, `selectedPiece`, `selectedPositionIndex`,
+`selectedPlacedPiece`, `piecePositionIndices`, `selectedCellInPiece`, `previewX`, `previewY`,
+`isPreviewValid`, `isSnapped`, `isDragging`, `viewOrientation`, `elapsedSeconds`.
+
+Propres à Pentoscope : `puzzle`, `currentSolution`, `showSolution`, `validPlacements`
+(positions valides pré-calculées), `selectedMasterAbs`, `hasPossibleSolution`,
+`solutionsCount` (**nullable** — `null` quand la source ne sait pas compter), `isComplete`, et
+les compteurs `isometryCount`, `translationCount`, `deleteCount`, `hintCount`.
+
+> Le champ `score` que documentait `PENTOSCOPE.md` **n'existe plus** : le score du bilan de
+> fin de partie a été retiré, sa formule étant fausse deux fois. Seule `calculateNote()`
+> subsiste.
+
+---
+
 ## Architecture technique
 
 ```
@@ -367,6 +447,16 @@ classique.
 
 > `solutionsReadyProvider` et le singleton global `solutionMatcher` ont été **supprimés**
 > avec le mode classique : chaque table a désormais son instance, dimensionnée par elle.
+
+### Widgets de jeu
+
+| widget | rôle |
+|---|---|
+| `pentoscope/widgets/pentoscope_board.dart` | le plateau : calcule `cellSize` (`min(W/cols, H/rows)`), échange les axes en paysage, dessine preview et sélection, porte le `DragTarget` |
+| `pentoscope/widgets/pentoscope_piece_slider.dart` | la barre de pièces, dimensionnée sur la case du plateau |
+| `common/widgets/piece_renderer.dart` | rend une pièce ; `cellSize` **paramétrable** (défaut 22) — partagé par la barre, le retour de drag et le navigateur de solutions |
+| `common/widgets/draggable_piece_widget.dart` | `Draggable` ou `LongPressDraggable` selon que la pièce est déjà sélectionnée |
+| `common/widgets/piece_border_calculator.dart` | contours des pièces posées |
 
 ### Backend multijoueur
 

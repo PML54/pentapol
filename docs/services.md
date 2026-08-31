@@ -211,4 +211,5 @@ Deux composants qu'on s'attendrait à y trouver et qui vivent ailleurs :
 - `docs/ANALYSE_STOCKAGE_POSITIONS.md` — analyse détaillée de l'encodage, défauts,
   vérifications exécutées, fondement combinatoire du code `bit6`
 - `docs/PIECES_ENCODING.md` — définition des pièces et des isométries
-- `docs/FONCTIONNEMENT.md` — documentation fonctionnelle de l'application
+- `docs/FONCTIONNEMENT.md` — documentation fonctionnelle de l'application (absorbe
+  l'ancien `PENTOSCOPE.md` depuis le 2026-08-31)

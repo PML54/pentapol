@@ -131,6 +131,37 @@ done
    (2339 solutions canoniques, 9356 après expansion) : ils se contrôlent par
    exécution, pas par raisonnement.
 
+## Invariants et pièges — vérifiés, à ne pas redécouvrir
+
+Ces points ont coûté du temps une fois. Ils remplacent la §DÉCISIONS du journal, supprimée le
+2026-08-31 ; le reste de son contenu est dans `git log`.
+
+1. **Les tables de solutions ne répondent que sur un rectangle complet.** « Compte > 0 ⟺ les
+   pièces restantes peuvent remplir le plateau » n'est vrai que parce que **chaque solution
+   de la table emploie les 12 pièces**. Sur une taille à pièces tirées, la table ne dit rien.
+   Deux invariants sans lesquels elle répond faux **en silence** : aucune case masquée (`-1`),
+   et les 12 pièces toutes présentes.
+2. **`PentominoSolver.maxSeconds` vaut 30 et n'est pas paramétrable**, et `findAllSolutions`
+   fait un simple `return` à l'expiration : l'appelant reçoit une liste **indistinguable**
+   d'une liste complète. C'est ce qui a produit un fichier de 8175 solutions sur 9356 sans
+   que rien ne le signale. **À corriger — signature et paramètre — avant toute génération de
+   table.**
+3. **Les tailles d'affichage s'ancrent sur le plateau, pas sur l'appareil.** Une pièce dans la
+   barre et la même pièce sur le plateau sont la même chose : `pieceCellSize =
+   boardCellSize × k`. Aucun seuil, aucune détection de tablette — tout écran est traité, y
+   compris ceux qui n'existent pas encore.
+4. **Énumérer les valeurs existantes rate les widgets qui n'en ont aucune.** Un `grep` sur les
+   constantes de taille ne trouve pas les `IconButton` sans `size:`, qui héritent du défaut.
+   Quand un réglage doit s'appliquer à un ensemble, passer par l'**héritage** (`IconTheme`,
+   une liste unique rendue deux fois), jamais par une liste de sites.
+5. **La couche `common/` n'a plus qu'un seul client.** `PieceManipulationState`,
+   `GameTimerMixin`, `PieceInteractionMixin`, `PentominoGameMixin` avaient été extraits pour
+   tenir **deux** implémentations alignées ; le mode classique a été supprimé. Ils gardent
+   leur valeur de découpage, pas leur valeur de contrainte — ne pas chercher la seconde
+   implémentation qu'ils sont censés contraindre.
+6. **`AppSettings` est sérialisé en JSON** dans une ligne de la table `Settings` : un champ
+   ajouté ou retiré ne demande **aucune migration**.
+
 ## Protocole entre agents — OBLIGATOIRE
 
 Deux agents travaillent sur ce dépôt : **Claude Code (CLI)**, qui écrit le code,
@@ -176,7 +207,8 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - `docs/PIECES_ENCODING.md` — définition des pièces, `bit6`, isométries
 - `docs/MODUS_VIVENDI.md` — répartition du travail entre le CLI et cowork,
   passations, règles de commit
-- `docs/JOURNAL.md` — **à lire en premier** : état courant, décisions, passations
+- `docs/JOURNAL.md` — **à lire en premier** : état courant et passations (§DÉCISIONS
+  supprimée le 2026-08-31 ; les règles vivantes sont ci-dessus, l'histoire est dans `git log`)
 - `docs/PLAN_6X10_DANS_PENTOSCOPE.md` — le 6×10 et les tables de solutions
   pré-calculées ; §5 (tables 5×12 et 4×15) reste à appliquer
 - `docs/CHECKLIST_APPSTORE.md` — **ce qui doit être fait ou défait avant la première
@@ -184,8 +216,8 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
   production s'y inscrit avec sa raison
 - `docs/PLAN_PERSISTANCE.md` — ce que l'app garde sur l'appareil : quatre tables drift,
   la partie en cours, les records
-- `docs/PLAN_SUPPRESSION_CLASSICAL.md` — la suppression du mode classique et sa suite ;
-  §1-§8 appliquées, **§9 annulée** par la décision 48
+> Les plans **appliqués et testés sont supprimés**, pas archivés — `git log` les conserve.
+> Cinq l'ont été le 2026-08-31 (démo, unification, suppression classical, bilan, ergonomie).
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
   des modules) alimentant `tools/db/pentapol.db`
 

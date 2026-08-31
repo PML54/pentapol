@@ -31,6 +31,38 @@ commits sans pathspec (`85b8d34`, `bcae01f`) qui n'ont commité que l'index.
 
 ---
 
+## 2 bis. Router selon la taille — la règle qui manquait
+
+> Ajoutée le 2026-08-31, sur constat chiffré : 8 676 lignes de documentation pour 19 608 de
+> code, 38 % des commits consacrés à la doc. Le protocole ci-dessus était appliqué
+> **uniformément**, y compris à des correctifs de deux lignes. C'était l'erreur de fond.
+
+**Un changement qui tient dans un commit et que Paul peut juger à l'écran va directement au
+CLI.** Sans plan, sans passation, sans entrée de journal.
+
+Exemples réels : « le chrono ne s'arrête pas » (deux lignes de code — a consommé un
+diagnostic, une section de plan, deux décisions, une phrase de lancement et quatre allers-
+retours), « les icônes sont trop petites », « le bandeau masque le plateau ». Si le CLI
+découvre en creusant que c'est plus profond qu'annoncé, **il le dit et s'arrête** : c'est à ce
+moment-là que cowork entre.
+
+**cowork entre quand se tromper coûte cher** : un schéma de base de données, la suppression
+d'un module, l'ordre d'un chantier, un audit systématique, une décision qu'on ne pourra pas
+défaire. Là, les 200 lignes de plan sont le produit et non la taxe — c'est ce qui a permis de
+supprimer 3 200 lignes sans rien casser, avec une application vivante à chaque étape.
+
+**Ce que cowork apporte, et que ni Paul ni le CLI ne produisent** : la lecture systématique.
+Le score toujours rouge sur le 6×10, les neuf réglages inertes, les deux fonctions
+inaccessibles en paysage, le chronomètre relancé après avoir été arrêté, le moteur responsive
+orphelin — aucun ne se trouve en jouant, aucun ne se trouve en exécutant une tâche.
+
+**Ce que cowork rate** : il se trompe quand il raisonne au lieu de mesurer. Cinq erreurs en
+quatre jours, toutes rattrapées, trois au prix d'un aller-retour — dont une énumération
+incomplète qui a fait faire au CLI un commit défait dans l'heure. Quand il annonce un chiffre
+ou une liste de sites, exiger la commande qui l'a produit.
+
+---
+
 ## 3. Le canal, et ce qui n'en est pas un
 
 Le canal est le **dépôt**. Les deux agents lisent le même arbre de travail : le CLI
@@ -65,7 +97,7 @@ forme :
 > Vérifie les critères de fin avant de commiter.
 
 **Aucun commit n'est nécessaire pour cette passation.** Le fichier est visible
-immédiatement. `docs/PLAN_SUPPRESSION_DEMO.md` a piloté deux commits alors qu'il n'était
+immédiatement. Le plan de suppression de la démo a piloté deux commits alors qu'il n'était
 même pas suivi par git.
 
 ### CLI → cowork
@@ -92,6 +124,12 @@ Le protocole ne s'applique qu'aux **fins d'unité de travail**, pas aux allers-r
 - un doc qui pilote un travail de code est commité **dans le même commit** que ce code ;
 - un doc sans code derrière est commité **seul, en début de session suivante**, avant
   toute modification de `lib/`.
+
+**Et un plan appliqué et testé se SUPPRIME.** Pas de bandeau « archive », pas de section
+« historique » : `git rm`. `git log` le conserve intégralement, et le dépôt cesse de porter
+des documents qui décrivent un état révolu. Cinq plans ont été supprimés ainsi le 2026-08-31.
+Le corollaire vaut aussi : un document qu'on hésite à supprimer parce qu'« il pourrait
+servir » est un document que personne ne relira.
 
 **Pourquoi pas pour transmettre.** Le commit ne sert pas au relais — l'arbre de travail
 suffit. Il sert à trois autres choses :
