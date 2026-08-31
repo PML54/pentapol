@@ -1,6 +1,8 @@
-// Modified: 2025-11-16 11:00:00
+// Modified: 2026-08-31 16:39 — table de lettres unique (REFERENCE_TIRAGES §10) : la lettre de
+//           chaque pièce vient de pentominos.pentominoLetter (l'utilisateur voyait des lettres
+//           fausses via getPieceName/piece_utils, table périmée retirée).
 // lib/screens/custom_colors_screen.dart
-// Écran pour personnaliser les couleurs des pièces
+// Historique: 2025-11-16 11:00:00 — Écran pour personnaliser les couleurs des pièces
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +56,7 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
         itemCount: 12,
         itemBuilder: (context, index) {
           final pieceId = index + 1;
-          final pieceName = getPieceName(pieceId);
+          final pieceName = pentominoLetter(pieceId);
           final piece = pentominos.firstWhere((p) => p.id == pieceId);
           
           return Card(

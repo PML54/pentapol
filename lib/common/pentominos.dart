@@ -2,9 +2,12 @@
 import 'package:pentapol/common/point.dart';
 import 'package:flutter/foundation.dart';
 
-// Modified: 2026-08-30 06:04 — PLAN_BILAN §3 : minIsometriesToReach signalée orpheline (son
-//           unique appelant, le score de fin de partie, est retiré) mais conservée.
+// Modified: 2026-08-31 16:39 — table de lettres unique (REFERENCE_TIRAGES §10) : ajout de
+//           pentominoLetters, adossée à la géométrie, remplace les deux tables périmées de
+//           pentoscope_generator (_pieceNames, 10/11 intervertis) et piece_utils (entièrement
+//           fausse). Vérifiée par test/pentomino_letters_test.dart depuis cartesianCoords.
 // lib/common/pentominos.dart
+// Historique: 2026-08-30 06:04 — PLAN_BILAN §3 : minIsometriesToReach orpheline mais conservée.
 // Historique: 2512092000 — Pentominos avec numéros de cases sur grille 5×5
 // Numérotation: ligne 1 (bas) = cases 1-5, ligne 2 = cases 6-10, etc.
 // Les orientations préservent l'ordre géométrique des cellules pour le tracking
@@ -682,6 +685,20 @@ final List<Pento> pentominos = [
       ],
   ),
 ];
+
+/// Lettre standard de chaque pentomino, indexée par `id − 1` (id 1..12).
+///
+/// **Unique table de lettres du projet, adossée à la géométrie** : chaque lettre est celle de la
+/// forme définie par `pentominos[id-1].cartesianCoords`. Reconstruite et vérifiée le 2026-08-31
+/// contre `cartesianCoords` (docs/REFERENCE_TIRAGES.md §10, test/pentomino_letters_test.dart).
+/// Les pièces 10 et 11 sont **Z puis W** — une interversion 10/11 traînait dans deux tables
+/// périmées (`_pieceNames` du générateur, `pieceNames` de piece_utils), désormais retirées.
+const List<String> pentominoLetters = [
+  'X', 'P', 'T', 'F', 'Y', 'V', 'U', 'L', 'N', 'Z', 'W', 'I',
+];
+
+/// Lettre standard du pentomino d'id [id] (1..12).
+String pentominoLetter(int id) => pentominoLetters[id - 1];
 
 class Pento {
   final int id;

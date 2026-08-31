@@ -13,6 +13,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:pentapol/common/pentominos.dart' show pentominoLetter;
 
 /// Table des comptes par sous-ensemble : 4096 × uint16 (voir tools/generate_subset_counts.dart
 /// et REFERENCE_TIRAGES.md). Index = masque 12 bits, bit (id − 1). 0 ⟺ tirage insoluble.
@@ -131,22 +132,6 @@ class PentoscopeGenerator {
 
 /// Configuration d'un puzzle Pentoscope
 class PentoscopePuzzle {
-  /// Noms des pièces (X, P, T, F, Y, V, U, L, N, W, Z, I)
-  static const _pieceNames = [
-    'X',
-    'P',
-    'T',
-    'F',
-    'Y',
-    'V',
-    'U',
-    'L',
-    'N',
-    'W',
-    'Z',
-    'I',
-  ];
-
   final PentoscopeSize size;
   final List<int> pieceIds;
 
@@ -163,9 +148,9 @@ class PentoscopePuzzle {
   String get description =>
       '${size.label} avec ${pieceNames.join(", ")} ($solutionCount solution${solutionCount > 1 ? "s" : ""})';
 
-  /// Retourne les noms des pièces du puzzle
+  /// Retourne les noms des pièces du puzzle (table unique `pentominoLetters`).
   List<String> get pieceNames =>
-      pieceIds.map((id) => _pieceNames[id - 1]).toList();
+      pieceIds.map(pentominoLetter).toList();
 
   @override
   String toString() => 'PentoscopePuzzle($description)';

@@ -1,30 +1,11 @@
-// Modified: 2025-11-16 11:00:00
+// Modified: 2026-08-31 16:39 — table de lettres unique (REFERENCE_TIRAGES §10) : la table
+//           `pieceNames` (entièrement périmée : pièce 2 = « I » alors qu'elle a 8 orientations) et
+//           `getPieceName` sont retirées ; les lettres viennent de pentominos.pentominoLetter.
 // lib/utils/piece_utils.dart
-// Utilitaires communs pour les pièces de pentominos
+// Historique: 2025-11-16 11:00:00 — Utilitaires communs pour les pièces de pentominos
 
 import 'package:flutter/material.dart';
 import 'package:pentapol/common/pentominos.dart';
-
-/// Noms des pièces selon leur ID (nomenclature standard des pentominos)
-const Map<int, String> pieceNames = {
-  1: 'X',  // Pièce 1 - Croix
-  2: 'I',  // Pièce 2 - Barre
-  3: 'Z',  // Pièce 3
-  4: 'V',  // Pièce 4
-  5: 'T',  // Pièce 5
-  6: 'W',  // Pièce 6
-  7: 'U',  // Pièce 7
-  8: 'F',  // Pièce 8
-  9: 'P',  // Pièce 9
-  10: 'N', // Pièce 10
-  11: 'Y', // Pièce 11
-  12: 'L', // Pièce 12
-};
-
-/// Obtenir le nom d'une pièce selon son ID
-String getPieceName(int pieceId) {
-  return pieceNames[pieceId] ?? '?';
-}
 
 /// Couleurs par défaut des pièces (schéma classique)
 const List<Color> defaultPieceColors = [
@@ -126,7 +107,7 @@ class PieceIcon extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    final pieceName = getPieceName(pieceId);
+    final pieceName = pentominoLetter(pieceId);
     
     return Container(
       width: size,
