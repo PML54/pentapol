@@ -1,8 +1,9 @@
-// Modified: 2026-08-31 15:00 — réglage à l'œil (retour de Paul) : _kSliderPad 32 → 20, barre de
-//           pièces resserrée (les pièces rétrécissent aussi via k 0.45→0.35 dans pentoscope_board).
+// Modified: 2026-08-31 16:00 — regroupement des sept valeurs de réglage visuel en un bloc de
+//           constantes nommées en tête de fichier (dont kPieceToBoardCellRatio, rapatrié de
+//           pentoscope_board.dart). Regroupement pur : valeurs et comportement inchangés.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
-// Historique: 2026-08-31 14:20 — bug iOS : body enveloppé dans un SafeArea (îlot dynamique /
-//             indicateur d'accueil) ; le LayoutBuilder voit les contraintes réduites.
+// Historique: 2026-08-31 15:00 — réglage à l'œil : _kSliderPad 32 → 20 ; k 0.45 → 0.35 (board).
+// Historique: 2026-08-31 14:20 — bug iOS : body enveloppé dans un SafeArea.
 // Historique: 2026-08-31 11:00 — PLAN_ERGONOMIE §9 (décisions 65-68) : une seule barre d'actions
 //             pour les deux orientations — _buildBarItems rendue en Row (portrait) / Column (paysage) ;
 //             retrait de actions:/leading ; chrono central ; trois compteurs sortis ; supersède §4d.
@@ -47,6 +48,38 @@ import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// RÉGLAGE VISUEL — les sept valeurs « à régler à l'œil » de l'ergonomie hors plateau,
+// rassemblées ici (PLAN_ERGONOMIE §3/§4d). **Regroupement pur : comportement inchangé.**
+// Seul `kPieceToBoardCellRatio` est public : `pentoscope_board.dart` l'importe pour le
+// feedback de drag. Les autres sont privés au fichier.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/// Rapport pièce/plateau : `pieceCellSize = boardCellSize × k`. Gouverne la taille des pièces
+/// de la barre **et** du feedback de drag ; l'épaisseur de la barre en dérive.
+const double kPieceToBoardCellRatio = 0.35;
+
+/// Icônes (AppBar + colonne d'actions) : `shortestSide × facteur`, borné.
+const double _kIconSizeFactor = 0.075;
+const double _kIconSizeMin = 30.0;
+const double _kIconSizeMax = 64.0;
+
+/// Hauteur de l'AppBar : `shortestSide × facteur`, borné.
+const double _kAppBarHeightFactor = 0.14;
+const double _kAppBarHeightMin = 50.0;
+const double _kAppBarHeightMax = 100.0;
+
+/// Petits textes/pictos du titre (compteur) et base du chrono : `_uiIconSize × facteur`, borné.
+const double _kLabelSizeFactor = 0.35;
+const double _kLabelSizeMin = 13.0;
+const double _kLabelSizeMax = 40.0;
+
+/// Chrono de la barre : `_uiLabelSize × ce facteur` (plus gros que les autres labels).
+const double _kChronoFactor = 1.4;
+
+/// Marge de la barre de pièces autour de la boîte (épaisseur de barre = `5 × cell + marge`).
+const double _kSliderPad = 20.0;
 
 /// ⏱️ Formate le temps en secondes (max 999s) - format compact
 String _formatTime(int seconds) {
@@ -674,17 +707,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// au lieu des quatre constantes improvisées (56, 42, clamp 28-50, clamp 20-36). Clamps
   /// calés pour ≈ conserver l'iPhone et grandir sur tablette ; **à régler à l'œil**.
   double _uiIconSize(BuildContext context) =>
-      (MediaQuery.of(context).size.shortestSide * 0.075).clamp(30.0, 64.0);
+      (MediaQuery.of(context).size.shortestSide * _kIconSizeFactor)
+          .clamp(_kIconSizeMin, _kIconSizeMax);
 
   double _uiAppBarHeight(BuildContext context) =>
-      (MediaQuery.of(context).size.shortestSide * 0.14).clamp(50.0, 100.0);
+      (MediaQuery.of(context).size.shortestSide * _kAppBarHeightFactor)
+          .clamp(_kAppBarHeightMin, _kAppBarHeightMax);
 
   /// Taille des petits textes/pictos d'information de l'AppBar (chrono, compteurs du titre),
   /// ≈ _uiIconSize × 0.35 (PLAN_ERGONOMIE §4d, décision 59). Plancher 13 : sur iPhone
   /// _uiIconSize plafonne à 30, ×0.35 = 10,5 < actuel ; le plancher tient le garde-fou
   /// « iPhone proche de l'actuel » tout en laissant grandir sur tablette.
   double _uiLabelSize(BuildContext context) =>
-      (_uiIconSize(context) * 0.35).clamp(13.0, 40.0);
+      (_uiIconSize(context) * _kLabelSizeFactor)
+          .clamp(_kLabelSizeMin, _kLabelSizeMax);
 
   /// Les actions de la barre, dans l'ordre, **communes aux deux orientations** (PLAN_ERGONOMIE
   /// §9). Une seule source garantit que portrait et paysage proposent la même chose — pas la
@@ -783,7 +819,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     return Text(
       _formatTime(state.elapsedSeconds),
       style: TextStyle(
-        fontSize: _uiLabelSize(context) * 1.4,
+        fontSize: _uiLabelSize(context) * _kChronoFactor,
         fontWeight: FontWeight.bold,
         color: Colors.black,
       ),
@@ -811,11 +847,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       ],
     );
   }
-
-  /// Marge verticale/horizontale de la barre autour de la boîte de pièce (padding ListView +
-  /// jeu). Sert à la fois à dimensionner la barre et à réserver la place au plateau.
-  /// Réglage 2026-08-31 (retour de Paul) : 32 → 20, barre resserrée sur des pièces plus petites.
-  static const double _kSliderPad = 20.0;
 
   /// `(taille de case d'une pièce de la barre, épaisseur de la barre)` — la barre est ancrée
   /// sur le plateau : `pieceCellSize = boardCellSize × k` (§3). La dépendance circulaire (la

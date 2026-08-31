@@ -1,6 +1,8 @@
-// Modified: 2026-08-31 15:00 — réglage à l'œil (retour de Paul) : kPieceToBoardCellRatio 0.45 → 0.35
-//           — pièces de la barre trop grosses. Réduit aussi l'épaisseur de la barre (dérivée).
+// Modified: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
+//           plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35)
+//           et comportement inchangés.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-08-31 15:00 — réglage à l'œil : kPieceToBoardCellRatio 0.45 → 0.35.
 // Historique: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro sur une case suit cellSize.
 // Historique: 2026-08-30 13:35 — étape 2 : le feedback de drag (« miniature ») prend la taille de
 //             case du plateau × k ; _buildCell reçoit cellSize ; constante kPieceToBoardCellRatio.
@@ -17,13 +19,10 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/piece_border_calculator.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
-
-/// Rapport entre la case d'une pièce (barre / feedback de drag) et la case du plateau
-/// (PLAN_ERGONOMIE §3) : `pieceCellSize = boardCellSize × k`. Ancrer la barre sur le plateau
-/// plutôt que sur un type d'appareil traite tout écran sans seuil ni facteur magique.
-/// **À régler à l'œil sur appareil** — c'est la seule valeur du plan qui ne se calcule pas.
-/// Réglage 2026-08-31 (retour de Paul) : 0.45 → 0.35, pièces et barre jugées trop grosses.
-const double kPieceToBoardCellRatio = 0.35;
+// Le rapport pièce/plateau (feedback de drag) est regroupé avec les autres réglages visuels
+// en tête de pentoscope_game_screen.dart. Import ciblé pour ne prendre que cette constante.
+import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
+    show kPieceToBoardCellRatio;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
