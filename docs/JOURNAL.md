@@ -66,8 +66,8 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `b256460` (fix iOS SafeArea). **Non poussés** : `034ddff` (réglage à l'œil de la
-barre de pièces) et ce commit de journal.
+Poussé jusqu'à `e20d115` (réglage barre de pièces). **Non poussés** : `af2f5e0` (regroupement des
+7 constantes de réglage visuel) et ce commit de journal.
 
 ---
 
@@ -81,8 +81,11 @@ aucun `SafeArea` — en paysage (`appBar: null`) le corps passait sous l'îlot d
 portrait la barre sous l'indicateur d'accueil. Body enveloppé dans un `SafeArea` (tous bords,
 pas de padding directionnel) ; le `LayoutBuilder` voit les contraintes réduites. `flutter
 analyze` 0 warning. **Dû par Paul** : test iPhone, les deux sens de rotation en paysage + portrait.
-Puis réglage à l'œil (`034ddff`) sur retour de Paul : barre de pièces trop grosse →
-`k` 0.45→0.35 et `_kSliderPad` 32→20 (deux constantes nommées, à re-régler si besoin).
+Puis réglage à l'œil (`034ddff`) : barre de pièces trop grosse → `k` 0.45→0.35 et `_kSliderPad`
+32→20. Puis regroupement (`af2f5e0`) des **7 valeurs de réglage visuel** en un bloc de constantes
+nommées en tête de `pentoscope_game_screen.dart` (comportement inchangé ; `kPieceToBoardCellRatio`
+rapatrié de `pentoscope_board.dart`, d'où un import croisé board→screen — smell léger, alternative
+`config/` proposée à Paul). Idée d'un panneau de tuning on-device en discussion (phrase à cowork).
 
 **2026-08-31 — cowork → toi (dégraissage).** Sur constat chiffré (8 676 l. de doc pour 19 608
 de code). Cinq plans terminés supprimés, §DÉCISIONS supprimée, règles vivantes remontées dans
