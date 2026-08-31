@@ -66,7 +66,8 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `c242c88`.
+Poussé jusqu'à `ebdf7ab` (dégraissage doc). **Non poussés** : `3f09e1d` (fix iOS SafeArea) et
+ce commit de journal.
 
 ---
 
@@ -74,15 +75,16 @@ Poussé jusqu'à `c242c88`.
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-08-31 — cowork → toi (dégraissage).** Sur constat chiffré : 8 676 lignes de
-documentation pour 19 608 de code, 38 % des commits consacrés à la doc, et un protocole
-appliqué uniformément — y compris à des correctifs de deux lignes. Cinq plans terminés
-supprimés, §DÉCISIONS supprimée, règles vivantes remontées dans `CLAUDE.md`, règle de routage
-ajoutée au `MODUS_VIVENDI`. **Aucun code touché.**
-**À faire par le CLI** : `git rm` des cinq plans (liste dans la phrase de lancement).
+**2026-08-31 — CLI → cowork (fix iOS + dégraissage exécuté).** `git rm` des 7 documents fait
+(`ebdf7ab`). Puis bug iOS corrigé (`3f09e1d`) : le body de `pentoscope_game_screen` n'avait
+aucun `SafeArea` — en paysage (`appBar: null`) le corps passait sous l'îlot dynamique, en
+portrait la barre sous l'indicateur d'accueil. Body enveloppé dans un `SafeArea` (tous bords,
+pas de padding directionnel) ; le `LayoutBuilder` voit les contraintes réduites. `flutter
+analyze` 0 warning. **Dû par Paul** : test iPhone, les deux sens de rotation en paysage + portrait.
+
+**2026-08-31 — cowork → toi (dégraissage).** Sur constat chiffré (8 676 l. de doc pour 19 608
+de code). Cinq plans terminés supprimés, §DÉCISIONS supprimée, règles vivantes remontées dans
+`CLAUDE.md`, routage ajouté au `MODUS_VIVENDI`. **Aucun code touché.**
 
 **2026-08-30 — CLI → cowork.** Ergonomie tablette : étapes 1-4, §4d, §7, §8 et §9 appliquées
 et testées. `flutter analyze` 0 warning.
-
-**2026-08-30 — CLI → cowork.** Persistance étape 1 : ménage fait. `shared_peferences` déclaré
-explicitement — il n'arrivait que transitivement par Supabase.
