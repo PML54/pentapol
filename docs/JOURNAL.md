@@ -81,10 +81,7 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `64ec104`. **Non poussés** : enrichissement `REFERENCE_TIRAGES.md` (cowork,
-`ceff658`), byte-matcher (`ef669cf`), et l'étape B — corpus (`86dcea6`), source unifiée
-(`8ce7a56`), compteur/navigateur (`3cd14a2`), retrait du solveur (+ ce journal). **Testé sur
-appareil** (5×10 fluide, guide OK, 6×10 intact). À pousser.
+Poussé jusqu'à `3c287c3` (étape B complète, testée sur appareil). Rien en attente.
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
