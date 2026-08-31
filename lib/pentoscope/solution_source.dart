@@ -1,7 +1,9 @@
-// Modified: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : 5e méthode solutionIndexOf(plateau)
-//           — numéro 1-based de la solution atteinte (table) ou null (solveur à la volée) ;
-//           c'est la frontière SolvedSolutions / PuzzleStats pour les records.
+// Modified: 2026-08-31 16:39 — appariement en Uint8List (REFERENCE_TIRAGES §9) : countFrom et
+//           hasSolutionFrom de TableSolutionSource passent par _pieceBytes + countCompatibleBytes
+//           (chemin chaud sans allocation). _mask (BigInt) ne sert plus qu'aux chemins froids
+//           (hintFrom, compatibleSolutions, solutionIndexOf).
 // lib/pentoscope/solution_source.dart
+// Historique: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : 5e méthode solutionIndexOf(plateau).
 // Historique: 2026-08-29 13:43 — suppression du mode classique (§3.1) : 4e méthode
 //             compatibleSolutions(plateau) — la table renvoie les solutions compatibles en
 //             BigInt (pour le navigateur), le solveur à la volée renvoie [].
@@ -12,6 +14,7 @@
 // Voir docs/PLAN_6X10_DANS_PENTOSCOPE.md §4.2 et §4.6.
 
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/placed_piece.dart';
@@ -111,8 +114,25 @@ class TableSolutionSource implements SolutionSource {
   TableSolutionSource(this._matcher, this.table, {Random? random})
       : _random = random ?? Random();
 
+  /// Un octet par case (`cellIndex = y·width + x`), code bit6 de la pièce posée ou
+  /// 0 si vide — l'entrée du chemin chaud [SolutionMatcher.countCompatibleBytes].
+  Uint8List _pieceBytes(Plateau plateau) {
+    final bit6ById = {for (final p in pentominos) p.id: p.bit6};
+    final bytes = Uint8List(table.width * table.height);
+    for (int y = 0; y < table.height; y++) {
+      for (int x = 0; x < table.width; x++) {
+        final v = plateau.getCell(x, y);
+        if (v == 0) continue;
+        final code = bit6ById[v];
+        if (code == null) continue;
+        bytes[y * table.width + x] = code;
+      }
+    }
+    return bytes;
+  }
+
   /// `(piecesBits, maskBits)` du plateau, dans le même ordre de cases que le `.bin`
-  /// (cellIndex = y·width + x, bits de poids fort en premier).
+  /// (cellIndex = y·width + x, bits de poids fort en premier). Chemins froids seulement.
   (BigInt, BigInt) _mask(Plateau plateau) {
     final bit6ById = {for (final p in pentominos) p.id: p.bit6};
     var pieces = BigInt.zero;
@@ -133,17 +153,14 @@ class TableSolutionSource implements SolutionSource {
   }
 
   @override
-  int? countFrom(Plateau plateau) {
-    final (pieces, m) = _mask(plateau);
-    return _matcher.countCompatibleFromBigInts(pieces, m);
-  }
+  int? countFrom(Plateau plateau) =>
+      _matcher.countCompatibleBytes(_pieceBytes(plateau));
 
   @override
   bool hasSolutionFrom(Plateau plateau, List<Pento> remaining) {
     // Sur un rectangle complet, « compte > 0 » ⟺ « les pièces restantes peuvent
     // remplir le plateau » (§2). [remaining] est ignoré : la table le sait déjà.
-    final (pieces, m) = _mask(plateau);
-    return _matcher.countCompatibleFromBigInts(pieces, m) > 0;
+    return _matcher.countCompatibleBytes(_pieceBytes(plateau)) > 0;
   }
 
   @override

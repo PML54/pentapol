@@ -1,10 +1,12 @@
-// Modified: 2026-08-29 14:09 — suppression du mode classique (§3.1, étape 7) : retrait du
-//           singleton global (son seul rôle était de servir le mode classique, supprimé).
-//           La classe SolutionMatcher reste — Pentoscope en crée des instances par table ;
-//           exemples de doc reformulés en conséquence.
+// Modified: 2026-08-31 16:39 — appariement en Uint8List (REFERENCE_TIRAGES §9) : à l'init on
+//           construit _solutionsBytes (9356 × 60 octets, 1 code bit6 par case) en plus des
+//           _solutions BigInt, et countCompatibleBytes() remplace le balayage BigInt sur le
+//           chemin chaud (_solutionStatus). Motif : chaque `solution & mask` allouait un BigInt
+//           de 45 o → 78 ms/pose mesurés sur iPad. Les BigInt restent pour le navigateur.
 // lib/services/solution_matcher.dart
-// Historique: 2026-08-29 08:55 — temps 2 étape 1 : _width/_height/_cells en champs d'instance
-//             (défauts 6×10), paramétrisation additive.
+// Historique: 2026-08-29 14:09 — suppression du mode classique (§3.1, étape 7) : retrait du
+//             singleton global. La classe SolutionMatcher reste — Pentoscope crée des instances.
+//             2026-08-29 08:55 — temps 2 étape 1 : _width/_height/_cells en champs d'instance.
 //             2026-08-27 15:32 — correction de la table des lettres de pièces (commentaires).
 // =============================================================================
 // SERVICE DE GESTION DES SOLUTIONS PENTOMINOS 6×10
@@ -266,6 +268,12 @@ class SolutionMatcher {
   /// du plateau 6×10 avec le code bit6 de chaque pièce.
   late final List<BigInt> _solutions;
 
+  /// Les mêmes solutions, à plat, un octet (code bit6, 0 = vide) par case :
+  /// la case `c` de la solution `i` est à `_solutionsBytes[i * _cells + c]`.
+  /// C'est cette représentation, sans allocation, que balaie le chemin chaud
+  /// [countCompatibleBytes] — les [BigInt] ne servent plus qu'au navigateur.
+  late final Uint8List _solutionsBytes;
+
   /// Indique si le matcher a été initialisé.
   bool _initialized = false;
 
@@ -327,6 +335,17 @@ class SolutionMatcher {
     final startTime = DateTime.now();
     final expanded = <BigInt>[];
 
+    // Représentation plate en octets, remplie dans le même ordre que `expanded`.
+    final bytes = Uint8List(canonicalSolutions.length * 4 * _cells);
+    var solIdx = 0;
+    void writeBoard(List<int> board) {
+      final base = solIdx * _cells;
+      for (int c = 0; c < _cells; c++) {
+        bytes[base + c] = board[c];
+      }
+      solIdx++;
+    }
+
     for (final canonical in canonicalSolutions) {
       // 1) Décoder le BigInt canonique vers 60 codes bit6
       final baseBoard = _decodeBigIntToBit6Board(canonical);
@@ -336,14 +355,19 @@ class SolutionMatcher {
       final mirrorH = _mirrorHorizontal(baseBoard);
       final mirrorV = _mirrorVertical(baseBoard);
 
-      // 3) Ré-encoder en BigInt et ajouter dans l'ordre
+      // 3) Ré-encoder en BigInt et à plat en octets, dans le même ordre
       expanded.add(_bit6BoardToBigInt(baseBoard)); // index % 4 == 0 : identité
+      writeBoard(baseBoard);
       expanded.add(_bit6BoardToBigInt(rot180)); // index % 4 == 1 : rot 180°
+      writeBoard(rot180);
       expanded.add(_bit6BoardToBigInt(mirrorH)); // index % 4 == 2 : miroir H
+      writeBoard(mirrorH);
       expanded.add(_bit6BoardToBigInt(mirrorV)); // index % 4 == 3 : miroir V
+      writeBoard(mirrorV);
     }
 
     _solutions = List<BigInt>.unmodifiable(expanded);
+    _solutionsBytes = bytes;
     _initialized = true;
 
     final duration = DateTime.now().difference(startTime);
@@ -538,6 +562,45 @@ class SolutionMatcher {
       if (_isCompatibleBigInt(piecesBits, maskBits, solution)) {
         count++;
       }
+    }
+    return count;
+  }
+
+  /// Compte les solutions compatibles, **sans allocation**, sur la représentation
+  /// plate en octets — c'est la version chaude, appelée à chaque pose.
+  ///
+  /// [pieces] : un octet par case (`cellIndex = y·width + x`), code bit6 de la
+  /// pièce posée ou 0 si la case est vide. Comme aucun `bit6` ne vaut 0, « case
+  /// occupée » ⟺ `pieces[c] != 0` — pas de masque séparé.
+  ///
+  /// Une solution est compatible si elle porte le même code sur **toutes** les
+  /// cases occupées du plateau. On ne balaie que ces cases (précalculées une fois),
+  /// et on s'arrête à la première divergence.
+  int countCompatibleBytes(Uint8List pieces) {
+    _checkInitialized();
+    assert(pieces.length == _cells);
+
+    // Les cases occupées, une seule fois pour tout le balayage.
+    final occupied = <int>[];
+    for (int c = 0; c < _cells; c++) {
+      if (pieces[c] != 0) occupied.add(c);
+    }
+    final m = occupied.length;
+    if (m == 0) return _solutions.length; // plateau vide : tout est compatible
+
+    final sols = _solutionsBytes;
+    final total = _solutions.length;
+    int count = 0;
+    for (int base = 0; base < total * _cells; base += _cells) {
+      bool ok = true;
+      for (int j = 0; j < m; j++) {
+        final c = occupied[j];
+        if (sols[base + c] != pieces[c]) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) count++;
     }
     return count;
   }

@@ -42,7 +42,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Tirages étape B** | `REFERENCE_TIRAGES.md` §8 B / §9 | corpus complet (~2,5 Mo), retrait de `LiveSolutionSource`/`PentoscopeSolver` du runtime. **Conditionné à 2 mesures** : n°1 (durée de génération) **acquise** — 9 parcours en 11,6 s, B non-sujet ; n°2 (fluidité `_solutionStatus` sur appareil) **à faire** (voir §9) |
+| **Tirages étape B** | `REFERENCE_TIRAGES.md` §8 B / §9 | **en cours.** corpus complet (~2,5 Mo), retrait de `LiveSolutionSource`/`PentoscopeSolver` du runtime, compteur décroissant sur toutes les tailles. Les **2 mesures § 9 sont acquises** : n°1 (génération) 9 parcours en 11,6 s ; n°2 (fluidité `_solutionStatus`, iPad `--release`) — le pire (38–78 ms) venait du **solveur live des petites tailles**, pas du comptage par table (~0,6 ms), donc B n'est pas bloquée, elle est motivée (elle supprime ce solveur). Socle livré : appariement `Uint8List` (`countCompatibleBytes`) |
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail |
 
@@ -73,8 +73,9 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `80e6cd0`. **Non poussés** : les 3 commits des tirages (`68188eb`, `05f8039`,
-`af6a2d3`) et ce commit de journal.
+Poussé jusqu'à `64ec104`. **Non poussés** : l'enrichissement `REFERENCE_TIRAGES.md` (cowork,
+commité seul) et le byte-matcher (`solution_matcher`/`solution_source` + test d'équivalence +
+ce journal).
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
@@ -84,6 +85,17 @@ Poussé jusqu'à `80e6cd0`. **Non poussés** : les 3 commits des tirages (`68188
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-08-31 — CLI → cowork (mesure n°2 + appariement Uint8List).** Mesure n°2 (§9) jouée sur
+iPad en `--release`, affichage à l'écran (le debug WiFi crashe chez Paul). Le pire
+`_solutionStatus` (38–78 ms) venait du **solveur backtracking live des petites tailles**
+(`LiveSolutionSource.hasSolutionFrom`), **pas** du comptage par table : bench desktop sur les
+9356 réelles = 23 µs en octets vs 318 µs en BigInt (13×), soit ~0,6 ms sur appareil. Conclusion :
+B n'est pas conditionnée, elle est **motivée** — elle supprime ce solveur. Socle livré :
+`SolutionMatcher.countCompatibleBytes` (Uint8List plat 9356×60, sans allocation), branché sur
+`countFrom`/`hasSolutionFrom` du 6×10 ; `_mask` BigInt réservé aux chemins froids (navigateur,
+index). Garde d'équivalence byte≡BigInt sur 10 000 plateaux (`test/solution_matcher_bytes_test.dart`).
+`analyze` 0, `test` 7/7. **Enchaîne sur B.**
 
 **2026-08-31 — CLI → cowork (tirages précalculés, étape A).** REFERENCE_TIRAGES §8 A appliquée
 en 3 commits. **1** (`68188eb`) : `tools/generate_subset_counts.dart` (Flutter-free) + asset
@@ -106,7 +118,3 @@ lancement (v4). **Mesure n°2 pour B** (fluidité `_solutionStatus`) reste à in
 elle-même (enum, generateEasy/Hard, SegmentedButton, main.dart) survit. `findAllSolutions` gardée.
 (Rappels hérités : correctif iOS `SafeArea` `3f09e1d` ; réglage barre `k`=0.35 `034ddff` ;
 regroupement des 7 constantes de réglage `af2f5e0`.)
-
-**2026-08-31 — cowork → toi (dégraissage).** Sur constat chiffré (8 676 l. de doc pour 19 608
-de code). Cinq plans terminés supprimés, §DÉCISIONS supprimée, règles vivantes remontées dans
-`CLAUDE.md`, routage ajouté au `MODUS_VIVENDI`. **Aucun code touché.**
