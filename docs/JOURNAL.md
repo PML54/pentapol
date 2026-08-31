@@ -30,23 +30,25 @@ Une seule base, drift/SQLite, quatre tables, en quatre commits :
 4. **partie en cours** — écriture, effacement, `restoreGame`, observateur de cycle de vie.
    L'étape la plus délicate, isolée à dessein.
 
-**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1-4, correctif §4d, §7 et §8
-faits** (`453ae49`, `eb131f7`, `b462a0c`, `c098ce0`, `e762836`, `737a1be`, `2d07e98`),
-décisions 55-64, `flutter analyze` 0 warning :
+**Ergonomie hors plateau (`PLAN_ERGONOMIE_TABLETTE.md`) — étapes 1-4, §4d, §7, §8 et §9 faits**
+(`453ae49`, `eb131f7`, `b462a0c`, `c098ce0`, `e762836`, `737a1be`, `2d07e98`, `168fbf7`),
+décisions 55-69, `flutter analyze` 0 warning :
 1-4. `PieceRenderer.cellSize` paramétrable ; barre + feedback ancrés sur le plateau
    (`pieceCellSize = boardCellSize × k`, `k=0.45`, dépendance circulaire résolue, décision 58) ;
    helper `_uiIconSize`/`_uiAppBarHeight` ; textes proportionnels à leur case.
-- **§4d (décision 59)** : icônes de l'AppBar via `iconTheme`/`actionsIconTheme` (héritage) +
-  `_uiLabelSize`. Test iPad de Paul : pièces OK, icônes non → réglé.
-- **§7 (décision 61)** : en paysage, ordre des trois zones aligné sur le portrait (colonne
-  d'actions / plateau / barre), aplati en un seul Row, ombre de la colonne inversée.
-- **§8 (décision 62)** : écran de réglages minimal — 9 entrées mortes retirées (entrée d'écran
-  ET champ du modèle), + l'enum `GameDifficulty` orphelin (décision 64). Restent 6 contrôles
-  vivants + Duel + À propos. AppSettings en JSON, aucune migration.
-**L'étape 5 (suppression des ~980 lignes orphelines) n'est PAS faite** — sur consigne de Paul,
-elles servent d'inspiration aux formules tant que le réglage n'est pas validé sur appareil. Le
+- **§4d (décision 59)** : icônes de l'AppBar via `iconTheme` — **superseédé par §9** (décision 69).
+- **§7 (décision 61)** : en paysage, ordre des trois zones aligné sur le portrait, aplati en Row.
+- **§8 (décision 62)** : écran de réglages minimal — 9 entrées mortes retirées (+ enum orphelin,
+  décision 64). Restent 6 contrôles vivants + Duel + À propos.
+- **§9 (décisions 65-68)** : **une seule barre d'actions pour les deux orientations**
+  (`_buildBarItems`, Row/Column spaceEvenly). Corrige que nouvelle-partie et multijoueur étaient
+  **inaccessibles en paysage** (décision 65). `actions:`/`leading` retirés, boutons dans le
+  `title` ; chrono central lisible ; trois compteurs sortis de la barre (décision 68). Chaque
+  `IconButton` porte `iconSize` (remplace l'`iconTheme` du §4d).
+**L'étape 5 (suppression des ~980 lignes orphelines) n'est PAS faite** — consigne de Paul. Le
 plafond de la case du plateau reste reporté (décision 57). **Les valeurs numériques restent à
-régler à l'œil** — seul le premier retour iPad (les icônes) a été traité.
+régler à l'œil.** ⚠️ Réserve de test : sur iPhone étroit + 6×10 portrait, le `title` porte
+jusqu'à 8 éléments en `Row(spaceEvenly)` — risque de débordement, à confirmer.
 
 **Chantiers en attente, par ordre de valeur :**
 
@@ -54,7 +56,7 @@ régler à l'œil** — seul le premier retour iPad (les icônes) a été trait�
 |---|---|---|
 | chronomètre §5 + bilan §2-§4 | `PLAN_BILAN_FIN_PARTIE.md` | ✅ **fait et poussé** (`d5563f4`) |
 | persistance (4 étapes) | `PLAN_PERSISTANCE.md` §7 | ✅ **faite** (`ea23af7`, `2abaeb9`, `7d71c19`, `7dc4f0f`) |
-| ergonomie 1-4 + §4d + §7 + §8 | `PLAN_ERGONOMIE_TABLETTE.md` | ✅ **faite** — voir ci-dessus ; **réglage à l'œil dû** |
+| ergonomie 1-4 + §4d + §7 + §8 + §9 | `PLAN_ERGONOMIE_TABLETTE.md` | ✅ **faite** — voir ci-dessus ; **réglage à l'œil dû** |
 | ergonomie étape 5 (−980 l. orphelines) | §6 | ⏸️ **reportée** — inspiration des formules jusqu'au test |
 | tables 5×12 et 4×15 | `PLAN_6X10_DANS_PENTOSCOPE.md` §5 | prêt ; préalable `maxSeconds` |
 | améliorations duel | — | 💤 **non prioritaire** (décision 54) — gardé tel quel, vu ensuite |
@@ -97,8 +99,8 @@ sauvegardait rien avant). `flutter analyze` 0 warning à chaque étape.
 **Documentation** : remise en accord avec le code le 2026-08-30 (décisions 39-40), plus une
 erreur héritée corrigée dans `FONCTIONNEMENT.md` (le pseudo multijoueur, décision 48).
 
-**Git** : poussé jusqu'à `789b993` (§4d compris). **Non poussés** : `737a1be` (§7), `2d07e98`
-(§8) et ce commit de journal (qui joint les mises à jour §7/§8 du plan et du checklist par cowork).
+**Git** : poussé jusqu'à `657f96a` (§4d, §7, §8 compris). **Non poussés** : `168fbf7` (§9) et
+ce commit de journal (qui joint les §9/§4d-absorbé du plan par cowork).
 
 **Test manuel** : Paul, iPhone en release —
 
@@ -617,6 +619,52 @@ détaillé.
     `iconSize` (les helpers `_uiIconSize`/`_uiLabelSize` et une variable locale). Les **six** champs
     strictement morts, eux, sont bien à 0. → `2d07e98`.
 
+65. **2026-08-30 — cowork** — **deux fonctions sont inaccessibles en paysage.** (Bloc §9
+    renuméroté 63-67 → 65-69 par le CLI : collision avec 63/64 déjà poussées.) Signalé
+    indirectement par Paul (« les icônes changent d'une orientation à l'autre ») ; le relevé
+    montre plus qu'une incohérence : la barre du paysage n'a **ni ⊕ Nouvelle partie** (le
+    dialogue taille/difficulté/solution) **ni 👥 Multijoueur**. En paysage on ne peut donc ni
+    changer la taille du plateau ni lancer une partie à deux. S'y ajoutent deux divergences
+    d'icône pour la même action (`person` vs `games`, `lightbulb` vs `lightbulb_outline`).
+    Cause : **deux listes écrites à la main à deux endroits**, que rien n'oblige à rester
+    d'accord. → `PLAN_ERGONOMIE_TABLETTE.md` §9.1.
+66. **2026-08-30 — Paul** — **une seule liste d'actions, deux rendus.** `_buildBarItems`
+    construite une fois, rendue par une `Row` en portrait et une `Column` en paysage, les deux
+    en `MainAxisAlignment.spaceEvenly` (l'équi-répartition demandée).
+    ⚠️ **En portrait, `actions:` doit disparaître** : ce paramètre de l'`AppBar` **tasse ses
+    enfants à droite**, il ne peut pas répartir. La barre porte sa `Row` dans le `title`, avec
+    `automaticallyImplyLeading: false` et `titleSpacing: 0`. → §9.2.
+67. **2026-08-30 — Paul** — **le chrono devient lisible et central.** ⚠️ Diagnostic de cowork,
+    à ne pas confondre avec la demande : **la cause principale n'est pas son côté mais sa
+    taille** — `fontSize: 14` figé dans un `leadingWidth: 60`, au sein d'une barre passée à
+    ~100 pt sur iPad. Deux corrections ensemble : taille dérivée (`_uiLabelSize × 1.4`) en
+    gras, **et** traitement comme élément de la liste inséré à l'indice `length ~/ 2` — avec
+    `spaceEvenly` il se retrouve au centre, et il y reste quel que soit le nombre d'icônes
+    conditionnelles. `leading` et `leadingWidth` disparaissent.
+    *(Un `centerTitle: true` centrerait le chrono mais interdirait de répartir les icônes : les
+    deux demandes s'excluent par ce chemin.)* → §9.3.
+    **Reste à trancher par Paul** : les trois compteurs du titre (isométries, déplacements,
+    suppressions), absents du paysage aujourd'hui sans que personne l'ait remarqué. Avis de
+    cowork : les retirer de la barre — ils sont déjà dans le bandeau de fin de partie — et ne
+    garder que le compteur de solutions, seul utile **pendant** la partie. → §9.4.
+
+68. **2026-08-30 — cowork, dans le silence de Paul** — **les trois compteurs du titre
+    (isométries, déplacements, suppressions) sortent de la barre ; le compteur de solutions
+    reste.** Paul a validé « une liste, deux rendus » et le retrait d'`actions:` sans se
+    prononcer sur §9.4. Cowork applique son avis plutôt que de bloquer : ces compteurs sont
+    déjà dans le bandeau de fin de partie, ils distraient pendant la partie, et ils étaient
+    **absents du paysage** sans que personne le remarque — ce qui en dit assez sur leur
+    utilité. **Explicitement réversible** : les champs restent dans l'état, les remettre coûte
+    trois éléments à ajouter à la liste. → `PLAN_ERGONOMIE_TABLETTE.md` §9.4.
+69. **2026-08-30 — cowork** — **§4d est absorbée par le §9 ; ne pas l'appliquer séparément.**
+    Le correctif §4d passait par `AppBar.iconTheme` / `actionsIconTheme`. Or le §9 **supprime
+    `actions:`** et déplace les boutons dans le `title` : le mécanisme d'héritage de l'`AppBar`
+    ne les atteindrait plus — et il n'a de toute façon jamais couvert la colonne du paysage,
+    qui n'est pas dans une `AppBar`. Le bon endroit devient `_buildBarItems`, où chaque
+    `IconButton` reçoit `iconSize: _uiIconSize(context)` une fois pour les deux orientations.
+    Le `leading` et le `title` que §4d visait disparaissent avec le §9. **Appliquer §4d avant
+    §9 serait du travail défait dans l'heure** — d'où trois commits et non quatre.
+
 ---
 
 ## §PASSATIONS
@@ -905,3 +953,26 @@ numérotation réglée** : ta décision d'inventaire des réglages (60) heurtait
 64 ajoutée (notes d'exécution §8). **Réserve à toi** : le grep §8.4 ne peut pas être 0 pour
 `difficulty`/`showPieceNumbers`/`iconSize` (mots partagés avec des fonctions gardées) ; les six
 champs strictement morts, oui. Reste : réglage à l'œil, plafond du plateau (57), étape 5.
+
+**2026-08-30 — cowork → toi (barre unique).** §9 ajoutée au plan ergonomie, décisions 65 à 67
+(renumérotées, cf. décision 65). La demande de Paul sur les icônes a mis au jour une **perte de
+fonction** : le dialogue « Nouvelle partie » et le multijoueur sont inatteignables en paysage.
+**Aucun code touché.**
+**En attente de Paul** : le sort des trois compteurs du titre (§9.4).
+
+**2026-08-30 — cowork → toi (barre unique, suite).** Décisions 68 et 69. La seconde évite une
+perte de temps : le correctif §4d aurait été défait par le §9, les deux touchant le même
+mécanisme par des chemins incompatibles. Le chantier ergonomie se réduit donc à **trois**
+commits : §9 (barre unique), §7 (ordre des zones en paysage), §8 (réglages minimal).
+**Aucun code touché.**
+
+**2026-08-31 — CLI → cowork (§9 FAIT ; §7/§8 déjà faits).** §9 appliquée (`168fbf7`) :
+`_buildBarItems`, une liste rendue en Row (portrait, dans le title) / Column (paysage),
+spaceEvenly ; `actions:`/`leading`/`leadingWidth` retirés ; chrono central `_uiLabelSize×1.4` ;
+trois compteurs sortis (décision 68) ; chaque `IconButton` porte `iconSize` (supersède l'§4d).
+`flutter analyze` 0, critères §9.5 verts. **§7 (`737a1be`) et §8 (`2d07e98`) étaient déjà
+faits et poussés** (session précédente) — non refaits ; §4d **non appliqué** séparément
+(consigne). **Collision de numérotation réglée** : ton bloc §9 (63-67) heurtait 63/64 déjà
+poussées → décalé **65-69**, renvois du plan/journal corrigés. **Réserve de test** : iPhone
+étroit + 6×10 portrait, jusqu'à 8 éléments dans le `title` en `spaceEvenly` — risque de
+débordement à confirmer. Reste : réglage à l'œil, plafond du plateau (57), étape 5.

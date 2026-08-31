@@ -124,7 +124,18 @@ la marge. Sinon on agrandit les pièces dans un contenant qui ne bouge pas.
 `.clamp(28, 50)` (l.625), `.clamp(20, 36)` (l.846). Un seul helper, dérivé de
 `MediaQuery.size.shortestSide`, remplace les quatre.
 
-> 🔴 **§4d était incomplet — constaté au test du 2026-08-30 (décision 59).** Les icônes de
+> ⛔ **§4d est ABSORBÉE par le §9 (décision 69) — ne pas l'appliquer telle quelle.** Le
+> correctif décrit ci-dessous passait par `AppBar.iconTheme` / `actionsIconTheme`. Or le §9
+> **supprime `actions:`** et déplace les boutons dans le `title` : le mécanisme d'héritage de
+> l'`AppBar` ne les atteindrait plus. Et il n'a jamais couvert la colonne du paysage, qui
+> n'est pas dans une `AppBar` du tout.
+> **Le bon endroit est désormais `_buildBarItems`** : chaque `IconButton` y reçoit
+> `iconSize: _uiIconSize(context)`, une fois, pour les deux orientations. Le `leading` et le
+> `title` visés ci-dessous disparaissent avec le §9 ; seul survit le besoin d'un
+> `_uiLabelSize`, spécifié en §9.3 pour le chrono et le compteur de solutions.
+> Appliquer §4d avant §9 serait du travail défait dans l'heure.
+>
+> 🔴 **Ce qui reste vrai de l'analyse — §4d était incomplet (décision 59).** Les icônes de
 > l'AppBar principale n'ont **pas** grandi, et l'étape 3 n'y est pour rien : j'avais énuméré
 > les sites en cherchant les **constantes de taille existantes**. Or les `IconButton` du bloc
 > `actions:` (l.188-250) n'ont **aucun `size:`** — ils héritent du défaut de Flutter, 24 pt.
@@ -360,6 +371,118 @@ flutter analyze                           # 0 warning
 
 Test appareil : chaque contrôle restant **fait quelque chose de visible**. C'est le seul
 critère qui compte, et c'est celui qui manquait.
+
+---
+
+## 9. Une seule barre d'actions pour les deux orientations — décisions 65 à 68
+
+> Paul, 2026-08-30 : « quand je passe en horizontal les icônes non isométriques changent, on
+> devrait avoir les mêmes ; je les voudrais équi-réparties dans les deux modes ; et le chrono,
+> à gauche, est peu visible. »
+
+### 9.1 Ce n'est pas qu'une incohérence : deux fonctions sont inaccessibles en paysage
+
+Relevé exact des deux jeux d'icônes, mode normal :
+
+| action | portrait (`actions:`) | paysage (colonne) |
+|---|---|---|
+| Nouvelle partie — dialogue taille / difficulté / solution | ⊕ `add_circle_outline` | **absent** |
+| Multijoueur | 👥 `people_outline` | **absent** |
+| Recommencer même taille | 👤 `person` (vert si terminé) | 🎮 `games` — **icône et intitulé différents** |
+| Indice | 💡 `lightbulb` | 💡 `lightbulb_outline` — **variante différente** |
+| Solutions compatibles | 🔎 `view_carousel` | 🔎 `view_carousel` |
+| Réglages | ⚙️ `settings` | ⚙️ `settings` |
+
+**En paysage, on ne peut ni changer la taille du plateau ni lancer une partie multijoueur.**
+Ce n'est pas un défaut d'esthétique, c'est une perte de fonction — et elle ne se voit pas,
+puisqu'il n'y a rien à voir.
+
+Cause : les deux barres sont **deux listes écrites à la main**, à deux endroits. Rien ne les
+oblige à rester d'accord, et elles ont divergé.
+
+### 9.2 Le remède : une liste, deux rendus
+
+Une seule source de vérité, construite une fois :
+
+```dart
+/// Les actions de la barre, dans l'ordre, communes aux deux orientations.
+/// C'est cette liste unique qui garantit que portrait et paysage proposent
+/// la même chose — pas la discipline de qui édite le fichier.
+List<Widget> _buildBarItems(BuildContext context, …) { … }
+```
+
+Rendue par l'orientation, et par elle seule :
+
+- **portrait** — `Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: items)` ;
+- **paysage** — `Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: items)`.
+
+**En portrait, ne plus utiliser `actions:`.** Le paramètre `actions:` d'un `AppBar` **tasse
+ses enfants à droite** — il ne peut pas répartir. Pour obtenir la répartition demandée, la
+barre doit porter sa `Row` dans le `title`, avec `automaticallyImplyLeading: false`,
+`titleSpacing: 0` et `centerTitle: false`. Les compteurs (isométries, déplacements,
+suppressions) qui occupaient le titre deviennent alors des éléments de la liste comme les
+autres, ou disparaissent — voir §9.4.
+
+Choisir les mêmes variantes d'icônes des deux côtés : `lightbulb` ou `lightbulb_outline`, pas
+l'un puis l'autre.
+
+### 9.3 Le chrono
+
+**La cause principale de son manque de visibilité n'est pas son côté, c'est sa taille** :
+`fontSize: 14` figé dans un `leadingWidth: 60`, au sein d'une barre qui fait désormais ~100 pt
+de haut sur iPad. Un texte de 14 pt dans une barre de 100 pt se perd où qu'il soit.
+
+Deux corrections, à faire ensemble :
+
+1. **Taille dérivée et graisse** — `_uiLabelSize(context) × 1.4` environ, en `FontWeight.bold`.
+   C'est ce qui règle 80 % du problème.
+2. **Position** — Paul le veut ailleurs qu'à gauche. Le traiter comme **un élément de la
+   liste**, inséré à l'indice `items.length ~/ 2` : avec `spaceEvenly`, il se retrouve
+   visuellement **au centre** de la barre, et il y reste quel que soit le nombre d'icônes
+   conditionnelles affichées. `leadingWidth` et le `leading` disparaissent.
+
+> Un `centerTitle: true` donnerait aussi un chrono centré, mais interdirait de répartir les
+> icônes sur toute la barre — les deux demandes s'excluent par ce chemin. L'insertion dans la
+> liste les satisfait toutes les deux.
+
+### 9.4 Point à trancher — les compteurs du titre
+
+Le `title` du portrait porte aujourd'hui trois compteurs (isométries ↻, déplacements ✥,
+suppressions 🗑) plus le compteur de solutions. **Le paysage n'en affiche aucun** hormis les
+solutions. Il faut choisir, et le plan ne le fait pas :
+
+- **les garder**, comme éléments de la liste dans les deux orientations — la barre devient
+  chargée : 6 icônes + chrono + 4 compteurs ;
+- **les retirer** de la barre — ils sont déjà tous dans le bandeau de fin de partie, qui est
+  le moment où ils intéressent le joueur ; seul le compteur de solutions a un intérêt
+  **pendant** la partie.
+
+*Avis de cowork : les retirer, garder le compteur de solutions.* Un compteur d'isométries qui
+s'incrémente pendant qu'on joue n'informe pas, il distrait — et il est de toute façon absent
+du paysage aujourd'hui sans que personne l'ait remarqué.
+
+> ✅ **Tranché le 2026-08-30 (décision 68).** Paul a validé « une liste, deux rendus » et le
+> retrait d'`actions:` sans se prononcer sur ce point. **Cowork applique son avis : les trois
+> compteurs sortent de la barre, le compteur de solutions reste.** Décision prise dans le
+> silence, donc explicitement réversible : les compteurs restent dans l'état
+> (`isometryCount`, `translationCount`, `deleteCount`) et dans le bandeau de fin de partie —
+> les remettre dans la barre coûterait trois éléments à ajouter à la liste, rien de plus.
+
+### 9.5 Critères de fin
+
+```bash
+G=lib/pentoscope/screens/pentoscope_game_screen.dart
+grep -n "actions:" $G                    # attendu : aucun sur l'AppBar principale
+grep -n "leadingWidth\|leading:" $G      # attendu : aucun
+grep -c "_buildBarItems" $G              # 1 définition + 2 appels
+grep -n "Icons.games" $G                 # attendu : aucun (icône divergente)
+```
+
+Test appareil, et c'est **le** test de cette section : **basculer portrait ↔ paysage en cours
+de partie et vérifier que la barre propose exactement les mêmes actions, dans le même ordre.**
+Plus : le dialogue « Nouvelle partie » et le multijoueur sont désormais atteignables en
+paysage ; le chrono est lisible et centré ; en mode transformation, les icônes d'isométrie
+restent réparties comme aujourd'hui.
 
 ---
 
