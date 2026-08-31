@@ -1,7 +1,10 @@
-// Modified: 2026-08-31 18:00 — tirage au dialogue (REFERENCE_TIRAGES §Affichage, commit 3) : le
-//           dialogue « Nouvelle partie » tire un masque, affiche « n solutions » et un bouton
-//           « autre tirage » (hors 6×10), et transmet le masque à startPuzzle. showSolution gardé.
+// Modified: 2026-08-31 16:39 — étape B : avec CorpusSolutionSource, solutionsCount est non-nul
+//           sur toutes les tailles → le compteur décroissant s'affiche partout (fonctionnalité
+//           voulue). Le bouton « solutions compatibles » est regaté au 6×10 (size.table != null) :
+//           seul lui a un navigateur BigInt ; sur les petites tailles il serait vide.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-31 18:00 — tirage au dialogue (§Affichage) : masque tiré, « n solutions »,
+//             bouton « autre tirage » (hors 6×10), masque transmis à startPuzzle.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : retrait du SegmentedButton du dialogue.
 // Historique: 2026-08-31 16:00 — regroupement des sept valeurs de réglage visuel en un bloc de
 //             constantes nommées en tête de fichier (dont kPieceToBoardCellRatio, rapatrié du board).
@@ -776,7 +779,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           tooltip:
               state.hasPossibleSolution ? 'Indice' : 'Aucune solution possible',
         ),
-      if (state.solutionsCount != null)
+      // Navigateur de solutions compatibles : seul le 6×10 le sert (BigInt, rendu 6×10).
+      // Les petites tailles ont un compte non-nul mais pas de navigateur — sinon il serait vide.
+      if (state.puzzle?.size.table != null)
         IconButton(
           icon: const Icon(Icons.view_carousel),
           iconSize: iconSize,
