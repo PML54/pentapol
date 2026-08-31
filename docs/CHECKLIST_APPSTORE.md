@@ -24,6 +24,8 @@
 
 | 16 | **Six réglages d'affichage ne font rien** | L'écran Réglages expose « Taille des icônes » (curseur 16-48 px), `showPieceNumbers`, `showGridLines`, `enableAnimations`, `pieceOpacity`, `isometriesAppBarColor`. **Aucun n'est lu par le jeu** — vérifié au grep le 2026-08-30 : leurs seuls lecteurs sont le modèle, le provider et l'écran de réglages lui-même (plus `ui_dimensions.dart`, orphelin). L'utilisateur bouge le curseur, la valeur est enregistrée en base, et rien ne change. C'est le genre de détail qui vaut des avis à une étoile | `lib/screens/settings_screen.dart`, `lib/models/app_settings.dart` |
 
+| 17 | **« Afficher la solution » ne fait rien sur le 6×10** | L'interrupteur du dialogue de nouvelle partie (`pentoscope_game_screen.dart` l.1055) n'a d'effet que si `puzzle.solutions` est non vide. `_buildFullRectanglePuzzle` pose `solutions: const []` — le 6×10, taille phare, ignore donc l'interrupteur. Connu et différé (« branchées au temps 2 »), mais c'est un contrôle mort de plus dans une app publiée | `lib/pentoscope/pentoscope_generator.dart` l.28-34, `pentoscope_provider.dart` l.456, l.628 |
+
 ---
 
 ## 2. Bloquants produit
@@ -34,7 +36,7 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 |---|---|---|
 | 8 | **Aucun onboarding** | Le tutoriel a été supprimé le 2026-08-28 (décision 5). Un inconnu ouvre l'app, voit un plateau et une barre de pièces, et personne ne lui dit ce qu'est une isométrie ni pourquoi le chiffre en haut change. Ça se paie en désinstallations dans les trente premières secondes |
 | 9 | **Le mode phare n'a qu'un seul puzzle** | Le 6×10, c'est 12 pièces sur 12 : un seul tirage possible, toujours le même. Aucune raison de revenir demain. Les tables **5×12 et 4×15** (plan 6×10 §5) sont le remède direct — elles feraient trois grands plateaux au lieu d'un |
-| 10 | **Le différenciateur et la rejouabilité sont sur deux modes différents** | Le compteur de solutions compatibles en temps réel est ce que l'app a de rare et de vraiment intéressant. Il n'existe que sur les rectangles complets. Les puzzles à pièces tirées, qui portent la variété, n'ont qu'un booléen. Résoudre le point 9 résout celui-ci |
+| 10 | **Le différenciateur et la rejouabilité sont sur deux modes différents** | Le compteur de solutions compatibles en temps réel est ce que l'app a de rare et de vraiment intéressant. Il n'existe que sur les rectangles complets. Les puzzles à pièces tirées, qui portent la variété, n'ont qu'un booléen. Résoudre le point 9 résout celui-ci. **Second remède, décidé le 2026-08-31 comme chantier distinct** : sur les petites tailles, énumérer toutes les solutions au tirage et brancher dessus une source en mémoire (`ListSolutionSource`) — le compteur, le navigateur et l'alerte « aucune solution possible » deviendraient disponibles hors 6×10. Suppose : `_makeSolutionSource` clé sur le puzzle et non sur la taille, ré-énumération à la reprise d'une partie sauvegardée, et un seuil de taille **mesuré**, pas supposé |
 | 11 | **Records et progression** | Rétablis par `PLAN_PERSISTANCE.md` §4 après avoir été abandonnés (décision 32, prise pour un outil personnel). Sans eux, une partie finie ne compte pas demain |
 
 ---

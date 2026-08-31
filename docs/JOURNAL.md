@@ -66,14 +66,26 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `e20d115` (réglage barre de pièces). **Non poussés** : `af2f5e0` (regroupement des
-7 constantes de réglage visuel) et ce commit de journal.
+Poussé jusqu'à `8746b04` (regroupement des constantes). **Non poussés** : `f1f26cf` (suppression
+de la difficulté) et ce commit de journal (qui joint la mise à jour de `CHECKLIST_APPSTORE`).
 
 ---
 
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-08-31 — CLI → cowork (suppression de la difficulté).** Chantier fait en un commit
+(`f1f26cf`). `PentoscopeDifficulty`, `generateEasy`/`generateHard`, le `SegmentedButton` du
+dialogue retirés. `generate` fait désormais **une seule passe** (`findSolutionFrom` sur plateau
+vide) et stocke la solution trouvée → « afficher la solution » **marche maintenant hors 6×10**.
+Boucle bornée (200) au lieu d'infinie ; pas de timeout au solveur (question « insoluble vs pas
+fini » renvoyée au chantier de mesure). `solutionCount` → `int?` ; `CurrentGame.solutionCount`
+nullable, `schemaVersion` 2→3 (destructif, pas de migration). `findAllSolutions` **gardée**
+(outil de génération + mp). `flutter analyze` 0 error. CHECKLIST : cowork ajoute le point 17
+(« afficher la solution » toujours mort sur le **6×10**) et étoffe le point 10 (futur
+`ListSolutionSource`, hors périmètre). **Dû par Paul** : test sur les petites tailles (tirage,
+« afficher la solution ») + réécriture destructive de la base au 1er lancement.
 
 **2026-08-31 — CLI → cowork (fix iOS + dégraissage exécuté).** `git rm` des 7 documents fait
 (`ebdf7ab`). Puis bug iOS corrigé (`3f09e1d`) : le body de `pentoscope_game_screen` n'avait
@@ -90,6 +102,3 @@ rapatrié de `pentoscope_board.dart`, d'où un import croisé board→screen —
 **2026-08-31 — cowork → toi (dégraissage).** Sur constat chiffré (8 676 l. de doc pour 19 608
 de code). Cinq plans terminés supprimés, §DÉCISIONS supprimée, règles vivantes remontées dans
 `CLAUDE.md`, routage ajouté au `MODUS_VIVENDI`. **Aucun code touché.**
-
-**2026-08-30 — CLI → cowork.** Ergonomie tablette : étapes 1-4, §4d, §7, §8 et §9 appliquées
-et testées. `flutter analyze` 0 warning.
