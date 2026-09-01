@@ -1,7 +1,10 @@
-// Modified: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
-//           plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35)
-//           et comportement inchangés.
+// Modified: 2026-09-01 07:54 — commit 0 (PLAN_DEPLACEMENT_PIECE §5) : instrumentation kDebugMode
+//           du glissé. dragAnchorStrategy sur le Draggable de case journalise
+//           caseSaisie/masterAbs/dragStartPoint/cellSize, en déléguant à childDragAnchorStrategy
+//           — aucun changement de comportement.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
+//             plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35).
 // Historique: 2026-08-31 15:00 — réglage à l'œil : kPieceToBoardCellRatio 0.45 → 0.35.
 // Historique: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro sur une case suit cellSize.
 // Historique: 2026-08-30 13:35 — étape 2 : le feedback de drag (« miniature ») prend la taille de
@@ -10,6 +13,7 @@
 //             méthodes de surbrillance locale et des deux méthodes de démonstration du State.
 //             2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes).
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -419,6 +423,23 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       final emptyCell = Container(color: Colors.grey.shade300);
       cellWidget = Draggable<Pento>(
         data: state.selectedPiece!,
+        // 🔬 Commit 0 (PLAN_DEPLACEMENT_PIECE §5) — instrumentation SANS effet :
+        // on délègue à childDragAnchorStrategy (comportement par défaut, inchangé)
+        // et on journalise, sous kDebugMode, de quoi départager les mécanismes (a)
+        // et (b) du plan : caseSaisie ≠ masterAbs prouve (b) ; dragStartPoint.dy
+        // > cellSize/2 prouve (a). Reste en place tout le chantier, retirée au dernier commit.
+        dragAnchorStrategy: (draggable, dragContext, position) {
+          final within = childDragAnchorStrategy(draggable, dragContext, position);
+          if (kDebugMode) {
+            debugPrint(
+              '[drag-instr] caseSaisie=($logicalX,$logicalY) '
+              'masterAbs=${state.selectedMasterAbs} '
+              'dragStartPoint=(${within.dx.toStringAsFixed(1)},${within.dy.toStringAsFixed(1)}) '
+              'cellSize=${cellSize.toStringAsFixed(1)}',
+            );
+          }
+          return within;
+        },
         onDragStarted: () => notifier.setDragging(true),
         onDragEnd: (_) => notifier.setDragging(false),
         feedback: Material(
