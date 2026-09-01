@@ -1,6 +1,8 @@
-// Modified: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
-//           startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
-//           solutionCount de PentoscopePuzzle devient int? (aucun compte honnête hors 6×10).
+// Modified: 2026-09-01 15:05 — correctif A commit 1 (instrumentation) : _gestureAxis mesure l'axe
+//           du geste de la case saisie (selectedMasterAbs) au doigt + log DRAGDIAG event=snap avec
+//           axis. Snap ENCORE isotrope à ce commit ; la métrique change au commit 2.
+// Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
+//             startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
 // Historique: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : records. _saveCompletedLevel (qui
 //             écrivait dans les préférences clé/valeur une donnée jamais relue) remplacé par
 //             _saveCompletionRecord qui écrit dans SolvedSolutions/PuzzleStats via solutionIndexOf.
@@ -46,6 +48,7 @@ import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
+import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/common/transformation_result.dart';
 export 'package:pentapol/common/transformation_result.dart';
 import 'package:pentapol/common/view_orientation.dart';
@@ -1849,13 +1852,31 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   ///
   /// ✅ FIX: On cherche l'ancre la plus proche de l'ancre désirée
   /// (calculée via le vecteur mastercase -> doigt)
+  /// Axe dominant du geste, mesuré de la **case saisie** (`selectedMasterAbs`) au **doigt**
+  /// courant — pas du pas instantané (trop instable). 0 = ~45° ou immobile → isotrope,
+  /// 1 = proche horizontal, 2 = proche vertical. Seuil ±22,5° autour des axes (le reste,
+  /// c.-à-d. 45°±22,5°, est traité en isotrope). Disponible seulement pour une pièce posée
+  /// (mode B, `selectedMasterAbs != null`) ; sinon 0.
+  int _gestureAxis(int dragGridX, int dragGridY) {
+    final masterAbs = state.selectedMasterAbs;
+    if (masterAbs == null) return 0;
+    final vx = (dragGridX - masterAbs.x).abs().toDouble();
+    final vy = (dragGridY - masterAbs.y).abs().toDouble();
+    if (vx == 0 && vy == 0) return 0;
+    const t = 2.4142135623730951; // tan 67,5° = 1/tan 22,5°
+    if (vx > vy * t) return 1; // horizontal
+    if (vy > vx * t) return 2; // vertical
+    return 0; // proche de 45° → isotrope
+  }
+
   Point? _findClosestValidPlacement(int dragGridX, int dragGridY) {
     if (state.validPlacements.isEmpty) return null;
     if (state.selectedPiece == null) return null;
 
     final desiredAnchor = _calculateDesiredAnchorFromDrag(dragGridX, dragGridY);
+    final axis = _gestureAxis(dragGridX, dragGridY); // mesuré ; utilisé par le snap au commit 2
 
-    // Chercher le placement valide le plus proche de l'ancre désirée
+    // Chercher le placement valide le plus proche de l'ancre désirée (encore ISOTROPE ici)
     Point closest = state.validPlacements[0];
     double minDistance = double.infinity;
 
@@ -1871,7 +1892,35 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       }
     }
 
+    // DRAGDIAG (oracle correctif A) — `axis` (0/1/2) mesuré depuis la case saisie ; `desired`
+    // vs `chosen` montre si le snap isotrope « monte » (chosenY≠desiredY) sur un geste
+    // horizontal. Le commit 2 fera respecter l'axe ; ce log reste l'oracle avant/après.
+    if (kDragDiag) {
+      dragDiag(
+        'event=snap,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
+        'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},axis=$axis,'
+        'inX=$dragGridX,inY=$dragGridY,desiredX=${desiredAnchor.x},desiredY=${desiredAnchor.y},'
+        'ncand=${state.validPlacements.length},chosenX=${closest.x},chosenY=${closest.y},'
+        'd2=${minDistance.toStringAsFixed(3)},cand=${_diagCandidates(desiredAnchor)}',
+      );
+    }
+
     return closest;
+  }
+
+  /// DRAGDIAG — ancres candidates triées par distance² à l'ancre désirée, 8 plus proches :
+  /// `x:y:d2|…`. Rend visible le candidat « qui monte » face à celui « sur la ligne ».
+  String _diagCandidates(Point desiredAnchor) {
+    final scored = state.validPlacements.map((p) {
+      final dx = (desiredAnchor.x - p.x).toDouble();
+      final dy = (desiredAnchor.y - p.y).toDouble();
+      return (p: p, d2: dx * dx + dy * dy);
+    }).toList()
+      ..sort((a, b) => a.d2.compareTo(b.d2));
+    return scored
+        .take(8)
+        .map((e) => '${e.p.x}:${e.p.y}:${e.d2.toStringAsFixed(2)}')
+        .join('|');
   }
 
   /// Génère TOUS les placements possibles pour une pièce à une positionIndex donnée
