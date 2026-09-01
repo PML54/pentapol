@@ -1,7 +1,9 @@
-// Modified: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
-//           plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35)
-//           et comportement inchangés.
+// Modified: 2026-09-01 15:30 — fourche A/B (JOURNAL) : onAccept dépose DIRECTEMENT à l'ancre de
+//           l'aperçu (tryPlaceAtAnchor(previewX,previewY)) au lieu de reconstruire un faux doigt
+//           + re-dériver (qui replaçait −minY plus haut au relâcher). + log DRAGDIAG event=drop.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
+//             plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35).
 // Historique: 2026-08-31 15:00 — réglage à l'œil : kPieceToBoardCellRatio 0.45 → 0.35.
 // Historique: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro sur une case suit cellSize.
 // Historique: 2026-08-30 13:35 — étape 2 : le feedback de drag (« miniature ») prend la taille de
@@ -14,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
@@ -152,25 +155,25 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               return;
             }
 
-            // ✨ NOUVEAU: Utiliser les coordonnées snappées du preview
-            // (pas les coordonnées brutes du drop)
             if (state.previewX == null || state.previewY == null) {
               notifier.clearPreview();
               return;
             }
 
-            // ✨ BUGFIX: tryPlacePiece() s'attend à la position du DOIGT, pas l'ancre
-            // previewX/Y sont l'ancre snappée
-            // Donc reconstruire: doigt = ancre + mastercase (coordonnées normalisées)
-            int reconstructedDragX = state.previewX!;
-            int reconstructedDragY = state.previewY!;
+            // Fourche A/B (JOURNAL) : déposer DIRECTEMENT à l'ancre de l'aperçu (previewX/Y,
+            // déjà snappée et validée) au lieu de reconstruire un faux doigt puis de re-dériver
+            // — c'est cette re-dérivation qui replaçait la pièce `−minY` plus haut au relâcher.
+            // Ce que l'aperçu montre est exactement ce qui se pose.
+            final success = notifier.tryPlaceAtAnchor(state.previewX!, state.previewY!);
 
-            if (state.selectedCellInPiece != null) {
-              reconstructedDragX += state.selectedCellInPiece!.x;
-              reconstructedDragY += state.selectedCellInPiece!.y;
+            // DRAGDIAG (oracle) — pose : l'ancre déposée DOIT être l'ancre de l'aperçu.
+            if (kDragDiag) {
+              dragDiag(
+                'event=drop,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
+                'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},'
+                'previewX=${state.previewX},previewY=${state.previewY},placed=$success',
+              );
             }
-
-            final success = notifier.tryPlacePiece(reconstructedDragX, reconstructedDragY);
 
             if (success) {
               HapticFeedback.mediumImpact();

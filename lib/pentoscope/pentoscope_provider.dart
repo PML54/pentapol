@@ -913,15 +913,20 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   bool tryPlacePiece(int gridX, int gridY) {
+    final anchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
+    return tryPlaceAtAnchor(anchor.x, anchor.y);
+  }
+
+  /// Place la pièce sélectionnée DIRECTEMENT à l'ancre donnée (déjà snappée et validée par
+  /// l'aperçu), sans reconstruire de « faux doigt » ni re-dériver l'ancre (fourche A/B du
+  /// JOURNAL). Le dépôt appelle ceci avec `previewX/previewY` : ce que l'aperçu montre est
+  /// exactement ce qui se pose — plus de décalage `−minY` au relâcher.
+  bool tryPlaceAtAnchor(int anchorX, int anchorY) {
     if (state.selectedPiece == null) return false;
 
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
     final wasPlacedPiece = state.selectedPlacedPiece != null;
-
-    final desiredAnchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
-    int anchorX = desiredAnchor.x;
-    int anchorY = desiredAnchor.y;
 
     if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
       return false;
