@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-31
+## §ÉTAT — au 2026-09-01
 
 ### L'application
 
@@ -57,6 +57,29 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
 — quitter l'app au milieu d'un 6×10 perd tout).
 
+### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
+
+Le chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a fait **apparaître beaucoup d'anomalies**
+(déplacements aléatoires) au test de Paul. Décision de Paul : **revenir à l'état pré-chantier**.
+La branche `deplacement-piece` a donc été **reset --hard sur `1efda1a`** (= `main` = tag
+`avant-deplacement-piece`). Tout le chantier ET l'instrumentation DRAGDIAG posée ensuite sont
+**écartés du tree**, mais **conservés intacts** dans deux refs de sauvegarde, sur `c5306b5` :
+
+- tag **`chantier-deplacement-backup`**
+- branche **`backup/deplacement-piece-c5306b5`**
+
+On y retrouve : plan `PLAN_DEPLACEMENT_PIECE.md`, correctifs 1→5 (carte des sha dans le `git log`
+du backup), `PLAN_DIAG_DRAG.md` et l'instrumentation `lib/common/drag_diag.dart` + points DRAGDIAG.
+**Rien n'est perdu** — reprise possible par `git cherry-pick`/`checkout` depuis ces refs.
+
+**Conservés par-dessus le pré-chantier** (indépendants du chantier, validés par Paul) : les deux
+correctifs d'ergonomie du 2026-09-01 — (a) saisie du « I » (barre des pièces, `hitBoxSize` : toute
+la boîte de la case répond au doigt ; halo de sélection collé à la pièce) et (b) sortie de l'écran
+Paramètres sur iPad (bouton « Fermer » en bas + `SafeArea`, la flèche retour étant recouverte par
+les commandes multitâche macOS « Designed for iPad sur Mac »). Reposés à la main sur la version
+pré-chantier de `draggable_piece_widget.dart` (le fichier avait été touché par le correctif 1),
+`slider`/`settings` repris tels quels. `analyze` 0 error.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -81,8 +104,11 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). Rien en attente hors ce
-commit de journal.
+Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). `main` = `1efda1a`. La branche
+`deplacement-piece` a été **reset sur `1efda1a`** puis porte le seul commit d'ergonomie (voir
+§ÉTAT « REVERT »). Refs de sauvegarde du chantier écarté : tag `chantier-deplacement-backup` et
+branche `backup/deplacement-piece-c5306b5`, sur `c5306b5` — **ne pas supprimer** tant que la
+question du déplacement n'est pas retranchée.
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
@@ -92,6 +118,18 @@ commit de journal.
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-01 — CLI → cowork (REVERT du chantier « déplacement d'une pièce »).** Au test de Paul, le
+chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a produit **beaucoup d'anomalies — déplacements
+aléatoires**. La démarche d'instrumentation `PLAN_DIAG_DRAG` (logger DRAGDIAG derrière `kDragDiag`)
+avait été posée juste avant, mais Paul a tranché : **retour à l'état pré-chantier** plutôt que
+poursuite du diagnostic sur place. Branche `deplacement-piece` **reset --hard sur `1efda1a`**
+(= `main` = tag `avant-deplacement-piece`). Chantier + instrumentation **sauvegardés** sur `c5306b5`
+(tag `chantier-deplacement-backup`, branche `backup/deplacement-piece-c5306b5`) — rien perdu, reprise
+par cherry-pick. **Conservés** par-dessus : les deux correctifs d'ergonomie du jour (saisie du « I »,
+sortie Paramètres iPad), reposés à la main sur la base pré-chantier. `analyze` 0 error. **Pour cowork** :
+si le déplacement d'une pièce est repris, repartir du backup pour lire les logs DRAGDIAG, ou d'une
+approche neuve — l'ancienne a été jugée trop instable pour rester sur la branche de travail.
 
 **2026-08-31 — CLI → cowork (deux chantiers courts : lettres, solveur).** Suite au Message CLI de
 cowork. **Chantier 1 — table de lettres unique** (`3e3beaf`) : les deux tables périmées
