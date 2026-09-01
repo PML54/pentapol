@@ -1,8 +1,9 @@
-// Modified: 2026-08-31 16:39 — étape B : avec CorpusSolutionSource, solutionsCount est non-nul
-//           sur toutes les tailles → le compteur décroissant s'affiche partout (fonctionnalité
-//           voulue). Le bouton « solutions compatibles » est regaté au 6×10 (size.table != null) :
-//           seul lui a un navigateur BigInt ; sur les petites tailles il serait vide.
+// Modified: 2026-09-01 16:10 — DIAGNOSTIC (kDragDiag) : puce « c0..c4 » dans la barre d'isométrie
+//           affichant le label INVARIANT de la mastercase active (index de la cellule saisie dans
+//           l'orientation, stable par isométrie) — pour voir si la prise reste fixe.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-08-31 16:39 — étape B : avec CorpusSolutionSource, solutionsCount non-nul sur
+//             toutes les tailles → compteur décroissant partout ; bouton « solutions » regaté au 6×10.
 // Historique: 2026-08-31 18:00 — tirage au dialogue (§Affichage) : masque tiré, « n solutions »,
 //             bouton « autre tirage » (hors 6×10), masque transmis à startPuzzle.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : retrait du SegmentedButton du dialogue.
@@ -45,6 +46,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
@@ -452,6 +454,53 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   }
 
   /// 🔑 Barre d'isométries pleine largeur avec icônes grandes et réparties uniformément
+  /// DIAGNOSTIC — label INVARIANT de la mastercase = l'index (0..4) de la cellule saisie dans la
+  /// liste d'orientation de la pièce. L'ordre des cellules est préservé across orientations (voir
+  /// pentominos.dart), donc cet index ne dépend PAS de l'orientation : il doit rester fixe tant
+  /// qu'on ne relâche pas la prise. Retourne null si aucune mastercase active.
+  String? _mastercaseLabel(PentoscopeState state) {
+    final cell = state.selectedCellInPiece;
+    final piece = state.selectedPiece;
+    if (cell == null || piece == null) return null;
+    final position = piece.orientations[state.selectedPositionIndex];
+    int minX = 5, minY = 5;
+    for (final n in position) {
+      final x = (n - 1) % 5, y = (n - 1) ~/ 5;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+    }
+    for (int i = 0; i < position.length; i++) {
+      final n = position[i];
+      if ((n - 1) % 5 - minX == cell.x && (n - 1) ~/ 5 - minY == cell.y) {
+        return 'c$i';
+      }
+    }
+    return null; // la (x,y) stockée ne correspond à aucune cellule de l'orientation courante
+  }
+
+  /// DIAGNOSTIC — puce affichant [_mastercaseLabel] dans la barre du haut. Rouge = mastercase
+  /// identifiée ; grise « c? » = incohérence (la case saisie n'est plus sur la pièce courante).
+  Widget _buildMastercaseChip(PentoscopeState state, double iconSize) {
+    final label = _mastercaseLabel(state);
+    final ok = label != null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: ok ? Colors.red.shade100 : Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ok ? Colors.red.shade400 : Colors.grey, width: 1.5),
+      ),
+      child: Text(
+        label ?? 'c?',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: ok ? Colors.red.shade800 : Colors.grey.shade700,
+          fontSize: (iconSize * 0.5).clamp(12.0, 22.0),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFullWidthIsometryBar(
       PentoscopeState state,
       PentoscopeNotifier notifier,
@@ -464,6 +513,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
+        // DIAGNOSTIC (kDragDiag) : label invariant de la mastercase active (c0..c4).
+        if (kDragDiag) _buildMastercaseChip(state, iconSize),
         // Rotation anti-horaire
         IconButton(
           icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize),
