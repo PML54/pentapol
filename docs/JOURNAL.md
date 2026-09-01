@@ -63,6 +63,13 @@ plus l'instrumentation kDebugMode du commit 0 **encore en place**. En attente du
 par Paul (§7 du plan). La carte des sha et la règle de revert sont dans la passation ci-dessous.
 Le correctif 6 (coordonnées fractionnaires, hystérésis) n'est pas dans ce lot.
 
+Deux correctifs d'ergonomie **indépendants du plan déplacement** ont été posés sur la même branche
+(commits distincts, revert isolé) : (a) la barre des pièces — toute la boîte d'une case répond au
+doigt (`hitBoxSize`), le « I » (1 case de large) s'attrape comme les autres, halo de sélection
+recentré sur la pièce et affiché au repos seulement ; (b) l'écran Paramètres — bouton « Fermer »
+ancré en bas + `SafeArea`, la flèche retour du haut étant recouverte par les commandes multitâche
+d'iPadOS. En attente du test à l'écran par Paul.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -88,7 +95,7 @@ flutter run --release -d 00008150-000165D4027B401C
 ### Git
 
 Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). La branche
-`deplacement-piece` (chantier de déplacement, 7 commits) n'est **ni fusionnée ni poussée** :
+`deplacement-piece` (déplacement 7 commits + 1 ergonomie barre/Paramètres) n'est **ni fusionnée ni poussée** :
 elle attend la validation à l'écran. Tag `avant-deplacement-piece` posé sur `1efda1a` (état
 pré-chantier) — `git reset --hard avant-deplacement-piece` annule tout le lot.
 
@@ -100,6 +107,19 @@ pré-chantier) — `git reset --hard avant-deplacement-piece` annule tout le lot
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-01 — CLI → cowork (deux correctifs d'ergonomie, sur la branche `deplacement-piece`).**
+Signalés par Paul à l'écran, indépendants du plan déplacement, commits distincts (revert isolé).
+**(a) Barre des pièces** — le « I » (barre verticale, 1 case de large) était pénible à saisir : la
+cible tactile ne couvrait que la pièce (~30 px), pas la boîte de la case (~118 px). `DraggablePieceWidget`
+reçoit un `hitBoxSize` optionnel ; au repos, un `GestureDetector` opaque remplit toute la boîte,
+la pièce restant centrée. Le halo ambré de sélection, jusque-là un `Container` externe, passe dans
+`childBuilder` (collé à la pièce, sinon il gonflait au carré de la boîte) et n'est rendu qu'au repos
+(`!isDragging`). `hitBoxSize` null par défaut → **multijoueur inchangé**. **(b) Écran Paramètres** —
+sur iPad la flèche retour (haut-gauche) est recouverte par les commandes multitâche d'iPadOS : ajout
+d'un bouton « Fermer » pleine largeur en `bottomNavigationBar` + `SafeArea`, seconde issue hors des
+zones système. `analyze` 0 error (4 `info` préexistants). **Test attendu de Paul** : attraper le « I »
+en portrait et paysage (toute la case répond, halo inchangé) ; bouton « Fermer » atteignable sur iPad.
 
 **2026-09-01 — CLI → cowork (déplacement d'une pièce : correctifs 1→5 posés, en attente de test).**
 Chantier `PLAN_DEPLACEMENT_PIECE.md`, branche `deplacement-piece`, réversible commit par commit
@@ -143,17 +163,3 @@ partie réglé — le compteur décroissant est désormais sur toutes les taille
 solutions, laissé au 6×10 (décision 2 sources). La glose « ListSolutionSource » du point 10 est
 caduque : c'est `CorpusSolutionSource` qui l'a fait.
 
-**2026-08-31 — CLI → cowork (tirages étape B, terminée).** Corpus complet + source unifiée +
-retrait du solveur, en 4 commits, testés sur iPad. **`86dcea6`** : `tools/generate_solutions_corpus.dart`
-+ `assets/data/solutions_corpus.bin` (3,13 Mo, octet/case, 73 876 solutions 5×n) + test structurel ;
-compte par masque identique à `subset_counts.bin`. **`8ce7a56`** : `common/byte_matching.dart`
-(appariement d'octets partagé), `corpus_provider.dart` (découpe par masque), `LiveSolutionSource`
-→ `CorpusSolutionSource` ; `SolutionMatcher.countCompatibleBytes` délègue au partagé. **`3cd14a2`** :
-compteur décroissant actif sur toutes les tailles (gratuit — `solutionsCount` non-nul), bouton
-« solutions compatibles » regaté au 6×10. **retrait solveur** : `PentoscopeSolver` **supprimé du
-dépôt** (outils Flutter-free autonomes), `puzzleFromMask`/`generateFromSeed` ne l'appellent plus
-(compte via `subset_counts.bin`, exact, sans troncature `maxSeconds=30`), `PentoscopePuzzle.solutions`
-supprimé, `currentSolution` typé `List<PlacedPiece>?` servi par `hintFrom`. **Décision : 2 sources
-table-backed** (6×10/BigInt, 5×n/bytes), appariement unifié. `analyze` 0, `test` 12/12. **À noter
-pour cowork** : le §7 de `REFERENCE_TIRAGES` dit « max 5×10 écarte X et W », mais ce masque donne
-2612, pas 4664 — lettre ou exemple à corriger (sans incidence code, le §2 est respecté).

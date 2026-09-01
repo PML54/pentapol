@@ -1,8 +1,12 @@
-// Modified: 2026-09-01 07:54 — correctif 1 (PLAN_DEPLACEMENT_PIECE §4) : les deux Draggable du
-//           tiroir passent en pointerDragAnchorStrategy (details.offset = doigt exact, plus le
-//           décalage multi-cases du childDragAnchorStrategy, mécanisme (a) « en pire ») ; feedback
-//           recentré par FractionalTranslation(-0.5,-0.5).
+// Modified: 2026-09-01 08:58 — hitBoxSize optionnel : la zone tactile au repos remplit toute la
+//           boîte de la case (opaque) au lieu de la seule pièce, pour que le « I » (1 case de
+//           large) s'attrape aussi bien que les autres. Le feedback de drag reste à la taille de
+//           la pièce. null = comportement d'avant (multijoueur inchangé).
 // lib/common/widgets/draggable_piece_widget.dart
+// Historique: 2026-09-01 07:54 — correctif 1 (PLAN_DEPLACEMENT_PIECE §4) : les deux Draggable du
+//             tiroir passent en pointerDragAnchorStrategy (details.offset = doigt exact, plus le
+//             décalage multi-cases du childDragAnchorStrategy, mécanisme (a) « en pire ») ; feedback
+//             recentré par FractionalTranslation(-0.5,-0.5).
 // Historique: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique vers
 //             lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
 //             et le multijoueur.
@@ -34,6 +38,10 @@ class DraggablePieceWidget extends StatefulWidget {
   final VoidCallback onCancel;
   final Widget Function(bool isDragging) childBuilder;
 
+  /// Côté de la boîte tactile carrée au repos. Quand fourni, tout le carré répond au doigt
+  /// (utile pour les pièces étroites comme le « I »). null : la zone reste collée à la pièce.
+  final double? hitBoxSize;
+
   const DraggablePieceWidget({
     super.key,
     required this.piece,
@@ -45,6 +53,7 @@ class DraggablePieceWidget extends StatefulWidget {
     required this.onCycle,
     required this.onCancel,
     required this.childBuilder,
+    this.hitBoxSize,
   });
 
   @override
@@ -104,6 +113,35 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
     });
   }
 
+  /// Zone au repos : opaque sur toute la boîte quand hitBoxSize est fourni, sinon collée à la pièce.
+  Widget _restingChild() {
+    final gesture = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _handleTap,
+      onDoubleTap: _handleDoubleTap,
+      child: widget.hitBoxSize == null
+          ? widget.childBuilder(false)
+          : Center(child: widget.childBuilder(false)),
+    );
+    if (widget.hitBoxSize == null) return gesture;
+    return SizedBox(
+      width: widget.hitBoxSize,
+      height: widget.hitBoxSize,
+      child: gesture,
+    );
+  }
+
+  /// Trou laissé pendant le drag : même empreinte que la boîte pour éviter le décalage du tiroir.
+  Widget _placeholderWhenDragging() {
+    final faded = Opacity(opacity: 0.3, child: widget.childBuilder(false));
+    if (widget.hitBoxSize == null) return faded;
+    return SizedBox(
+      width: widget.hitBoxSize,
+      height: widget.hitBoxSize,
+      child: Center(child: faded),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Si la pièce est déjà sélectionnée, utiliser Draggable normal
@@ -130,16 +168,8 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
             child: widget.childBuilder(true),
           ),
         ),
-        childWhenDragging: Opacity(
-          opacity: 0.3,
-          child: widget.childBuilder(false),
-        ),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _handleTap,
-          onDoubleTap: _handleDoubleTap,
-          child: widget.childBuilder(false),
-        ),
+        childWhenDragging: _placeholderWhenDragging(),
+        child: _restingChild(),
       );
     } else {
       return LongPressDraggable<Pento>(
@@ -163,16 +193,8 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
             child: widget.childBuilder(true),
           ),
         ),
-        childWhenDragging: Opacity(
-          opacity: 0.3,
-          child: widget.childBuilder(false),
-        ),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _handleTap,
-          onDoubleTap: _handleDoubleTap,
-          child: widget.childBuilder(false),
-        ),
+        childWhenDragging: _placeholderWhenDragging(),
+        child: _restingChild(),
       );
     }
   }

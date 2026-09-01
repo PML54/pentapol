@@ -1,6 +1,9 @@
-// Modified: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : la barre reçoit pieceCellSize (défaut
-//           22) ; la boîte de pièce et PieceRenderer en dérivent, au lieu de la taille figée 118.
+// Modified: 2026-09-01 09:01 — zone tactile pleine boîte (hitBoxSize = fixedSize) pour attraper le
+//           « I » aussi bien que les autres ; le halo de sélection passe dans childBuilder, collé à
+//           la pièce et affiché au repos seulement (pas sur le feedback de drag).
 // lib/pentoscope/widgets/pentoscope_piece_slider.dart
+// Historique: 2026-08-30 13:35 — PLAN_ERGONOMIE §6 étape 2 : la barre reçoit pieceCellSize (défaut
+//             22) ; la boîte de pièce et PieceRenderer en dérivent, au lieu de la taille figée 118.
 // Historique: 2026-08-28 20:48 — suppression de la démonstration : retrait du champ et des
 //             méthodes de surbrillance locale et du bloc lecteur ; l'enveloppe Container disparaît.
 //             2512100457 — FIX _getDisplayPositionIndex() rotation paysage stable.
@@ -114,45 +117,52 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       child: Center(
         child: Transform.rotate(
           angle: isLandscape ? -math.pi / 2 : 0.0,
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: isSelected
-              ? [
-            BoxShadow(
-                        color: Colors.amber.withOpacity(0.7),
-                        blurRadius: 14,
-                        spreadRadius: 2,
-            ),
-          ]
-              : null,
-        ),
-              child: DraggablePieceWidget(
-              piece: piece,
-              positionIndex: displayPositionIndex,
-              isSelected: isSelected,
-              selectedPositionIndex: isSelected ? displayPositionIndex : state.selectedPositionIndex,
-              longPressDuration: Duration(milliseconds: settings.game.longPressDuration),
-              onSelect: () {
-                if (settings.game.enableHaptics) {
-                  HapticFeedback.selectionClick();
-                }
-                notifier.selectPiece(piece);
-              },
-              onCycle: () {},
-              onCancel: () {
-                if (settings.game.enableHaptics) {
-                  HapticFeedback.lightImpact();
-                }
-                notifier.cancelSelection();
-              },
-              childBuilder: (isDragging) => PieceRenderer(
+          child: DraggablePieceWidget(
+            piece: piece,
+            positionIndex: displayPositionIndex,
+            isSelected: isSelected,
+            selectedPositionIndex: isSelected ? displayPositionIndex : state.selectedPositionIndex,
+            longPressDuration: Duration(milliseconds: settings.game.longPressDuration),
+            // Toute la boîte de la case répond au doigt : le « I » (1 case) s'attrape comme le reste.
+            hitBoxSize: fixedSize,
+            onSelect: () {
+              if (settings.game.enableHaptics) {
+                HapticFeedback.selectionClick();
+              }
+              notifier.selectPiece(piece);
+            },
+            onCycle: () {},
+            onCancel: () {
+              if (settings.game.enableHaptics) {
+                HapticFeedback.lightImpact();
+              }
+              notifier.cancelSelection();
+            },
+            // Halo ambré de sélection collé à la pièce (auparavant un Container externe, qui serait
+            // devenu un grand carré une fois la boîte tactile élargie).
+            childBuilder: (isDragging) {
+              final renderer = PieceRenderer(
                 piece: piece,
                 positionIndex: displayPositionIndex,
                 isDragging: isDragging,
                 cellSize: widget.pieceCellSize,
                 getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
-              ),
-            ),
+              );
+              // Halo au repos seulement : la pièce en cours de glissement ne le porte pas.
+              if (!isSelected || isDragging) return renderer;
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.amber.withOpacity(0.7),
+                      blurRadius: 14,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: renderer,
+              );
+            },
           ),
         ),
       ),

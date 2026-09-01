@@ -1,8 +1,11 @@
-// Modified: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : écran de réglages minimal —
-//           retrait des 9 entrées mortes (numéros, grille, animations, opacité, taille d'icônes,
-//           couleur isométries, difficulté, indices, chrono) et de leurs helpers orphelins.
-//           Restent : couleurs, personnaliser, compteur de solutions, haptique, drag, Duel, À propos.
+// Modified: 2026-09-01 08:58 — sortie fiable sur iPad : bouton « Fermer » ancré en bas
+//           (bottomNavigationBar) + SafeArea, la flèche retour du haut étant recouverte par les
+//           commandes multitâche d'iPadOS.
 // lib/screens/settings_screen.dart
+// Historique: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : écran de réglages minimal —
+//             retrait des 9 entrées mortes (numéros, grille, animations, opacité, taille d'icônes,
+//             couleur isométries, difficulté, indices, chrono) et de leurs helpers orphelins.
+//             Restent : couleurs, personnaliser, compteur de solutions, haptique, drag, Duel, À propos.
 // Historique: 2025-11-30 — Ajout section Duel et version.
 
 import 'package:flutter/material.dart';
@@ -55,7 +58,25 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
+      // Sortie toujours atteignable : sur iPad les commandes multitâche d'iPadOS recouvrent le
+      // coin haut-gauche où vit la flèche retour. Ce bouton, ancré en bas et hors des zones
+      // système (SafeArea), garantit une issue quel que soit l'habillage de la fenêtre.
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.all(12),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.close),
+            label: const Text('Fermer'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
         children: [
           // === SECTION UI ===
           _buildSectionHeader('Interface'),
@@ -148,6 +169,7 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 32),
         ],
+        ),
       ),
     );
   }
