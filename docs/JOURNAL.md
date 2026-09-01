@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-08-31
+## §ÉTAT — au 2026-09-01
 
 ### L'application
 
@@ -57,6 +57,12 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
 — quitter l'app au milieu d'un 6×10 perd tout).
 
+**En validation (branche `deplacement-piece`, non fusionnée)** : le chantier « déplacement d'une
+pièce sur le plateau » (`PLAN_DEPLACEMENT_PIECE.md`) — correctifs 1→5 posés, un par commit,
+plus l'instrumentation kDebugMode du commit 0 **encore en place**. En attente du test à l'écran
+par Paul (§7 du plan). La carte des sha et la règle de revert sont dans la passation ci-dessous.
+Le correctif 6 (coordonnées fractionnaires, hystérésis) n'est pas dans ce lot.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -81,8 +87,10 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). Rien en attente hors ce
-commit de journal.
+Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). La branche
+`deplacement-piece` (chantier de déplacement, 7 commits) n'est **ni fusionnée ni poussée** :
+elle attend la validation à l'écran. Tag `avant-deplacement-piece` posé sur `1efda1a` (état
+pré-chantier) — `git reset --hard avant-deplacement-piece` annule tout le lot.
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
@@ -92,6 +100,30 @@ commit de journal.
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-01 — CLI → cowork (déplacement d'une pièce : correctifs 1→5 posés, en attente de test).**
+Chantier `PLAN_DEPLACEMENT_PIECE.md`, branche `deplacement-piece`, réversible commit par commit
+(§7). Tag `avant-deplacement-piece` sur `1efda1a`. **Carte des sha** (un correctif = un commit) :
+
+```
+doc plan               7409c58
+0  instrumentation      aab2b2b   (kDebugMode, reste jusqu'après validation)
+1  pointerDragAnchor…    1c43096   (board + DraggablePieceWidget)
+2  setDragMastercase     0a37223   (ancre sur la case saisie)
+3  tryPlaceAtAnchor      b24471f   (dépôt à l'aperçu, sans faux doigt)
+4  plafond aimantation   6759995   (~1,5 case ; DÉPEND de 1 et 2)
+5  nettoyage             19e858b   (boucle morte 3.4, onLeave 3.5, debugPrint/margin/pièce 12)
+```
+
+**Règle de revert** : `git revert <sha>` isole un correctif. **Le 4 ne tient pas sans 1 et 2** :
+annuler 1 ou 2 impose d'annuler 4 (sinon presque tout placement est refusé → fausse régression).
+**L'instrumentation (commit 0) n'est PAS retirée** : elle journalise `caseSaisie / masterAbs /
+dragStartPoint / cellSize` à chaque `onDragStarted` sous `kDebugMode`, et ne sera supprimée qu'au
+commit final, une fois le geste validé à l'écran. **Test attendu de Paul** : reprendre une pièce
+posée par une case ≠ celle tapée et la pousser latéralement d'une case — elle doit suivre le doigt
+sans saut vertical, où que le doigt se pose dans la case ; idem au glissé depuis le tiroir.
+`analyze` 0 error / 0 warning à chaque commit. **Non embarqué** (bruit Xcode) : `.metadata`,
+`ios/`, `macos/`, `Podfile`. Correctif 6 (fractionnaire/hystérésis) hors lot, à juger à l'écran.
 
 **2026-08-31 — CLI → cowork (deux chantiers courts : lettres, solveur).** Suite au Message CLI de
 cowork. **Chantier 1 — table de lettres unique** (`3e3beaf`) : les deux tables périmées
@@ -125,14 +157,3 @@ supprimé, `currentSolution` typé `List<PlacedPiece>?` servi par `hintFrom`. **
 table-backed** (6×10/BigInt, 5×n/bytes), appariement unifié. `analyze` 0, `test` 12/12. **À noter
 pour cowork** : le §7 de `REFERENCE_TIRAGES` dit « max 5×10 écarte X et W », mais ce masque donne
 2612, pas 4664 — lettre ou exemple à corriger (sans incidence code, le §2 est respecté).
-
-**2026-08-31 — CLI → cowork (mesure n°2 + appariement Uint8List).** Mesure n°2 (§9) jouée sur
-iPad en `--release`, affichage à l'écran (le debug WiFi crashe chez Paul). Le pire
-`_solutionStatus` (38–78 ms) venait du **solveur backtracking live des petites tailles**
-(`LiveSolutionSource.hasSolutionFrom`), **pas** du comptage par table : bench desktop sur les
-9356 réelles = 23 µs en octets vs 318 µs en BigInt (13×), soit ~0,6 ms sur appareil. Conclusion :
-B n'est pas conditionnée, elle est **motivée** — elle supprime ce solveur. Socle livré :
-`SolutionMatcher.countCompatibleBytes` (Uint8List plat 9356×60, sans allocation), branché sur
-`countFrom`/`hasSolutionFrom` du 6×10 ; `_mask` BigInt réservé aux chemins froids (navigateur,
-index). Garde d'équivalence byte≡BigInt sur 10 000 plateaux (`test/solution_matcher_bytes_test.dart`).
-`analyze` 0, `test` 7/7. **Enchaîne sur B.**
