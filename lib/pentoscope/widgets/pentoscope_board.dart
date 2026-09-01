@@ -1,6 +1,7 @@
-// Modified: 2026-09-01 07:54 — correctif 2 (PLAN_DEPLACEMENT_PIECE §4) : onDragStarted appelle
-//           setDragMastercase(logicalX,logicalY) — ancre le glissé sur la case saisie (mécanisme (b)).
+// Modified: 2026-09-01 07:54 — correctif 3 (PLAN_DEPLACEMENT_PIECE §4) : onAcceptWithDetails dépose
+//           à previewX/previewY via tryPlaceAtAnchor, sans reconstruire de faux doigt (défaut 3.3).
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 07:54 — correctif 2 : onDragStarted → setDragMastercase (mécanisme (b)).
 // Historique: 2026-09-01 07:54 — correctif 1 : Draggable de case en pointerDragAnchorStrategy
 //             (details.offset = doigt exact, mécanisme (a)) ; feedback recentré FractionalTranslation.
 // Historique: 2026-09-01 07:54 — commit 0 : instrumentation kDebugMode du glissé (dragAnchorStrategy).
@@ -157,25 +158,17 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               return;
             }
 
-            // ✨ NOUVEAU: Utiliser les coordonnées snappées du preview
-            // (pas les coordonnées brutes du drop)
+            // Correctif 3 (§4) : déposer à l'ancre de l'aperçu, déjà snappée et validée.
+            // previewX/previewY EST l'ancre ; plus de reconstruction d'un faux doigt.
             if (state.previewX == null || state.previewY == null) {
               notifier.clearPreview();
               return;
             }
 
-            // ✨ BUGFIX: tryPlacePiece() s'attend à la position du DOIGT, pas l'ancre
-            // previewX/Y sont l'ancre snappée
-            // Donc reconstruire: doigt = ancre + mastercase (coordonnées normalisées)
-            int reconstructedDragX = state.previewX!;
-            int reconstructedDragY = state.previewY!;
-
-            if (state.selectedCellInPiece != null) {
-              reconstructedDragX += state.selectedCellInPiece!.x;
-              reconstructedDragY += state.selectedCellInPiece!.y;
-            }
-
-            final success = notifier.tryPlacePiece(reconstructedDragX, reconstructedDragY);
+            final success = notifier.tryPlaceAtAnchor(
+              state.previewX!,
+              state.previewY!,
+            );
 
             if (success) {
               HapticFeedback.mediumImpact();

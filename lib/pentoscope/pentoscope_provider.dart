@@ -1,6 +1,7 @@
-// Modified: 2026-09-01 07:54 — correctif 2 (PLAN_DEPLACEMENT_PIECE §4) : setDragMastercase ancre
-//           le glissé sur la case réellement saisie (masterAbs + selectedCellInPiece), supprimant
-//           le mécanisme (b) où la mastercase restait celle du tap précédent.
+// Modified: 2026-09-01 07:54 — correctif 3 (PLAN_DEPLACEMENT_PIECE §4) : tryPlaceAtAnchor place à
+//           l'ancre directement ; tryPlacePiece délègue. Le dépôt utilise previewX/previewY sans
+//           reconstruire de faux doigt (défaut 3.3).
+// Historique: 2026-09-01 07:54 — correctif 2 : setDragMastercase ancre le glissé sur la case saisie (b).
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
 //             startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
 //             solutionCount de PentoscopePuzzle devient int? (aucun compte honnête hors 6×10).
@@ -930,16 +931,27 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
+  /// Variante « position du doigt » : convertit en ancre puis délègue à
+  /// [tryPlaceAtAnchor]. Conservée comme point d'entrée coordonnées-doigt.
   bool tryPlacePiece(int gridX, int gridY) {
+    if (state.selectedPiece == null) return false;
+    final anchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
+    return tryPlaceAtAnchor(anchor.x, anchor.y);
+  }
+
+  /// Correctif 3 (PLAN_DEPLACEMENT_PIECE §4) — place la pièce sélectionnée **directement à
+  /// l'ancre** (coordonnées normalisées), sans repasser par une position de doigt.
+  ///
+  /// Le dépôt appelle cette méthode avec `previewX/previewY`, l'ancre déjà snappée et déjà
+  /// validée par `updatePreview`. On supprime ainsi la reconstruction d'un faux doigt
+  /// (`preview + selectedCellInPiece`) puis sa re-dérivation en ancre — deux conventions de
+  /// référence qui ne coïncidaient qu'à condition d'une resynchro parfaite (défaut 3.3).
+  bool tryPlaceAtAnchor(int anchorX, int anchorY) {
     if (state.selectedPiece == null) return false;
 
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
     final wasPlacedPiece = state.selectedPlacedPiece != null;
-
-    final desiredAnchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
-    int anchorX = desiredAnchor.x;
-    int anchorY = desiredAnchor.y;
 
     if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
       return false;
