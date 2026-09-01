@@ -106,6 +106,13 @@ pièce posée, ③ supprimer (glisser vers le tiroir).
 - Aggravant : `selectPlacedPiece` (prov ~563-571) cherche `selectedCellInPiece` en comparant
   `rawLocal` à des coords **non normalisées** alors que les cellules sont **normalisées** → si
   l'offset de forme ≠ 0, match raté et **fallback brut** `Point(rawLocalX, rawLocalY)`.
+- **Fourche C, métrique du snap aveugle à la direction (piste de Paul, la plus probable pour le
+  « ça monte »).** `_findClosestValidPlacement` retient l'ancre valide qui minimise
+  `dx*dx + dy*dy` — **isotrope** (x et y pèsent pareil) et **sans plafond** sur `main` (le plafond
+  ~1,5 case était le correctif 4 du chantier, reverté). Conséquence : si la case visée par le doigt
+  est occupée, monter d'une ligne (`dy=1`, d²=1) **bat** continuer horizontalement de deux cases
+  (`dx=2`, d²=4) → la pièce « saute vers le haut » pendant un glissé horizontal, et le saut n'est
+  même pas borné. La métrique ignore **la direction du geste**.
 
 **Hypothèse (à PROUVER par mesure, pas à affirmer).** Le décalage vit dans le **trajet ②** :
 aperçu (snap) et dépôt (reconstruction + re-dérivation `masterAbs`) divergent, et
@@ -120,6 +127,21 @@ snappée et validée — **au lieu** de reconstruire un faux doigt puis de re-d�
 fourche A d'un coup. Corriger en parallèle le raw-vs-normalisé de `selectPlacedPiece` (fourche B /
 fallback). Ne PAS ré-empaqueter avec d'autres retouches (c'est ce qui a coulé le chantier) ; un
 correctif = un commit, testé à l'écran par Paul, l'asymétrie ①/② servant d'oracle avant/après.
+
+**Correctif A — snap conscient de l'axe du geste (en préparation, 2026-09-01).** Vise la fourche C.
+**Objection posée puis intégrée** : le « A naïf » (ne garder que les candidats de même ligne)
+créerait le **bug miroir** pour un glissé vertical (saut latéral) ; aucune métrique *statique* ne
+distingue horizontal de vertical quand la géométrie est symétrique. Il faut donc **la direction
+réelle du geste**. Implémentation retenue : suivre l'axe dominant du mouvement (case doigt
+précédente → courante, dans `updatePreview`, via un champ transitoire `_dragAxis` remis à zéro à
+chaque sélection/pose), puis dans `_findClosestValidPlacement` **départager lexicographiquement** —
+axe horizontal : minimiser d'abord `|Δligne|` puis `|Δcolonne|` ; axe vertical : l'inverse ; axe
+inconnu : isotrope (comportement d'avant). Pas de plafond réintroduit (hors périmètre). Livré sur la
+branche **`snap-directionnel`** (hors `main` tant que non testé), en **2 commits** : (1)
+instrumentation DRAGDIAG rebranchée (oracle avant/après, `drag_diag.dart` du backup + log
+`event=snap` avec `axis`, snap encore isotrope) ; (2) le changement de métrique.
+Oracle : `event=snap` doit montrer, après (2), un `chosen` qui **reste sur la ligne du doigt** en
+glissé horizontal. Test à l'écran par Paul.
 
 ### Documentation
 
