@@ -1,7 +1,11 @@
-// Modified: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique  vers
-//           lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
-//           et le multijoueur, sorti avant la suppression du dossier classique.
+// Modified: 2026-09-01 07:54 — correctif 1 (PLAN_DEPLACEMENT_PIECE §4) : les deux Draggable du
+//           tiroir passent en pointerDragAnchorStrategy (details.offset = doigt exact, plus le
+//           décalage multi-cases du childDragAnchorStrategy, mécanisme (a) « en pire ») ; feedback
+//           recentré par FractionalTranslation(-0.5,-0.5).
 // lib/common/widgets/draggable_piece_widget.dart
+// Historique: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique vers
+//             lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
+//             et le multijoueur.
 // Widget pour gérer le drag & drop d'une pièce avec double-tap
 
 import 'dart:async';
@@ -107,6 +111,9 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
     if (widget.isSelected) {
       return Draggable<Pento>(
         data: widget.piece,
+        // Correctif 1 (§4) : le doigt, pas le coin de la pièce (mécanisme (a) « en pire »
+        // au tiroir, où l'enfant est la pièce entière et dragStartPoint vaut plusieurs cases).
+        dragAnchorStrategy: pointerDragAnchorStrategy,
         onDragStarted: () {
           // Déjà sélectionnée, pas besoin de rappeler onSelect
         },
@@ -115,9 +122,13 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
             widget.onCancel();
           }
         },
-        feedback: Material(
-          color: Colors.transparent,
-          child: widget.childBuilder(true),
+        // Recentre le feedback sous le doigt (−feedbackSize/2 sur chaque axe).
+        feedback: FractionalTranslation(
+          translation: const Offset(-0.5, -0.5),
+          child: Material(
+            color: Colors.transparent,
+            child: widget.childBuilder(true),
+          ),
         ),
         childWhenDragging: Opacity(
           opacity: 0.3,
@@ -134,6 +145,8 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
       return LongPressDraggable<Pento>(
         data: widget.piece,
         delay: widget.longPressDuration,
+        // Correctif 1 (§4) : le doigt, pas le coin de la pièce (mécanisme (a) « en pire »).
+        dragAnchorStrategy: pointerDragAnchorStrategy,
         onDragStarted: () {
           widget.onSelect();
         },
@@ -142,9 +155,13 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
             widget.onCancel();
           }
         },
-        feedback: Material(
-          color: Colors.transparent,
-          child: widget.childBuilder(true),
+        // Recentre le feedback sous le doigt (−feedbackSize/2 sur chaque axe).
+        feedback: FractionalTranslation(
+          translation: const Offset(-0.5, -0.5),
+          child: Material(
+            color: Colors.transparent,
+            child: widget.childBuilder(true),
+          ),
         ),
         childWhenDragging: Opacity(
           opacity: 0.3,

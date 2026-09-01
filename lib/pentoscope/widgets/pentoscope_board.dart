@@ -1,8 +1,9 @@
-// Modified: 2026-09-01 07:54 — commit 0 (PLAN_DEPLACEMENT_PIECE §5) : instrumentation kDebugMode
-//           du glissé. dragAnchorStrategy sur le Draggable de case journalise
-//           caseSaisie/masterAbs/dragStartPoint/cellSize, en déléguant à childDragAnchorStrategy
-//           — aucun changement de comportement.
+// Modified: 2026-09-01 07:54 — correctif 1 (PLAN_DEPLACEMENT_PIECE §4) : Draggable de case en
+//           pointerDragAnchorStrategy (details.offset = doigt exact, tue le mécanisme (a)) ;
+//           feedback recentré par FractionalTranslation(-0.5,-0.5). Le log kDebugMode du
+//           commit 0 subsiste.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 07:54 — commit 0 : instrumentation kDebugMode du glissé (dragAnchorStrategy).
 // Historique: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
 //             plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35).
 // Historique: 2026-08-31 15:00 — réglage à l'œil : kPieceToBoardCellRatio 0.45 → 0.35.
@@ -423,14 +424,14 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       final emptyCell = Container(color: Colors.grey.shade300);
       cellWidget = Draggable<Pento>(
         data: state.selectedPiece!,
-        // 🔬 Commit 0 (PLAN_DEPLACEMENT_PIECE §5) — instrumentation SANS effet :
-        // on délègue à childDragAnchorStrategy (comportement par défaut, inchangé)
-        // et on journalise, sous kDebugMode, de quoi départager les mécanismes (a)
-        // et (b) du plan : caseSaisie ≠ masterAbs prouve (b) ; dragStartPoint.dy
-        // > cellSize/2 prouve (a). Reste en place tout le chantier, retirée au dernier commit.
+        // Correctif 1 (§4) — pointerDragAnchorStrategy : details.offset devient
+        // EXACTEMENT la position globale du doigt (plus le décalage intra-case du
+        // childDragAnchorStrategy, mécanisme (a) du plan).
+        // Le log kDebugMode du commit 0 subsiste : on calcule encore la position
+        // intra-case (childDragAnchorStrategy) pour la mesure, sans l'utiliser.
         dragAnchorStrategy: (draggable, dragContext, position) {
-          final within = childDragAnchorStrategy(draggable, dragContext, position);
           if (kDebugMode) {
+            final within = childDragAnchorStrategy(draggable, dragContext, position);
             debugPrint(
               '[drag-instr] caseSaisie=($logicalX,$logicalY) '
               'masterAbs=${state.selectedMasterAbs} '
@@ -438,23 +439,29 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               'cellSize=${cellSize.toStringAsFixed(1)}',
             );
           }
-          return within;
+          return pointerDragAnchorStrategy(draggable, dragContext, position);
         },
         onDragStarted: () => notifier.setDragging(true),
         onDragEnd: (_) => notifier.setDragging(false),
-        feedback: Material(
-          color: Colors.transparent,
-          child: PieceRenderer(
-            piece: state.selectedPiece!,
-            positionIndex: _getDisplayPositionIndex(
-              state.selectedPositionIndex,
-              state.selectedPiece!,
-              isLandscape,
+        // Correctif 1 (§4), suite cosmétique : avec pointerDragAnchorStrategy le coin
+        // haut-gauche du feedback se pose sous le doigt. FractionalTranslation(-0.5,-0.5)
+        // le recentre — soit −feedbackSize/2 sur chaque axe, sans calculer la taille.
+        feedback: FractionalTranslation(
+          translation: const Offset(-0.5, -0.5),
+          child: Material(
+            color: Colors.transparent,
+            child: PieceRenderer(
+              piece: state.selectedPiece!,
+              positionIndex: _getDisplayPositionIndex(
+                state.selectedPositionIndex,
+                state.selectedPiece!,
+                isLandscape,
+              ),
+              isDragging: true,
+              // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
+              cellSize: cellSize * kPieceToBoardCellRatio,
+              getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
             ),
-            isDragging: true,
-            // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
-            cellSize: cellSize * kPieceToBoardCellRatio,
-            getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
           ),
         ),
         childWhenDragging: previewInfo.isPreview ? cellWidget : emptyCell,
