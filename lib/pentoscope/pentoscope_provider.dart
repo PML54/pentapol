@@ -1,6 +1,7 @@
-// Modified: 2026-09-01 07:54 — correctif 3 (PLAN_DEPLACEMENT_PIECE §4) : tryPlaceAtAnchor place à
-//           l'ancre directement ; tryPlacePiece délègue. Le dépôt utilise previewX/previewY sans
-//           reconstruire de faux doigt (défaut 3.3).
+// Modified: 2026-09-01 07:54 — correctif 4 (PLAN_DEPLACEMENT_PIECE §4) : plafond d'aimantation ~1,5
+//           case dans _findClosestValidPlacement (défaut 3.1) ; au-delà, aperçu rouge à l'ancre
+//           désirée dans updatePreview. Dépend des correctifs 1 et 2 (§7).
+// Historique: 2026-09-01 07:54 — correctif 3 : tryPlaceAtAnchor + dépôt à previewX/previewY (défaut 3.3).
 // Historique: 2026-09-01 07:54 — correctif 2 : setDragMastercase ancre le glissé sur la case saisie (b).
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
 //             startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
@@ -1070,9 +1071,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final snappedPlacement = _findClosestValidPlacement(gridX, gridY);
 
     if (snappedPlacement == null) {
-      if (state.previewX != null || state.previewY != null) {
-        state = state.copyWith(clearPreview: true);
-      }
+      // Correctif 4 (§4) : ici validPlacements n'est pas vide (CAS 1 l'a écarté), donc null
+      // signifie « aucun placement valide sous le plafond d'aimantation ». Aperçu ROUGE à
+      // l'ancre désirée, plutôt que téléportation vers le placement valide le plus lointain.
+      final desiredAnchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
+      state = state.copyWith(
+        previewX: desiredAnchor.x,
+        previewY: desiredAnchor.y,
+        isPreviewValid: false, // 🔴 ROUGE — placement refusé au dépôt
+      );
       return;
     }
 
@@ -1905,6 +1912,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         closest = placement;
       }
     }
+
+    // Correctif 4 (§4) — plafond d'aimantation : au-delà d'environ 1,5 case de l'ancre
+    // désirée, on refuse le snap (retour null) plutôt que de téléporter la pièce vers le
+    // seul placement valide restant, aussi lointain soit-il (défaut 3.1). Distance au carré,
+    // donc seuil au carré. Ne peut être en service qu'avec les correctifs 1 et 2 (§7).
+    const double maxSnapDistanceSquared = 1.5 * 1.5;
+    if (minDistance > maxSnapDistanceSquared) return null;
 
     return closest;
   }
