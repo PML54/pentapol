@@ -1,6 +1,8 @@
-// Modified: 2026-09-01 07:54 — correctif 5 (PLAN_DEPLACEMENT_PIECE §4) : selectPlacedPiece — boucle
-//           morte de mastercase supprimée, remplacée par la formule directe (absolu − ancre),
-//           défaut 3.4. (Nettoyage board 3.5/debug dans le même commit.)
+// Modified: 2026-09-01 09:20 — instrumentation DRAGDIAG (PLAN_DIAG_DRAG §3) : points de log
+//           « résolution du snap » dans updatePreview (cas rouge) et _findClosestValidPlacement
+//           (candidats + choix + plafond), derrière kDragDiag. Log seul, aucune correction.
+// Historique: 2026-09-01 07:54 — correctif 5 (PLAN_DEPLACEMENT_PIECE §4) : selectPlacedPiece — boucle
+//             morte de mastercase supprimée, remplacée par la formule directe (absolu − ancre), 3.4.
 // Historique: 2026-09-01 07:54 — correctif 4 : plafond d'aimantation ~1,5 case (défaut 3.1).
 // Historique: 2026-09-01 07:54 — correctif 3 : tryPlaceAtAnchor + dépôt à previewX/previewY (défaut 3.3).
 // Historique: 2026-09-01 07:54 — correctif 2 : setDragMastercase ancre le glissé sur la case saisie (b).
@@ -52,6 +54,7 @@ import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
+import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/common/transformation_result.dart';
 export 'package:pentapol/common/transformation_result.dart';
 import 'package:pentapol/common/view_orientation.dart';
@@ -1040,6 +1043,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (state.validPlacements.isEmpty) {
       // Calculer l'ancre en appliquant le vecteur de translation
       final desiredAnchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
+      // DRAGDIAG (§3) — résolution du snap, cas « aucun placement valide » (rouge). Log seul.
+      if (kDragDiag) {
+        dragDiag(
+          'event=snap,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
+          'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},'
+          'inX=$gridX,inY=$gridY,desiredX=${desiredAnchor.x},desiredY=${desiredAnchor.y},'
+          'ncand=0,reason=red-novalid',
+        );
+      }
       state = state.copyWith(
         previewX: desiredAnchor.x,
         previewY: desiredAnchor.y,
@@ -1899,9 +1911,38 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // seul placement valide restant, aussi lointain soit-il (défaut 3.1). Distance au carré,
     // donc seuil au carré. Ne peut être en service qu'avec les correctifs 1 et 2 (§7).
     const double maxSnapDistanceSquared = 1.5 * 1.5;
-    if (minDistance > maxSnapDistanceSquared) return null;
+    final bool rejected = minDistance > maxSnapDistanceSquared;
 
+    // DRAGDIAG (§3) — résolution du snap : ancre désirée, candidats évalués (triés par distance²,
+    // pour voir les égalités H2), ancre retenue, et raison (snapped / rejet par plafond). Log seul.
+    if (kDragDiag) {
+      dragDiag(
+        'event=snap,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
+        'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},'
+        'inX=$dragGridX,inY=$dragGridY,desiredX=${desiredAnchor.x},desiredY=${desiredAnchor.y},'
+        'ncand=${state.validPlacements.length},chosenX=${closest.x},chosenY=${closest.y},'
+        'd2=${minDistance.toStringAsFixed(3)},reason=${rejected ? 'red-plafond' : 'snapped'},'
+        'cand=${_diagCandidates(desiredAnchor)}',
+      );
+    }
+
+    if (rejected) return null;
     return closest;
+  }
+
+  /// DRAGDIAG — liste compacte des ancres candidates, triées par distance² à l'ancre désirée et
+  /// limitée aux 8 plus proches : `x:y:d2|x:y:d2|…`. Rend visibles les égalités de distance (H2).
+  String _diagCandidates(Point desiredAnchor) {
+    final scored = state.validPlacements.map((p) {
+      final dx = (desiredAnchor.x - p.x).toDouble();
+      final dy = (desiredAnchor.y - p.y).toDouble();
+      return (p: p, d2: dx * dx + dy * dy);
+    }).toList()
+      ..sort((a, b) => a.d2.compareTo(b.d2));
+    return scored
+        .take(8)
+        .map((e) => '${e.p.x}:${e.p.y}:${e.d2.toStringAsFixed(2)}')
+        .join('|');
   }
 
   /// Génère TOUS les placements possibles pour une pièce à une positionIndex donnée

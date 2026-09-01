@@ -104,6 +104,43 @@ pré-chantier) — `git reset --hard avant-deplacement-piece` annule tout le lot
 
 ---
 
+## §DÉCISIONS
+
+> Section **recréée le 2026-09-01** pour le seul épisode `PLAN_DIAG_DRAG` (diagnostic du décalage
+> horizontal au drag), comme le demandent le §6 du plan et l'instruction de Paul. Elle n'annule pas
+> la suppression de l'ancienne §DÉCISIONS (2026-08-31) : usage ponctuel, à résorber une fois la ou
+> les causes prouvées et le correctif appliqué. Les numéros de ligne sont datés du 2026-09-01 ;
+> l'ancre durable est le nom de méthode.
+
+**2026-09-01 — Instrumentation DRAGDIAG posée (aucune correction).** Logger commun
+`lib/common/drag_diag.dart` : flag `kDragDiag` (`const` ; `false` → tree-shaké en release, sans
+effet hors debug), `dragDiag()` émet une ligne `DRAGDIAG,` par événement (jetons `clé=valeur`
+séparés par virgules, `grep DRAGDIAG` + `awk -F,`), `dragDiagSample(5)` échantillonne les move 1/5,
+`dragDiagResetSample()` remet le compteur à chaque pointer-down. Analyze 0 error / 0 warning /
+0 dead_code aux deux états du flag. **Flag laissé à `true`** pour la phase de capture du §4 (build
+**debug** obligatoire — `debugPrint` est supprimé en `--release`) ; **à remettre à `false`** une
+fois les causes prouvées. Émission live **non vérifiée** faute de run device (protocole §4 = Paul).
+
+**Emplacement exact des points de log :**
+
+| événement | mode | fichier:ligne (2026-09-01) | ancre (méthode) |
+|---|---|---|---|
+| `down` | A (tray) | `common/widgets/draggable_piece_widget.dart:126` | `_diagAnchor` (dragAnchorStrategy des deux Draggable du tiroir) |
+| `down` | B (plateau) | `pentoscope/widgets/pentoscope_board.dart:454` | `dragAnchorStrategy` du `Draggable<Pento>` de la case sélectionnée (`_buildCell`) |
+| `move` | A+B | `pentoscope/widgets/pentoscope_board.dart:132` | `DragTarget.onMove` — colonnes **fractionnaires** (`fcol/frow`) vs `floor` (`vcol/vrow`, `lcol/lrow`), échantillonné 1/5 |
+| `snap` (rouge, 0 valide) | A+B | `pentoscope/pentoscope_provider.dart:1048` | `updatePreview` CAS 1 (`validPlacements` vide) |
+| `snap` (choix/plafond) | A+B | `pentoscope/pentoscope_provider.dart:1919` | `_findClosestValidPlacement` — `desiredAnchor`, `cand=` (8 plus proches triés par d², voit les égalités H2), `chosen`, `reason=snapped\|red-plafond` |
+| `drop` | A+B | `pentoscope/widgets/pentoscope_board.dart:177` | `DragTarget.onAcceptWithDetails` — `fcol` brut du doigt vs `finalX/finalY` (ancre déposée) |
+
+Rappels de mécanisme utiles à la lecture : la troncature pixel→cellule (**H1**) est le `floor` de
+`onMove` (`pentoscope_board.dart`, calcul de `visualX/visualY`) ; l'**ancre désirée** vient de
+`_calculateDesiredAnchorFromDrag` (mode B via `selectedMasterAbs`, mode A via `selectedCellInPiece`
+— **H4**) ; le snap garde le **premier** candidat à distance² minimale (**H2**), sous plafond
+`1.5²` (**H3/H4**). **Causes prouvées : à consigner ici après les 20 descentes du §4** (non encore
+faites — Paul, sur device).
+
+---
+
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.

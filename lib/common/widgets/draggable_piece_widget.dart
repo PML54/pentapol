@@ -1,8 +1,10 @@
-// Modified: 2026-09-01 08:58 — hitBoxSize optionnel : la zone tactile au repos remplit toute la
-//           boîte de la case (opaque) au lieu de la seule pièce, pour que le « I » (1 case de
-//           large) s'attrape aussi bien que les autres. Le feedback de drag reste à la taille de
-//           la pièce. null = comportement d'avant (multijoueur inchangé).
+// Modified: 2026-09-01 09:20 — instrumentation DRAGDIAG (PLAN_DIAG_DRAG §3) : point de log
+//           « pointer-down » du mode A (tray) dans le dragAnchorStrategy, derrière kDragDiag.
+//           Log seul, comportement inchangé (retourne toujours pointerDragAnchorStrategy).
 // lib/common/widgets/draggable_piece_widget.dart
+// Historique: 2026-09-01 08:58 — hitBoxSize optionnel : la zone tactile au repos remplit toute la
+//             boîte de la case (opaque) au lieu de la seule pièce, pour que le « I » (1 case de
+//             large) s'attrape aussi bien que les autres. null = comportement d'avant.
 // Historique: 2026-09-01 07:54 — correctif 1 (PLAN_DEPLACEMENT_PIECE §4) : les deux Draggable du
 //             tiroir passent en pointerDragAnchorStrategy (details.offset = doigt exact, plus le
 //             décalage multi-cases du childDragAnchorStrategy, mécanisme (a) « en pire ») ; feedback
@@ -15,6 +17,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/drag_diag.dart';
 
 /// Widget pour gérer proprement le double-tap sans propagation
 /// 
@@ -113,6 +116,22 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
     });
   }
 
+  /// DRAGDIAG (PLAN_DIAG_DRAG §3) — point de log « pointer-down » du mode A (tray). Ancre le drag
+  /// exactement sous le doigt (pointerDragAnchorStrategy) ; le grab offset intra-pièce
+  /// (childDragAnchorStrategy) n'est calculé que pour la mesure. Comportement inchangé.
+  Offset _diagAnchor(Draggable<Object> draggable, BuildContext ctx, Offset position) {
+    if (kDragDiag) {
+      dragDiagResetSample();
+      final within = childDragAnchorStrategy(draggable, ctx, position);
+      dragDiag(
+        'event=down,mode=A,src=tray,piece=${widget.piece.id},ori=${widget.positionIndex},'
+        'gx=${position.dx.toStringAsFixed(1)},gy=${position.dy.toStringAsFixed(1)},'
+        'grabx=${within.dx.toStringAsFixed(1)},graby=${within.dy.toStringAsFixed(1)}',
+      );
+    }
+    return pointerDragAnchorStrategy(draggable, ctx, position);
+  }
+
   /// Zone au repos : opaque sur toute la boîte quand hitBoxSize est fourni, sinon collée à la pièce.
   Widget _restingChild() {
     final gesture = GestureDetector(
@@ -151,7 +170,7 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
         data: widget.piece,
         // Correctif 1 (§4) : le doigt, pas le coin de la pièce (mécanisme (a) « en pire »
         // au tiroir, où l'enfant est la pièce entière et dragStartPoint vaut plusieurs cases).
-        dragAnchorStrategy: pointerDragAnchorStrategy,
+        dragAnchorStrategy: _diagAnchor,
         onDragStarted: () {
           // Déjà sélectionnée, pas besoin de rappeler onSelect
         },
@@ -176,7 +195,7 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
         data: widget.piece,
         delay: widget.longPressDuration,
         // Correctif 1 (§4) : le doigt, pas le coin de la pièce (mécanisme (a) « en pire »).
-        dragAnchorStrategy: pointerDragAnchorStrategy,
+        dragAnchorStrategy: _diagAnchor,
         onDragStarted: () {
           widget.onSelect();
         },

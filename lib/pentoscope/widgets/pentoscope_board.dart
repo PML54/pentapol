@@ -1,7 +1,9 @@
-// Modified: 2026-09-01 07:54 — correctif 5 (PLAN_DEPLACEMENT_PIECE §4) : nettoyage du glissé —
-//           onLeave ne vide plus l'aperçu (3.5), retrait des debugPrint de glissé, de margin=100.0
-//           et du cas « pièce 12 ». L'instrumentation kDebugMode du commit 0 est conservée.
+// Modified: 2026-09-01 09:20 — instrumentation DRAGDIAG (PLAN_DIAG_DRAG §3) : pointer-down mode B
+//           (dragAnchorStrategy), pointer-move échantillonné (onMove, colonnes fractionnaires vs
+//           floor H1) et pointer-up/drop (onAccept). Derrière kDragDiag, log seul, rien corrigé.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 07:54 — correctif 5 (PLAN_DEPLACEMENT_PIECE §4) : nettoyage du glissé —
+//             onLeave ne vide plus l'aperçu (3.5), retrait des debugPrint de glissé, margin, pièce 12.
 // Historique: 2026-09-01 07:54 — correctif 3 : dépôt à previewX/previewY via tryPlaceAtAnchor (3.3).
 // Historique: 2026-09-01 07:54 — correctif 2 : onDragStarted → setDragMastercase (mécanisme (b)).
 // Historique: 2026-09-01 07:54 — correctif 1 : Draggable de case en pointerDragAnchorStrategy
@@ -22,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
@@ -120,6 +123,23 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               logicalY = visualY;
             }
 
+            // DRAGDIAG (§3) — pointer-move échantillonné 1/5 : colonne/ligne FRACTIONNAIRES
+            // (avant floor) vs entières retenues. C'est ici que vit la troncature H1 (floor,
+            // lignes ci-dessus). Log seul, ne modifie rien.
+            if (kDragDiag && dragDiagSample()) {
+              final fcol = cellSize == 0 ? 0.0 : plateauX / cellSize;
+              final frow = cellSize == 0 ? 0.0 : plateauY / cellSize;
+              dragDiag(
+                'event=move,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
+                'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},'
+                'gx=${details.offset.dx.toStringAsFixed(1)},gy=${details.offset.dy.toStringAsFixed(1)},'
+                'localx=${plateauX.toStringAsFixed(1)},localy=${plateauY.toStringAsFixed(1)},'
+                'fcol=${fcol.toStringAsFixed(3)},frow=${frow.toStringAsFixed(3)},'
+                'vcol=$visualX,vrow=$visualY,lcol=$logicalX,lrow=$logicalY,'
+                'cell=${cellSize.toStringAsFixed(1)}',
+              );
+            }
+
             notifier.updatePreview(logicalX, logicalY);
           },
           onLeave: (data) {
@@ -145,6 +165,24 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               state.previewX!,
               state.previewY!,
             );
+
+            // DRAGDIAG (§3) — pointer-up/drop : colonne fractionnaire brute du doigt vs cellule
+            // finale déposée (previewX/Y = ancre snappée). Log seul.
+            if (kDragDiag) {
+              final localOffset = renderBox.globalToLocal(details.offset);
+              final dropPlateauX = localOffset.dx - offsetX;
+              final dropPlateauY = localOffset.dy - offsetY;
+              final fcol = cellSize == 0 ? 0.0 : dropPlateauX / cellSize;
+              final frow = cellSize == 0 ? 0.0 : dropPlateauY / cellSize;
+              dragDiag(
+                'event=drop,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
+                'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},'
+                'gx=${details.offset.dx.toStringAsFixed(1)},gy=${details.offset.dy.toStringAsFixed(1)},'
+                'fcol=${fcol.toStringAsFixed(3)},frow=${frow.toStringAsFixed(3)},'
+                'finalX=${state.previewX},finalY=${state.previewY},'
+                'placed=$success',
+              );
+            }
 
             if (success) {
               HapticFeedback.mediumImpact();
@@ -406,6 +444,21 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               'masterAbs=${state.selectedMasterAbs} '
               'dragStartPoint=(${within.dx.toStringAsFixed(1)},${within.dy.toStringAsFixed(1)}) '
               'cellSize=${cellSize.toStringAsFixed(1)}',
+            );
+          }
+          // DRAGDIAG (§3) — pointer-down mode B (pièce déjà posée) : grab offset, case saisie,
+          // mastercase. Log seul, distinct de l'instrumentation commit-0 ci-dessus.
+          if (kDragDiag) {
+            dragDiagResetSample();
+            final within = childDragAnchorStrategy(draggable, dragContext, position);
+            dragDiag(
+              'event=down,mode=B,src=board,piece=${state.selectedPiece?.id},'
+              'ori=${state.selectedPositionIndex},'
+              'gx=${position.dx.toStringAsFixed(1)},gy=${position.dy.toStringAsFixed(1)},'
+              'grabx=${within.dx.toStringAsFixed(1)},graby=${within.dy.toStringAsFixed(1)},'
+              'caseX=$logicalX,caseY=$logicalY,'
+              'masterX=${state.selectedMasterAbs?.x},masterY=${state.selectedMasterAbs?.y},'
+              'cell=${cellSize.toStringAsFixed(1)}',
             );
           }
           return pointerDragAnchorStrategy(draggable, dragContext, position);
