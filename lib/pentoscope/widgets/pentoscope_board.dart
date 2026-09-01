@@ -1,7 +1,9 @@
-// Modified: 2026-09-01 15:30 — fourche A/B (JOURNAL) : onAccept dépose DIRECTEMENT à l'ancre de
-//           l'aperçu (tryPlaceAtAnchor(previewX,previewY)) au lieu de reconstruire un faux doigt
-//           + re-dériver (qui replaçait −minY plus haut au relâcher). + log DRAGDIAG event=drop.
+// Modified: 2026-09-01 15:45 — prise stable : onDragStarted ancre la mastercase sur la cellule
+//           empoignée (setDragMastercase(logicalX,logicalY)) avant setDragging — la référence ne
+//           dépend plus du dernier tap. (Dépôt à l'aperçu / fourche A/B conservé.)
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 15:30 — fourche A/B : onAccept dépose à l'ancre de l'aperçu
+//             (tryPlaceAtAnchor(previewX,previewY)), plus de reconstruction. + log event=drop.
 // Historique: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
 //             plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35).
 // Historique: 2026-08-31 15:00 — réglage à l'œil : kPieceToBoardCellRatio 0.45 → 0.35.
@@ -422,7 +424,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       final emptyCell = Container(color: Colors.grey.shade300);
       cellWidget = Draggable<Pento>(
         data: state.selectedPiece!,
-        onDragStarted: () => notifier.setDragging(true),
+        onDragStarted: () {
+          // Ancrer la mastercase sur la cellule empoignée (logicalX/Y), pas sur le dernier tap :
+          // la prise devient stable et la direction est mesurée depuis le doigt.
+          notifier.setDragMastercase(logicalX, logicalY);
+          notifier.setDragging(true);
+        },
         onDragEnd: (_) => notifier.setDragging(false),
         feedback: Material(
           color: Colors.transparent,

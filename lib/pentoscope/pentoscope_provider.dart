@@ -1,6 +1,8 @@
-// Modified: 2026-09-01 15:10 — correctif A commit 2 : le snap RESPECTE le sens du geste. Horizontal
-//           → rester sur la ligne d'origine (sp.gridY) puis avancer vers le doigt ; vertical →
-//           symétrique ; ~45°/tiroir → isotrope. Remplace la distance dx²+dy² qui « montait ».
+// Modified: 2026-09-01 15:45 — prise stable : setDragMastercase ancre la mastercase sur la cellule
+//           empoignée au départ du drag (au lieu du dernier tap), pour que la direction parte du
+//           doigt. + log DRAGDIAG event=grab. (Correctif A snap + fourche A/B déjà en place.)
+// Historique: 2026-09-01 15:10 — correctif A commit 2 : le snap RESPECTE le sens du geste (horizontal
+//             → rester sur la ligne d'origine puis avancer vers le doigt ; ~45°/tiroir → isotrope).
 // Historique: 2026-09-01 15:05 — correctif A commit 1 : _gestureAxis (case saisie → doigt) + log
 //             DRAGDIAG event=snap avec axis, snap encore isotrope.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
@@ -600,6 +602,27 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         .toList();
 
     state = state.copyWith(validPlacements: validPlacements);
+  }
+
+  /// Ancre la mastercase sur la cellule **réellement empoignée** au départ du drag
+  /// (`absoluteX/absoluteY` = case du plateau sous le doigt), au lieu de garder celle du
+  /// dernier tap. Sans ça, la prise n'est pas stable et la direction est mesurée depuis un
+  /// point qui n'est pas sous le doigt. `selectedCellInPiece` = coord locale normalisée de
+  /// cette cellule (= absolu − ancre, les cellules étant à `gridX/Y + local normalisé`).
+  void setDragMastercase(int absoluteX, int absoluteY) {
+    final sp = state.selectedPlacedPiece;
+    if (sp == null) return;
+    state = state.copyWith(
+      selectedCellInPiece: Point(absoluteX - sp.gridX, absoluteY - sp.gridY),
+      selectedMasterAbs: Point(absoluteX, absoluteY),
+    );
+    if (kDragDiag) {
+      dragDiag(
+        'event=grab,piece=${sp.piece.id},ori=${state.selectedPositionIndex},'
+        'grabAbsX=$absoluteX,grabAbsY=$absoluteY,anchorX=${sp.gridX},anchorY=${sp.gridY},'
+        'cellInPieceX=${absoluteX - sp.gridX},cellInPieceY=${absoluteY - sp.gridY}',
+      );
+    }
   }
 
   /// À appeler depuis l'UI (board) quand l'orientation change.
