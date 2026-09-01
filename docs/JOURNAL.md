@@ -61,16 +61,19 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 Le chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a fait **apparaître beaucoup d'anomalies**
 (déplacements aléatoires) au test de Paul. Décision de Paul : **revenir à l'état pré-chantier**.
-La branche `deplacement-piece` a donc été **reset --hard sur `1efda1a`** (= `main` = tag
-`avant-deplacement-piece`). Tout le chantier ET l'instrumentation DRAGDIAG posée ensuite sont
-**écartés du tree**, mais **conservés intacts** dans deux refs de sauvegarde, sur `c5306b5` :
+La branche de travail a été **reset --hard sur `1efda1a`** (= tag `avant-deplacement-piece`), puis
+l'ergonomie conservée (voir plus bas) **fusionnée dans `main`** (`b9bec37`, fast-forward) et
+**poussée sur `origin`**. La branche `deplacement-piece`, devenue redondante, a été **supprimée**.
+Tout le chantier ET l'instrumentation DRAGDIAG posée ensuite sont **écartés du tree** mais
+**conservés intacts** sur `c5306b5` :
 
-- tag **`chantier-deplacement-backup`**
-- branche **`backup/deplacement-piece-c5306b5`**
+- branche **`backup/deplacement-piece-c5306b5`** — **poussée sur `origin`** (donc visible pour
+  cowork sur un clone neuf ; ne PAS la fusionner, c'est une archive).
+- tag **`chantier-deplacement-backup`** — **local à la machine du CLI** (non poussé).
 
 On y retrouve : plan `PLAN_DEPLACEMENT_PIECE.md`, correctifs 1→5 (carte des sha dans le `git log`
 du backup), `PLAN_DIAG_DRAG.md` et l'instrumentation `lib/common/drag_diag.dart` + points DRAGDIAG.
-**Rien n'est perdu** — reprise possible par `git cherry-pick`/`checkout` depuis ces refs.
+**Rien n'est perdu** — reprise possible par `git cherry-pick`/`checkout` depuis la branche de backup.
 
 **Conservés par-dessus le pré-chantier** (indépendants du chantier, validés par Paul) : les deux
 correctifs d'ergonomie du 2026-09-01 — (a) saisie du « I » (barre des pièces, `hitBoxSize` : toute
@@ -104,11 +107,11 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-Poussé jusqu'à `4678d28` (étape B + chantiers lettres et solveur). `main` = `1efda1a`. La branche
-`deplacement-piece` a été **reset sur `1efda1a`** puis porte le seul commit d'ergonomie (voir
-§ÉTAT « REVERT »). Refs de sauvegarde du chantier écarté : tag `chantier-deplacement-backup` et
-branche `backup/deplacement-piece-c5306b5`, sur `c5306b5` — **ne pas supprimer** tant que la
-question du déplacement n'est pas retranchée.
+`origin/main` = **`b9bec37`** (pré-chantier `1efda1a` + le commit d'ergonomie « I »/Paramètres),
+poussé. La branche `deplacement-piece` a été **supprimée** (fusionnée dans `main`). Sauvegarde du
+chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag
+`chantier-deplacement-backup` (local seul), tous deux sur `c5306b5` — **ne pas supprimer** tant que
+la question du déplacement d'une pièce n'est pas retranchée. Détail dans §ÉTAT « REVERT ».
 
 > ⚠️ `settings_database.g.dart` (généré) est gitignoré : après un `pull`, régénérer par
 > `dart run build_runner build --delete-conflicting-outputs`. `subset_counts.bin` **est** suivi.
