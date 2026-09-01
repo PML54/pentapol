@@ -1,6 +1,7 @@
-// Modified: 2026-09-01 07:54 — correctif 4 (PLAN_DEPLACEMENT_PIECE §4) : plafond d'aimantation ~1,5
-//           case dans _findClosestValidPlacement (défaut 3.1) ; au-delà, aperçu rouge à l'ancre
-//           désirée dans updatePreview. Dépend des correctifs 1 et 2 (§7).
+// Modified: 2026-09-01 07:54 — correctif 5 (PLAN_DEPLACEMENT_PIECE §4) : selectPlacedPiece — boucle
+//           morte de mastercase supprimée, remplacée par la formule directe (absolu − ancre),
+//           défaut 3.4. (Nettoyage board 3.5/debug dans le même commit.)
+// Historique: 2026-09-01 07:54 — correctif 4 : plafond d'aimantation ~1,5 case (défaut 3.1).
 // Historique: 2026-09-01 07:54 — correctif 3 : tryPlaceAtAnchor + dépôt à previewX/previewY (défaut 3.3).
 // Historique: 2026-09-01 07:54 — correctif 2 : setDragMastercase ancre le glissé sur la case saisie (b).
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
@@ -547,33 +548,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   ) {
     if (state.isComplete) return; // ← Bloquer si puzzle complet
 
-    // Calculer la cellule locale cliquée (mastercase) en coordonnées brutes
-    final rawLocalX = absoluteX - placed.gridX;
-    final rawLocalY = absoluteY - placed.gridY;
-
-    // Convertir en coordonnées normalisées (comme dans _remapSelectedCell)
-    final position = placed.piece.orientations[placed.positionIndex];
-    final coords = position.map((cellNum) {
-      final x = (cellNum - 1) % 5;
-      final y = (cellNum - 1) ~/ 5;
-      return Point(x, y);
-    }).toList();
-
-    final minX = coords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-    final minY = coords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
-    final normalizedCoords = coords.map((p) => Point(p.x - minX, p.y - minY)).toList();
-
-    // Trouver quelle cellule normalisée correspond à la position cliquée
-    Point? normalizedMastercase;
-    for (int i = 0; i < coords.length; i++) {
-      if (coords[i].x == rawLocalX && coords[i].y == rawLocalY) {
-        normalizedMastercase = normalizedCoords[i];
-        break;
-      }
-    }
-
-    // Si on n'a pas trouvé, utiliser les coordonnées brutes (fallback)
-    final mastercase = normalizedMastercase ?? Point(rawLocalX, rawLocalY);
+    // Cellule locale cliquée (mastercase). gridX/gridY est l'ancre normalisée
+    // (absoluteCells = gridX + localNorm), donc (absolu − ancre) EST déjà la coordonnée
+    // locale normalisée. Défaut 3.4 : l'ancienne boucle comparait des coordonnées BRUTES
+    // (min non retranché) à cette valeur normalisée — elle ne pouvait correspondre que si
+    // minX==minY==0, et son repli, seul correct, s'appliquait sinon (ou pire, une coïncidence
+    // donnait une mastercase fausse). La formule directe remplace boucle et repli.
+    final mastercase = Point(absoluteX - placed.gridX, absoluteY - placed.gridY);
 
     // ✨ BUGFIX: Mettre à jour le plateau dans l'état EN PREMIER
     // Sinon _generateValidPlacements() utilise l'ancien plateau!

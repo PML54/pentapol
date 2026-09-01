@@ -1,6 +1,8 @@
-// Modified: 2026-09-01 07:54 — correctif 3 (PLAN_DEPLACEMENT_PIECE §4) : onAcceptWithDetails dépose
-//           à previewX/previewY via tryPlaceAtAnchor, sans reconstruire de faux doigt (défaut 3.3).
+// Modified: 2026-09-01 07:54 — correctif 5 (PLAN_DEPLACEMENT_PIECE §4) : nettoyage du glissé —
+//           onLeave ne vide plus l'aperçu (3.5), retrait des debugPrint de glissé, de margin=100.0
+//           et du cas « pièce 12 ». L'instrumentation kDebugMode du commit 0 est conservée.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 07:54 — correctif 3 : dépôt à previewX/previewY via tryPlaceAtAnchor (3.3).
 // Historique: 2026-09-01 07:54 — correctif 2 : onDragStarted → setDragMastercase (mécanisme (b)).
 // Historique: 2026-09-01 07:54 — correctif 1 : Draggable de case en pointerDragAnchorStrategy
 //             (details.offset = doigt exact, mécanisme (a)) ; feedback recentré FractionalTranslation.
@@ -89,10 +91,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
         // DragTarget englobe TOUT l'espace pour capturer le drag partout
         return DragTarget<Pento>(
-          onWillAcceptWithDetails: (details) {
-            debugPrint('🎯 DragTarget: pièce acceptée depuis slider');
-            return true;
-          },
+          onWillAcceptWithDetails: (details) => true,
           onMove: (details) {
             final renderBox = context.findRenderObject() as RenderBox?;
             if (renderBox == null) return;
@@ -102,22 +101,6 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             // Coordonnées relatives au plateau centré
             final plateauX = localOffset.dx - offsetX;
             final plateauY = localOffset.dy - offsetY;
-
-            // TEST: Agrandir drastiquement la zone pour device réel
-            const double margin = 100.0; // Marge GIGANTESQUE pour test
-            if (plateauX < -margin ||
-                plateauX >= gridWidth + margin ||
-                plateauY < -margin ||
-                plateauY >= gridHeight + margin) {
-              debugPrint('❌ LOIN du plateau: plateau=(${plateauX.toInt()},${plateauY.toInt()})');
-              return;
-            }
-
-            // Debug seulement si on est proche des bords (pour éviter spam)
-            if (plateauX < 20 || plateauX > gridWidth - 20 ||
-                plateauY < 20 || plateauY > gridHeight - 20) {
-              debugPrint('🎯 Drag près bord: plateau=(${plateauX.toInt()},${plateauY.toInt()}) gridSize=${gridWidth}x${gridHeight}');
-            }
 
             final visualX = (plateauX / cellSize).floor().clamp(
               0,
@@ -137,19 +120,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               logicalY = visualY;
             }
 
-            // Log pour pièce 12 verticale seulement (pour éviter spam)
-            if (state.selectedPiece?.id == 12 && state.selectedPositionIndex == 0) {
-              debugPrint('🎯 Drag pièce 12 verticale: plateau=(${plateauX.toInt()},${plateauY.toInt()}) visual=(${visualX},${visualY}) logical=(${logicalX},${logicalY})');
-            }
-
             notifier.updatePreview(logicalX, logicalY);
           },
           onLeave: (data) {
-            // ✨ BUGFIX: Ne pas appeler clearPreview()
-            // Garder le preview quand on sort du DragTarget
-
-            notifier.clearPreview();
-            // La pièce reste affichée à sa dernière position valide
+            // Défaut 3.5 : NE PAS effacer l'aperçu en sortant du DragTarget — la pièce reste
+            // à sa dernière position valide. L'ancien clearPreview() contredisait ce
+            // commentaire (le bugfix avait été écrit puis perdu).
           },
           onAcceptWithDetails: (details) {
             final renderBox = context.findRenderObject() as RenderBox?;
