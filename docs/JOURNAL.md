@@ -83,6 +83,44 @@ les commandes multitâche macOS « Designed for iPad sur Mac »). Reposés à la
 pré-chantier de `draggable_piece_widget.dart` (le fichier avait été touché par le correctif 1),
 `slider`/`settings` repris tels quels. `analyze` 0 error.
 
+### Déplacement d'une pièce — cartographie du bug intermittent (pour la reprise)
+
+Analyse du code **actuel `main` (pré-chantier)** — le décalage horizontal intermittent au glissé
+vertical **précède le chantier** et est donc toujours là. Séparé en faits / hypothèse / correctif.
+
+**Faits — topologie.** 2 sinks `DragTarget` : le plateau (`pentoscope_board.dart:85`) et le tiroir
+(`pentoscope_game_screen.dart:648`). 3 trajets réels : ① poser depuis le tiroir, ② déplacer une
+pièce posée, ③ supprimer (glisser vers le tiroir).
+- ③ **fait bande à part** sainement : sink tiroir, `removePlacedPiece`, aucune arithmétique de case.
+- ① et ② partagent le **sink plateau**, mais le partage est trompeur — deux fourches :
+  - **Fourche A, aperçu ≠ dépôt.** L'aperçu (`onMove`→`updatePreview`→`_findClosestValidPlacement`)
+    **snappe** sur l'ancre valide la plus proche. Le dépôt (`onAccept`, board:162-173) **ne snappe
+    pas** : il **reconstruit un faux doigt** = `previewX/Y + selectedCellInPiece`, puis
+    `tryPlacePiece` **re-dérive** l'ancre via `_calculateDesiredAnchorFromDrag` et place en direct.
+  - **Fourche B, mode A ≠ mode B** dans `_calculateDesiredAnchorFromDrag` (prov ~1720). Tiroir
+    (mode A, `selectedPlacedPiece == null`) → branche `selectedCellInPiece`, et la reconstruction du
+    dépôt (`+selectedCellInPiece`) en est **l'exact inverse** → boucle propre. Pièce posée (mode B,
+    `selectedMasterAbs != null`) → branche **`masterAbs`**, formule différente ; or le dépôt ajoute
+    `selectedCellInPiece`, **pas** `masterAbs` → **pas inverses**, coïncidence seulement si
+    `masterAbs == sp.gridX + selectedCellInPiece` (vrai au décalage de normalisation près).
+- Aggravant : `selectPlacedPiece` (prov ~563-571) cherche `selectedCellInPiece` en comparant
+  `rawLocal` à des coords **non normalisées** alors que les cellules sont **normalisées** → si
+  l'offset de forme ≠ 0, match raté et **fallback brut** `Point(rawLocalX, rawLocalY)`.
+
+**Hypothèse (à PROUVER par mesure, pas à affirmer).** Le décalage vit dans le **trajet ②** :
+aperçu (snap) et dépôt (reconstruction + re-dérivation `masterAbs`) divergent, et
+`selectedCellInPiece` bascule parfois sur son fallback brut selon **forme / orientation / case
+saisie** → non systématique, biaisé d'une case dans un sens. Le **trajet ① (tiroir) boucle
+proprement** → il devrait être nettement plus stable. **L'asymétrie ① vs ② est testable** — c'est
+ce que DRAGDIAG (dans le backup) mesure : `fcol` aperçu vs `finalX` dépôt, `grabx/graby` A vs B.
+
+**Correctif minimal proposé (isolé, mesurable, un seul changement de comportement).**
+**Déposer directement à `previewX/previewY`** dans `onAccept` — l'aperçu contient déjà une ancre
+snappée et validée — **au lieu** de reconstruire un faux doigt puis de re-dériver. Supprime la
+fourche A d'un coup. Corriger en parallèle le raw-vs-normalisé de `selectPlacedPiece` (fourche B /
+fallback). Ne PAS ré-empaqueter avec d'autres retouches (c'est ce qui a coulé le chantier) ; un
+correctif = un commit, testé à l'écran par Paul, l'asymétrie ①/② servant d'oracle avant/après.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -133,6 +171,8 @@ par cherry-pick. **Conservés** par-dessus : les deux correctifs d'ergonomie du 
 sortie Paramètres iPad), reposés à la main sur la base pré-chantier. `analyze` 0 error. **Pour cowork** :
 si le déplacement d'une pièce est repris, repartir du backup pour lire les logs DRAGDIAG, ou d'une
 approche neuve — l'ancienne a été jugée trop instable pour rester sur la branche de travail.
+**Cartographie du bug intermittent + correctif minimal proposé : voir §ÉTAT « Déplacement d'une
+pièce — cartographie du bug intermittent ».**
 
 **2026-08-31 — CLI → cowork (deux chantiers courts : lettres, solveur).** Suite au Message CLI de
 cowork. **Chantier 1 — table de lettres unique** (`3e3beaf`) : les deux tables périmées
