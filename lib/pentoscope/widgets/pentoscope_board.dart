@@ -1,8 +1,8 @@
-// Modified: 2026-09-01 07:54 — correctif 1 (PLAN_DEPLACEMENT_PIECE §4) : Draggable de case en
-//           pointerDragAnchorStrategy (details.offset = doigt exact, tue le mécanisme (a)) ;
-//           feedback recentré par FractionalTranslation(-0.5,-0.5). Le log kDebugMode du
-//           commit 0 subsiste.
+// Modified: 2026-09-01 07:54 — correctif 2 (PLAN_DEPLACEMENT_PIECE §4) : onDragStarted appelle
+//           setDragMastercase(logicalX,logicalY) — ancre le glissé sur la case saisie (mécanisme (b)).
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 07:54 — correctif 1 : Draggable de case en pointerDragAnchorStrategy
+//             (details.offset = doigt exact, mécanisme (a)) ; feedback recentré FractionalTranslation.
 // Historique: 2026-09-01 07:54 — commit 0 : instrumentation kDebugMode du glissé (dragAnchorStrategy).
 // Historique: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
 //             plus défini ici mais en tête de pentoscope_game_screen.dart (importé). Valeur (0.35).
@@ -441,7 +441,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           }
           return pointerDragAnchorStrategy(draggable, dragContext, position);
         },
-        onDragStarted: () => notifier.setDragging(true),
+        onDragStarted: () {
+          // Correctif 2 (§4) : ancrer sur la case saisie (logicalX/logicalY, disponible
+          // ici) avant tout, pour que _calculateDesiredAnchorFromDrag translate depuis
+          // le doigt et non depuis la case tapée à la sélection (mécanisme (b)).
+          notifier.setDragMastercase(logicalX, logicalY);
+          notifier.setDragging(true);
+        },
         onDragEnd: (_) => notifier.setDragging(false),
         // Correctif 1 (§4), suite cosmétique : avec pointerDragAnchorStrategy le coin
         // haut-gauche du feedback se pose sous le doigt. FractionalTranslation(-0.5,-0.5)

@@ -1,6 +1,9 @@
-// Modified: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
-//           startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
-//           solutionCount de PentoscopePuzzle devient int? (aucun compte honnête hors 6×10).
+// Modified: 2026-09-01 07:54 — correctif 2 (PLAN_DEPLACEMENT_PIECE §4) : setDragMastercase ancre
+//           le glissé sur la case réellement saisie (masterAbs + selectedCellInPiece), supprimant
+//           le mécanisme (b) où la mastercase restait celle du tap précédent.
+// Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
+//             startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
+//             solutionCount de PentoscopePuzzle devient int? (aucun compte honnête hors 6×10).
 // Historique: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : records. _saveCompletedLevel (qui
 //             écrivait dans les préférences clé/valeur une donnée jamais relue) remplacé par
 //             _saveCompletionRecord qui écrit dans SolvedSolutions/PuzzleStats via solutionIndexOf.
@@ -595,6 +598,26 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         .toList();
 
     state = state.copyWith(validPlacements: validPlacements);
+  }
+
+  /// Correctif 2 (PLAN_DEPLACEMENT_PIECE §4) — ancre le glissé sur la case réellement
+  /// saisie sous le doigt, et non sur la case tapée à la sélection.
+  ///
+  /// Sans lui, `onDragStarted` ne fait que `setDragging(true)` : la mastercase reste
+  /// celle du dernier `selectPlacedPiece`. Si l'on tape la case A puis que l'on saisit la
+  /// case B, `_calculateDesiredAnchorFromDrag` translate de `doigt − masterAbs = doigt − A`,
+  /// donc la pièce saute de `(B − A)` dès le début du glissé (mécanisme (b) du plan).
+  ///
+  /// À appeler depuis `onDragStarted` du plateau avec la case **absolue** saisie.
+  void setDragMastercase(int absoluteX, int absoluteY) {
+    final sp = state.selectedPlacedPiece;
+    if (sp == null) return; // glissé depuis le tiroir : aucune case de plateau saisie
+    // gridX/gridY est l'ancre normalisée (absoluteCells = gridX + localNorm), donc
+    // (absolu − ancre) est directement la coordonnée locale normalisée de la case saisie.
+    state = state.copyWith(
+      selectedCellInPiece: Point(absoluteX - sp.gridX, absoluteY - sp.gridY),
+      selectedMasterAbs: Point(absoluteX, absoluteY),
+    );
   }
 
   /// À appeler depuis l'UI (board) quand l'orientation change.
