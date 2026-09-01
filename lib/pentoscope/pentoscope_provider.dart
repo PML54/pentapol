@@ -1,6 +1,8 @@
-// Modified: 2026-09-01 15:05 — correctif A commit 1 (instrumentation) : _gestureAxis mesure l'axe
-//           du geste de la case saisie (selectedMasterAbs) au doigt + log DRAGDIAG event=snap avec
-//           axis. Snap ENCORE isotrope à ce commit ; la métrique change au commit 2.
+// Modified: 2026-09-01 15:10 — correctif A commit 2 : le snap RESPECTE le sens du geste. Horizontal
+//           → rester sur la ligne d'origine (sp.gridY) puis avancer vers le doigt ; vertical →
+//           symétrique ; ~45°/tiroir → isotrope. Remplace la distance dx²+dy² qui « montait ».
+// Historique: 2026-09-01 15:05 — correctif A commit 1 : _gestureAxis (case saisie → doigt) + log
+//             DRAGDIAG event=snap avec axis, snap encore isotrope.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : enum PentoscopeDifficulty retiré,
 //             startPuzzle n'appelle plus que generate(size) (plus de switch easy/hard/random).
 // Historique: 2026-08-30 11:40 — PLAN_PERSISTANCE §7 étape 3 : records. _saveCompletedLevel (qui
@@ -1874,34 +1876,56 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (state.selectedPiece == null) return null;
 
     final desiredAnchor = _calculateDesiredAnchorFromDrag(dragGridX, dragGridY);
-    final axis = _gestureAxis(dragGridX, dragGridY); // mesuré ; utilisé par le snap au commit 2
+    final axis = _gestureAxis(dragGridX, dragGridY);
+    final sp = state.selectedPlacedPiece;
 
-    // Chercher le placement valide le plus proche de l'ancre désirée (encore ISOTROPE ici)
+    // Correctif A — le snap RESPECTE le sens du geste (mesuré case saisie → doigt, cf. _gestureAxis).
+    // Horizontal : la pièce reste sur sa ligne d'origine (`sp.gridY`) et avance vers le doigt en
+    // colonne → priorité à `|Δligne vs origine|`, puis `|Δcolonne vs doigt|`. Vertical : symétrique
+    // (colonne d'origine `sp.gridX`, puis ligne vers le doigt). ~45° ou pièce du tiroir : isotrope
+    // (dx²+dy² sur l'ancre désirée), comportement d'avant. Remplace la distance isotrope aveugle
+    // qui « montait » d'une ligne (JOURNAL fourche C).
+    final directional = axis != 0 && sp != null;
+
     Point closest = state.validPlacements[0];
-    double minDistance = double.infinity;
+    double bestPrimary = double.infinity;
+    double bestSecondary = double.infinity;
 
     for (final placement in state.validPlacements) {
-      // Distance entre l'ancre désirée et l'ancre candidate
-      final dx = (desiredAnchor.x - placement.x).toDouble();
-      final dy = (desiredAnchor.y - placement.y).toDouble();
-      final distance = dx * dx + dy * dy;
+      double primary;
+      double secondary;
+      if (directional && axis == 1) {
+        primary = (placement.y - sp.gridY).abs().toDouble(); // rester sur la ligne d'origine
+        secondary = (placement.x - desiredAnchor.x).abs().toDouble(); // avancer vers le doigt
+      } else if (directional && axis == 2) {
+        primary = (placement.x - sp.gridX).abs().toDouble(); // rester sur la colonne d'origine
+        secondary = (placement.y - desiredAnchor.y).abs().toDouble();
+      } else {
+        final dx = (desiredAnchor.x - placement.x).toDouble();
+        final dy = (desiredAnchor.y - placement.y).toDouble();
+        primary = dx * dx + dy * dy; // isotrope
+        secondary = 0;
+      }
 
-      if (distance < minDistance) {
-        minDistance = distance;
+      if (primary < bestPrimary ||
+          (primary == bestPrimary && secondary < bestSecondary)) {
+        bestPrimary = primary;
+        bestSecondary = secondary;
         closest = placement;
       }
     }
 
-    // DRAGDIAG (oracle correctif A) — `axis` (0/1/2) mesuré depuis la case saisie ; `desired`
-    // vs `chosen` montre si le snap isotrope « monte » (chosenY≠desiredY) sur un geste
-    // horizontal. Le commit 2 fera respecter l'axe ; ce log reste l'oracle avant/après.
+    // DRAGDIAG (oracle correctif A) — après métrique directionnelle : en `axis=1`, `chosenY` doit
+    // rester = ligne d'origine (`sp.gridY`) tant qu'un candidat y existe (plus de « ça monte »).
     if (kDragDiag) {
       dragDiag(
         'event=snap,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
         'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},axis=$axis,'
         'inX=$dragGridX,inY=$dragGridY,desiredX=${desiredAnchor.x},desiredY=${desiredAnchor.y},'
+        'origX=${sp?.gridX},origY=${sp?.gridY},'
         'ncand=${state.validPlacements.length},chosenX=${closest.x},chosenY=${closest.y},'
-        'd2=${minDistance.toStringAsFixed(3)},cand=${_diagCandidates(desiredAnchor)}',
+        'prim=${bestPrimary.toStringAsFixed(3)},sec=${bestSecondary.toStringAsFixed(3)},'
+        'cand=${_diagCandidates(desiredAnchor)}',
       );
     }
 
