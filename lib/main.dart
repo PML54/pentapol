@@ -1,6 +1,8 @@
-// Modified: 2026-08-31 17:00 — suppression de la difficulté : les deux appels startPuzzle ne
-//           passent plus difficulty (paramètre retiré).
+// Modified: 2026-09-02 16:46 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : home démarre sur HomeScreen
+//           (plutôt que directement PentoscopeGameScreen) ; l'écran de chargement est conservé.
 // lib/main.dart
+// Historique: 2026-08-31 17:00 — suppression de la difficulté : les deux appels startPuzzle ne
+//           passent plus difficulty (paramètre retiré).
 // Historique: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : reprise de la partie en cours ;
 //             WidgetsBindingObserver ; au lancement, restaure CurrentGame sinon génère le 5×5.
 // Historique: 2026-08-30 — §8 étape 4 : abandon de l'écran d'accueil — retrait de l'unique
@@ -13,7 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
-import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
+import 'package:pentapol/pentoscope/home/home_screen.dart';
 
 
 void main() async {
@@ -100,7 +102,7 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      home: _isInitialized ? const PentoscopeGameScreen() : _buildLoadingScreen(),
+      home: _isInitialized ? const HomeScreen() : _buildLoadingScreen(),
     );
   }
 

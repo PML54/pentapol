@@ -1,6 +1,8 @@
-// Modified: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro (badge) sur la pièce suit
-//           cellSize (× 0.55, ≈ 12 au défaut 22) au lieu d'une taille fixe.
+// Modified: 2026-09-02 16:46 — paramètre showLabel (défaut true) : masque le numéro de la pièce ;
+//           l'écran d'accueil l'utilise à false (pièces nues). Additif, jeu/duel inchangés.
 // lib/common/widgets/piece_renderer.dart
+// Historique: 2026-08-30 13:50 — PLAN_ERGONOMIE §6 étape 4 : le numéro (badge) sur la pièce suit
+//           cellSize (× 0.55, ≈ 12 au défaut 22) au lieu d'une taille fixe.
 // Historique: 2026-08-30 13:30 — étape 1 : cellSize devient un paramètre (défaut 22.0), additif.
 // Historique: 2026-08-29 13:43 — déménagé de l'ancien dossier du mode classique vers
 //             lib/common/widgets/ : partagé par Pentoscope et le multijoueur.
@@ -26,6 +28,10 @@ class PieceRenderer extends StatelessWidget {
   /// pour tout appelant qui ne le précise pas (changement additif, PLAN_ERGONOMIE §4a).
   final double cellSize;
 
+  /// Affiche le numéro de la pièce sur la première case. Défaut `true` : inchangé pour le jeu
+  /// et le duel. L'écran d'accueil le met à `false` (pièces nues — PLAN_ECRAN_ACCUEIL §1).
+  final bool showLabel;
+
   const PieceRenderer({
     super.key,
     required this.piece,
@@ -33,6 +39,7 @@ class PieceRenderer extends StatelessWidget {
     this.isDragging = false,
     required this.getPieceColor,
     this.cellSize = 22.0,
+    this.showLabel = true,
   });
 
   @override
@@ -100,8 +107,8 @@ class PieceRenderer extends StatelessWidget {
                     ),
                   ],
                 ),
-                // Numéro de la pièce sur le premier carré
-                child: coord == coords.first
+                // Numéro de la pièce sur le premier carré (masquable : accueil sans numéros)
+                child: (showLabel && coord == coords.first)
                     ? Center(
                         child: Text(
                           piece.id.toString(),

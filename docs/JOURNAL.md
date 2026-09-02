@@ -212,6 +212,27 @@ Deux ajouts, sur retour de Paul.
 (solo) est **dormant** (`_showOpponentOverlay` jamais mis à `true`) et **simulé** ; le vrai mini du
 duel vit dans `PentoscopeMpGameScreen` et utilise des données réelles.
 
+### Écran d'accueil (2026-09-02) — implémenté (PLAN_ECRAN_ACCUEIL)
+
+L'écran d'accueil du plan est implémenté et vérifié au **simulateur** (pas encore device). `main.dart`
+démarre sur `HomeScreen` au lieu de `PentoscopeGameScreen` direct. Conforme au plan : en-tête
+`PENTAPOL` + engrenage, scène 5×3 avec l'animation-démo (pièces en miniature → rotation par quarts →
+montée/pose, boucle sur les 7 tirages du 3×5), bouton `Jouer`. `Reprendre` viendra avec la persistance (§5).
+
+- **Données** : `tools/generate_home_tirages.dart` (nouveau, Flutter-free, contrôles d'acceptation
+  intégrés — 7 tirages PFU/PUN/PVL/PVU/PYU/TYL/VLN, 4 solutions chacun, ids §10) →
+  `lib/pentoscope/home/home_tirages_data.dart` (constante `kHomeTirages`, plateau 5×3). Le corpus n'est
+  pas chargé au lancement (§3).
+- **Widget** : `lib/pentoscope/home/home_screen.dart`. Réutilise `PieceRenderer` + un param **additif**
+  `showLabel` (défaut true ; l'accueil = false → **pièces nues**, §1). Respecte `disableAnimations`
+  (plateau complet immobile) et suspend l'animation en arrière-plan. Plateau **ancré haut** (retour de Paul).
+- **Réversibilité** (§6) : tag `avant-ecran-accueil` posé avant le **commit unique** ; un `git revert`
+  unique défait tout.
+
+**À suivre** : test device (ressenti, timing, taille des miniatures `kPieceToBoardCellRatio`). Le plan
+`PLAN_ECRAN_ACCUEIL.md` **reste** (supprimé seulement une fois appliqué ET testé, MODUS_VIVENDI §5). La
+priorité de fond est inchangée : la **persistance étape 4** reste devant (l'accueil se livre avec `Jouer` seul).
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -251,6 +272,14 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-02 — CLI → cowork (écran d'accueil implémenté — PLAN_ECRAN_ACCUEIL).** L'écran d'accueil est
+implémenté et vérifié au **simulateur** : `main.dart` démarre sur `HomeScreen` (en-tête PENTAPOL +
+engrenage, scène 5×3 + animation-démo rotation/pose en boucle sur les 7 tirages du 3×5, bouton `Jouer`).
+Données par un nouveau générateur `tools/generate_home_tirages.dart` → `home_tirages_data.dart` (contrôles
+d'acceptation OK). `PieceRenderer` réutilisé avec un param **additif** `showLabel` (accueil = pièces nues).
+**Commit unique** précédé du tag `avant-ecran-accueil` (revert unique, §6). **À faire** : test device ; le
+plan `PLAN_ECRAN_ACCUEIL.md` reste jusqu'au test. Détail en §ÉTAT « Écran d'accueil ».
+
 **2026-09-02 — CLI → cowork (revue UI suite : icônes d'isométrie + Route 2 mini docké).** Deux
 retours de Paul, commités sur `main`. **Icônes** : barre d'isométrie **portrait** agrandie (~47 sur
 iPhone, avant 30 solo / 42 duel) via une fonction **partagée** `isometryIconSize` (game_icons_config),
@@ -269,10 +298,3 @@ devient un retour arrière — un appui retire la dernière pièce (`removePlace
 autorisée en rouge. `analyze` 0. **#3 reste à valider au test device de Paul** (geste). Détail en
 §ÉTAT « Revue UI ». Autres constats de la revue (barre d'icônes hétérogène, rouge surchargé,
 hiérarchie de boutons multijoueur, i18n « Multiplayer ») **non traités**.
-
-**2026-09-02 — CLI → cowork (snap directionnel : test de Paul concluant).** La branche
-`snap-directionnel` (correctif A + dépôt à l'ancre de l'aperçu + ancrage mastercase sur la cellule
-empoignée + puce diag `c0..c4`, `d93b584`) **fonctionne mieux à l'écran** selon Paul — le
-déplacement d'une pièce posée est correct. Branche **poussée sur `origin/snap-directionnel`**, hors
-`main`. À faire avant fusion : retirer la puce diag `c0..c4` (`kDragDiag`) et l'instrumentation
-DRAGDIAG. Détail en §ÉTAT « snap-directionnel ».
