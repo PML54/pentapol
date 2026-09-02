@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 04:31 — retrait de l'instrumentation DRAGDIAG (grab/snap) et du helper
+// Modified: 2026-09-02 20:37 — progression solo : champ PentoscopeState.isProgression (+ copyWith)
+//           et param isProgression de startPuzzle — un puzzle de progression fait avancer le niveau.
+// Historique: 2026-09-02 04:31 — retrait de l'instrumentation DRAGDIAG (grab/snap) et du helper
 //           _diagCandidates : correctif A validé sur appareil, le diagnostic n'a plus lieu d'être.
 //           setDragMastercase / _gestureAxis / snap directionnel inchangés.
 // Historique: 2026-09-01 15:45 — prise stable : setDragMastercase ancre la mastercase sur la cellule
@@ -647,6 +649,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     PentoscopeSize size, {
     int? mask,
     bool showSolution = false,
+    bool isProgression = false,
   }) async {
     _isMultiplayer = false;
     final puzzle = mask != null
@@ -693,6 +696,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: true,
       solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
+      isProgression: isProgression,
     );
 
     // 🗄️ Nouvelle partie solo : efface la partie en cours précédente (§2.3).
@@ -2109,6 +2113,10 @@ class PentoscopeState implements PieceManipulationState {
   // ⏱️ Timer
   final int elapsedSeconds;
 
+  /// Puzzle de progression solo (sa complétion fait avancer le niveau). false pour un puzzle
+  /// lancé au « + » (choix libre de taille) et en multijoueur.
+  final bool isProgression;
+
   const PentoscopeState({
     this.viewOrientation = ViewOrientation.portrait,
     this.puzzle,
@@ -2137,6 +2145,7 @@ class PentoscopeState implements PieceManipulationState {
     this.hasPossibleSolution = true, // 💡 Par défaut true au démarrage
     this.solutionsCount, // 🔢 null tant qu'aucun puzzle à table n'est démarré
     this.elapsedSeconds = 0, // ⏱️ Timer
+    this.isProgression = false,
   });
 
   factory PentoscopeState.initial() {
@@ -2211,6 +2220,7 @@ class PentoscopeState implements PieceManipulationState {
     bool? hasPossibleSolution, // 💡 HINT
     int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer
+    bool? isProgression,
   }) {
     return PentoscopeState(
       viewOrientation: viewOrientation ?? this.viewOrientation,
@@ -2253,6 +2263,7 @@ class PentoscopeState implements PieceManipulationState {
       hasPossibleSolution: hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
+      isProgression: isProgression ?? this.isProgression,
     );
   }
 

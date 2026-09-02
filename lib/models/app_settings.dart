@@ -1,4 +1,6 @@
-// Modified: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : écran de réglages minimal —
+// Modified: 2026-09-02 20:37 — progression solo : champs top-level userName (nom canonique, saisi
+//           au 1er puzzle réussi) et currentLevel. JSON, pas de migration (invariant #6).
+// Historique: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : écran de réglages minimal —
 //           retrait des 9 champs morts (6 dans UISettings, 3 dans GameSettings) et de l'enum
 //           GameDifficulty orphelin. Sérialisation JSON : clés disparues ignorées, pas de migration.
 // lib/models/app_settings.dart
@@ -459,21 +461,34 @@ class AppSettings {
   final GameSettings game;
   final DuelSettings duel;
 
+  /// Nom du joueur (progression solo), saisi au 1er puzzle réussi ; null tant que non saisi.
+  final String? userName;
+
+  /// Niveau de progression solo courant (1..kMaxLevel, 1 = size3x5, 3 pièces).
+  final int currentLevel;
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
     this.duel = DuelSettings.defaults,
+    this.userName,
+    this.currentLevel = 1,
   });
 
   AppSettings copyWith({
     UISettings? ui,
     GameSettings? game,
     DuelSettings? duel,
+    String? userName,
+    bool clearUserName = false,
+    int? currentLevel,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
       game: game ?? this.game,
       duel: duel ?? this.duel,
+      userName: clearUserName ? null : (userName ?? this.userName),
+      currentLevel: currentLevel ?? this.currentLevel,
     );
   }
 
@@ -482,6 +497,8 @@ class AppSettings {
       'ui': ui.toJson(),
       'game': game.toJson(),
       'duel': duel.toJson(),
+      'userName': userName,
+      'currentLevel': currentLevel,
     };
   }
 
@@ -492,6 +509,8 @@ class AppSettings {
       duel: json['duel'] != null
           ? DuelSettings.fromJson(json['duel'])
           : DuelSettings.defaults,
+      userName: json['userName'] as String?,
+      currentLevel: (json['currentLevel'] as int?) ?? 1,
     );
   }
 }

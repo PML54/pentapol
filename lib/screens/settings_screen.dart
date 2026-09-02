@@ -1,4 +1,7 @@
-// Modified: 2026-09-01 08:58 — sortie fiable sur iPad : bouton « Fermer » ancré en bas
+// Modified: 2026-09-02 20:37 — pseudo unique : « Nom du joueur » lit/écrit settings.userName (nom
+//           canonique) au lieu de duel.playerName ; setUserName remplace setDuelPlayerName ici.
+// lib/screens/settings_screen.dart
+// Historique: 2026-09-01 08:58 — sortie fiable sur iPad : bouton « Fermer » ancré en bas
 //           (bottomNavigationBar) + SafeArea, la flèche retour du haut étant recouverte par les
 //           commandes multitâche d'iPadOS.
 // lib/screens/settings_screen.dart
@@ -177,7 +180,7 @@ class SettingsScreen extends ConsumerWidget {
   // === WIDGETS DUEL ===
 
   Widget _buildDuelSettingsTile(BuildContext context, WidgetRef ref, AppSettings settings) {
-    final playerName = settings.duel.playerName ?? 'Non défini';
+    final playerName = settings.userName ?? 'Non défini';
     final duration = settings.duel.durationFormatted;
     final stats = '${settings.duel.totalWins}V / ${settings.duel.totalLosses}D / ${settings.duel.totalDraws}N';
 
@@ -202,7 +205,7 @@ class SettingsScreen extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
 
     // Controllers
-    final nameController = TextEditingController(text: settings.duel.playerName ?? '');
+    final nameController = TextEditingController(text: settings.userName ?? '');
     DuelDuration selectedDuration = settings.duel.duration;
 
     showModalBottomSheet(
@@ -341,7 +344,7 @@ class SettingsScreen extends ConsumerWidget {
                         onPressed: () async {
                           final name = nameController.text.trim();
                           if (name.isNotEmpty) {
-                            await notifier.setDuelPlayerName(name);
+                            await notifier.setUserName(name);
                           }
                           await notifier.setDuelDuration(selectedDuration);
                           if (ctx.mounted) Navigator.pop(ctx);

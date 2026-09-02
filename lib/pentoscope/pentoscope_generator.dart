@@ -1,4 +1,6 @@
-// Modified: 2026-08-31 16:39 — étape B (§8 B) : PentoscopeSolver sort du générateur. puzzleFromMask
+// Modified: 2026-09-02 20:37 — progression solo : kMaxLevel + sizeForLevel(n) (niveau 1..9 →
+//           size3x5 … size6x10) ajoutés avant l'enum PentoscopeSize.
+// Historique: 2026-08-31 16:39 — étape B (§8 B) : PentoscopeSolver sort du générateur. puzzleFromMask
 //           ne calcule plus de solution (le champ PentoscopePuzzle.solutions est supprimé — la
 //           solution « à afficher » vient désormais de la SolutionSource via hintFrom, côté
 //           provider). generateFromSeed lit le compte dans subset_counts.bin au lieu du solveur.
@@ -178,6 +180,15 @@ enum SolutionTable {
 }
 
 /// Tailles de plateau disponibles (TRANSPOSÉES pour portrait)
+/// Progression solo : autant de niveaux que de tailles (size3x5 … size6x10). Niveau 1 = la plus
+/// petite (3 pièces), niveau 9 = le 6×10 (12 pièces).
+const int kMaxLevel = 9;
+
+/// Taille correspondant à un niveau (1..kMaxLevel) : progression croissante size3x5 → size6x10.
+/// Borné : un niveau hors plage retombe sur la taille la plus proche.
+PentoscopeSize sizeForLevel(int level) =>
+    PentoscopeSize.values[(level - 1).clamp(0, PentoscopeSize.values.length - 1)];
+
 enum PentoscopeSize {
   size3x5(0, 3, 5, 3, '3', null),
   size4x5(1, 4, 5, 4, '4', null),

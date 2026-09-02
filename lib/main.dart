@@ -1,6 +1,8 @@
-// Modified: 2026-09-02 16:46 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : home démarre sur HomeScreen
-//           (plutôt que directement PentoscopeGameScreen) ; l'écran de chargement est conservé.
+// Modified: 2026-09-02 20:37 — progression solo : le puzzle de départ est sizeForLevel(currentLevel)
+//           (niveau 1 = 5×3), après attente du chargement des réglages ; isProgression:true.
 // lib/main.dart
+// Historique: 2026-09-02 16:46 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : home démarre sur HomeScreen
+//           (plutôt que directement PentoscopeGameScreen) ; l'écran de chargement est conservé.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : les deux appels startPuzzle ne
 //           passent plus difficulty (paramètre retiré).
 // Historique: 2026-08-30 12:05 — PLAN_PERSISTANCE §7 étape 4 : reprise de la partie en cours ;
@@ -61,6 +63,11 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
   Future<void> _initializeApp() async {
     final notifier = ref.read(pentoscopeProvider.notifier);
     try {
+      // Attendre que les réglages persistés soient chargés (currentLevel de la progression).
+      await ref.read(settingsProvider.notifier).ensureLoaded();
+      // Niveau courant → taille de départ (progression). Niveau 1 = size3x5 (5×3, 3 pièces).
+      final startSize = sizeForLevel(ref.read(settingsProvider).currentLevel);
+
       // Reprise : lire la partie en cours d'abord ; ne générer un puzzle neuf que s'il n'y
       // en a pas (PLAN_PERSISTANCE §2.4). Une partie corrompue est effacée et remplacée.
       final saved = await ref.read(settingsDatabaseProvider).loadCurrentGame();
@@ -71,14 +78,16 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
           debugPrint('❌ Reprise impossible, partie effacée: $e');
           await ref.read(settingsDatabaseProvider).clearCurrentGame();
           await notifier.startPuzzle(
-            PentoscopeSize.size5x5,
+            startSize,
             showSolution: false,
+            isProgression: true,
           );
         }
       } else {
         await notifier.startPuzzle(
-          PentoscopeSize.size5x5, // 5x5 qui correspond à 5 pièces
+          startSize,
           showSolution: false,
+          isProgression: true,
         );
       }
 

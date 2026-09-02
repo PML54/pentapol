@@ -1,7 +1,9 @@
-// Modified: 2026-09-02 19:20 — icônes d'isométrie du PAYSAGE agrandies à isometryIconSize (comme le
-//           portrait) : elles rétrécissaient en tournant en paysage (retour de Paul) ; la colonne
-//           d'actions paysage est élargie en conséquence pour ne pas rogner.
+// Modified: 2026-09-02 20:37 — progression solo : à la complétion d'un puzzle de progression du
+//           niveau courant → advanceLevel (via ref.listen) ; 1er puzzle réussi → dialogue de saisie
+//           du nom (setUserName) ; bilan avec bouton « Niveau suivant » (remplace « Nouvelle partie »).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 19:20 — icônes d'isométrie du PAYSAGE agrandies à isometryIconSize (comme le
+//           portrait) ; la colonne d'actions paysage est élargie pour ne pas rogner.
 // Historique: 2026-09-02 19:15 — suppression aussi du message « Transformation impossible » : plus
 //           aucun SnackBar dans _handleTransformationResult (recentered + impossible), seuls les
 //           retours haptiques restent (retour de Paul).
@@ -147,11 +149,73 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     }
   }
 
+  /// Appelé une fois quand le puzzle vient d'être complété (transition via ref.listen).
+  /// Progression : avance le niveau si c'était le puzzle du niveau courant. 1ᵉʳ succès : demande
+  /// le nom du joueur s'il n'est pas encore saisi.
+  void _onPuzzleCompleted(BuildContext context, PentoscopeState st) {
+    final settings = ref.read(settingsProvider);
+    if (st.isProgression &&
+        st.puzzle != null &&
+        st.puzzle!.size == sizeForLevel(settings.currentLevel)) {
+      ref.read(settingsProvider.notifier).advanceLevel();
+    }
+    if (settings.userName == null || settings.userName!.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _promptUserName(context);
+      });
+    }
+  }
+
+  /// Dialogue de saisie du nom au 1ᵉʳ puzzle réussi.
+  Future<void> _promptUserName(BuildContext context) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bravo ! 🎉'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Premier puzzle réussi. Comment t\'appelles-tu ?'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Ton nom',
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Valider'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name != null && name.isNotEmpty) {
+      await ref.read(settingsProvider.notifier).setUserName(name);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
+
+    // Progression / nom : réagir à la transition « puzzle complété ».
+    ref.listen<PentoscopeState>(pentoscopeProvider, (prev, next) {
+      final justCompleted = !(prev?.isComplete ?? false) && next.isComplete;
+      if (justCompleted) _onPuzzleCompleted(context, next);
+    });
 
     // Bilan non modal : piloté par state.isComplete. _bilanFerme se remet à false dès que le
     // puzzle n'est plus complet (reset, nouvelle partie, retrait d'une pièce), ce qui couvre
@@ -628,6 +692,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// 🏁 Bandeau de bilan non modal, à la place de la barre de pièces (vide à la complétion).
   Widget _buildBilanBanner(
       bool isLandscape, PentoscopeState state, PentoscopeNotifier notifier) {
+    // « Niveau suivant » proposé si le puzzle terminé est un puzzle de progression qui n'est pas
+    // déjà le niveau maximal. La complétion a déjà avancé currentLevel (via _onPuzzleCompleted).
+    final canNext = state.isProgression &&
+        state.puzzle != null &&
+        state.puzzle!.size != sizeForLevel(kMaxLevel);
     return _BilanBanner(
       isLandscape: isLandscape,
       elapsedSeconds: state.elapsedSeconds,
@@ -640,6 +709,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         HapticFeedback.mediumImpact();
         notifier.reset();
       },
+      onNextLevel: canNext
+          ? () {
+              HapticFeedback.mediumImpact();
+              final level = ref.read(settingsProvider).currentLevel;
+              notifier.startPuzzle(sizeForLevel(level), isProgression: true);
+            }
+          : null,
     );
   }
 
@@ -1151,6 +1227,10 @@ class _BilanBanner extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onNewGame;
 
+  /// Progression : passer au niveau suivant. null si ce n'est pas un puzzle de progression, ou
+  /// si le niveau maximal vient d'être terminé.
+  final VoidCallback? onNextLevel;
+
   const _BilanBanner({
     required this.isLandscape,
     required this.elapsedSeconds,
@@ -1160,6 +1240,7 @@ class _BilanBanner extends StatelessWidget {
     required this.hintCount,
     required this.onClose,
     required this.onNewGame,
+    this.onNextLevel,
   });
 
   @override
@@ -1187,6 +1268,14 @@ class _BilanBanner extends StatelessWidget {
       icon: const Icon(Icons.refresh, size: 18),
       label: const Text('Nouvelle partie'),
     );
+    // En progression, l'action primaire est « Niveau suivant » (remplace « Nouvelle partie »).
+    final primaryButton = onNextLevel == null
+        ? newGameButton
+        : FilledButton.icon(
+            onPressed: onNextLevel,
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            label: const Text('Niveau suivant'),
+          );
     const trophy = Icon(Icons.emoji_events, color: Colors.amber, size: 28);
 
     if (isLandscape) {
@@ -1207,7 +1296,7 @@ class _BilanBanner extends StatelessWidget {
               const SizedBox(height: 12),
               closeButton,
               const SizedBox(height: 4),
-              newGameButton,
+              primaryButton,
             ],
           ),
         ),
@@ -1232,7 +1321,7 @@ class _BilanBanner extends StatelessWidget {
           const SizedBox(width: 8),
           closeButton,
           const SizedBox(width: 8),
-          newGameButton,
+          primaryButton,
         ],
       ),
     );

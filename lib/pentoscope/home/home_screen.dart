@@ -1,8 +1,11 @@
-// Modified: 2026-09-02 17:05 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : en-tête PENTAPOL + engrenage,
+// Modified: 2026-09-02 20:37 — progression : label « Niveau N » sous la démo ; « Jouer » enchaîne
+//           sur le puzzle du niveau courant (sizeForLevel), frais si l'actuel est terminé/autre
+//           niveau, sinon reprend.
+// lib/pentoscope/home/home_screen.dart
+// Historique: 2026-09-02 17:05 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : en-tête PENTAPOL + engrenage,
 //           scène plateau VERTICAL 3×5 (retour de Paul) + animation-démo (miniature → rotation par
 //           quarts → montée/pose, boucle sur les 7 tirages), bouton Jouer. cellSize bornée par la
-//           hauteur pour ne pas déborder. Réutilise PieceRenderer (showLabel:false, pièces nues).
-// lib/pentoscope/home/home_screen.dart
+//           hauteur. Réutilise PieceRenderer (showLabel:false, pièces nues).
 
 import 'dart:math' as math;
 
@@ -14,6 +17,8 @@ import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
+import 'package:pentapol/pentoscope/pentoscope_provider.dart';
+import 'package:pentapol/pentoscope/pentoscope_generator.dart' show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
     show kPieceToBoardCellRatio, PentoscopeGameScreen;
 
@@ -199,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
             ),
-            _buildPlayButton(context),
+            _buildPlayButton(context, settings.currentLevel),
           ],
         ),
       ),
@@ -384,28 +389,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildPlayButton(BuildContext context) {
+  Widget _buildPlayButton(BuildContext context, int level) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: FilledButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
-          ),
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Niveau $level',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black.withValues(alpha: 0.55),
             ),
           ),
-          child: const Text(
-            'Jouer',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: () => _play(context, level),
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Jouer',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  /// « Jouer » : enchaîne sur le puzzle du niveau courant. Si aucune partie de progression du bon
+  /// niveau n'est en cours (terminée, autre taille, puzzle du « + », ou aucune), on en démarre une
+  /// fraîche ; sinon on reprend celle en cours.
+  Future<void> _play(BuildContext context, int level) async {
+    final notifier = ref.read(pentoscopeProvider.notifier);
+    final st = ref.read(pentoscopeProvider);
+    final size = sizeForLevel(level);
+    final needFresh = st.puzzle == null ||
+        st.isComplete ||
+        !st.isProgression ||
+        st.puzzle!.size != size;
+    if (needFresh) {
+      await notifier.startPuzzle(size, isProgression: true);
+    }
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
     );
   }
 

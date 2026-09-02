@@ -1,4 +1,6 @@
-// Modified: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : retrait des 9 setters des
+// Modified: 2026-09-02 20:37 — progression solo : setUserName, advanceLevel (plafonné kMaxLevel),
+//           ensureLoaded (attendre le chargement avant de lire currentLevel au démarrage).
+// Historique: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : retrait des 9 setters des
 //           réglages morts (setDifficulty, setEnableAnimations, setEnableHints, setEnableTimer,
 //           setIconSize, setIsometriesAppBarColor, setPieceOpacity, setShowGridLines,
 //           setShowPieceNumbers). Les setters Duel et les vivants restent.
@@ -12,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/models/app_settings.dart';
+import 'package:pentapol/pentoscope/pentoscope_generator.dart' show kMaxLevel;
 
 /// Provider pour la base de données des paramètres
 final settingsDatabaseProvider = Provider<SettingsDatabase>((ref) {
@@ -26,12 +29,30 @@ final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(() {
 class SettingsNotifier extends Notifier<AppSettings> {
   static const String _storageKey = 'app_settings';
   late SettingsDatabase _db;
+  Future<void>? _loadFuture;
 
   @override
   AppSettings build() {
     _db = ref.read(settingsDatabaseProvider);
-    _loadSettings();
+    _loadFuture = _loadSettings();
     return const AppSettings();
+  }
+
+  /// À attendre avant de lire des réglages persistés au démarrage (ex: currentLevel dans
+  /// main.dart) — sinon on lirait les défauts tant que _loadSettings n'a pas fini.
+  Future<void> ensureLoaded() => _loadFuture ?? Future.value();
+
+  /// Progression solo : nom du joueur (saisi au 1er puzzle réussi).
+  Future<void> setUserName(String? name) async {
+    state = state.copyWith(userName: name, clearUserName: name == null);
+    await _saveSettings();
+  }
+
+  /// Progression solo : passe au niveau suivant (plafonné à kMaxLevel).
+  Future<void> advanceLevel() async {
+    if (state.currentLevel >= kMaxLevel) return;
+    state = state.copyWith(currentLevel: state.currentLevel + 1);
+    await _saveSettings();
   }
 
   /// Enregistrer le résultat d'une partie (isWin: true=victoire, false=défaite, null=égalité)

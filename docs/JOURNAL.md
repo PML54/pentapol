@@ -234,6 +234,31 @@ assumé (choix de Paul)** : le plateau de démo est **vertical 3×5** (le plan �
 `PLAN_ECRAN_ACCUEIL.md` **reste** (supprimé seulement une fois appliqué ET testé, MODUS_VIVENDI §5). La
 priorité de fond est inchangée : la **persistance étape 4** reste devant (l'accueil se livre avec `Jouer` seul).
 
+### Progression solo (niveaux) + nom du joueur (2026-09-02)
+
+Nouveau : une **progression de niveaux solo**, sauvée, et la **saisie du nom du joueur**.
+
+- **Niveaux = tailles.** `sizeForLevel(n)` (`pentoscope_generator.dart`) : niveau 1..9 → size3x5
+  (3 pièces) … size6x10 (12 pièces). `kMaxLevel = 9`.
+- **Persistance** (AppSettings, JSON, sans migration, invariant #6) : `currentLevel` (défaut 1) et
+  `userName` (nom canonique). Setters `advanceLevel`, `setUserName`, plus `ensureLoaded` (attendre le
+  chargement des réglages avant de lire currentLevel au démarrage).
+- **Démarrage** : `main.dart` démarre sur `sizeForLevel(currentLevel)` (niveau 1 = 5×3),
+  `isProgression:true`. L'accueil affiche « Niveau N » ; « Jouer » enchaîne sur le niveau courant
+  (frais si l'actuel est terminé/d'un autre niveau, sinon reprend).
+- **Complétion** : un puzzle de progression du niveau courant terminé → `advanceLevel` (via
+  `ref.listen` dans l'écran de jeu). Le bilan propose alors **« Niveau suivant »** (remplace
+  « Nouvelle partie »). Au **1er puzzle réussi** (userName vide) → dialogue de saisie du nom.
+- **`PentoscopeState.isProgression`** distingue un puzzle de progression d'un puzzle du « + » (choix
+  libre de taille) ou du multijoueur, qui ne font **pas** avancer le niveau.
+- **Pseudo unique** : `userName` est LE nom, utilisé par le MP lobby (« Ton pseudo »), les Réglages
+  (« Nom du joueur ») et le dialogue au 1er succès. `duel.playerName` reste dans le modèle mais n'est
+  plus lu (vestige).
+
+**Vérifié au simulateur** : accueil « Niveau 1 ». **À valider sur device** (résoudre un puzzle) :
+Jouer→5×3 → solution → dialogue nom → niveau 2 sauvé + « Niveau suivant ». Cas limite assumé : une
+partie **reprise** d'une session précédente est `isProgression=false` (la terminer n'avance pas le niveau).
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -273,6 +298,14 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-02 — CLI → cowork (progression solo + nom du joueur).** Nouveau : progression de niveaux
+sauvée (niveau 1..9 = size3x5…size6x10 via `sizeForLevel`/`kMaxLevel`), démarrage sur le niveau courant
+(`main.dart`), avance à la complétion (`advanceLevel`, bouton « Niveau suivant » au bilan), **saisie du
+nom au 1er puzzle réussi**. Persistance : `AppSettings.currentLevel` + `userName` (JSON, sans migration,
+invariant #6). Pseudo **unifié** : `userName` remplace la clé MP dédiée et `duel.playerName` pour
+l'affichage (MP lobby + Réglages + dialogue). `analyze` 0. **À valider sur device** (résoudre un puzzle).
+Détail en §ÉTAT « Progression solo ».
+
 **2026-09-02 — CLI → cowork (écran d'accueil implémenté — PLAN_ECRAN_ACCUEIL).** L'écran d'accueil est
 implémenté et vérifié au **simulateur** : `main.dart` démarre sur `HomeScreen` (en-tête PENTAPOL +
 engrenage, scène 5×3 + animation-démo rotation/pose en boucle sur les 7 tirages du 3×5, bouton `Jouer`).
@@ -291,11 +324,3 @@ simulateur seul** (duel 1v1 réel requis) → à valider sur device. Détail en 
 Découverte : l'overlay adverse du solo est dormant + simulé ; le vrai mini du duel vit dans
 `PentoscopeMpGameScreen`.
 
-**2026-09-02 — CLI → cowork (revue UI : #6 plateau ancré bas, #3 cul-de-sac réversible).** Revue
-d'UI sur simulateur ; deux corrections validées par Paul et commitées sur `main`. **#6** : portrait
-`Alignment.bottomCenter` pour le plateau **+ couplage `offsetY` du hit-test drag** (sinon dépôts
-décalés — rattrapé au contrôle visuel, pas à la compilation). **#3** : le voyant rouge (cul-de-sac)
-devient un retour arrière — un appui retire la dernière pièce (`removePlacedPiece`), la pose restant
-autorisée en rouge. `analyze` 0. **#3 reste à valider au test device de Paul** (geste). Détail en
-§ÉTAT « Revue UI ». Autres constats de la revue (barre d'icônes hétérogène, rouge surchargé,
-hiérarchie de boutons multijoueur, i18n « Multiplayer ») **non traités**.
