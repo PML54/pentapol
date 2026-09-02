@@ -1,6 +1,9 @@
-// Modified: 2026-09-02 04:31 — retrait de la puce diag « c0..c4 » (_buildMastercaseChip /
-//           _mastercaseLabel) et de son insertion dans la barre d'isométrie : diagnostic terminé.
+// Modified: 2026-09-02 09:28 — #3 cul-de-sac actionnable : la pose reste autorisée même en rouge ;
+//           l'ampoule rouge devient un « retour en arrière » (un appui = removePlacedPiece de la
+//           dernière pièce, répétable). Ampoule inchangée (jaune = indice, rouge = retour).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 04:31 — retrait de la puce diag « c0..c4 » (_buildMastercaseChip /
+//           _mastercaseLabel) et de son insertion dans la barre d'isométrie : diagnostic terminé.
 // Historique: 2026-09-01 16:10 — DIAGNOSTIC (kDragDiag) : puce « c0..c4 » dans la barre d'isométrie
 //           affichant le label INVARIANT de la mastercase active (index de la cellule saisie dans
 //           l'orientation, stable par isométrie) — pour voir si la prise reste fixe.
@@ -777,10 +780,19 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             if (state.hasPossibleSolution) {
               HapticFeedback.mediumImpact();
               notifier.applyHint();
+            } else if (state.placedPieces.isNotEmpty) {
+              // #3 cul-de-sac : la pose reste autorisée (le joueur peut croire, à tort
+              // ou à raison, que c'est jouable). Quand l'ampoule est rouge, un appui
+              // revient d'un coup en arrière — retire la dernière pièce posée. Répétable :
+              // removePlacedPiece recalcule le statut, donc le rouge s'éteint dès que le
+              // plateau redevient soluble.
+              HapticFeedback.mediumImpact();
+              notifier.removePlacedPiece(state.placedPieces.last);
             }
           },
-          tooltip:
-              state.hasPossibleSolution ? 'Indice' : 'Aucune solution possible',
+          tooltip: state.hasPossibleSolution
+              ? 'Indice'
+              : 'Aucune solution — revenir en arrière',
         ),
       // Navigateur de solutions compatibles : seul le 6×10 le sert (BigInt, rendu 6×10).
       // Les petites tailles ont un compte non-nul mais pas de navigateur — sinon il serait vide.

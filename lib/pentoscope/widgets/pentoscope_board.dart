@@ -1,6 +1,9 @@
-// Modified: 2026-09-02 04:31 — retrait du log DRAGDIAG event=drop dans onAccept et de l'import
-//           drag_diag : diagnostic terminé, le dépôt à l'ancre de l'aperçu est conservé tel quel.
+// Modified: 2026-09-02 09:42 — #6 répartition verticale : en portrait le plateau est ancré en bas
+//           (Alignment.bottomCenter) au lieu d'être centré ; offsetY du hit-test drag couplé au
+//           même alignement (portrait = bas, paysage = haut) sinon le dépôt viserait le centre.
 // lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-02 04:31 — retrait du log DRAGDIAG event=drop dans onAccept et de l'import
+//           drag_diag : diagnostic terminé, le dépôt à l'ancre de l'aperçu est conservé tel quel.
 // Historique: 2026-09-01 15:45 — prise stable : onDragStarted ancre la mastercase sur la cellule
 //           empoignée (setDragMastercase(logicalX,logicalY)) avant setDragging — la référence ne
 //           dépend plus du dernier tap. (Dépôt à l'aperçu / fourche A/B conservé.)
@@ -83,9 +86,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         final gridWidth = cellSize * visualCols;
         final gridHeight = cellSize * visualRows;
 
-        // Offset du plateau centré
+        // Offset du plateau — DOIT suivre l'Align visuel plus bas, sinon le hit-test du
+        // drag (plateauY = localY − offsetY) viserait un plateau ailleurs que là où il est
+        // dessiné. Centré horizontalement ; portrait ancré en bas, paysage ancré en haut.
         final offsetX = (constraints.maxWidth - gridWidth) / 2;
-        final offsetY = (constraints.maxHeight - gridHeight) / 2;
+        final offsetY = widget.isLandscape
+            ? 0.0
+            : (constraints.maxHeight - gridHeight);
 
         // DragTarget englobe TOUT l'espace pour capturer le drag partout
         return DragTarget<Pento>(
@@ -182,9 +189,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           },
           builder: (context, candidateData, rejectedData) {
             return Align(
-              // En paysage: aligner en haut pour éviter l'espace
-              // En portrait: centrer
-              alignment: widget.isLandscape ? Alignment.topCenter : Alignment.center,
+              // En paysage : aligner en haut (le rab vertical passe en bas).
+              // En portrait : ancrer en bas — le plateau (carré, borné par la largeur)
+              // se groupe avec la barre de pièces, tout le rab vertical passe en haut,
+              // sous la barre d'icônes (lu comme respiration d'en-tête) plutôt que réparti
+              // en deux marges qui font « flotter » le plateau.
+              alignment:
+                  widget.isLandscape ? Alignment.topCenter : Alignment.bottomCenter,
               child: Container(
                 width: gridWidth,
                 height: gridHeight,

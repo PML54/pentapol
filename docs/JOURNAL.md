@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-01
+## §ÉTAT — au 2026-09-02
 
 ### L'application
 
@@ -157,6 +157,34 @@ correctif A est intacte** — `setDragMastercase`, `_gestureAxis`, snap directio
 de l'aperçu. `analyze` 0 erreur. La branche est **prête à fusionner dans `main`** sous réserve d'un
 dernier tour de test de Paul. (L'archive DRAGDIAG reste disponible sur `backup/deplacement-piece-c5306b5`.)
 
+### Revue UI (2026-09-02) — #6 (répartition verticale) et #3 (cul-de-sac réversible)
+
+Revue d'UI menée sur **simulateur** (captures `simctl` ; le ressenti du geste n'est **pas** jugé —
+réservé au test device de Paul). Deux corrections retenues par Paul, appliquées sur `main`.
+
+- **#6 — plateau ancré bas en portrait.** Sur un plateau quasi-carré (5×5) la hauteur excède la
+  largeur : le plateau « flottait », centré entre deux marges. `pentoscope_board.dart` : portrait
+  `Alignment.center` → `Alignment.bottomCenter` (paysage inchangé, `topCenter`). **Piège rattrapé au
+  contrôle visuel** : le positionnement visuel (`Align`) et le hit-test du drag
+  (`offsetY = (maxHeight − gridHeight)/2`, centré en dur, l.90) étaient **découplés** ; déplacer le
+  seul visuel aurait fait tomber les dépôts sur les mauvaises cases. `offsetY` est désormais **couplé
+  à l'alignement** (portrait = bas, paysage = haut) — ce qui corrige au passage une incohérence
+  latente du paysage (offset centré alors que l'Align est `topCenter`, sans effet tant que le paysage
+  n'a pas de rab vertical). Vérifié à l'écran : haut du plateau 26 % → 39 %.
+
+- **#3 — cul-de-sac réversible par l'ampoule.** Choix de Paul : **laisser poser** même quand le
+  compteur est à 0 (le joueur peut croire, à tort ou à raison, que c'est jouable), et faire du
+  **voyant rouge le bouton de retour**. `pentoscope_game_screen.dart` : la branche `else` (ampoule
+  rouge, `!hasPossibleSolution`, jusqu'ici sans effet) appelle `removePlacedPiece(placedPieces.last)`
+  — **un appui = un coup en arrière, répétable** ; `removePlacedPiece` recalcule `hasPossibleSolution`,
+  donc le rouge s'éteint dès que le plateau redevient soluble. Icône inchangée (ampoule jaune =
+  indice, rouge = retour). `deleteCount` s'incrémente mais **n'entre pas** dans `calculateNote`
+  (basée sur `hintCount`) → aucune pénalité. **Non encore validé au test device** (comportement gestuel).
+
+`analyze` 0 erreur / 0 warning sur les deux fichiers. **Autres constats de la revue non traités** (à
+arbitrer) : barre d'icônes principale hétérogène, rouge sémantiquement surchargé (alerte / suppression
+/ mastercase), hiérarchie de boutons ambiguë à l'entrée multijoueur, titre « Multiplayer » en anglais.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -196,6 +224,15 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-02 — CLI → cowork (revue UI : #6 plateau ancré bas, #3 cul-de-sac réversible).** Revue
+d'UI sur simulateur ; deux corrections validées par Paul et commitées sur `main`. **#6** : portrait
+`Alignment.bottomCenter` pour le plateau **+ couplage `offsetY` du hit-test drag** (sinon dépôts
+décalés — rattrapé au contrôle visuel, pas à la compilation). **#3** : le voyant rouge (cul-de-sac)
+devient un retour arrière — un appui retire la dernière pièce (`removePlacedPiece`), la pose restant
+autorisée en rouge. `analyze` 0. **#3 reste à valider au test device de Paul** (geste). Détail en
+§ÉTAT « Revue UI ». Autres constats de la revue (barre d'icônes hétérogène, rouge surchargé,
+hiérarchie de boutons multijoueur, i18n « Multiplayer ») **non traités**.
+
 **2026-09-02 — CLI → cowork (snap directionnel : test de Paul concluant).** La branche
 `snap-directionnel` (correctif A + dépôt à l'ancre de l'aperçu + ancrage mastercase sur la cellule
 empoignée + puce diag `c0..c4`, `d93b584`) **fonctionne mieux à l'écran** selon Paul — le
@@ -216,21 +253,3 @@ si le déplacement d'une pièce est repris, repartir du backup pour lire les log
 approche neuve — l'ancienne a été jugée trop instable pour rester sur la branche de travail.
 **Cartographie du bug intermittent + correctif minimal proposé : voir §ÉTAT « Déplacement d'une
 pièce — cartographie du bug intermittent ».**
-
-**2026-08-31 — CLI → cowork (deux chantiers courts : lettres, solveur).** Suite au Message CLI de
-cowork. **Chantier 1 — table de lettres unique** (`3e3beaf`) : les deux tables périmées
-(`_pieceNames` du générateur, 10/11 intervertis ; `pieceNames` de `piece_utils`, entièrement fausse,
-lue par `custom_colors_screen` → l'utilisateur voyait des lettres fausses) remplacées par
-`pentominoLetters` (unique, dans `common/pentominos.dart`, adossée à la géométrie). Gardée par
-`test/pentomino_letters_test.dart`, qui reconstruit la lettre depuis `cartesianCoords` (clé
-canonique/8 orientations) contre les 12 formes standard — il confirme Z=10, W=11 par une seconde
-dérivation. **Chantier 2 — retrait du solveur par substitution** : `generate_solutions_corpus.dart`
-étendu (`_verify6x10`) énumère le 6×10 et vérifie `solutions_6x10_normalisees.bin` par **égalité
-d'ensembles** (9356 = énumération = asset expansé ×4, 16 s) ; **seulement alors** `git rm` de
-`pentomino_solver.dart`, `tools/generate_6x10_solutions.dart`, `solution_collector.dart`. Plus aucun
-solveur backtracking dans le dépôt. `analyze` 0, `test` 15/15. **Checklist mise à jour** : points 17
-(afficher-solution 6×10, réglé par l'étape B) et 18 (lettres) retirés, §4 corrigé.
-**À reconsidérer par cowork** : le **point 10** (« compteur/navigateur seulement sur 6×10 ») est en
-partie réglé — le compteur décroissant est désormais sur toutes les tailles ; reste le navigateur de
-solutions, laissé au 6×10 (décision 2 sources). La glose « ListSolutionSource » du point 10 est
-caduque : c'est `CorpusSolutionSource` qui l'a fait.
