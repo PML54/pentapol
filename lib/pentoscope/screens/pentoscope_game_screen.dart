@@ -1,7 +1,10 @@
-// Modified: 2026-09-02 19:15 — suppression aussi du message « Transformation impossible » : plus
+// Modified: 2026-09-02 19:20 — icônes d'isométrie du PAYSAGE agrandies à isometryIconSize (comme le
+//           portrait) : elles rétrécissaient en tournant en paysage (retour de Paul) ; la colonne
+//           d'actions paysage est élargie en conséquence pour ne pas rogner.
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 19:15 — suppression aussi du message « Transformation impossible » : plus
 //           aucun SnackBar dans _handleTransformationResult (recentered + impossible), seuls les
 //           retours haptiques restent (retour de Paul).
-// lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-09-02 17:29 — suppression du message « Recentrage » (SnackBar) lors d'une
 //           rotation/miroir qui recale la pièce : recentrage silencieux, haptique conservée.
 // Historique: 2026-09-02 11:28 — retrait de l'icône grid_view_rounded devant le compteur de
@@ -544,9 +547,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       PentoscopeNotifier notifier,
       double columnWidth,
       ) {
-    // Icônes de la barre de transformation (paysage) : rail compact, on garde _uiIconSize
-    // (l'agrandissement dédié ne s'applique qu'au portrait).
-    final iconSize = _uiIconSize(context);
+    // Icônes de la barre de transformation (paysage) : même taille dédiée qu'en portrait
+    // (isometryIconSize), sinon elles « rétrécissent » en tournant en paysage (retour de Paul).
+    final iconSize = isometryIconSize(context);
     final hasDeleteButton = state.selectedPlacedPiece != null;
     
     return Column(
@@ -951,9 +954,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Largeur de la colonne d'actions : assez pour un IconButton à _uiIconSize + son padding,
-        // sinon les boutons débordent sur iPad (§9). L'ancienne formule (0.08 × hauteur) plafonnait.
-        final actionColumnWidth = _uiIconSize(context) + 24;
+        // Largeur de la colonne d'actions : assez pour la barre d'isométrie (icônes dédiées, la
+        // plus grosse chose qui s'y trouve) + son padding, sinon rognage (§9). L'ancienne formule
+        // (0.08 × hauteur) plafonnait.
+        final actionColumnWidth = isometryIconSize(context) + 24;
         // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
         final m = _barMetrics(
             constraints.biggest, state.puzzle!.size, true, actionColumnWidth);
