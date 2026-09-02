@@ -1,6 +1,9 @@
-// Modified: 2026-09-02 11:28 — retrait de l'icône grid_view_rounded devant le compteur de
-//           solutions (_buildSolutionCounter) — décorative, sans fonction (retour de Paul).
+// Modified: 2026-09-02 17:29 — suppression du message « Recentrage » (SnackBar) lors d'une
+//           rotation/miroir qui recale la pièce : recentrage silencieux (retour de Paul), haptique
+//           conservée. Cas TransformationResult.recentered dans _handleTransformationResult.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 11:28 — retrait de l'icône grid_view_rounded devant le compteur de
+//           solutions (_buildSolutionCounter) — décorative, sans fonction (retour de Paul).
 // Historique: 2026-09-02 11:03 — icônes de la barre d'isométrie agrandies en portrait via la
 //           fonction partagée isometryIconSize (game_icons_config) — retour de Paul « trop petites
 //           sur iPhone ». Paysage inchangé (rail compact, _uiIconSize).
@@ -129,14 +132,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         // Pas de message pour une transformation réussie sans ajustement
         break;
       case TransformationResult.recentered:
+        // Recentrage silencieux : plus de message (retour de Paul). Retour haptique conservé.
         HapticFeedback.mediumImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Recentrage'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Colors.orange,
-          ),
-        );
         break;
       case TransformationResult.impossible:
         HapticFeedback.heavyImpact();
