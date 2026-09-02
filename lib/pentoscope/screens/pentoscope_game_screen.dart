@@ -1,7 +1,9 @@
-// Modified: 2026-09-02 11:03 — icônes de la barre d'isométrie agrandies en portrait via la
+// Modified: 2026-09-02 11:28 — retrait de l'icône grid_view_rounded devant le compteur de
+//           solutions (_buildSolutionCounter) — décorative, sans fonction (retour de Paul).
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 11:03 — icônes de la barre d'isométrie agrandies en portrait via la
 //           fonction partagée isometryIconSize (game_icons_config) — retour de Paul « trop petites
 //           sur iPhone ». Paysage inchangé (rail compact, _uiIconSize).
-// lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-09-02 09:28 — #3 cul-de-sac actionnable : la pose reste autorisée même en rouge ;
 //           l'ampoule rouge devient un « retour en arrière » (un appui = removePlacedPiece de la
 //           dernière pièce, répétable). Ampoule inchangée (jaune = indice, rouge = retour).
@@ -860,9 +862,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.grid_view_rounded,
-            size: _uiLabelSize(context), color: Colors.indigo.shade400),
-        const SizedBox(width: 4),
         Text(
           '${state.solutionsCount}',
           style: TextStyle(
