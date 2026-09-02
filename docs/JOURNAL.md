@@ -143,6 +143,14 @@ instrumentation DRAGDIAG rebranchée (oracle avant/après, `drag_diag.dart` du b
 Oracle : `event=snap` doit montrer, après (2), un `chosen` qui **reste sur la ligne du doigt** en
 glissé horizontal. Test à l'écran par Paul.
 
+**Résultat (2026-09-02, test de Paul).** La version aboutie de la branche — snap directionnel +
+dépôt à l'ancre de l'aperçu (fourche A supprimée) + **ancrage de la mastercase sur la cellule
+empoignée** + puce diag `c0..c4` (`d93b584`) — **fonctionne mieux** : le déplacement d'une pièce
+posée se comporte correctement à l'écran. Branche **poussée sur `origin/snap-directionnel`** pour
+que cowork la voie. Pas encore fusionnée dans `main` ; la puce diag `c0..c4` (`kDragDiag`) reste à
+retirer avant fusion. Reste ouvert : décider si l'instrumentation part avant ou après un dernier
+tour de test.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -182,6 +190,13 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-02 — CLI → cowork (snap directionnel : test de Paul concluant).** La branche
+`snap-directionnel` (correctif A + dépôt à l'ancre de l'aperçu + ancrage mastercase sur la cellule
+empoignée + puce diag `c0..c4`, `d93b584`) **fonctionne mieux à l'écran** selon Paul — le
+déplacement d'une pièce posée est correct. Branche **poussée sur `origin/snap-directionnel`**, hors
+`main`. À faire avant fusion : retirer la puce diag `c0..c4` (`kDragDiag`) et l'instrumentation
+DRAGDIAG. Détail en §ÉTAT « snap-directionnel ».
+
 **2026-09-01 — CLI → cowork (REVERT du chantier « déplacement d'une pièce »).** Au test de Paul, le
 chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a produit **beaucoup d'anomalies — déplacements
 aléatoires**. La démarche d'instrumentation `PLAN_DIAG_DRAG` (logger DRAGDIAG derrière `kDragDiag`)
@@ -213,29 +228,3 @@ solveur backtracking dans le dépôt. `analyze` 0, `test` 15/15. **Checklist mis
 partie réglé — le compteur décroissant est désormais sur toutes les tailles ; reste le navigateur de
 solutions, laissé au 6×10 (décision 2 sources). La glose « ListSolutionSource » du point 10 est
 caduque : c'est `CorpusSolutionSource` qui l'a fait.
-
-**2026-08-31 — CLI → cowork (tirages étape B, terminée).** Corpus complet + source unifiée +
-retrait du solveur, en 4 commits, testés sur iPad. **`86dcea6`** : `tools/generate_solutions_corpus.dart`
-+ `assets/data/solutions_corpus.bin` (3,13 Mo, octet/case, 73 876 solutions 5×n) + test structurel ;
-compte par masque identique à `subset_counts.bin`. **`8ce7a56`** : `common/byte_matching.dart`
-(appariement d'octets partagé), `corpus_provider.dart` (découpe par masque), `LiveSolutionSource`
-→ `CorpusSolutionSource` ; `SolutionMatcher.countCompatibleBytes` délègue au partagé. **`3cd14a2`** :
-compteur décroissant actif sur toutes les tailles (gratuit — `solutionsCount` non-nul), bouton
-« solutions compatibles » regaté au 6×10. **retrait solveur** : `PentoscopeSolver` **supprimé du
-dépôt** (outils Flutter-free autonomes), `puzzleFromMask`/`generateFromSeed` ne l'appellent plus
-(compte via `subset_counts.bin`, exact, sans troncature `maxSeconds=30`), `PentoscopePuzzle.solutions`
-supprimé, `currentSolution` typé `List<PlacedPiece>?` servi par `hintFrom`. **Décision : 2 sources
-table-backed** (6×10/BigInt, 5×n/bytes), appariement unifié. `analyze` 0, `test` 12/12. **À noter
-pour cowork** : le §7 de `REFERENCE_TIRAGES` dit « max 5×10 écarte X et W », mais ce masque donne
-2612, pas 4664 — lettre ou exemple à corriger (sans incidence code, le §2 est respecté).
-
-**2026-08-31 — CLI → cowork (mesure n°2 + appariement Uint8List).** Mesure n°2 (§9) jouée sur
-iPad en `--release`, affichage à l'écran (le debug WiFi crashe chez Paul). Le pire
-`_solutionStatus` (38–78 ms) venait du **solveur backtracking live des petites tailles**
-(`LiveSolutionSource.hasSolutionFrom`), **pas** du comptage par table : bench desktop sur les
-9356 réelles = 23 µs en octets vs 318 µs en BigInt (13×), soit ~0,6 ms sur appareil. Conclusion :
-B n'est pas conditionnée, elle est **motivée** — elle supprime ce solveur. Socle livré :
-`SolutionMatcher.countCompatibleBytes` (Uint8List plat 9356×60, sans allocation), branché sur
-`countFrom`/`hasSolutionFrom` du 6×10 ; `_mask` BigInt réservé aux chemins froids (navigateur,
-index). Garde d'équivalence byte≡BigInt sur 10 000 plateaux (`test/solution_matcher_bytes_test.dart`).
-`analyze` 0, `test` 7/7. **Enchaîne sur B.**
