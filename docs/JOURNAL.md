@@ -215,14 +215,15 @@ duel vit dans `PentoscopeMpGameScreen` et utilise des données réelles.
 ### Écran d'accueil (2026-09-02) — implémenté (PLAN_ECRAN_ACCUEIL)
 
 L'écran d'accueil du plan est implémenté et vérifié au **simulateur** (pas encore device). `main.dart`
-démarre sur `HomeScreen` au lieu de `PentoscopeGameScreen` direct. Conforme au plan : en-tête
-`PENTAPOL` + engrenage, scène 5×3 avec l'animation-démo (pièces en miniature → rotation par quarts →
-montée/pose, boucle sur les 7 tirages du 3×5), bouton `Jouer`. `Reprendre` viendra avec la persistance (§5).
+démarre sur `HomeScreen` au lieu de `PentoscopeGameScreen` direct. En-tête `PENTAPOL` + engrenage,
+scène avec l'animation-démo (pièces en miniature → rotation par quarts → montée/pose, boucle sur les
+7 tirages du 3×5), bouton `Jouer`. `Reprendre` viendra avec la persistance (§5). **Écart au plan
+assumé (choix de Paul)** : le plateau de démo est **vertical 3×5** (le plan §2 disait 5×3).
 
 - **Données** : `tools/generate_home_tirages.dart` (nouveau, Flutter-free, contrôles d'acceptation
   intégrés — 7 tirages PFU/PUN/PVL/PVU/PYU/TYL/VLN, 4 solutions chacun, ids §10) →
-  `lib/pentoscope/home/home_tirages_data.dart` (constante `kHomeTirages`, plateau 5×3). Le corpus n'est
-  pas chargé au lancement (§3).
+  `lib/pentoscope/home/home_tirages_data.dart` (constante `kHomeTirages`, plateau **3×5 vertical**). Le
+  corpus n'est pas chargé au lancement (§3).
 - **Widget** : `lib/pentoscope/home/home_screen.dart`. Réutilise `PieceRenderer` + un param **additif**
   `showLabel` (défaut true ; l'accueil = false → **pièces nues**, §1). Respecte `disableAnimations`
   (plateau complet immobile) et suspend l'animation en arrière-plan. Plateau **ancré haut** (retour de Paul).

@@ -1,13 +1,15 @@
-// Modified: 2026-09-02 15:27 — création : génère la constante des 7 tirages du 3×5 (plateau
-//           d'accueil 5 large × 3 haut) pour l'animation-démo de l'écran d'accueil (PLAN_ECRAN_ACCUEIL §3).
+// Modified: 2026-09-02 17:05 — plateau d'accueil passé à la VERTICALE (3 large × 5 haut, retour de
+//           Paul) au lieu de 5×3 ; régénère la donnée transposée (mêmes 7 tirages).
 // tools/generate_home_tirages.dart
+// Historique: 2026-09-02 15:27 — création : génère la constante des 7 tirages du 3×5 pour
+//           l'animation-démo de l'écran d'accueil (PLAN_ECRAN_ACCUEIL §3).
 //
 // Flutter-free et autonome (comme generate_solutions_corpus.dart) : baseShapes recopiées de
 // lib/common/pentominos.dart (ordre id 1..12 = X P T F Y V U L N W Z I), orientations par le
 // groupe diédral D4, énumération par backtracking.
 //
-// Énumère le plateau 5×3 (5 large × 3 haut : l'orientation d'affichage de l'accueil ; le 3×5 du
-// corpus est 3 large × 5 haut — même contenu à transposition près, REFERENCE_TIRAGES §1). Pour
+// Énumère le plateau 3×5 (3 large × 5 haut : l'orientation d'affichage verticale de l'accueil ;
+// même contenu qu'un 5×3 à transposition près, REFERENCE_TIRAGES §1). Pour
 // chacun des 7 tirages solubles, capture UNE solution réelle et compte le total (contrôle §3 :
 // 7 masques, exactement 4 solutions chacun, noms = PFU/PUN/PVL/PVU/PYU/TYL/VLN).
 //
@@ -45,8 +47,8 @@ const Set<String> _expectedNames = {
   'PFU', 'PUN', 'PVL', 'PVU', 'PYU', 'TYL', 'VLN'
 };
 
-const int _w = 5; // plateau d'accueil : 5 large
-const int _h = 3; //                     3 haut
+const int _w = 3; // plateau d'accueil : 3 large (vertical, retour de Paul)
+const int _h = 5; //                     5 haut
 
 late final List<List<List<List<int>>>> _pieceOrientations;
 
@@ -94,7 +96,7 @@ void main() {
   final sortedMasks = masks..sort((a, b) => names[a]!.compareTo(names[b]!));
   final out = StringBuffer()
     ..writeln('// GÉNÉRÉ par tools/generate_home_tirages.dart — NE PAS MODIFIER À LA MAIN.')
-    ..writeln('// Les 7 tirages du 3×5 (plateau d\'accueil 5 large × 3 haut), une solution réelle')
+    ..writeln('// Les 7 tirages du 3×5 (plateau d\'accueil 3 large × 5 haut, vertical), une solution réelle')
     ..writeln('// chacun. Chaque pièce : id (1..12, couleur via getPieceColor) + ses 5 cellules (x,y).')
     ..writeln('// lib/pentoscope/home/home_tirages_data.dart')
     ..writeln()
@@ -105,7 +107,7 @@ void main() {
     ..writeln('  const HomeTirage(this.name, this.pieces);')
     ..writeln('}')
     ..writeln()
-    ..writeln('/// Une pièce posée : id du pentomino et ses 5 cellules [x, y] sur le plateau 5×3.')
+    ..writeln('/// Une pièce posée : id du pentomino et ses 5 cellules [x, y] sur le plateau 3×5.')
     ..writeln('class HomePiece {')
     ..writeln('  final int id;')
     ..writeln('  final List<List<int>> cells;')

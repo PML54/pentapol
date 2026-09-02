@@ -1,6 +1,7 @@
-// Modified: 2026-09-02 16:46 — création : écran d'accueil (PLAN_ECRAN_ACCUEIL). En-tête PENTAPOL +
-//           engrenage, scène 5×3 avec l'animation-démo (pièces en miniature → rotation par quarts →
-//           montée/pose, boucle sur les 7 tirages), bouton Jouer. Réutilise PieceRenderer.
+// Modified: 2026-09-02 17:05 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : en-tête PENTAPOL + engrenage,
+//           scène plateau VERTICAL 3×5 (retour de Paul) + animation-démo (miniature → rotation par
+//           quarts → montée/pose, boucle sur les 7 tirages), bouton Jouer. cellSize bornée par la
+//           hauteur pour ne pas déborder. Réutilise PieceRenderer (showLabel:false, pièces nues).
 // lib/pentoscope/home/home_screen.dart
 
 import 'dart:math' as math;
@@ -235,12 +236,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildScene(BoxConstraints constraints, Color Function(int) colorOf) {
-    final cell = (constraints.maxWidth / kHomeBoardWidth)
-        .clamp(0.0, 96.0)
-        .toDouble();
+    const gap = 28.0;
+    // Taille de case bornée par la largeur ET par la hauteur disponible : le plateau vertical
+    // (3×5) est plus haut que large, il ne doit pas déborder sous l'en-tête.
+    final cellByW = constraints.maxWidth / kHomeBoardWidth;
+    final cellByH = (constraints.maxHeight - gap - 24) /
+        (kHomeBoardHeight + kPieceToBoardCellRatio * 3);
+    final cell = math.min(cellByW, cellByH).clamp(0.0, 96.0).toDouble();
     final boardW = cell * kHomeBoardWidth;
     final boardH = cell * kHomeBoardHeight;
-    const gap = 28.0;
     // Bande basse : hauteur d'une pièce en miniature (jusqu'à 3 cases de haut).
     final stripH = cell * kPieceToBoardCellRatio * 3 + 24;
     final sceneW = boardW;
