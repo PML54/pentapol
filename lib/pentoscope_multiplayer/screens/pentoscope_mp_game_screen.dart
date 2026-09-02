@@ -1,9 +1,12 @@
-// Modified: 2026-09-02 11:03 — Route 2 (occuper le rab) : en portrait 1v1, le mini-plateau adverse
+// Modified: 2026-09-02 15:27 — tailles d'icônes du duel (portrait) calées au test de Paul (mode à
+//           2) : barre d'isométrie 36 en dur (la taille partagée ~47 était trop grosse pour la
+//           barre compacte du duel) ; quitter / ampoule / œil remontés à 30 (étaient à 24).
+// lib/pentoscope_multiplayer/screens/pentoscope_mp_game_screen.dart
+// Historique: 2026-09-02 11:03 — Route 2 (occuper le rab) : en portrait 1v1, le mini-plateau adverse
 //           est docké dans la bande haute libérée par #6 — _opponentDockHeight décide/dimensionne
 //           (repli sur overlay flottant si paysage / ≠1 adversaire / bande trop courte), dock dans
 //           la Column, overlay flottant supprimé dans ce cas. + icônes d'isométrie portrait via
 //           isometryIconSize (taille partagée solo/duel).
-// lib/pentoscope_multiplayer/screens/pentoscope_mp_game_screen.dart
 // Écran de jeu Pentoscope Multiplayer
 
 import 'dart:math';
@@ -128,7 +131,7 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
                         children: [
                           // ❌ Bouton quitter
                           IconButton(
-                            icon: const Icon(Icons.close, color: Colors.red),
+                            icon: const Icon(Icons.close, color: Colors.red, size: 30),
                             onPressed: () => _showQuitDialog(context, ref),
                             tooltip: 'Quitter',
                           ),
@@ -159,10 +162,10 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
                               localState.hasPossibleSolution 
                                   ? Icons.lightbulb 
                                   : Icons.lightbulb_outline,
-                              color: localState.hasPossibleSolution 
-                                  ? Colors.amber 
+                              color: localState.hasPossibleSolution
+                                  ? Colors.amber
                                   : Colors.grey.shade400,
-                              size: 24,
+                              size: 30,
                             ),
                           ),
                         // 👁️ Toggle adversaires
@@ -170,6 +173,7 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
                           icon: Icon(
                             _showOpponents ? Icons.visibility : Icons.visibility_off,
                             color: _showOpponents ? Colors.blue : Colors.grey,
+                            size: 30,
                           ),
                           onPressed: () {
                             HapticFeedback.selectionClick();
@@ -737,9 +741,10 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
   // ==========================================================================
 
   Widget _buildFullWidthIsometryBar(PentoscopeState state, PentoscopeNotifier notifier) {
-    // Taille dédiée partagée (solo + duel), plus grosse que la barre d'état (retour de Paul
-    // « icônes d'isométrie trop petites sur iPhone »). Portrait ; le paysage garde son rail compact.
-    final double iconSize = isometryIconSize(context);
+    // Taille propre au duel (36) : la barre compacte du duel supportait mal la taille partagée
+    // isometryIconSize (~47, bonne en solo mais trop grosse ici) — calée avec les autres icônes
+    // du duel remontées à 30 (retour de Paul, test en mode à 2). Portrait.
+    const double iconSize = 36.0;
     final hasDeleteButton = state.selectedPlacedPiece != null;
     
     return Row(
