@@ -147,9 +147,15 @@ glissé horizontal. Test à l'écran par Paul.
 dépôt à l'ancre de l'aperçu (fourche A supprimée) + **ancrage de la mastercase sur la cellule
 empoignée** + puce diag `c0..c4` (`d93b584`) — **fonctionne mieux** : le déplacement d'une pièce
 posée se comporte correctement à l'écran. Branche **poussée sur `origin/snap-directionnel`** pour
-que cowork la voie. Pas encore fusionnée dans `main` ; la puce diag `c0..c4` (`kDragDiag`) reste à
-retirer avant fusion. Reste ouvert : décider si l'instrumentation part avant ou après un dernier
-tour de test.
+que cowork la voie. Pas encore fusionnée dans `main`.
+
+**Instrumentation retirée (2026-09-02).** Le diagnostic ayant rempli son office, `kDragDiag`,
+`dragDiag()` et tous les points DRAGDIAG ont été supprimés : fichier `lib/common/drag_diag.dart`
+(`git rm`), blocs `event=grab`/`event=snap`/`event=drop`, helper `_diagCandidates`, et la puce
+`c0..c4` de la barre d'isométrie (`_mastercaseLabel` + `_buildMastercaseChip`). **La logique du
+correctif A est intacte** — `setDragMastercase`, `_gestureAxis`, snap directionnel, dépôt à l'ancre
+de l'aperçu. `analyze` 0 erreur. La branche est **prête à fusionner dans `main`** sous réserve d'un
+dernier tour de test de Paul. (L'archive DRAGDIAG reste disponible sur `backup/deplacement-piece-c5306b5`.)
 
 ### Documentation
 

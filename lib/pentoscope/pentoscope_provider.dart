@@ -1,4 +1,7 @@
-// Modified: 2026-09-01 15:45 — prise stable : setDragMastercase ancre la mastercase sur la cellule
+// Modified: 2026-09-02 04:31 — retrait de l'instrumentation DRAGDIAG (grab/snap) et du helper
+//           _diagCandidates : correctif A validé sur appareil, le diagnostic n'a plus lieu d'être.
+//           setDragMastercase / _gestureAxis / snap directionnel inchangés.
+// Historique: 2026-09-01 15:45 — prise stable : setDragMastercase ancre la mastercase sur la cellule
 //           empoignée au départ du drag (au lieu du dernier tap), pour que la direction parte du
 //           doigt. + log DRAGDIAG event=grab. (Correctif A snap + fourche A/B déjà en place.)
 // Historique: 2026-09-01 15:10 — correctif A commit 2 : le snap RESPECTE le sens du geste (horizontal
@@ -52,7 +55,6 @@ import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
-import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/common/transformation_result.dart';
 export 'package:pentapol/common/transformation_result.dart';
 import 'package:pentapol/common/view_orientation.dart';
@@ -616,13 +618,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       selectedCellInPiece: Point(absoluteX - sp.gridX, absoluteY - sp.gridY),
       selectedMasterAbs: Point(absoluteX, absoluteY),
     );
-    if (kDragDiag) {
-      dragDiag(
-        'event=grab,piece=${sp.piece.id},ori=${state.selectedPositionIndex},'
-        'grabAbsX=$absoluteX,grabAbsY=$absoluteY,anchorX=${sp.gridX},anchorY=${sp.gridY},'
-        'cellInPieceX=${absoluteX - sp.gridX},cellInPieceY=${absoluteY - sp.gridY}',
-      );
-    }
   }
 
   /// À appeler depuis l'UI (board) quand l'orientation change.
@@ -1943,36 +1938,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       }
     }
 
-    // DRAGDIAG (oracle correctif A) — après métrique directionnelle : en `axis=1`, `chosenY` doit
-    // rester = ligne d'origine (`sp.gridY`) tant qu'un candidat y existe (plus de « ça monte »).
-    if (kDragDiag) {
-      dragDiag(
-        'event=snap,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
-        'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},axis=$axis,'
-        'inX=$dragGridX,inY=$dragGridY,desiredX=${desiredAnchor.x},desiredY=${desiredAnchor.y},'
-        'origX=${sp?.gridX},origY=${sp?.gridY},'
-        'ncand=${state.validPlacements.length},chosenX=${closest.x},chosenY=${closest.y},'
-        'prim=${bestPrimary.toStringAsFixed(3)},sec=${bestSecondary.toStringAsFixed(3)},'
-        'cand=${_diagCandidates(desiredAnchor)}',
-      );
-    }
-
     return closest;
-  }
-
-  /// DRAGDIAG — ancres candidates triées par distance² à l'ancre désirée, 8 plus proches :
-  /// `x:y:d2|…`. Rend visible le candidat « qui monte » face à celui « sur la ligne ».
-  String _diagCandidates(Point desiredAnchor) {
-    final scored = state.validPlacements.map((p) {
-      final dx = (desiredAnchor.x - p.x).toDouble();
-      final dy = (desiredAnchor.y - p.y).toDouble();
-      return (p: p, d2: dx * dx + dy * dy);
-    }).toList()
-      ..sort((a, b) => a.d2.compareTo(b.d2));
-    return scored
-        .take(8)
-        .map((e) => '${e.p.x}:${e.p.y}:${e.d2.toStringAsFixed(2)}')
-        .join('|');
   }
 
   /// Génère TOUS les placements possibles pour une pièce à une positionIndex donnée

@@ -1,7 +1,9 @@
-// Modified: 2026-09-01 15:45 — prise stable : onDragStarted ancre la mastercase sur la cellule
+// Modified: 2026-09-02 04:31 — retrait du log DRAGDIAG event=drop dans onAccept et de l'import
+//           drag_diag : diagnostic terminé, le dépôt à l'ancre de l'aperçu est conservé tel quel.
+// lib/pentoscope/widgets/pentoscope_board.dart
+// Historique: 2026-09-01 15:45 — prise stable : onDragStarted ancre la mastercase sur la cellule
 //           empoignée (setDragMastercase(logicalX,logicalY)) avant setDragging — la référence ne
 //           dépend plus du dernier tap. (Dépôt à l'aperçu / fourche A/B conservé.)
-// lib/pentoscope/widgets/pentoscope_board.dart
 // Historique: 2026-09-01 15:30 — fourche A/B : onAccept dépose à l'ancre de l'aperçu
 //             (tryPlaceAtAnchor(previewX,previewY)), plus de reconstruction. + log event=drop.
 // Historique: 2026-08-31 16:00 — regroupement des réglages visuels : kPieceToBoardCellRatio n'est
@@ -18,7 +20,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/common/pentominos.dart';
-import 'package:pentapol/common/drag_diag.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
@@ -167,15 +168,6 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             // — c'est cette re-dérivation qui replaçait la pièce `−minY` plus haut au relâcher.
             // Ce que l'aperçu montre est exactement ce qui se pose.
             final success = notifier.tryPlaceAtAnchor(state.previewX!, state.previewY!);
-
-            // DRAGDIAG (oracle) — pose : l'ancre déposée DOIT être l'ancre de l'aperçu.
-            if (kDragDiag) {
-              dragDiag(
-                'event=drop,mode=${state.selectedPlacedPiece != null ? 'B' : 'A'},'
-                'piece=${state.selectedPiece?.id},ori=${state.selectedPositionIndex},'
-                'previewX=${state.previewX},previewY=${state.previewY},placed=$success',
-              );
-            }
 
             if (success) {
               HapticFeedback.mediumImpact();
