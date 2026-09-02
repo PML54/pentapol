@@ -1,7 +1,9 @@
-// Modified: 2026-09-02 17:29 — suppression du message « Recentrage » (SnackBar) lors d'une
-//           rotation/miroir qui recale la pièce : recentrage silencieux (retour de Paul), haptique
-//           conservée. Cas TransformationResult.recentered dans _handleTransformationResult.
+// Modified: 2026-09-02 19:15 — suppression aussi du message « Transformation impossible » : plus
+//           aucun SnackBar dans _handleTransformationResult (recentered + impossible), seuls les
+//           retours haptiques restent (retour de Paul).
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 17:29 — suppression du message « Recentrage » (SnackBar) lors d'une
+//           rotation/miroir qui recale la pièce : recentrage silencieux, haptique conservée.
 // Historique: 2026-09-02 11:28 — retrait de l'icône grid_view_rounded devant le compteur de
 //           solutions (_buildSolutionCounter) — décorative, sans fonction (retour de Paul).
 // Historique: 2026-09-02 11:03 — icônes de la barre d'isométrie agrandies en portrait via la
@@ -136,14 +138,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         HapticFeedback.mediumImpact();
         break;
       case TransformationResult.impossible:
+        // Silencieux : plus de message (retour de Paul). Retour haptique fort conservé.
         HapticFeedback.heavyImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transformation impossible'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Colors.red,
-          ),
-        );
         break;
     }
   }
