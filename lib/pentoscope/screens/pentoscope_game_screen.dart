@@ -1,7 +1,10 @@
-// Modified: 2026-09-02 09:28 — #3 cul-de-sac actionnable : la pose reste autorisée même en rouge ;
+// Modified: 2026-09-02 11:03 — icônes de la barre d'isométrie agrandies en portrait via la
+//           fonction partagée isometryIconSize (game_icons_config) — retour de Paul « trop petites
+//           sur iPhone ». Paysage inchangé (rail compact, _uiIconSize).
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 09:28 — #3 cul-de-sac actionnable : la pose reste autorisée même en rouge ;
 //           l'ampoule rouge devient un « retour en arrière » (un appui = removePlacedPiece de la
 //           dernière pièce, répétable). Ampoule inchangée (jaune = indice, rouge = retour).
-// lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-09-02 04:31 — retrait de la puce diag « c0..c4 » (_buildMastercaseChip /
 //           _mastercaseLabel) et de son insertion dans la barre d'isométrie : diagnostic terminé.
 // Historique: 2026-09-01 16:10 — DIAGNOSTIC (kDragDiag) : puce « c0..c4 » dans la barre d'isométrie
@@ -462,8 +465,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       PentoscopeState state,
       PentoscopeNotifier notifier,
       ) {
-    // Icônes de la barre de transformation, à l'échelle de l'interface (§4d).
-    final double iconSize = _uiIconSize(context);
+    // Icônes de la barre de transformation : taille dédiée partagée (solo + duel), plus grosse
+    // que la barre d'état (cibles d'action ; retour de Paul « trop petites sur iPhone »).
+    final double iconSize = isometryIconSize(context);
 
     final hasDeleteButton = state.selectedPlacedPiece != null;
     
@@ -545,7 +549,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       PentoscopeNotifier notifier,
       double columnWidth,
       ) {
-    // Icônes de la barre de transformation (paysage), à l'échelle de l'interface (§4d).
+    // Icônes de la barre de transformation (paysage) : rail compact, on garde _uiIconSize
+    // (l'agrandissement dédié ne s'applique qu'au portrait).
     final iconSize = _uiIconSize(context);
     final hasDeleteButton = state.selectedPlacedPiece != null;
     

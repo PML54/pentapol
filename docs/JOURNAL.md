@@ -185,6 +185,33 @@ réservé au test device de Paul). Deux corrections retenues par Paul, appliqué
 arbitrer) : barre d'icônes principale hétérogène, rouge sémantiquement surchargé (alerte / suppression
 / mastercase), hiérarchie de boutons ambiguë à l'entrée multijoueur, titre « Multiplayer » en anglais.
 
+### Revue UI — suite (2026-09-02) : icônes d'isométrie + Route 2 (mini-plateau docké)
+
+Deux ajouts, sur retour de Paul.
+
+- **Icônes de la barre d'isométrie agrandies (portrait).** « Trop petites sur iPhone » — de fait
+  `_uiIconSize` plafonne à 30 sur iPhone (côté court ≈ 393). Nouvelle fonction **partagée**
+  `isometryIconSize(context)` (`config/game_icons_config.dart`) = `shortestSide × 0.12` borné [44, 84]
+  ≈ 47 sur iPhone, utilisée par les barres d'isométrie **portrait** des DEUX écrans (solo
+  `PentoscopeGameScreen` et duel `PentoscopeMpGameScreen`, jusqu'ici 30 et 42 en dur, indépendants).
+  Paysage laissé tel quel (rails compacts, icônes à 20 alignées ; les élargir en permanence pour des
+  boutons qui n'apparaissent qu'en manipulation serait un mauvais compromis — à faire si demandé).
+
+- **Route 2 — « occuper le rab » avec le mini-plateau adverse (duel).** #6 libère une bande en haut
+  en portrait ; on y **docke** le mini-plateau adverse au lieu de le laisser flotter/chevaucher le
+  jeu. `pentoscope_mp_game_screen.dart` : `_opponentDockHeight` décide (portrait, œil actif, **1v1**,
+  bande suffisante) et dimensionne le dock d'après la géométrie réelle du plateau — estimation
+  **conservatrice** (hauteur de grille bornée par la largeur → on ne docke que si l'espace est franc,
+  sinon **repli sur l'overlay flottant** existant). Le dock est le premier enfant de la Column
+  portrait (dockH ≤ rab → plateau non rétréci) ; l'overlay flottant est supprimé dans ce cas (pas de
+  double rendu). **Réservé au 1v1** (à 2-3 adversaires la bande peu profonde ne tient pas une rangée
+  de minis lisibles → empilement à droite conservé). Vraies données adverses. **Non observable au
+  simulateur seul** (duel 1v1 réel requis) → à valider sur device.
+
+`analyze` 0 erreur / 0 warning. Découverte au passage : l'overlay adverse de `PentoscopeGameScreen`
+(solo) est **dormant** (`_showOpponentOverlay` jamais mis à `true`) et **simulé** ; le vrai mini du
+duel vit dans `PentoscopeMpGameScreen` et utilise des données réelles.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -224,6 +251,16 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-02 — CLI → cowork (revue UI suite : icônes d'isométrie + Route 2 mini docké).** Deux
+retours de Paul, commités sur `main`. **Icônes** : barre d'isométrie **portrait** agrandie (~47 sur
+iPhone, avant 30 solo / 42 duel) via une fonction **partagée** `isometryIconSize` (game_icons_config),
+utilisée par les deux écrans ; paysage inchangé. **Route 2** : en portrait 1v1, le mini-plateau
+adverse est **docké** dans la bande haute libérée par #6 (`_opponentDockHeight`, repli auto sur
+l'overlay flottant hors 1v1 / paysage / bande trop courte). `analyze` 0. **Non observable au
+simulateur seul** (duel 1v1 réel requis) → à valider sur device. Détail en §ÉTAT « Revue UI — suite ».
+Découverte : l'overlay adverse du solo est dormant + simulé ; le vrai mini du duel vit dans
+`PentoscopeMpGameScreen`.
+
 **2026-09-02 — CLI → cowork (revue UI : #6 plateau ancré bas, #3 cul-de-sac réversible).** Revue
 d'UI sur simulateur ; deux corrections validées par Paul et commitées sur `main`. **#6** : portrait
 `Alignment.bottomCenter` pour le plateau **+ couplage `offsetY` du hit-test drag** (sinon dépôts
@@ -239,17 +276,3 @@ empoignée + puce diag `c0..c4`, `d93b584`) **fonctionne mieux à l'écran** sel
 déplacement d'une pièce posée est correct. Branche **poussée sur `origin/snap-directionnel`**, hors
 `main`. À faire avant fusion : retirer la puce diag `c0..c4` (`kDragDiag`) et l'instrumentation
 DRAGDIAG. Détail en §ÉTAT « snap-directionnel ».
-
-**2026-09-01 — CLI → cowork (REVERT du chantier « déplacement d'une pièce »).** Au test de Paul, le
-chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a produit **beaucoup d'anomalies — déplacements
-aléatoires**. La démarche d'instrumentation `PLAN_DIAG_DRAG` (logger DRAGDIAG derrière `kDragDiag`)
-avait été posée juste avant, mais Paul a tranché : **retour à l'état pré-chantier** plutôt que
-poursuite du diagnostic sur place. Branche `deplacement-piece` **reset --hard sur `1efda1a`**
-(= `main` = tag `avant-deplacement-piece`). Chantier + instrumentation **sauvegardés** sur `c5306b5`
-(tag `chantier-deplacement-backup`, branche `backup/deplacement-piece-c5306b5`) — rien perdu, reprise
-par cherry-pick. **Conservés** par-dessus : les deux correctifs d'ergonomie du jour (saisie du « I »,
-sortie Paramètres iPad), reposés à la main sur la base pré-chantier. `analyze` 0 error. **Pour cowork** :
-si le déplacement d'une pièce est repris, repartir du backup pour lire les logs DRAGDIAG, ou d'une
-approche neuve — l'ancienne a été jugée trop instable pour rester sur la branche de travail.
-**Cartographie du bug intermittent + correctif minimal proposé : voir §ÉTAT « Déplacement d'une
-pièce — cartographie du bug intermittent ».**

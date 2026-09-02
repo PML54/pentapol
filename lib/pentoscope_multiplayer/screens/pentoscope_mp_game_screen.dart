@@ -1,3 +1,8 @@
+// Modified: 2026-09-02 11:03 — Route 2 (occuper le rab) : en portrait 1v1, le mini-plateau adverse
+//           est docké dans la bande haute libérée par #6 — _opponentDockHeight décide/dimensionne
+//           (repli sur overlay flottant si paysage / ≠1 adversaire / bande trop courte), dock dans
+//           la Column, overlay flottant supprimé dans ce cas. + icônes d'isométrie portrait via
+//           isometryIconSize (taille partagée solo/duel).
 // lib/pentoscope_multiplayer/screens/pentoscope_mp_game_screen.dart
 // Écran de jeu Pentoscope Multiplayer
 
@@ -291,6 +296,35 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
   // OPPONENT OVERLAYS
   // ==========================================================================
 
+  /// Route 2 — « occuper le rab ». En portrait, #6 ancre le plateau en bas et libère une bande
+  /// en haut. Si le duel est un **1v1** et que l'adversaire est affiché, on y **docke** son
+  /// mini-plateau (au lieu de le laisser flotter et chevaucher le jeu). Renvoie la hauteur du dock
+  /// (côté du mini, carré), ou 0 s'il ne faut pas docker (paysage, ≠ 1 adversaire, œil masqué, ou
+  /// bande insuffisante → repli sur l'overlay flottant).
+  ///
+  /// Bande estimée **conservativement** : hauteur de grille bornée par la LARGEUR (vrai sur les
+  /// petits plateaux ; si le plateau est borné par la hauteur, on la surestime → bande
+  /// sous-estimée → pas de dock, ce qui est le bon côté de l'erreur). Constantes réutilisées :
+  /// appBar 56 et slider 140 (déjà en dur dans ce fichier), marge plateau 8 (cf. pentoscope_board).
+  double _opponentDockHeight(BuildContext context, PentoscopeMPState mpState) {
+    final mq = MediaQuery.of(context);
+    if (mq.size.width > mq.size.height) return 0; // paysage
+    if (!_showOpponents) return 0;
+    if (mpState.gameState != PentoscopeMPGameState.playing) return 0;
+    if (mpState.opponents.length != 1) return 0; // dock réservé au 1v1
+    final config = mpState.config;
+    if (config == null) return 0;
+
+    final gridHWidthBound = ((mq.size.width - 8) / config.width) * config.height;
+    final usableH =
+        mq.size.height - mq.padding.top - mq.padding.bottom - 56.0 - 140.0;
+    final band = usableH - gridHWidthBound;
+
+    const double miniMin = 96.0, miniMax = 200.0;
+    if (band < miniMin + 8) return 0; // bande trop courte → overlay flottant
+    return band.clamp(miniMin, miniMax);
+  }
+
   List<Widget> _buildOpponentOverlays(
     BuildContext context,
     PentoscopeMPState mpState,
@@ -298,6 +332,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
   ) {
     final opponents = mpState.opponents;
     if (opponents.isEmpty) return [];
+    // Route 2 : l'unique adversaire est docké dans la bande haute → pas d'overlay flottant.
+    if (_opponentDockHeight(context, mpState) > 0) return [];
 
     final screenSize = MediaQuery.of(context).size;
     final isLandscape = screenSize.width > screenSize.height;
@@ -560,8 +596,22 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
     bool isPlacedPieceSelected,
     PentoscopeMPState mpState,
   ) {
+    final dockH = _opponentDockHeight(context, mpState);
+    final settings = ref.watch(settingsProvider);
     return Column(
       children: [
+        // Route 2 — mini-plateau adverse docké dans la bande haute (1v1 portrait). La hauteur
+        // dockH est ≤ rab (calcul conservateur), donc l'Expanded du plateau reste borné par la
+        // largeur : le plateau n'est pas rétréci, le dock consomme juste le vide du haut.
+        if (dockH > 0)
+          SizedBox(
+            height: dockH,
+            child: Center(
+              child: _buildOpponentMiniBoard(
+                  mpState.opponents.first, mpState, settings, dockH),
+            ),
+          ),
+
         // Plateau
         Expanded(
           child: Center(
@@ -570,7 +620,7 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
             ),
           ),
         ),
-        
+
         // Slider
         Container(
           height: 140,
@@ -687,7 +737,9 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
   // ==========================================================================
 
   Widget _buildFullWidthIsometryBar(PentoscopeState state, PentoscopeNotifier notifier) {
-    const double iconSize = 42.0;
+    // Taille dédiée partagée (solo + duel), plus grosse que la barre d'état (retour de Paul
+    // « icônes d'isométrie trop petites sur iPhone »). Portrait ; le paysage garde son rail compact.
+    final double iconSize = isometryIconSize(context);
     final hasDeleteButton = state.selectedPlacedPiece != null;
     
     return Row(
