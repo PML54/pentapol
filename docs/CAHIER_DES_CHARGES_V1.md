@@ -152,7 +152,8 @@ indépendants**, sur le modèle du Tour de France :
 | **Vert** | **Temps** | croissant |
 
 *(Au Tour, le grimpeur porte le maillot à pois rouges et le sprinteur le vert ; « maillot
-rouge » est le leader du Giro ou de la Vuelta. Nommage à arrêter, la mécanique ne change pas.)*
+rouge » est le leader du Giro ou de la Vuelta. **Nommage arrêté par Paul le 2026-09-03 (§12,
+Q5)** : on garde jaune / à pois / vert.)*
 
 Le jaune va à l'acuité : c'est l'identité du produit, celle qu'aucun autre jeu de pavage ne
 mesure. Le vert récompense la vitesse, le à pois l'économie de gestes. **Aucun des trois n'est
@@ -245,26 +246,30 @@ seuil en valeur brute : `minIso` vaut 0 dans 1,7 % des parties du niveau 1, une 
 
 ### 4.7 Les coups
 
-Un **coup** = poser une pièce, déplacer une pièce déjà posée, ou la retirer. Le minimum est donc
-le **nombre de pièces** : 12 sur le 6×10, 3 au niveau 1. Comme pour les isométries, le score est
+> **Tranché par Paul le 2026-09-03 (§12, Q6) : le déplacement direct d'une pièce posée ne compte
+> PAS comme un coup.** Ni 1 ni 2 — `translationCount` sort du décompte.
+
+Un **coup** = **poser** une pièce ou la **retirer**. Déplacer une pièce déjà posée est **gratuit**.
+Le minimum reste le **nombre de pièces** : 12 sur le 6×10, 3 au niveau 1 (chaque pièce est posée
+une fois, aucun retrait dans une partie sans erreur). Comme pour les isométries, le score est
 relatif :
 
 ```
-efficacité = nombre de pièces / nombre de coups
+efficacité = nombre de pièces / nombre de coups        (coups = poses + retraits)
 ```
 
 Pas de cas dégénéré ici — le nombre de coups vaut toujours au moins le nombre de pièces, donc
 aucun `+ 1` n'est nécessaire. 17 coups sur un 6×10 → 71 %.
 
-**Point à trancher — deux chemins de coût différent pour le même résultat.** Le code compte
-aujourd'hui le déplacement d'une pièce posée pour **1** (`translationCount`), et le retrait vers
-le tiroir suivi d'une repose pour **2** (`deleteCount` + une pose). Même correction, un coup ou
-deux selon le geste employé. Sans arbitrage explicite, le classement départagera des joueurs sur
-leur habitude de manipulation plutôt que sur leur jeu.
+**Raison du choix (Paul).** Ne pas compter le déplacement direct récompense la **manipulation
+directe** plutôt que le détour par le tiroir, et surtout ne départage plus les joueurs sur leur
+**habitude de geste** — deux joueurs qui aboutissent au même plateau ne doivent pas être classés
+différemment parce que l'un déplace et l'autre retire-repose. Le maillot à pois mesure donc les
+**poses et retraits**, c'est-à-dire le tâtonnement de placement, pas le déplacement d'ajustement.
 
-*Recommandation* : garder le déplacement direct à 1. C'est le geste le plus économique, c'est
-déjà le comportement du code, et cela encourage la manipulation directe plutôt que le détour par
-le tiroir. À documenter dans l'aide plutôt qu'à corriger.
+**Conséquence technique** : le décompte des coups **ignore `translationCount`** et somme le
+nombre de poses et de retraits (`deleteCount` existe déjà ; le compteur de poses est à vérifier
+au moment du code — il n'est peut-être pas encore matérialisé).
 
 ### 4.8 Mode classé — ce qui change, et ce qui ne change pas
 
@@ -322,6 +327,14 @@ Passable dès le premier écran, rejouable depuis les réglages.
 ---
 
 ## 7. Le défi de la semaine et son classement
+
+> ⚠️ **Hors V1 — décision de Paul du 2026-09-03 (§12, Q3, modèle économique option 1).** Le
+> classement en ligne et le défi de la semaine ne sont **pas** dans la V1 : un jeu payant d'un
+> éditeur peu connu n'a pas la population qui remplit un classement, et un classement vide
+> décourage. Ils deviennent la **première mise à jour**, avec leur argument de communication à ce
+> moment-là. La V1 se contente des **records et statistiques personnels** (§4, qui reste utile
+> hors classement). Cette section est conservée **telle quelle comme spécification de cette mise à
+> jour** — rien n'y est abandonné, seulement différé.
 
 > Spécifié le 2026-09-03 avec Paul. Le service à écrire **n'est pas** le worker existant :
 > `https://pentapol-duel.pentapml.workers.dev` (URL en dur) est un WebSocket + Durable Objects
@@ -558,8 +571,8 @@ L'ordre du mémo §14 est bon. Deux déplacements, justifiés par les mesures :
 | 5 | **Compteur de solutions lisible** (§5) | dont la décision « à symétrie près » |
 | 6 | **Records personnels et statistiques** — avec les compteurs séparés (§3) | |
 | 7 | **Prérequis du classement** : suspendre le chronomètre en arrière-plan (§7.7) et PRNG écrit dans le dépôt (§7.3, piège 2) | **ajoutés** — ce ne sont pas des améliorations : sans eux, le maillot vert est faussé par le premier appel téléphonique, et une montée de SDK change tous les défis |
-| 8 | Défi de la semaine et ses trois classements (§7) | conditionné au §9 |
-| 9 | Multijoueur temps réel | hors V1, comme le dit le mémo |
+| 8 | Défi de la semaine et ses trois classements (§7) | **hors V1** — Paul a tranché le §9 en faveur de l'option 1 (§12, Q3). Devient la première mise à jour |
+| 9 | Multijoueur temps réel | **maintenu dans la V1** — Paul le garde accessible (§12, Q4), contrairement à la recommandation initiale de couper |
 
 Rappel des bloquants techniques indépendants de tout cela, déjà listés dans
 `CHECKLIST_APPSTORE.md` : identifiant de bundle `com.example.pentapol`, `flutter test` rouge,
@@ -567,22 +580,28 @@ Rappel des bloquants techniques indépendants de tout cela, déjà listés dans
 
 ---
 
-## 12. Questions ouvertes — à trancher par Paul
+## 12. Questions tranchées par Paul — 2026-09-03
 
-1. **Les niveaux 1 et 2 s'épuisent en 33 configurations.** Déverrouillage progressif, ou
-   choix libre de la taille dès le départ ?
-2. **Le compteur affiche-t-il les solutions à symétrie près ?** (§2.3) — décision qui touche
-   le jeu, les records, le classement et les captures.
-3. **Modèle économique** (§9), qui commande l'existence même du classement en V1.
-4. **Le duel temps réel reste-t-il accessible en V1 ?** La recommandation de couper est
-   inchangée.
-5. **Nommage des maillots** (§4.1). Au Tour, le grimpeur porte le maillot **à pois rouges** et
-   le sprinteur le **vert** ; « maillot rouge » désigne le leader du Giro ou de la Vuelta. Le
-   mot seulement — la mécanique des trois classements ne change pas.
-6. **Un déplacement direct coûte-t-il 1 coup ou 2 ?** (§4.7) Aujourd'hui déplacer une pièce posée
-   incrémente `translationCount` de 1, tandis que la retirer puis la reposer coûte 2. Même
-   correction, prix différent selon le geste — et c'est le **maillot à pois** qui en dépend.
-7. **Le 3×5 et le 4×5 restent-ils ouverts au défi ?** (§7.2) `minIso` n'y dépasse pas 4 et le
-   minimum de coups vaut 3 ou 4 : le maillot jaune et le maillot à pois n'y départageront
-   personne, seul le vert classera. Ce sont des défis de vitesse — à assumer comme tels, ou à
-   fermer.
+Les sept questions ouvertes ont été **tranchées par Paul le 2026-09-03**. Conservées ici avec
+leur réponse pour l'audit ; chaque section concernée porte un renvoi vers cette liste.
+
+1. **Déverrouillage progressif** — pas de choix libre de la taille dès le départ. Le joueur monte
+   taille par taille ; c'est déjà le comportement du code (`currentLevel`, `sizeForLevel`). Le
+   « + » (choix libre d'une taille) reste un accès secondaire, hors progression.
+2. **Le compteur affiche TOUTES les solutions**, symétries comprises — **pas** « à symétrie près »
+   (§2.3). Décision transverse : records, classement et captures s'alignent sur ce compte. C'est
+   aussi le comportement actuel du code (§2.3). Ferme la part « à symétrie près » de la priorité #5.
+3. **Payant, sans classement mondial en V1** — §9, **option 1** (recommandation cowork). Les
+   records et statistiques personnels portent seuls la rétention en V1 ; le **défi de la semaine
+   et son classement (§7) passent hors V1** et deviennent la première mise à jour. « Aucune donnée
+   collectée » préservé. → renvois posés en tête de §7 et à la priorité #8.
+4. **Le duel temps réel reste accessible en V1** — contrairement à la recommandation initiale de
+   couper. → priorité #9 maintenue dans la V1.
+5. **Nommage Tour de France retenu** : maillot **jaune** = acuité, **à pois** = coups, **vert** =
+   temps (§4.1). Nommage figé.
+6. **Un déplacement direct ne compte PAS comme un coup** — ni 1 ni 2. `translationCount` sort du
+   décompte : un **coup** = poser ou retirer une pièce, déplacer une pièce déjà posée est gratuit.
+   → §4.7 mis à jour ; le maillot à pois mesure poses + retraits, minimum = nombre de pièces.
+7. **3×5 et 4×5 restent ouverts au défi** (§7.2), assumés comme **défis de vitesse** : `minIso`
+   n'y dépasse pas 4 et le minimum de coups vaut 3 ou 4, donc jaune et à pois n'y départagent
+   personne — seul le vert classe. (Concerne la mise à jour « défi », le défi étant hors V1 — Q3.)

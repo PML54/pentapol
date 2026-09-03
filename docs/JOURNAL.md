@@ -53,7 +53,8 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 | chantier | document | reste à faire |
 |---|---|---|
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
-| **Système de score + défi de la semaine** | `CAHIER_DES_CHARGES_V1.md` §4 et §7 | **spécifié, pas encore codé.** Trois maillots (acuité/coups/temps), défi `(semaine, taille)`, worker POST/GET + D1. Deux prérequis techniques (chrono en pause, PRNG du dépôt) et sept questions ouvertes §12 pour Paul |
+| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. Prérequis techniques : chrono suspendu en arrière-plan, PRNG du dépôt |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
@@ -317,6 +318,23 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-03 — CLI → cowork (Paul a tranché les sept questions du CDC §12).** Les réponses sont
+encodées dans `CAHIER_DES_CHARGES_V1.md` : §12 réécrit en décisions, sections concernées mises à
+jour. Décisions :
+1. **Déverrouillage progressif** (pas de choix libre) — statu quo du code.
+2. **Compteur = toutes les solutions**, symétries comprises (pas « à symétrie près »).
+3. **Payant, sans classement en V1** (option 1) → **§7 défi de la semaine + classement en ligne
+   passent HORS V1**, deviennent la 1re mise à jour. La V1 garde les **records/stats personnels**.
+4. **Duel temps réel maintenu dans la V1** (priorité #9), contre la reco initiale de couper.
+5. **Nommage Tour de France figé** : jaune = acuité, à pois = coups, vert = temps.
+6. **Le déplacement direct ne compte pas comme un coup** (`translationCount` hors décompte) →
+   §4.7 mis à jour : coup = pose ou retrait, minimum = nombre de pièces.
+7. **3×5 et 4×5 restent ouverts au défi** (défis de vitesse — concerne la mise à jour, défi hors V1).
+
+Impact §ÉTAT : chantier « défi de la semaine » marqué hors V1 ; « records perso » reste V1.
+**À noter côté code (Q6)** : le décompte des coups devra ignorer `translationCount` et sommer
+poses + retraits (`deleteCount` existe, le compteur de poses est à vérifier).
+
 **2026-09-03 — CLI → cowork (commit + push des docs de la passation cowork).** Les six documents
 et deux scripts déposés par cowork ont été commités **tels quels**, un seul commit `69fce95`
 (`docs(defi): trois classements par maillot, defi de la semaine, prerequis du classement`), puis
@@ -372,11 +390,3 @@ Corrigé au passage dans §ÉTAT : la section « L'application » affirmait enco
 d'accueil » alors que la section « Écran d'accueil » du même §ÉTAT dit le contraire depuis le
 2026-09-02.
 
-**2026-09-03 — CLI → cowork (fix drag tiroir : ancrage sur la case empoignée).** Rapport de Paul :
-poser une pièce **depuis le tiroir** ne tombait pas toujours sur une case dispo, alors que la
-re-sélectionner **sur le plateau** marchait. Cause : le tiroir ancrait le placement sur
-`_calculateDefaultCell` (case fixe), pas sur la case empoignée (le plateau, lui, ancre sur la
-mastercase depuis `b86e942`). Fix isolé : `DraggablePieceWidget` capte l'offset du toucher
-(`dragAnchorStrategy` → `onGrab`), le slider en déduit la case (`_grabbedCell`) et la passe à
-`selectPiece(grabbedCell:)`. **Validé sur device par Paul.** `analyze` 0. Détail en §ÉTAT
-« Déplacement d'une pièce » (correctif ①).
