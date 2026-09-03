@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 20:37 — progression solo : champ PentoscopeState.isProgression (+ copyWith)
+// Modified: 2026-09-03 07:10 — fix drag tiroir : selectPiece accepte grabbedCell (cellule empoignée)
+//           → ancre le drag sur le doigt comme le plateau, au lieu de la cellule par défaut.
+// Historique: 2026-09-02 20:37 — progression solo : champ PentoscopeState.isProgression (+ copyWith)
 //           et param isProgression de startPuzzle — un puzzle de progression fait avancer le niveau.
 // Historique: 2026-09-02 04:31 — retrait de l'instrumentation DRAGDIAG (grab/snap) et du helper
 //           _diagCandidates : correctif A validé sur appareil, le diagnostic n'a plus lieu d'être.
@@ -515,7 +517,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
   // SÉLECTION PIÈCE (SLIDER)
   // ==========================================================================
-  void selectPiece(Pento piece) {
+  /// [grabbedCell] : cellule (normalisée) de la pièce réellement empoignée au tiroir, pour ancrer
+  /// le drag sur le doigt comme le fait le plateau (cf. b86e942). null → cellule par défaut (tap).
+  void selectPiece(Pento piece, {Point? grabbedCell}) {
     // ✨ BUGFIX: Si la pièce est déjà sélectionnée, utiliser selectedPositionIndex
     // (qui a été mis à jour par l'isométrie)
     // Sinon, récupérer l'index depuis piecePositionIndices
@@ -523,7 +527,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         ? state.selectedPositionIndex
         : state.getPiecePositionIndex(piece.id);
 
-    final defaultCell = _calculateDefaultCell(piece, positionIndex);
+    final anchorCell = grabbedCell ?? _calculateDefaultCell(piece, positionIndex);
     _cancelSelectedPlacedPieceIfAny();
 
     // ✨ BUGFIX: Mettre à jour le plateau EN PREMIER
@@ -532,7 +536,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       selectedPiece: piece,
       selectedPositionIndex: positionIndex,
       clearSelectedPlacedPiece: true,
-      selectedCellInPiece: defaultCell,
+      selectedCellInPiece: anchorCell,
       clearSelectedMasterAbs: true,
     );
 

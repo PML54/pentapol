@@ -1,4 +1,7 @@
-// Modified: 2026-09-01 14:09 — hitBoxSize optionnel : la zone tactile au repos remplit toute la
+// Modified: 2026-09-03 07:10 — fix drag tiroir : callback onGrab + dragAnchorStrategy captent
+//           l'offset local du toucher au départ du drag, transmis à l'appelant (le slider) pour
+//           ancrer la pièce sur la cellule empoignée. Feedback par défaut inchangé.
+// Historique: 2026-09-01 14:09 — hitBoxSize optionnel : la zone tactile au repos remplit toute la
 //           boîte de la case (opaque), pour attraper le « I » (1 case) comme les autres. Reposé sur
 //           la base PRÉ-chantier après revert du chantier déplacement (voir JOURNAL §ÉTAT).
 // lib/common/widgets/draggable_piece_widget.dart
@@ -32,6 +35,11 @@ class DraggablePieceWidget extends StatefulWidget {
   final VoidCallback onCancel;
   final Widget Function(bool isDragging) childBuilder;
 
+  /// Appelé au départ du drag avec l'offset local du toucher (dans la boîte du widget) et la
+  /// taille de cette boîte, pour que l'appelant en déduise la cellule empoignée et ancre le drag
+  /// dessus. null : pas de suivi de la case empoignée (l'appelant sélectionne via onSelect).
+  final void Function(Offset localGrab, Size boxSize)? onGrab;
+
   /// Côté de la boîte tactile carrée au repos. Quand fourni, tout le carré répond au doigt
   /// (utile pour les pièces étroites comme le « I »). null : la zone reste collée à la pièce.
   final double? hitBoxSize;
@@ -48,6 +56,7 @@ class DraggablePieceWidget extends StatefulWidget {
     required this.onCancel,
     required this.childBuilder,
     this.hitBoxSize,
+    this.onGrab,
   });
 
   @override
@@ -57,6 +66,32 @@ class DraggablePieceWidget extends StatefulWidget {
 class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
   Timer? _tapTimer;
   bool _isProcessing = false;
+
+  // Offset local du toucher au départ du drag (capturé par dragAnchorStrategy) et taille de la
+  // boîte, transmis à onGrab pour que le slider en déduise la cellule empoignée.
+  Offset? _grabLocal;
+  Size? _grabBox;
+
+  /// dragAnchorStrategy = simple hook : capture l'offset local du toucher, garde le feedback par
+  /// défaut (le doigt reste sur le même point de la pièce).
+  Offset _captureGrab(Draggable<Object> d, BuildContext ctx, Offset position) {
+    final rb = ctx.findRenderObject();
+    if (rb is RenderBox) {
+      _grabLocal = rb.globalToLocal(position);
+      _grabBox = rb.size;
+    }
+    return childDragAnchorStrategy(d, ctx, position);
+  }
+
+  /// Au départ du drag : ancrer sur la cellule empoignée si l'appelant le gère (onGrab), sinon
+  /// sélection simple (comportement d'avant).
+  void _handleDragStart() {
+    if (widget.onGrab != null && _grabLocal != null && _grabBox != null) {
+      widget.onGrab!(_grabLocal!, _grabBox!);
+    } else if (!widget.isSelected) {
+      widget.onSelect();
+    }
+  }
 
   @override
   void dispose() {
@@ -143,9 +178,8 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
     if (widget.isSelected) {
       return Draggable<Pento>(
         data: widget.piece,
-        onDragStarted: () {
-          // Déjà sélectionnée, pas besoin de rappeler onSelect
-        },
+        dragAnchorStrategy: _captureGrab,
+        onDragStarted: _handleDragStart,
         onDragEnd: (details) {
           if (!details.wasAccepted) {
             widget.onCancel();
@@ -162,9 +196,8 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
       return LongPressDraggable<Pento>(
         data: widget.piece,
         delay: widget.longPressDuration,
-        onDragStarted: () {
-          widget.onSelect();
-        },
+        dragAnchorStrategy: _captureGrab,
+        onDragStarted: _handleDragStart,
         onDragEnd: (details) {
           if (!details.wasAccepted) {
             widget.onCancel();

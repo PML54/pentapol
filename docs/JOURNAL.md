@@ -121,6 +121,14 @@ saisie** → non systématique, biaisé d'une case dans un sens. Le **trajet ①
 proprement** → il devrait être nettement plus stable. **L'asymétrie ① vs ② est testable** — c'est
 ce que DRAGDIAG (dans le backup) mesure : `fcol` aperçu vs `finalX` dépôt, `grabx/graby` A vs B.
 
+**Correctif ① appliqué (2026-09-03, testé par Paul).** L'analyse « ① boucle proprement » était
+incomplète : le tiroir ancrait le **feedback** sur la case empoignée mais le **placement** sur la
+cellule PAR DÉFAUT (`_calculateDefaultCell`) — mismatch → « je n'arrive pas à poser sur une case
+dispo depuis le tiroir » (rapport de Paul). Fix : `DraggablePieceWidget` capte l'offset du toucher
+(`dragAnchorStrategy` → `onGrab`), le slider en déduit la cellule empoignée (`_grabbedCell`) et la
+passe à `selectPiece(grabbedCell:)`. Le tiroir ancre désormais sur la case tenue, comme le plateau.
+Correctif isolé, un commit, validé sur device.
+
 **Correctif minimal proposé (isolé, mesurable, un seul changement de comportement).**
 **Déposer directement à `previewX/previewY`** dans `onAccept` — l'aperçu contient déjà une ancre
 snappée et validée — **au lieu** de reconstruire un faux doigt puis de re-dériver. Supprime la
@@ -298,6 +306,15 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-03 — CLI → cowork (fix drag tiroir : ancrage sur la case empoignée).** Rapport de Paul :
+poser une pièce **depuis le tiroir** ne tombait pas toujours sur une case dispo, alors que la
+re-sélectionner **sur le plateau** marchait. Cause : le tiroir ancrait le placement sur
+`_calculateDefaultCell` (case fixe), pas sur la case empoignée (le plateau, lui, ancre sur la
+mastercase depuis `b86e942`). Fix isolé : `DraggablePieceWidget` capte l'offset du toucher
+(`dragAnchorStrategy` → `onGrab`), le slider en déduit la case (`_grabbedCell`) et la passe à
+`selectPiece(grabbedCell:)`. **Validé sur device par Paul.** `analyze` 0. Détail en §ÉTAT
+« Déplacement d'une pièce » (correctif ①).
+
 **2026-09-02 — CLI → cowork (progression solo + nom du joueur).** Nouveau : progression de niveaux
 sauvée (niveau 1..9 = size3x5…size6x10 via `sizeForLevel`/`kMaxLevel`), démarrage sur le niveau courant
 (`main.dart`), avance à la complétion (`advanceLevel`, bouton « Niveau suivant » au bilan), **saisie du
@@ -314,13 +331,4 @@ d'acceptation OK). `PieceRenderer` réutilisé avec un param **additif** `showLa
 **Commit unique** précédé du tag `avant-ecran-accueil` (revert unique, §6). **À faire** : test device ; le
 plan `PLAN_ECRAN_ACCUEIL.md` reste jusqu'au test. Détail en §ÉTAT « Écran d'accueil ».
 
-**2026-09-02 — CLI → cowork (revue UI suite : icônes d'isométrie + Route 2 mini docké).** Deux
-retours de Paul, commités sur `main`. **Icônes** : barre d'isométrie **portrait** agrandie (~47 sur
-iPhone, avant 30 solo / 42 duel) via une fonction **partagée** `isometryIconSize` (game_icons_config),
-utilisée par les deux écrans ; paysage inchangé. **Route 2** : en portrait 1v1, le mini-plateau
-adverse est **docké** dans la bande haute libérée par #6 (`_opponentDockHeight`, repli auto sur
-l'overlay flottant hors 1v1 / paysage / bande trop courte). `analyze` 0. **Non observable au
-simulateur seul** (duel 1v1 réel requis) → à valider sur device. Détail en §ÉTAT « Revue UI — suite ».
-Découverte : l'overlay adverse du solo est dormant + simulé ; le vrai mini du duel vit dans
-`PentoscopeMpGameScreen`.
 

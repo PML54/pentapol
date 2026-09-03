@@ -1,4 +1,7 @@
-// Modified: 2026-09-01 09:01 — zone tactile pleine boîte (hitBoxSize = fixedSize) pour attraper le
+// Modified: 2026-09-03 07:10 — fix drag tiroir : onGrab calcule la cellule empoignée (_grabbedCell,
+//           depuis l'offset du toucher, centrage + marge PieceRenderer, valable en paysage) et la
+//           passe à selectPiece(grabbedCell:) → le placement colle au doigt comme sur le plateau.
+// Historique: 2026-09-01 09:01 — zone tactile pleine boîte (hitBoxSize = fixedSize) pour attraper le
 //           « I » aussi bien que les autres ; le halo de sélection passe dans childBuilder, collé à
 //           la pièce et affiché au repos seulement (pas sur le feedback de drag).
 // lib/pentoscope/widgets/pentoscope_piece_slider.dart
@@ -15,6 +18,7 @@ import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/point.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
@@ -92,6 +96,42 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     return positionIndex; // ✅ plus de -1 / modulo
   }
 
+  /// Cellule (normalisée) de la pièce sous le doigt au départ du drag. [localGrab] est l'offset
+  /// local dans la boîte du widget (côté [box.width] = fixedSize), la pièce étant centrée et rendue
+  /// par PieceRenderer (case = pieceCellSize, +4 de marge interne). Renvoie la cellule réelle la
+  /// plus proche (le toucher peut tomber sur un creux de la forme). null si la pièce n'a pas de case.
+  Point? _grabbedCell(Pento piece, int positionIndex, Offset localGrab, Size box) {
+    final cellSize = widget.pieceCellSize;
+    final cells = piece.orientations[positionIndex]
+        .map((n) => Point((n - 1) % 5, (n - 1) ~/ 5))
+        .toList();
+    if (cells.isEmpty) return null;
+    final minX = cells.map((c) => c.x).reduce(math.min);
+    final minY = cells.map((c) => c.y).reduce(math.min);
+    final norm = cells.map((c) => Point(c.x - minX, c.y - minY)).toList();
+    final wCells = norm.map((c) => c.x).reduce(math.max) + 1;
+    final hCells = norm.map((c) => c.y).reduce(math.max) + 1;
+    final pieceW = wCells * cellSize + 8;
+    final pieceH = hCells * cellSize + 8;
+    final topLeftX = (box.width - pieceW) / 2;
+    final topLeftY = (box.height - pieceH) / 2;
+    // Position du doigt en unités de case dans le repère normalisé de la pièce.
+    final gx = (localGrab.dx - topLeftX - 4) / cellSize;
+    final gy = (localGrab.dy - topLeftY - 4) / cellSize;
+    Point? best;
+    double bestD = double.infinity;
+    for (final c in norm) {
+      final dx = (c.x + 0.5) - gx;
+      final dy = (c.y + 0.5) - gy;
+      final d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return best;
+  }
+
 
   Widget _buildDraggablePiece(
       Pento piece,
@@ -130,6 +170,17 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                 HapticFeedback.selectionClick();
               }
               notifier.selectPiece(piece);
+            },
+            // Départ de drag : ancrer la pièce sur la cellule réellement empoignée (comme le
+            // plateau), pour que le placement colle au doigt (fix : viser une case dispo depuis
+            // le tiroir).
+            onGrab: (localGrab, box) {
+              if (settings.game.enableHaptics) {
+                HapticFeedback.selectionClick();
+              }
+              final cell =
+                  _grabbedCell(piece, displayPositionIndex, localGrab, box);
+              notifier.selectPiece(piece, grabbedCell: cell);
             },
             onCycle: () {},
             onCancel: () {
