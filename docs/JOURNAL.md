@@ -22,8 +22,9 @@ pièces parmi les solubles) plus `size6x10` (rectangle complet). **Toutes** les 
 « solution » (compte décroissant, disponibilité, guide) sont désormais adossées à des tables
 pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 5×n, 3,13 Mo) et
 `solutions_6x10_normalisees.bin`. **Plus aucun solveur backtracking dans l'app livrée.** Plus le
-**multijoueur**, qui réutilise son provider. Démarrage direct sur `PentoscopeGameScreen`, pas
-d'écran d'accueil. Plus de notion de difficulté.
+**multijoueur**, qui réutilise son provider. Démarrage sur `HomeScreen` (écran d'accueil livré le
+2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
+difficulté.
 
 ### Chantiers terminés
 
@@ -306,6 +307,51 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-03 — cowork → CLI (mesures, cahier des charges V1, système de score, défi de la
+semaine).** Aucun code touché. Quatre documents et deux scripts **à commiter** :
+
+- `docs/REFERENCE_ISOMETRIES.md` (neuf) — les 4 boutons engendrent D₄ de **diamètre 2** (toute
+  orientation en ≤ 2 appuis) ; `minIso` et l'acuité ; mesures du niveau 1 (médiane 2, max 4, nul
+  dans 28/1664 cas) ; et le fait dur : `startPuzzle` tirant les orientations **réflexions
+  comprises**, **42,9 % des premières parties sont insolubles sans le bouton miroir**, avec
+  2 pièces sur 3 posables avant blocage dans 100 % de ces cas. Aggravants vérifiés :
+  `cycleToNextOrientation()` et `GameIcons.undo` **sans aucun appelant** (invisibles à `analyze`,
+  ce sont des membres publics), et la barre d'isométries n'apparaît qu'une fois une pièce
+  sélectionnée. **La primitive de distance existe déjà** : `Pento.minIsometriesToReach` (l. 795),
+  orpheline depuis le 2026-08-30 et conservée à dessein — il ne reste que la somme.
+- `docs/REFERENCE_TIRAGES.md` §11 (ajout) — l'**asset livré** `subset_counts.bin` contrôlé par
+  énumération indépendante : 3 004 masques testés, 8 tailles concordantes, **996 confirmé**. Le §3
+  ne contrôlait que l'énumération hors dépôt, pas le fichier embarqué (invariant #2).
+- `docs/CAHIER_DES_CHARGES_V1.md` (neuf) — intègre le mémo commercial de Paul et corrige ce que
+  les mesures contredisent. **Décisions de Paul du jour** : (a) `minIso` se calcule sur le
+  **placement réellement posé**, `acuité = (minIso + 1) / (isometryCount + 1)` — le `+ 1` traite
+  `minIso = 0` ; (b) **trois classements indépendants** au lieu d'un tri lexicographique — maillot
+  **jaune** = acuité, **à pois** = coups, **vert** = temps, sans classement combiné ; (c) coups =
+  poses + déplacements + retraits, minimum = nombre de pièces ; (d) **mode classé** : compteur de
+  solutions **conservé** (identité du produit, identique pour tous, et la couleur de la lampe sort
+  du même calcul l. 315), seul l'**appui** sur la lampe neutralisé — le retrait passe par
+  sélection + poubelle. §7 spécifie le **défi de la semaine** : `(semaine, taille)`, premier essai,
+  six tailles (6×10, 5×9 et 5×10 écartés), dérivation hors ligne, identité 128 bits séparée du
+  pseudo, schéma D1 à trois index, et **le maillot jaune est infalsifiable** (le serveur recalcule
+  `minIso` depuis la grille terminée).
+- `docs/FICHE_APP_STORE.md` (réécrit) — champs mesurés contre les limites App Store. Bloquant
+  trouvé, absent de la checklist : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol`.
+- `tools/verif_isometries.py` et `tools/verif_subset_counts.py` (≈ 70 s) — relisent
+  `pentominos.dart`, aucune valeur en dur.
+
+**Deux prérequis du classement, priorité 7 (CDC §11)** : le **chronomètre ne se met pas en pause**
+(aucun `didChangeAppLifecycleState` dans l'écran de jeu ni dans `GameTimerMixin`, temps calculé
+par différence avec `_startTime` — un appel téléphonique est intégralement compté) ; et un **PRNG
+écrit dans le dépôt**, `Random(seed)` n'étant pas garanti stable entre versions du SDK.
+
+**Point non tranché signalé** : le déplacement direct d'une pièce posée coûte 1 coup
+(`translationCount`) alors que retrait + repose en coûte 2 — le maillot à pois en dépend. Voir
+CDC §12 pour les six autres questions ouvertes.
+
+Corrigé au passage dans §ÉTAT : la section « L'application » affirmait encore « pas d'écran
+d'accueil » alors que la section « Écran d'accueil » du même §ÉTAT dit le contraire depuis le
+2026-09-02.
+
 **2026-09-03 — CLI → cowork (fix drag tiroir : ancrage sur la case empoignée).** Rapport de Paul :
 poser une pièce **depuis le tiroir** ne tombait pas toujours sur une case dispo, alors que la
 re-sélectionner **sur le plateau** marchait. Cause : le tiroir ancrait le placement sur
@@ -314,21 +360,3 @@ mastercase depuis `b86e942`). Fix isolé : `DraggablePieceWidget` capte l'offset
 (`dragAnchorStrategy` → `onGrab`), le slider en déduit la case (`_grabbedCell`) et la passe à
 `selectPiece(grabbedCell:)`. **Validé sur device par Paul.** `analyze` 0. Détail en §ÉTAT
 « Déplacement d'une pièce » (correctif ①).
-
-**2026-09-02 — CLI → cowork (progression solo + nom du joueur).** Nouveau : progression de niveaux
-sauvée (niveau 1..9 = size3x5…size6x10 via `sizeForLevel`/`kMaxLevel`), démarrage sur le niveau courant
-(`main.dart`), avance à la complétion (`advanceLevel`, bouton « Niveau suivant » au bilan), **saisie du
-nom au 1er puzzle réussi**. Persistance : `AppSettings.currentLevel` + `userName` (JSON, sans migration,
-invariant #6). Pseudo **unifié** : `userName` remplace la clé MP dédiée et `duel.playerName` pour
-l'affichage (MP lobby + Réglages + dialogue). `analyze` 0. **À valider sur device** (résoudre un puzzle).
-Détail en §ÉTAT « Progression solo ».
-
-**2026-09-02 — CLI → cowork (écran d'accueil implémenté — PLAN_ECRAN_ACCUEIL).** L'écran d'accueil est
-implémenté et vérifié au **simulateur** : `main.dart` démarre sur `HomeScreen` (en-tête PENTAPOL +
-engrenage, scène 5×3 + animation-démo rotation/pose en boucle sur les 7 tirages du 3×5, bouton `Jouer`).
-Données par un nouveau générateur `tools/generate_home_tirages.dart` → `home_tirages_data.dart` (contrôles
-d'acceptation OK). `PieceRenderer` réutilisé avec un param **additif** `showLabel` (accueil = pièces nues).
-**Commit unique** précédé du tag `avant-ecran-accueil` (revert unique, §6). **À faire** : test device ; le
-plan `PLAN_ECRAN_ACCUEIL.md` reste jusqu'au test. Détail en §ÉTAT « Écran d'accueil ».
-
-

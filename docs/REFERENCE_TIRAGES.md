@@ -211,3 +211,43 @@ cellules et la cohérence positions/cartesianCoords, pas la nomenclature.
 
 **Correctif** : une seule table de lettres, adossée à la géométrie, plus un test qui refait la
 reconstruction ci-dessus et échoue si elle diverge. Voir point 18 de la checklist App Store.
+
+---
+
+## 11. Re-vérification du 2026-09-03 — contre l'asset livré, cette fois
+
+Le §3 contrôlait **l'énumération** faite hors dépôt le 2026-08-31. Il ne contrôlait pas le
+fichier finalement embarqué dans l'application. C'est une différence qui compte : entre les
+deux, il y a un générateur, et l'invariant n°2 de `CLAUDE.md` décrit exactement le mode de
+panne qui rendrait l'écart invisible — `findAllSolutions` fait un simple `return` à
+l'expiration de ses 30 secondes, donc un tirage **soluble mais lent** serait enregistré à 0 et
+deviendrait indiscernable d'un tirage insoluble. Le total serait alors un minorant silencieux.
+
+Contrôle refait le 2026-09-03 par backtracking indépendant, à partir des seules formes de
+`lib/common/pentominos.dart`, comparé à `assets/data/subset_counts.bin` : **les 3 004 masques
+des huit tailles ont été testés, les huit comptes concordent exactement.**
+
+| n | solubles (énumérés) | asset | accord |
+|---|---|---|---|
+| 3 | 7 | 7 | ✓ |
+| 4 | 26 | 26 | ✓ |
+| 5 | 45 | 45 | ✓ |
+| 6 | 172 | 172 | ✓ |
+| 7 | 245 | 245 | ✓ |
+| 8 | 261 | 261 | ✓ |
+| 9 | 175 | 175 | ✓ |
+| 10 | 65 | 65 | ✓ |
+| | **996** | **996** | ✓ |
+
+Contrôle complémentaire du 6×10, par la taille du fichier plutôt que par son contenu :
+`solutions_6x10_normalisees.bin` fait **105 255 octets**, soit 105 255 ÷ 45 (360 bits par
+solution) = **2 339** formes canoniques exactement, × 4 = **9 356**. Aucun octet en trop ni en
+moins : le fichier n'est ni tronqué ni complété.
+
+**Rejouable** : `python3 tools/verif_subset_counts.py` (≈ 70 s). À relancer après toute
+regénération de `subset_counts.bin` et après toute modification de la table des pièces ou de
+leurs orientations.
+
+**Ce que ce contrôle ne dit pas** : il vérifie la **solubilité** (compte nul ou non), pas la
+valeur exacte de chaque compte. Les nombres de solutions du §2 restent adossés à l'énumération
+du 2026-08-31 et aux contrôles du §3.

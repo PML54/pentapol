@@ -66,6 +66,12 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
   **substitution** : l'énumération du 6×10 est reprise par `tools/generate_solutions_corpus.dart`
   (`_verify6x10`), qui vérifie `solutions_6x10_normalisees.bin` par égalité d'ensembles (9356 =
   énumération = asset expansé ×4). Plus aucun solveur backtracking dans le dépôt.
+- **Deux membres publics morts, invisibles à `flutter analyze`** (trouvés le 2026-09-03) :
+  `PentoscopeNotifier.cycleToNextOrientation()` — aucun appelant dans `lib/`, donc la barre
+  d'isométries est le **seul** chemin vers une réflexion ; et `GameIcons.undo` — icône, libellé
+  « Annuler » et couleur définis dans `game_icons_config.dart`, référencés nulle part. Même
+  famille que les trois fichiers orphelins ci-dessus : `analyze` ne les signale pas parce qu'ils
+  sont publics.
 - `flutter pub add collection` — lint `depend_on_referenced_packages` préexistant.
 - La preview cyan morte dans `pentoscope_board.dart` (lit `state.isSnapped`, que personne
   n'écrit).
