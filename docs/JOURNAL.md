@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-02
+## §ÉTAT — au 2026-09-03
 
 ### L'application
 
@@ -53,7 +53,8 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 | chantier | document | reste à faire |
 |---|---|---|
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
-| **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail |
+| **Système de score + défi de la semaine** | `CAHIER_DES_CHARGES_V1.md` §4 et §7 | **spécifié, pas encore codé.** Trois maillots (acuité/coups/temps), défi `(semaine, taille)`, worker POST/GET + D1. Deux prérequis techniques (chrono en pause, PRNG du dépôt) et sept questions ouvertes §12 pour Paul |
+| **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
 — quitter l'app au milieu d'un 6×10 perd tout).
@@ -275,7 +276,13 @@ le 2026-08-31 l'ancien `PENTOSCOPE.md`, devenu un doublon partiel une fois qu'il
 qu'un module de jeu. `UI_PROPERTIES_GUIDE.md`, guide Flutter générique sans rapport avec
 l'état du projet, est supprimé. `REFERENCE_TIRAGES.md` est le **test d'acceptation** du
 générateur de tirages (`tools/generate_subset_counts.dart`) : sa sortie doit reproduire les
-nombres du §2 (ce que le générateur vérifie, exit 1 sinon).
+nombres du §2 (ce que le générateur vérifie, exit 1 sinon). Son §11 (ajouté le 2026-09-03)
+recontrôle l'**asset livré** `subset_counts.bin` (996 confirmé), pas seulement l'énumération.
+
+Trois documents de référence commités le 2026-09-03 (`69fce95`) : `REFERENCE_ISOMETRIES.md`
+(coût des isométries, `minIso`, acuité, chiralité des tirages ; rejouable par
+`tools/verif_isometries.py`), `CAHIER_DES_CHARGES_V1.md` (positionnement V1, système de score,
+défi de la semaine) et `FICHE_APP_STORE.md` (champs mesurés contre les limites App Store).
 
 ### Test
 
@@ -292,8 +299,11 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-`origin/main` = **`b9bec37`** (pré-chantier `1efda1a` + le commit d'ergonomie « I »/Paramètres),
-poussé. La branche `deplacement-piece` a été **supprimée** (fusionnée dans `main`). Sauvegarde du
+`origin/main` = **`69fce95`** (commit docs du 2026-09-03 : CDC V1, défi de la semaine,
+`REFERENCE_ISOMETRIES.md`, `FICHE_APP_STORE.md`, deux scripts `verif_*.py`), poussé — **aucun
+code touché, pas de bump de version** (commit docs-only). Base : `b9bec37` (pré-chantier
+`1efda1a` + le commit d'ergonomie « I »/Paramètres). La branche `deplacement-piece` a été
+**supprimée** (fusionnée dans `main`). Sauvegarde du
 chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag
 `chantier-deplacement-backup` (local seul), tous deux sur `c5306b5` — **ne pas supprimer** tant que
 la question du déplacement d'une pièce n'est pas retranchée. Détail dans §ÉTAT « REVERT ».
@@ -306,6 +316,16 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-03 — CLI → cowork (commit + push des docs de la passation cowork).** Les six documents
+et deux scripts déposés par cowork ont été commités **tels quels**, un seul commit `69fce95`
+(`docs(defi): trois classements par maillot, defi de la semaine, prerequis du classement`), puis
+**poussés sur `origin/main`**. **Aucune décision du §12 tranchée** (réservé à Paul). Aucun code
+touché : commit docs-only, **pas de bump de version** (choix de Paul confirmé au push). §ÉTAT mis
+à jour : nouveau chantier « système de score + défi de la semaine » (spécifié, pas encore codé),
+section Documentation et Git actualisées, nouveau bloquant App Store `com.example.pentapol`
+consigné. Cette mise à jour du JOURNAL est commitée à part (doc sans code derrière, MODUS_VIVENDI
+§5), pour ramener `git status -s docs/` à vide.
 
 **2026-09-03 — cowork → CLI (mesures, cahier des charges V1, système de score, défi de la
 semaine).** Aucun code touché. Quatre documents et deux scripts **à commiter** :
