@@ -570,7 +570,7 @@ L'ordre du mémo §14 est bon. Deux déplacements, justifiés par les mesures :
 | 4 | **Tutoriel court** (§6, étapes 3-4) | après 2 et 3, dont il dépend |
 | 5 | **Compteur de solutions lisible** (§5) | dont la décision « à symétrie près » |
 | 6 | **Records personnels et statistiques** — avec les compteurs séparés (§3) | |
-| 7 | **Prérequis du classement** : suspendre le chronomètre en arrière-plan (§7.7) et PRNG écrit dans le dépôt (§7.3, piège 2) | **ajoutés** — ce ne sont pas des améliorations : sans eux, le maillot vert est faussé par le premier appel téléphonique, et une montée de SDK change tous les défis |
+| 7 | **Chronomètre suspendu en arrière-plan** (§7.7) | **dès la V1** — le temps entre dans les records personnels (le futur maillot vert, #6) : sans suspension, le premier appel téléphonique le fausse, classement ou pas. Le second prérequis, **PRNG écrit dans le dépôt** (§7.3, piège 2), ne sert qu'à rendre le **défi** reproductible entre versions du SDK : il part avec le défi (#8, hors V1) |
 | 8 | Défi de la semaine et ses trois classements (§7) | **hors V1** — Paul a tranché le §9 en faveur de l'option 1 (§12, Q3). Devient la première mise à jour |
 | 9 | Multijoueur temps réel | **maintenu dans la V1** — Paul le garde accessible (§12, Q4), contrairement à la recommandation initiale de couper |
 
