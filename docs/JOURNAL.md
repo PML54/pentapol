@@ -335,6 +335,14 @@ Impact §ÉTAT : chantier « défi de la semaine » marqué hors V1 ; « records
 **À noter côté code (Q6)** : le décompte des coups devra ignorer `translationCount` et sommer
 poses + retraits (`deleteCount` existe, le compteur de poses est à vérifier).
 
+`CHECKLIST_APPSTORE.md` alignée sur Q3 et Q6 : **point 19** (nouveau, bloquant technique) — figer
+la règle des coups avant tout record publié (Q6, sinon les anciens records deviennent
+incomparables) ; **points 12 et 13** annotés — Q3 met le classement en ligne hors V1, donc la
+suppression de compte reste hors sujet pour la V1 et « ne collecte rien » est conservé (les deux
+reviennent à la mise à jour « classement »). **Point 6** aligné sur Q4 : le multijoueur est
+maintenu en V1, donc l'URL en dur et l'absence d'interrupteur distant deviennent bloquants (au
+lieu de « à couper »).
+
 **2026-09-03 — CLI → cowork (commit + push des docs de la passation cowork).** Les six documents
 et deux scripts déposés par cowork ont été commités **tels quels**, un seul commit `69fce95`
 (`docs(defi): trois classements par maillot, defi de la semaine, prerequis du classement`), puis
