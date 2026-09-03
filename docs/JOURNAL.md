@@ -53,8 +53,8 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 | chantier | document | reste à faire |
 |---|---|---|
 | **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
-| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup |
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. Prérequis techniques : chrono suspendu en arrière-plan, PRNG du dépôt |
+| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup. **Prérequis V1 (CDC §11, priorité 7)** : suspendre le chronomètre en arrière-plan — le temps entre dans le maillot vert, un appel téléphonique le fausse |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. Prérequis propre au défi : **PRNG écrit dans le dépôt** (reproductibilité entre versions du SDK ; le chrono, lui, est déjà un prérequis V1 ci-dessus) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
