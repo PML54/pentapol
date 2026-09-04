@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 05:20 — records perso A1 (CDC §4) : capture du rack initial
+// Modified: 2026-09-04 05:45 — records perso B (CDC §4.1) : _saveCompletionRecord passe les
+//           métriques (minIso, isoCount, moves, temps) et clean=hintCount==0 ; fini le bestActions
+//           faux (iso+translation+delete). Fige elapsedSeconds à la complétion (bilan stable).
+// Historique: 2026-09-04 05:20 — records perso A1 (CDC §4) : capture du rack initial
 //           (state.initialOrientations, figé au démarrage + persisté/restauré via CurrentGame),
 //           et computeCompletionMetrics (minIso, acuité, coups = pièces + 2·retraits, temps).
 // Historique: 2026-09-04 04:34 — Phase 0 défi (V1) : (a) CDC §7.3 — le tirage seedé du duel
@@ -800,11 +803,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final puzzle = state.puzzle;
     if (puzzle == null || _isMultiplayer) return;
 
+    final metrics = computeCompletionMetrics();
+    if (metrics == null) return;
+    final clean = state.hintCount == 0; // partie sans aide → peut poser un record (§4.8)
     final board = _rebuildPlateau();
     final solutionNumber = _solutions.solutionIndexOf(board);
-    final seconds = getElapsedSeconds();
-    final actions =
-        state.isometryCount + state.translationCount + state.deleteCount;
     final db = ref.read(settingsDatabaseProvider);
 
     try {
@@ -812,13 +815,20 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         await db.recordSolvedSolution(
           board: '${puzzle.size.width}x${puzzle.size.height}',
           solutionNumber: solutionNumber,
-          timeSeconds: seconds,
-          actions: actions,
+          minIso: metrics.minIso,
+          isoCount: metrics.isometryCount,
+          moves: metrics.moves,
+          timeSeconds: metrics.timeSeconds,
+          clean: clean,
         );
       } else {
         await db.recordPuzzleCompleted(
           sizeName: puzzle.size.name,
-          timeSeconds: seconds,
+          minIso: metrics.minIso,
+          isoCount: metrics.isometryCount,
+          moves: metrics.moves,
+          timeSeconds: metrics.timeSeconds,
+          clean: clean,
         );
       }
     } catch (e) {

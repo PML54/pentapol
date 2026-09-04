@@ -63,7 +63,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **en cours (2026-09-04).** Trois maillots (acuité/coups/temps). **Phase A faite** : calcul (`completion_metrics.dart`) + rack initial capturé/persisté + bilan de fin. **Reste B** (schéma 3 bests + réécriture `_saveCompletionRecord`) **et C** (écran de lecture). Prérequis chrono : fait (Phase 0) |
+| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **en cours (2026-09-04).** Trois maillots (acuité/coups/temps). **Phases A et B faites** : calcul + rack persisté + bilan de fin (A) ; schéma à 3 bests indépendants + enregistrement à la complétion (B, testé). **Reste C** : écran de lecture des records. Prérequis chrono : fait (Phase 0) |
 | **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. ~~Prérequis : PRNG écrit dans le dépôt~~ **primitive faite (2026-09-04, `PentapolRng`, Phase 0)** ; reste la dérivation `mix(version, semaine, taille)` + masques triés (Phase 1) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
@@ -344,9 +344,18 @@ Premier tiers du chantier §4 (les deux maillots recommandés : acuité complèt
   le bilan aurait grandi à chaque rebuild. `elapsedSeconds` est désormais **figé dans l'état** aux deux
   sites de complétion (placement et indice) et le bilan le lit.
 
-`analyze lib/` 0 error/warning, **29/29 tests**. **À valider sur device** : terminer un puzzle, voir
-les trois maillots ; le temps ne bouge plus une fois résolu. **Rien n'est encore enregistré comme
-record** — c'est la Phase B (`_saveCompletionRecord` stocke encore un `bestActions` faux, réécrit en B).
+`analyze lib/` 0 error/warning. **À valider sur device** : terminer un puzzle, voir les trois maillots ;
+le temps ne bouge plus une fois résolu.
+
+**Phase B (2026-09-04) — enregistrement à trois bests indépendants (§4.1).** `SolvedSolutions` et
+`PuzzleStats` portent désormais **trois bests nullables** : acuité (`bestAcuityMinIso` +
+`bestAcuityIsoCount`, bruts §7.6), coups (`bestMoves`), temps (`bestTimeSeconds`) — schéma **6→7**.
+`_saveCompletionRecord` passe les métriques et `clean = hintCount == 0` : **fini le `bestActions`
+faux** (iso+translation+delete). Décision alignée §4.8 : **une partie avec aide compte** (timesSolved
+/ completed) **mais ne pose aucun record** (l'indice place à l'optimum, gonflerait l'acuité). Chaque
+best évolue **séparément** (comparaison d'acuité croisée sans flottant, `_isBetterAcuity`). Test
+d'intégration base-mémoire `test/records_db_test.dart` (6 cas). **35/35 tests.** Reste **Phase C**
+(l'écran de lecture) — les records sont écrits mais aucun écran ne les montre encore.
 
 ### Documentation
 
@@ -382,7 +391,8 @@ flutter run --release -d 00008150-000165D4027B401C
 `202609040505`, 1.0.3). **Commit local non poussé** : records perso **Phase A** (calcul + rack + bilan).
 Bump de version à lancer (`scripts/update_version.sh`, date/heure) juste avant le prochain push.
 La branche `deplacement-piece` a été
-**supprimée** (fusionnée dans `main`). Sauvegarde du
+**supprimée** (fusionnée dans `main`). Depuis, commits locaux non poussés : records **Phase A**
+(`de3d45f`) et **Phase B** (schéma 3 bests). Sauvegarde du
 chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag
 `chantier-deplacement-backup` (local seul), tous deux sur `c5306b5` — **ne pas supprimer** tant que
 la question du déplacement d'une pièce n'est pas retranchée. Détail dans §ÉTAT « REVERT ».

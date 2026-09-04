@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 05:20 — records perso (CDC §4) : CurrentGame.initialOrientations (rack
+// Modified: 2026-09-04 05:45 — records perso B (CDC §4.1) : trois bests INDÉPENDANTS par
+//           dimension (acuité = minIso+isoCount bruts §7.6, coups, temps), nullables (une partie
+//           avec aide compte mais ne pose pas de record). schemaVersion 6 → 7 (bump + destructif).
+// Historique: 2026-09-04 05:20 — records perso (CDC §4) : CurrentGame.initialOrientations (rack
 //           distribué, JSON) pour que l'acuité d'une partie REPRISE reste calculable. schemaVersion
 //           5 → 6 (bump + destructif, règle n°6).
 // Historique: 2026-09-04 04:08 — reprise fidèle : CurrentGame.isProgression persisté (la progression
@@ -70,12 +73,18 @@ class CurrentGame extends Table {
 
 /// Rectangles complets : une ligne par SOLUTION DÉCOUVERTE. Voir PLAN_PERSISTANCE §4.1.
 /// board en clé dès maintenant : la solution n° 5 du 6×10 et celle du 5×12 ne se confondent pas.
+/// Trois bests INDÉPENDANTS (CDC §4.1) : ils peuvent venir de trois parties différentes. Le
+/// maillot jaune stocke ses ingrédients bruts (minIso, isoCount) plutôt que le ratio (§7.6),
+/// auditable et recomparable. Nullables : une partie AVEC AIDE compte (timesSolved) mais ne pose
+/// aucun record (§4.8) — une solution peut donc exister sans best (tous résolus avec indice).
 class SolvedSolutions extends Table {
   TextColumn get board => text()();                 // '6x10', '5x12', '4x15'
   IntColumn get solutionNumber => integer()();      // 1..9356 pour le 6×10
   IntColumn get timesSolved => integer().withDefault(const Constant(1))();
-  IntColumn get bestTimeSeconds => integer()();
-  IntColumn get bestActions => integer().nullable()();
+  IntColumn get bestAcuityMinIso => integer().nullable()();   // 🟡 minIso du meilleur score d'acuité
+  IntColumn get bestAcuityIsoCount => integer().nullable()(); // 🟡 isométries de la même partie
+  IntColumn get bestMoves => integer().nullable()();          // ⚫ coups (à pois)
+  IntColumn get bestTimeSeconds => integer().nullable()();    // 🟢 temps (vert)
   DateTimeColumn get firstSolvedAt => dateTime()();
   DateTimeColumn get lastSolvedAt => dateTime()();
 
@@ -83,11 +92,15 @@ class SolvedSolutions extends Table {
   Set<Column> get primaryKey => {board, solutionNumber};
 }
 
-/// Puzzles à pièces tirées : pas de numéro de solution, un agrégat par taille.
+/// Puzzles à pièces tirées : pas de numéro de solution, un agrégat par taille. Mêmes trois bests
+/// nullables que SolvedSolutions (CDC §4.1).
 class PuzzleStats extends Table {
   TextColumn get sizeName => text()();               // 'size4x5'
   IntColumn get completed => integer().withDefault(const Constant(0))();
-  IntColumn get bestTimeSeconds => integer().nullable()();
+  IntColumn get bestAcuityMinIso => integer().nullable()();   // 🟡
+  IntColumn get bestAcuityIsoCount => integer().nullable()(); // 🟡
+  IntColumn get bestMoves => integer().nullable()();          // ⚫
+  IntColumn get bestTimeSeconds => integer().nullable()();    // 🟢
 
   @override
   Set<Column> get primaryKey => {sizeName};
@@ -100,8 +113,11 @@ class SettingsDatabase extends _$SettingsDatabase {
   // ✨ CORRECTION: super(_openConnection()) au lieu de super._openConnection()
   SettingsDatabase() : super(_openConnection());
 
+  /// Constructeur de test : injecte un exécuteur (ex. `NativeDatabase.memory()`).
+  SettingsDatabase.forTesting(QueryExecutor executor) : super(executor);
+
   @override
-  int get schemaVersion => 6; // 5 → 6 : CurrentGame.initialOrientations (rack, acuité §4.2)
+  int get schemaVersion => 7; // 6 → 7 : records à trois bests indépendants (CDC §4.1)
   //                              (règle n°6 : bump + destructif).
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
@@ -145,13 +161,24 @@ class SettingsDatabase extends _$SettingsDatabase {
   // RECORDS - SolvedSolutions (rectangles complets) / PuzzleStats (pièces tirées)
   // ============================================================================
 
-  /// Enregistre une solution découverte sur un rectangle complet. Upsert : incrémente
-  /// `timesSolved`, ne garde que le meilleur temps et le meilleur nombre d'actions.
+  /// Acuité `(minIso+1)/(iso+1)` la plus GRANDE = la meilleure (CDC §4.2). Comparaison croisée
+  /// (sans flottant). `true` si le nouveau score bat l'existant, ou s'il n'y a pas encore de best.
+  bool _isBetterAcuity(int? bestMinIso, int? bestIso, int newMinIso, int newIso) {
+    if (bestMinIso == null || bestIso == null) return true;
+    return (newMinIso + 1) * (bestIso + 1) > (bestMinIso + 1) * (newIso + 1);
+  }
+
+  /// Enregistre une solution découverte sur un rectangle complet. Incrémente `timesSolved` ;
+  /// met à jour **chaque** best indépendamment (acuité / coups / temps) — mais seulement si
+  /// [clean] (partie sans aide, §4.8). Une partie avec aide compte sans poser de record.
   Future<void> recordSolvedSolution({
     required String board,
     required int solutionNumber,
+    required int minIso,
+    required int isoCount,
+    required int moves,
     required int timeSeconds,
-    int? actions,
+    required bool clean,
   }) async {
     final existing = await (select(solvedSolutions)
           ..where((s) =>
@@ -164,38 +191,51 @@ class SettingsDatabase extends _$SettingsDatabase {
         SolvedSolutionsCompanion.insert(
           board: board,
           solutionNumber: solutionNumber,
-          bestTimeSeconds: timeSeconds,
-          bestActions: Value(actions),
+          bestAcuityMinIso: Value(clean ? minIso : null),
+          bestAcuityIsoCount: Value(clean ? isoCount : null),
+          bestMoves: Value(clean ? moves : null),
+          bestTimeSeconds: Value(clean ? timeSeconds : null),
           firstSolvedAt: now,
           lastSolvedAt: now,
         ),
       );
-    } else {
-      final bestActions = (existing.bestActions == null)
-          ? actions
-          : (actions == null
-              ? existing.bestActions
-              : (actions < existing.bestActions! ? actions : existing.bestActions));
-      await (update(solvedSolutions)
-            ..where((s) =>
-                s.board.equals(board) & s.solutionNumber.equals(solutionNumber)))
-          .write(
-        SolvedSolutionsCompanion(
-          timesSolved: Value(existing.timesSolved + 1),
-          bestTimeSeconds: Value(
-              timeSeconds < existing.bestTimeSeconds ? timeSeconds : existing.bestTimeSeconds),
-          bestActions: Value(bestActions),
-          lastSolvedAt: Value(now),
-        ),
-      );
+      return;
     }
+
+    var companion = SolvedSolutionsCompanion(
+      timesSolved: Value(existing.timesSolved + 1),
+      lastSolvedAt: Value(now),
+    );
+    if (clean) {
+      if (_isBetterAcuity(
+          existing.bestAcuityMinIso, existing.bestAcuityIsoCount, minIso, isoCount)) {
+        companion = companion.copyWith(
+          bestAcuityMinIso: Value(minIso),
+          bestAcuityIsoCount: Value(isoCount),
+        );
+      }
+      if (existing.bestMoves == null || moves < existing.bestMoves!) {
+        companion = companion.copyWith(bestMoves: Value(moves));
+      }
+      if (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!) {
+        companion = companion.copyWith(bestTimeSeconds: Value(timeSeconds));
+      }
+    }
+    await (update(solvedSolutions)
+          ..where((s) =>
+              s.board.equals(board) & s.solutionNumber.equals(solutionNumber)))
+        .write(companion);
   }
 
   /// Enregistre la complétion d'un puzzle à pièces tirées (pas de numéro de solution).
-  /// Upsert : incrémente `completed`, ne garde que le meilleur temps.
+  /// Incrémente `completed` ; met à jour chaque best si [clean] (§4.8).
   Future<void> recordPuzzleCompleted({
     required String sizeName,
+    required int minIso,
+    required int isoCount,
+    required int moves,
     required int timeSeconds,
+    required bool clean,
   }) async {
     final existing = await (select(puzzleStats)
           ..where((s) => s.sizeName.equals(sizeName)))
@@ -206,20 +246,32 @@ class SettingsDatabase extends _$SettingsDatabase {
         PuzzleStatsCompanion.insert(
           sizeName: sizeName,
           completed: const Value(1),
-          bestTimeSeconds: Value(timeSeconds),
+          bestAcuityMinIso: Value(clean ? minIso : null),
+          bestAcuityIsoCount: Value(clean ? isoCount : null),
+          bestMoves: Value(clean ? moves : null),
+          bestTimeSeconds: Value(clean ? timeSeconds : null),
         ),
       );
-    } else {
-      final best = (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!)
-          ? timeSeconds
-          : existing.bestTimeSeconds;
-      await (update(puzzleStats)..where((s) => s.sizeName.equals(sizeName))).write(
-        PuzzleStatsCompanion(
-          completed: Value(existing.completed + 1),
-          bestTimeSeconds: Value(best),
-        ),
-      );
+      return;
     }
+
+    var companion = PuzzleStatsCompanion(completed: Value(existing.completed + 1));
+    if (clean) {
+      if (_isBetterAcuity(
+          existing.bestAcuityMinIso, existing.bestAcuityIsoCount, minIso, isoCount)) {
+        companion = companion.copyWith(
+          bestAcuityMinIso: Value(minIso),
+          bestAcuityIsoCount: Value(isoCount),
+        );
+      }
+      if (existing.bestMoves == null || moves < existing.bestMoves!) {
+        companion = companion.copyWith(bestMoves: Value(moves));
+      }
+      if (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!) {
+        companion = companion.copyWith(bestTimeSeconds: Value(timeSeconds));
+      }
+    }
+    await (update(puzzleStats)..where((s) => s.sizeName.equals(sizeName))).write(companion);
   }
 
   // ============================================================================
