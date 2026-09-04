@@ -10,8 +10,8 @@
     "db:init:remote": "wrangler d1 execute pentapol-defi --remote --file=schema.sql"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240000.0",
+    "@cloudflare/workers-types": "^5.20260904.1",
     "typescript": "^5.4.0",
-    "wrangler": "^3.60.0"
+    "wrangler": "^4.129.0"
   }
 }

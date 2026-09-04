@@ -6,7 +6,7 @@ compatibility_date = "2026-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "pentapol-defi"
-database_id = "REMPLIR_APRES_wrangler_d1_create"
+database_id = "7ea667b1-22ec-4cb9-afcd-7dd42541da41"
 
 # SEED_TOKEN (amorçage des définitions de défi) n'est PAS ici : c'est un secret.
 #   wrangler secret put SEED_TOKEN
