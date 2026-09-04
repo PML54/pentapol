@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-03
+## §ÉTAT — au 2026-09-04
 
 ### L'application
 
@@ -34,6 +34,17 @@ difficulté.
 - **Ergonomie hors plateau** — tailles ancrées sur le plateau, barre d'actions unique pour les
   deux orientations, ordre des zones aligné, écran de réglages minimal.
 - **Persistance, étape 1** — Supabase, `bootstrap.dart` et `DatabaseDebugScreen` retirés.
+- **Persistance (PLAN_PERSISTANCE, 4 étapes)** — **faite et committée** (`ea23af7`→`30e4fae`, tous
+  ancêtres de `main` ; conservée par le revert du chantier déplacement car présente dans `1efda1a`).
+  Une base drift, quatre tables (`Settings` inchangée, `CurrentGame`, `SolvedSolutions`,
+  `PuzzleStats`), `schemaVersion` destructif. Records à la complétion via `solutionIndexOf`
+  (`null`→`PuzzleStats`, entier→`SolvedSolutions`). Partie en cours : écriture aux poses/retraits +
+  au passage en arrière-plan (`main.dart` observe `paused`), effacement à la complétion/partie neuve,
+  `restoreGame` au lancement. `SharedPreferences`/Supabase retirés. **Le §ÉTAT précédent la disait à
+  tort « reste à faire » — l'état « complète » (`30e4fae`) avait été perdu dans les réécritures du
+  journal pendant la saga du revert.** Correctif `isProgression` du 2026-09-04 ci-dessous. **Reste :
+  test device de la reprise** (jamais confirmé), et il n'y a **pas encore d'écran pour lire les
+  records** (hors périmètre du plan, cf. `PLAN_PERSISTANCE` §6).
 - **Suppression de la difficulté puis tirages précalculés (étape A)** — `subset_counts.bin`
   (4096 × uint16, 8 Ko) donne le nombre de solutions de tout tirage 5×n ; le générateur tire un
   masque parmi les solubles (plus d'appel-boucle au solveur, plus de difficulté), le compte est
@@ -52,13 +63,13 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Persistance** | `PLAN_PERSISTANCE.md` | étapes 2 à 4 : schéma + réécriture destructive, records, **partie en cours** |
 | **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup. **Prérequis V1 (CDC §11, priorité 7)** : suspendre le chronomètre en arrière-plan — le temps entre dans le maillot vert, un appel téléphonique le fausse |
 | **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. Prérequis propre au défi : **PRNG écrit dans le dépôt** (reproductibilité entre versions du SDK ; le chrono, lui, est déjà un prérequis V1 ci-dessus) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
-**Priorité recommandée** : étape 4 de la persistance (la partie en cours n'est pas sauvegardée
-— quitter l'app au milieu d'un 6×10 perd tout).
+**Priorité recommandée** : test device de la reprise (voir « Persistance — correctif `isProgression` »
+ci-dessous), puis les **records perso** (V1, table `SolvedSolutions`/`PuzzleStats` déjà écrite, il
+manque l'écran de lecture et les trois maillots).
 
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
@@ -270,6 +281,24 @@ Nouveau : une **progression de niveaux solo**, sauvée, et la **saisie du nom du
 Jouer→5×3 → solution → dialogue nom → niveau 2 sauvé + « Niveau suivant ». Cas limite assumé : une
 partie **reprise** d'une session précédente est `isProgression=false` (la terminer n'avance pas le niveau).
 
+### Persistance — correctif `isProgression` (2026-09-04)
+
+Bug d'intégration trouvé en relisant le code (la progression a atterri **après** la persistance) :
+`restoreGame` reconstruisait l'état **sans** poser `isProgression` → toute partie reprise retombait
+sur le défaut `false`, et la table `CurrentGame` **ne stockait pas** ce champ. Conséquences sur une
+partie de **progression** reprise : (1) le bouton « Jouer » (`home_screen.dart` `_play`, `needFresh =
+… || !st.isProgression`) démarrait un puzzle **frais** et **effaçait** la partie reprise ; (2) même
+atteinte, la terminer **n'avançait pas le niveau**. La reprise était donc silencieusement défaite
+dans le flux principal.
+
+**Correctif (un commit, pré-publication → destructif assumé, règle n°6).** Colonne
+`CurrentGame.isProgression` (`boolean().withDefault(false)`), `schemaVersion` 4 → 5 ;
+`saveCurrentGame` écrit `state.isProgression`, `restoreGame` le lit depuis `row.isProgression`.
+`build_runner` régénéré, `flutter analyze lib/` **0 error / 0 warning** (56 infos préexistantes).
+**À valider sur device** (PLAN_PERSISTANCE §8, base existante) : commencer un puzzle de progression,
+poser des pièces, **tuer l'app**, relancer, « Jouer » → la partie reprend et sa complétion avance le
+niveau. `settings_database.g.dart` est gitignoré : régénérer après `pull`.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -318,6 +347,18 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-04 — CLI → cowork (la persistance était déjà faite ; correctif `isProgression`).** En
+reprenant « la persistance », constat : les **4 étapes du `PLAN_PERSISTANCE` sont codées et
+committées** depuis `ea23af7`→`30e4fae` (ancêtres de `main`, conservées par le revert). Le §ÉTAT les
+disait à tort « reste à faire » — l'état « complète » (`30e4fae`) avait disparu dans les réécritures
+du journal pendant la saga du revert. §ÉTAT corrigé : persistance déplacée en « chantiers terminés »,
+priorité recommandée passée aux **records perso**. **Un vrai bug corrigé** : `isProgression` n'était
+ni stocké ni restauré → une partie de progression reprise était jetée par « Jouer » et n'avançait pas
+le niveau. Colonne ajoutée, `schemaVersion` 4→5 (destructif), save/restore câblés, `build_runner`
+régénéré, `analyze lib/` 0 error/warning. **Deux fichiers `lib/` modifiés, pas encore commités**
+(attente du feu vert de Paul et du test device). Cette mise à jour du journal est un doc **avec** code
+derrière : à commiter **dans le même commit** que le correctif (MODUS_VIVENDI §5).
+
 **2026-09-03 — CLI → cowork (Paul a tranché les sept questions du CDC §12).** Les réponses sont
 encodées dans `CAHIER_DES_CHARGES_V1.md` : §12 réécrit en décisions, sections concernées mises à
 jour. Décisions :
@@ -352,49 +393,4 @@ touché : commit docs-only, **pas de bump de version** (choix de Paul confirmé 
 section Documentation et Git actualisées, nouveau bloquant App Store `com.example.pentapol`
 consigné. Cette mise à jour du JOURNAL est commitée à part (doc sans code derrière, MODUS_VIVENDI
 §5), pour ramener `git status -s docs/` à vide.
-
-**2026-09-03 — cowork → CLI (mesures, cahier des charges V1, système de score, défi de la
-semaine).** Aucun code touché. Quatre documents et deux scripts **à commiter** :
-
-- `docs/REFERENCE_ISOMETRIES.md` (neuf) — les 4 boutons engendrent D₄ de **diamètre 2** (toute
-  orientation en ≤ 2 appuis) ; `minIso` et l'acuité ; mesures du niveau 1 (médiane 2, max 4, nul
-  dans 28/1664 cas) ; et le fait dur : `startPuzzle` tirant les orientations **réflexions
-  comprises**, **42,9 % des premières parties sont insolubles sans le bouton miroir**, avec
-  2 pièces sur 3 posables avant blocage dans 100 % de ces cas. Aggravants vérifiés :
-  `cycleToNextOrientation()` et `GameIcons.undo` **sans aucun appelant** (invisibles à `analyze`,
-  ce sont des membres publics), et la barre d'isométries n'apparaît qu'une fois une pièce
-  sélectionnée. **La primitive de distance existe déjà** : `Pento.minIsometriesToReach` (l. 795),
-  orpheline depuis le 2026-08-30 et conservée à dessein — il ne reste que la somme.
-- `docs/REFERENCE_TIRAGES.md` §11 (ajout) — l'**asset livré** `subset_counts.bin` contrôlé par
-  énumération indépendante : 3 004 masques testés, 8 tailles concordantes, **996 confirmé**. Le §3
-  ne contrôlait que l'énumération hors dépôt, pas le fichier embarqué (invariant #2).
-- `docs/CAHIER_DES_CHARGES_V1.md` (neuf) — intègre le mémo commercial de Paul et corrige ce que
-  les mesures contredisent. **Décisions de Paul du jour** : (a) `minIso` se calcule sur le
-  **placement réellement posé**, `acuité = (minIso + 1) / (isometryCount + 1)` — le `+ 1` traite
-  `minIso = 0` ; (b) **trois classements indépendants** au lieu d'un tri lexicographique — maillot
-  **jaune** = acuité, **à pois** = coups, **vert** = temps, sans classement combiné ; (c) coups =
-  poses + déplacements + retraits, minimum = nombre de pièces ; (d) **mode classé** : compteur de
-  solutions **conservé** (identité du produit, identique pour tous, et la couleur de la lampe sort
-  du même calcul l. 315), seul l'**appui** sur la lampe neutralisé — le retrait passe par
-  sélection + poubelle. §7 spécifie le **défi de la semaine** : `(semaine, taille)`, premier essai,
-  six tailles (6×10, 5×9 et 5×10 écartés), dérivation hors ligne, identité 128 bits séparée du
-  pseudo, schéma D1 à trois index, et **le maillot jaune est infalsifiable** (le serveur recalcule
-  `minIso` depuis la grille terminée).
-- `docs/FICHE_APP_STORE.md` (réécrit) — champs mesurés contre les limites App Store. Bloquant
-  trouvé, absent de la checklist : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol`.
-- `tools/verif_isometries.py` et `tools/verif_subset_counts.py` (≈ 70 s) — relisent
-  `pentominos.dart`, aucune valeur en dur.
-
-**Deux prérequis du classement, priorité 7 (CDC §11)** : le **chronomètre ne se met pas en pause**
-(aucun `didChangeAppLifecycleState` dans l'écran de jeu ni dans `GameTimerMixin`, temps calculé
-par différence avec `_startTime` — un appel téléphonique est intégralement compté) ; et un **PRNG
-écrit dans le dépôt**, `Random(seed)` n'étant pas garanti stable entre versions du SDK.
-
-**Point non tranché signalé** : le déplacement direct d'une pièce posée coûte 1 coup
-(`translationCount`) alors que retrait + repose en coûte 2 — le maillot à pois en dépend. Voir
-CDC §12 pour les six autres questions ouvertes.
-
-Corrigé au passage dans §ÉTAT : la section « L'application » affirmait encore « pas d'écran
-d'accueil » alors que la section « Écran d'accueil » du même §ÉTAT dit le contraire depuis le
-2026-09-02.
 

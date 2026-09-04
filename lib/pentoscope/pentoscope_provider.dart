@@ -1,4 +1,7 @@
-// Modified: 2026-09-03 07:10 — fix drag tiroir : selectPiece accepte grabbedCell (cellule empoignée)
+// Modified: 2026-09-04 04:08 — reprise fidèle : _saveCurrentGame écrit state.isProgression et
+//           restoreGame le restaure depuis row.isProgression — sinon une partie de progression
+//           reprise retombait à false et « Jouer » la jetait (needFresh via !isProgression).
+// Historique: 2026-09-03 07:10 — fix drag tiroir : selectPiece accepte grabbedCell (cellule empoignée)
 //           → ancre le drag sur le doigt comme le plateau, au lieu de la cellule par défaut.
 // Historique: 2026-09-02 20:37 — progression solo : champ PentoscopeState.isProgression (+ copyWith)
 //           et param isProgression de startPuzzle — un puzzle de progression fait avancer le niveau.
@@ -823,6 +826,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             translationCount: state.translationCount,
             deleteCount: state.deleteCount,
             hintCount: state.hintCount,
+            isProgression: state.isProgression,
           );
     } catch (e) {
       debugPrint('❌ Sauvegarde partie en cours échouée: $e');
@@ -916,6 +920,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: count,
       elapsedSeconds: row.elapsedSeconds,
+      isProgression: row.isProgression, // sinon « Jouer » jette la partie reprise
     );
   }
 
