@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 20:37 — progression solo : kMaxLevel + sizeForLevel(n) (niveau 1..9 →
+// Modified: 2026-09-04 06:25 — défi hebdo Phase 1 : solubleMasksFor(size) expose les masques
+//           solubles triés (ordre figé requis par la dérivation, challenge.dart / CDC §7.3).
+// Historique: 2026-09-02 20:37 — progression solo : kMaxLevel + sizeForLevel(n) (niveau 1..9 →
 //           size3x5 … size6x10) ajoutés avant l'enum PentoscopeSize.
 // Historique: 2026-08-31 16:39 — étape B (§8 B) : PentoscopeSolver sort du générateur. puzzleFromMask
 //           ne calcule plus de solution (le champ PentoscopePuzzle.solutions est supprimé — la
@@ -62,6 +64,14 @@ class PentoscopeGenerator {
     await _ensureTable();
     final masks = _solubleByPopcount![size.numPieces]!;
     return masks[_random.nextInt(masks.length)];
+  }
+
+  /// Masques solubles de `size.numPieces`, **triés par valeur croissante** (garanti par le
+  /// balayage `for m in 0..4095` de `_ensureTable`). Ordre figé requis par la dérivation du défi
+  /// (CDC §7.3, piège 3 ; voir `challenge.dart`). Charge la table au besoin.
+  Future<List<int>> solubleMasksFor(PentoscopeSize size) async {
+    await _ensureTable();
+    return List.unmodifiable(_solubleByPopcount![size.numPieces]!);
   }
 
   /// Nombre de solutions d'un masque (la table doit être chargée — via drawMask ou generate).

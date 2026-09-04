@@ -70,7 +70,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. ~~Prérequis : PRNG écrit dans le dépôt~~ **primitive faite (2026-09-04, `PentapolRng`, Phase 0)** ; reste la dérivation `mix(version, semaine, taille)` + masques triés (Phase 1) |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phase 0 faite** (PRNG) ; **Phase 1 faite** (dérivation hors ligne `challenge.dart` : `weeksSinceEpoch`/`challengeSeed`/`deriveChallenge`, testée + gelée). **Reste Phases 2-5** : mode défi classé (indice neutralisé), identité 128 bits, serveur Worker+D1 (POST/GET, recalcul `minIso`), UI des trois classements |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
@@ -329,6 +329,24 @@ Ils ouvrent les phases 1→5 du défi (spec `CDC §7`), mais **ne créent pas** 
 device** : lancer une partie solo, la mettre en arrière-plan (ou passer un appel) 30 s, revenir — le
 chrono n'a pas avancé du trou.
 
+### Défi de la semaine — Phase 1 (2026-09-04) : dérivation hors ligne (HORS V1)
+
+Deuxième brique du défi (après le PRNG de Phase 0). **Tout descend d'un entier** (`CDC §7.3`), rien
+ne transite : `lib/pentoscope/challenge.dart` (pur, sans réseau) — `weeksSinceEpoch` (origine lundi
+5 janvier 2026 **UTC**), `challengeSeed(version, semaine, taille)` (FNV-1a, dépôt), et
+`deriveChallenge(week, size, solubleMasks)` → masque + rack (orientation par pièce, id croissant), via
+`PentapolRng`. `kChallengeVersion` (dans la clé du classement), `kChallengeSizes` (six tailles, §7.2 :
+6×10, 5×9, 5×10 écartés).
+
+**Vérifié** : `_solubleByPopcount` du générateur est **trié par valeur croissante** (balayage
+`for m in 0..4095`) → dérivation reproductible (§7.3 piège 3) ; `solubleMasksFor(size)` l'expose (ordre
+figé, pour brancher le défi en Phase 2). **Test de gel** `test/challenge_test.dart` : digest des 60
+premiers défis (6 tailles × semaines 0..9) + spot-check + invariants (masque soluble, orientations
+valides, reproductibilité, semaines) — le garde-fou du §7.3 piège 5. **45/45 tests.**
+
+**Reste** (toutes hors V1) : mode défi classé (§4.8, indice neutralisé), identité 128 bits (§7.4),
+serveur Worker+D1 (§7.5-7.6, recalcul serveur du `minIso`), UI des trois classements.
+
 ### Records perso — Phase A (2026-09-04) : calcul + capture du rack + bilan de fin
 
 Premier tiers du chantier §4 (les deux maillots recommandés : acuité complète + bilan de fin).
@@ -409,8 +427,8 @@ flutter run --release -d 00008150-000165D4027B401C
 `202609040505`, 1.0.3). **Commit local non poussé** : records perso **Phase A** (calcul + rack + bilan).
 Bump de version à lancer (`scripts/update_version.sh`, date/heure) juste avant le prochain push.
 La branche `deplacement-piece` a été
-**supprimée** (fusionnée dans `main`). Depuis, commits locaux non poussés : records **Phase A**
-(`de3d45f`), **Phase B** (`2cbeb45`) et **Phase C** (écran de lecture). Sauvegarde du
+**supprimée** (fusionnée dans `main`). Depuis, commits locaux non poussés (2026-09-04, après le push de `16df5f8`) : médaille §4.6
+(`ef58394`) et défi **Phase 1** (`challenge.dart`). Sauvegarde du
 chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag
 `chantier-deplacement-backup` (local seul), tous deux sur `c5306b5` — **ne pas supprimer** tant que
 la question du déplacement d'une pièce n'est pas retranchée. Détail dans §ÉTAT « REVERT ».
