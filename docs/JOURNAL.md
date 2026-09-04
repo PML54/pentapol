@@ -474,6 +474,22 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-04 — CLI → cowork (discussion défi : composition à la main, vérification, indicateur Help).** Décisions
+de Paul consignées dans `CAHIER_DES_CHARGES_V1.md` §7 (bloc « Révision du 2026-09-04 » en tête). **Aucun
+code touché** — tout est hors V1, le serveur n'existe pas ; le client Phase 2 reste sur `deriveChallenge`
+en interim (et futur repli). **Actés** : (1) le défi est **composable à la main, autorité serveur** — définition
+`(taille, masque, rack)` en table serveur, `deriveChallenge` devient générateur par défaut (téléversé
+depuis Dart, pas de PRNG en JS) + repli offline ; le serveur a le rack → recalcule `minIso` sans porter
+le PRNG. **Amorçage paresseux** (Acté 1bis) : au lancement le client lit si les *n* défis de la semaine
+sont initialisés côté serveur, sinon **le premier joueur les sème** (écriture idempotente « insérer si
+absent », course inoffensive car dérivation déterministe ; composition à la main = pré-remplir avant le 1er joueur) ;
+(2) le serveur **fait confiance** aux coups/temps/Help d'une partie validée (recalcule seul
+`minIso`) ; (3) indicateur **Help = sauvetages rouge→jaune** (agnostique au geste). **Ouverts** :
+le **rôle de Help** (info / filtre / 4e maillot ; reco CLI = info non filtrante) et le **critère de
+stockage** (reco CLI = meilleure valeur par dimension, 1 ligne par (joueur, semaine, taille), ce qui
+remplacerait §7.1 « premier essai »). Cette mise à jour docs est commitée seule (doc sans code,
+MODUS_VIVENDI §5).
+
 **2026-09-04 — CLI → cowork (la persistance était déjà faite ; correctif `isProgression`).** En
 reprenant « la persistance », constat : les **4 étapes du `PLAN_PERSISTANCE` sont codées et
 committées** depuis `ea23af7`→`30e4fae` (ancêtres de `main`, conservées par le revert). Le §ÉTAT les
@@ -518,14 +534,3 @@ suppression de compte reste hors sujet pour la V1 et « ne collecte rien » est 
 reviennent à la mise à jour « classement »). **Point 6** aligné sur Q4 : le multijoueur est
 maintenu en V1, donc l'URL en dur et l'absence d'interrupteur distant deviennent bloquants (au
 lieu de « à couper »).
-
-**2026-09-03 — CLI → cowork (commit + push des docs de la passation cowork).** Les six documents
-et deux scripts déposés par cowork ont été commités **tels quels**, un seul commit `69fce95`
-(`docs(defi): trois classements par maillot, defi de la semaine, prerequis du classement`), puis
-**poussés sur `origin/main`**. **Aucune décision du §12 tranchée** (réservé à Paul). Aucun code
-touché : commit docs-only, **pas de bump de version** (choix de Paul confirmé au push). §ÉTAT mis
-à jour : nouveau chantier « système de score + défi de la semaine » (spécifié, pas encore codé),
-section Documentation et Git actualisées, nouveau bloquant App Store `com.example.pentapol`
-consigné. Cette mise à jour du JOURNAL est commitée à part (doc sans code derrière, MODUS_VIVENDI
-§5), pour ramener `git status -s docs/` à vide.
-

@@ -341,6 +341,58 @@ Passable dès le premier écran, rejouable depuis les réglages.
 > pour le duel temps réel. Un classement asynchrone est un POST de score et un GET de tableau ;
 > il ne réutilise rien sauf le compte Cloudflare. Aucun Durable Object n'est nécessaire.
 
+> **Révision du 2026-09-04 (discussion Paul ↔ CLI).** Quatre points, dont deux **actés** et deux
+> **encore ouverts**. Ils amendent §7.1, §7.3, §7.5 et §7.6 ci-dessous ; le corps de ces sections
+> est conservé, cette note prime là où elle diffère.
+>
+> **Acté 1 — le défi est COMPOSABLE À LA MAIN, autorité serveur.** On garde la **capacité de choisir/
+> ajuster** les défis à la main (éviter les tirages dégénérés, thématiser). La définition d'un défi = **trois
+> informations : `(taille, masque, rack)`**, stockées dans une table serveur `challenges` indexée
+> par `(version, semaine, taille)`. Conséquence : §7.3 est **amendé** — le défi n'est plus « purement
+> dérivé, rien ne transite ». La dérivation `deriveChallenge` (déjà codée, `challenge.dart`) devient
+> (a) le **générateur par défaut** qui pré-remplit la table (exécuté **en Dart** et téléversé — on ne
+> réimplémente PAS `PentapolRng` en JavaScript), et (b) le **repli hors ligne** du client quand le
+> réseau manque et qu'il n'y a pas de cache. Le client **télécharge** la définition de la semaine et
+> la **met en cache**. Bénéfice de vérification (§7.5) : le serveur ayant le **rack en table**,
+> il recalcule `minIso` directement, sans porter le PRNG côté Worker.
+>
+> **Acté 1bis — amorçage paresseux par le premier joueur (Paul, 2026-09-04).** Au lancement, le
+> client lit pour la **semaine en cours** si les *n* définitions (une par taille ouverte) sont
+> **initialisées** sur le serveur. Si oui → il les utilise. Si non → **le premier client les génère**
+> (via `deriveChallenge`, en Dart) et les POST. Pas de cron serveur. Comme la dérivation est
+> **déterministe**, tous les « premiers » produiraient la même définition → l'écriture serveur doit
+> être **idempotente** (« insérer si absent », clé `(version, semaine, taille)`), la course est alors
+> inoffensive. **Composition à la main** : une semaine composée à la main se **pré-remplit avant le
+> premier joueur** (une redéfinition après coup ferait diverger les clients ayant déjà mis en cache).
+> Hors ligne au lancement → repli sur la dérivation locale (= le défaut algorithmique) ; si la semaine
+> était composée à la main, désaccord détecté à la
+> soumission (edge rare, accepté).
+>
+> **Acté 2 — le serveur fait confiance aux chiffres d'une partie validée.** Tous les chiffres
+> (`minIso`, coups, temps, Help) sont calculés **localement** et **montent au serveur** pour une
+> partie validée (grille = pavage correct de la config de la semaine). Le serveur **recalcule
+> `minIso`** (infalsifiable) et **fait confiance** aux coups/temps/Help, bornés par leurs minima —
+> exactement le modèle déjà admis en §7.5 (« la triche ne peut jouer que sur le vert et le à pois »).
+>
+> **Acté 3 — indicateur « Help », métrique.** Un compteur d'**aide** distinct de l'ampoule :
+> les **sauvetages rouge→jaune** = nombre de fois où une action du joueur ramène le plateau
+> d'insoluble à soluble (par **translation OU retrait+repose** — **agnostique au geste**, cohérent
+> avec Q6 §4.7). C'est l'usage réel de l'oracle (la couleur de la lampe). Mesure la seule ; **son
+> rôle reste ouvert** (voir ci-dessous). Détectable au code : au placement/déplacement, comparer
+> `hasPossibleSolution` avant/après.
+>
+> **OUVERT A — rôle de Help** : (a) **info** au bilan + 4e valeur stockée, non filtrante
+> [reco CLI, cohérent avec §4.8 qui garde la lampe visible pour tous] ; (b) **filtre** — une partie
+> avec sauvetages n'entre dans aucun classement (pur, mais en tension avec §4.8) ; (c) **4e maillot**
+> classé (encombrant, §4.1 alertait déjà sur 18 tableaux → 24).
+>
+> **OUVERT B — critère de stockage / « meilleure partie »** : comme §4.1 impose **trois classements
+> indépendants**, il n'existe pas de « meilleure partie » unique. Reco CLI : stocker **la meilleure
+> valeur par dimension** — **une seule ligne par `(joueur, semaine, taille)`** portant les bests
+> indépendants (acuité + sa grille pour re-vérifier `minIso`, coups, temps, Help), chacun mis à jour
+> quand une soumission le bat. Cela **remplacerait §7.1 « le premier essai, pas le meilleur »** — à
+> confirmer par Paul.
+
 ### 7.1 Forme retenue
 
 Le joueur ouvre l'option **Défi**, choisit une **dimension de plateau**, et Pentapol dérive tout
