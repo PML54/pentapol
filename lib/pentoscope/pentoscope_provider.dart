@@ -1,4 +1,8 @@
-// Modified: 2026-09-04 04:08 — reprise fidèle : _saveCurrentGame écrit state.isProgression et
+// Modified: 2026-09-04 04:34 — Phase 0 défi (V1) : (a) CDC §7.3 — le tirage seedé du duel
+//           (orientations) passe par PentapolRng (dépôt) au lieu de Random(seed), reproductible
+//           entre versions du SDK ; (b) CDC §7.7 — pauseTimerForBackground/resumeTimerFromBackground
+//           pour que le temps de fond ne compte pas (maillot vert), câblés dans main.dart.
+// Historique: 2026-09-04 04:08 — reprise fidèle : _saveCurrentGame écrit state.isProgression et
 //           restoreGame le restaure depuis row.isProgression — sinon une partie de progression
 //           reprise retombait à false et « Jouer » la jetait (needFresh via !isProgression).
 // Historique: 2026-09-03 07:10 — fix drag tiroir : selectPiece accepte grabbedCell (cellule empoignée)
@@ -69,6 +73,7 @@ import 'package:pentapol/common/piece_manipulation_state.dart';
 export 'package:pentapol/common/view_orientation.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/game_timer_mixin.dart';
+import 'package:pentapol/common/pentapol_rng.dart';
 import 'package:pentapol/common/piece_interaction_mixin.dart';
 import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
@@ -728,12 +733,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final plateau = Plateau.allVisible(size.width, size.height);
 
-    // Initialiser les positions avec le même seed (pour cohérence)
-    final Random random = Random(seed);
+    // Initialiser les positions avec le même seed (pour cohérence). PRNG du dépôt, pas
+    // Random(seed) : reproductible entre versions du SDK, quand les deux joueurs d'un duel
+    // pourraient tourner sur des builds différents (CDC §7.3, piège 2).
+    final rng = PentapolRng(seed);
     final piecePositionIndices = <int, int>{};
 
     for (final piece in pieces) {
-      final randomPos = random.nextInt(piece.numOrientations);
+      final randomPos = rng.nextInt(piece.numOrientations);
       piecePositionIndices[piece.id] = randomPos;
     }
 
@@ -845,6 +852,33 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// Fige la partie en cours — appelé par `main.dart` au passage en arrière-plan,
   /// pour capturer `elapsedSeconds` avant que l'app soit suspendue.
   Future<void> saveCurrentGameSnapshot() => _saveCurrentGame();
+
+  /// Temps figé au passage en arrière-plan, en attendant la reprise. `null` = pas en pause.
+  int? _timerPausedElapsed;
+
+  /// ⏱️ Met le chronomètre en pause au passage en arrière-plan (CDC §7.7 : le temps de fond
+  /// — appel, verrouillage, autre app — ne doit pas compter dans le maillot vert).
+  ///
+  /// `stopTimer()` seul ne suffit pas : `getElapsedSeconds()` calcule `now − _startTime`, donc
+  /// le temps continue de courir tant que l'origine n'est pas recalée. On capture donc la valeur
+  /// ici, et [resumeTimerFromBackground] recale l'origine au retour. Solo uniquement — en duel
+  /// le temps fait foi côté serveur, pas localement.
+  void pauseTimerForBackground() {
+    if (_isMultiplayer || !isTimerRunning) return;
+    _timerPausedElapsed = getElapsedSeconds();
+    stopTimer();
+  }
+
+  /// ⏱️ Reprend le chronomètre au retour au premier plan, en repartant du temps figé par
+  /// [pauseTimerForBackground] : `restoreTimerOrigin` recale `_startTime = now − figé`, donc
+  /// le trou passé en arrière-plan n'est pas compté. No-op si aucune pause n'était en cours.
+  void resumeTimerFromBackground() {
+    final paused = _timerPausedElapsed;
+    if (paused == null) return;
+    _timerPausedElapsed = null;
+    restoreTimerOrigin(paused);
+    startTimer();
+  }
 
   /// Reprend une partie sauvegardée **sans** passer par le générateur : reconstruit le
   /// `PentoscopePuzzle` depuis les champs stockés, rejoue les placements, restaure les

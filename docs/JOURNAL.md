@@ -63,8 +63,8 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup. **Prérequis V1 (CDC §11, priorité 7)** : suspendre le chronomètre en arrière-plan — le temps entre dans le maillot vert, un appel téléphonique le fausse |
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. Prérequis propre au défi : **PRNG écrit dans le dépôt** (reproductibilité entre versions du SDK ; le chrono, lui, est déjà un prérequis V1 ci-dessus) |
+| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup. ~~Prérequis V1 : suspendre le chronomètre en arrière-plan~~ **fait (2026-09-04, Phase 0)** |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. ~~Prérequis : PRNG écrit dans le dépôt~~ **primitive faite (2026-09-04, `PentapolRng`, Phase 0)** ; reste la dérivation `mix(version, semaine, taille)` + masques triés (Phase 1) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de la reprise (voir « Persistance — correctif `isProgression` »
@@ -299,6 +299,30 @@ dans le flux principal.
 poser des pièces, **tuer l'app**, relancer, « Jouer » → la partie reprend et sa complétion avance le
 niveau. `settings_database.g.dart` est gitignoré : régénérer après `pull`.
 
+### Phase 0 du défi de la semaine (2026-09-04) — PRNG du dépôt + pause du chrono
+
+Deux prérequis posés (décision de Paul : les faire **en V1**, ils servent aussi les records perso).
+Ils ouvrent les phases 1→5 du défi (spec `CDC §7`), mais **ne créent pas** encore le mode défi.
+
+- **`PentapolRng` (`lib/common/pentapol_rng.dart`)** — PRNG déterministe (xorshift32), indépendant de
+  `dart:math` dont `Random(seed)` n'est pas garanti stable entre versions du SDK (`CDC §7.3`, piège 2).
+  Test de gel `test/pentapol_rng_test.dart` (goldens + reproductibilité + bornes) — le seul garde-fou
+  contre une dérive involontaire des puzzles seedés. **Seul consommateur seedé actuel migré** : les
+  orientations du duel (`startPuzzleFromSeed`, ex-`Random(seed)`). *Le `seed` de `generateFromSeed`
+  reste mort — le masque du duel vient des `pieceIds` du serveur.* Conséquence assumée : les
+  orientations du duel changent vs anciens builds, sans effet (les deux joueurs sont sur la même
+  release ; rien de persisté n'en dépend).
+- **Pause du chrono** — `pauseTimerForBackground` / `resumeTimerFromBackground` sur le provider,
+  câblés dans l'observateur déjà présent de `main.dart` (`paused`/`resumed`). **Solo uniquement**
+  (`!_isMultiplayer` ; en duel le serveur fait foi). Correction d'une imprécision de `CDC §7.7` :
+  `stopTimer()` seul **ne met pas en pause** (`getElapsedSeconds` = `now − _startTime`, le temps court
+  toujours) — on capture la valeur à `paused` et `restoreTimerOrigin(figé)` recale l'origine à
+  `resumed`, sans compter l'arrière-plan.
+
+`flutter analyze lib/` 0 error/warning, **22/22 tests** (7 PRNG + 15 existants). **À valider sur
+device** : lancer une partie solo, la mettre en arrière-plan (ou passer un appel) 30 s, revenir — le
+chrono n'a pas avancé du trou.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -329,10 +353,10 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-`origin/main` = **`69fce95`** (commit docs du 2026-09-03 : CDC V1, défi de la semaine,
-`REFERENCE_ISOMETRIES.md`, `FICHE_APP_STORE.md`, deux scripts `verif_*.py`), poussé — **aucun
-code touché, pas de bump de version** (commit docs-only). Base : `b9bec37` (pré-chantier
-`1efda1a` + le commit d'ergonomie « I »/Paramètres). La branche `deplacement-piece` a été
+`origin/main` = **`02212d1`** (bump de build du 2026-09-03, 1.0.3). **Commits locaux non poussés
+(2026-09-04)** : `53f688c` (fix `isProgression`) puis Phase 0 du défi (PRNG + pause chrono). **Pas
+encore de bump de version** — à lancer (`scripts/update_version.sh`, date/heure) juste avant le push.
+La branche `deplacement-piece` a été
 **supprimée** (fusionnée dans `main`). Sauvegarde du
 chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag
 `chantier-deplacement-backup` (local seul), tous deux sur `c5306b5` — **ne pas supprimer** tant que
@@ -355,9 +379,17 @@ du journal pendant la saga du revert. §ÉTAT corrigé : persistance déplacée 
 priorité recommandée passée aux **records perso**. **Un vrai bug corrigé** : `isProgression` n'était
 ni stocké ni restauré → une partie de progression reprise était jetée par « Jouer » et n'avançait pas
 le niveau. Colonne ajoutée, `schemaVersion` 4→5 (destructif), save/restore câblés, `build_runner`
-régénéré, `analyze lib/` 0 error/warning. **Deux fichiers `lib/` modifiés, pas encore commités**
-(attente du feu vert de Paul et du test device). Cette mise à jour du journal est un doc **avec** code
-derrière : à commiter **dans le même commit** que le correctif (MODUS_VIVENDI §5).
+régénéré, `analyze lib/` 0 error/warning. **Commité `53f688c`** (2 fichiers `lib/` + journal, un seul
+commit), non poussé — à tester sur device (base existante : réécriture destructive une fois).
+
+**Puis Phase 0 du défi (V1, décision de Paul).** Deux prérequis qui servent aussi les records perso :
+**`PentapolRng`** (PRNG du dépôt, xorshift32 + test de gel ; migration du seul chemin seedé actuel, les
+orientations du duel) et la **pause du chrono en arrière-plan** (solo, câblée dans `main.dart`). Détail
+en §ÉTAT « Phase 0 du défi ». `analyze lib/` 0 error/warning, 22/22 tests. **Modifs non commitées**
+(attente du feu vert de Paul) : `lib/common/pentapol_rng.dart` (neuf), `test/pentapol_rng_test.dart`
+(neuf), `lib/pentoscope/pentoscope_provider.dart`, `lib/main.dart`, et **ce journal** (doc avec code
+derrière → même commit, MODUS_VIVENDI §5). Phases 1→5 (dérivation défi, mode classé, identité, serveur,
+UI) restent à faire — hors V1.
 
 **2026-09-03 — CLI → cowork (Paul a tranché les sept questions du CDC §12).** Les réponses sont
 encodées dans `CAHIER_DES_CHARGES_V1.md` : §12 réécrit en décisions, sections concernées mises à

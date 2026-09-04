@@ -1,6 +1,8 @@
-// Modified: 2026-09-02 20:37 — progression solo : le puzzle de départ est sizeForLevel(currentLevel)
-//           (niveau 1 = 5×3), après attente du chargement des réglages ; isProgression:true.
+// Modified: 2026-09-04 04:34 — CDC §7.7 : pause du chrono en arrière-plan (paused → pauseTimer,
+//           resumed → resumeTimer) pour que le temps de fond ne compte pas (maillot vert).
 // lib/main.dart
+// Historique: 2026-09-02 20:37 — progression solo : le puzzle de départ est sizeForLevel(currentLevel)
+//           (niveau 1 = 5×3), après attente du chargement des réglages ; isProgression:true.
 // Historique: 2026-09-02 16:46 — écran d'accueil (PLAN_ECRAN_ACCUEIL) : home démarre sur HomeScreen
 //           (plutôt que directement PentoscopeGameScreen) ; l'écran de chargement est conservé.
 // Historique: 2026-08-31 17:00 — suppression de la difficulté : les deux appels startPuzzle ne
@@ -53,10 +55,16 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Au passage en arrière-plan, figer la partie en cours pour capturer elapsedSeconds
-    // avant que l'app soit suspendue (PLAN_PERSISTANCE §2.2). No-op en multijoueur.
+    final notifier = ref.read(pentoscopeProvider.notifier);
     if (state == AppLifecycleState.paused) {
-      ref.read(pentoscopeProvider.notifier).saveCurrentGameSnapshot();
+      // ⏱️ Mettre le chrono en pause AVANT de sauvegarder, pour figer elapsedSeconds sur le
+      // temps de jeu réel (CDC §7.7 — le temps de fond ne compte pas). Puis figer la partie
+      // en cours (PLAN_PERSISTANCE §2.2). Les deux sont no-op en multijoueur.
+      notifier.pauseTimerForBackground();
+      notifier.saveCurrentGameSnapshot();
+    } else if (state == AppLifecycleState.resumed) {
+      // ⏱️ Reprendre le chrono là où il a été figé, sans compter l'arrière-plan.
+      notifier.resumeTimerFromBackground();
     }
   }
 
