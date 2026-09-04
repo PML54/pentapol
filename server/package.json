@@ -1,0 +1,17 @@
+{
+  "name": "pentapol-defi",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Worker Cloudflare — classement du défi de la semaine de Pentapol (CDC §7).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init:local": "wrangler d1 execute pentapol-defi --local --file=schema.sql",
+    "db:init:remote": "wrangler d1 execute pentapol-defi --remote --file=schema.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240000.0",
+    "typescript": "^5.4.0",
+    "wrangler": "^3.60.0"
+  }
+}

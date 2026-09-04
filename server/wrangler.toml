@@ -1,0 +1,12 @@
+name = "pentapol-defi"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# Base D1 du classement. Créer avec `wrangler d1 create pentapol-defi`, puis coller l'id ci-dessous.
+[[d1_databases]]
+binding = "DB"
+database_name = "pentapol-defi"
+database_id = "REMPLIR_APRES_wrangler_d1_create"
+
+# SEED_TOKEN (amorçage des définitions de défi) n'est PAS ici : c'est un secret.
+#   wrangler secret put SEED_TOKEN

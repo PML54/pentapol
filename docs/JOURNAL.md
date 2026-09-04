@@ -70,7 +70,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Reste Phase 4** (serveur Worker+D1, modèle **confiance client** — pas de recalcul minIso, grille stockée pour audit) **et Phase 5** (UI des 4 classements). Serveur = à déployer par Paul (le CLI écrit le code) |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 code écrit** (`server/` : worker TS + schéma D1 + wrangler + README, modèle **confiance client** — pas de recalcul minIso, grille stockée pour audit) — **à déployer par Paul**. **Reste** : intégration client HTTP (POST score/GET tableau) + **Phase 5** (UI des 4 classements) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
@@ -439,6 +439,20 @@ affiché au **bilan comme 4e maillot blanc** ⚪ (pastille bordée). Tourne auss
 (le moins de sauvetages = best) ; l'écran trophée affiche désormais **quatre maillots** (acuité/coups/
 temps/Help), agrégation `bestHelp` pour le 6×10. Test `records_db_test` étendu. `analyze lib/` 0/0,
 **48/48 tests**.
+
+### Défi Phase 4 — serveur écrit, à déployer (2026-09-04)
+
+`server/` (neuf, TypeScript/Cloudflare) : worker `src/index.ts`, `schema.sql` (D1), `wrangler.toml`,
+`package.json`, `tsconfig.json`, `README.md`. **Modèle confiance** (décision Paul) : l'app mesure, le
+joueur ne saisit rien → pas de triche via le jeu ; le seul vecteur (POST forgé hors app) est jugé
+négligeable → **le serveur ne recalcule pas `minIso`**, il **stocke la grille** pour audit hors ligne.
+Endpoints : `POST /score` (essai unique par clé primaire `(version,week,size,player_id)`, §7.1),
+`GET /leaderboard?maillot=jaune|pois|vert|blanc`, `GET/POST /challenge` (définition composée à la main,
+`POST` gardé par `SEED_TOKEN` pour éviter l'empoisonnement — **révise Acté 1bis** : l'amorçage n'est
+plus ouvert au premier joueur mais réservé à un semeur de confiance, cf. `server/README.md`).
+**À déployer par Paul** (wrangler ; le CLI n'a pas Cloudflare). **Reste** : intégration client HTTP
+(non écrite tant que l'endpoint n'est pas déployé/testé) et Phase 5 (UI). Aucun impact `lib/` (backend
+seul), 50/50 tests app inchangés.
 
 ### Documentation
 
