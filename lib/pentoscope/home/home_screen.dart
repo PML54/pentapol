@@ -1,6 +1,8 @@
-// Modified: 2026-09-04 06:05 — records perso C : bouton trophée dans l'en-tête → RecordsScreen
-//           (écran de lecture des trois maillots).
+// Modified: 2026-09-04 06:56 — défi hebdo Phase 2 : bouton drapeau dans l'en-tête → ChallengeScreen
+//           (choix de taille du défi de la semaine).
 // lib/pentoscope/home/home_screen.dart
+// Historique: 2026-09-04 06:05 — records perso C : bouton trophée dans l'en-tête → RecordsScreen
+//           (écran de lecture des trois maillots).
 // Historique: 2026-09-02 20:37 — progression : label « Niveau N » sous la démo ; « Jouer » enchaîne
 //           sur le puzzle du niveau courant (sizeForLevel), frais si l'actuel est terminé/autre
 //           niveau, sinon reprend.
@@ -19,6 +21,7 @@ import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/screens/records_screen.dart';
+import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show sizeForLevel;
@@ -232,6 +235,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                icon: const Icon(Icons.flag_outlined, color: Colors.black54),
+                iconSize: 28,
+                tooltip: 'Défi de la semaine',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChallengeScreen()),
+                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.emoji_events_outlined, color: Colors.black54),
                 iconSize: 28,

@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 06:45 — bilan en carte flottante non-modale (centrée sur le plateau résolu,
+// Modified: 2026-09-04 06:56 — défi hebdo Phase 2 : en mode classé (state.isRanked, §4.8) l'appui
+//           sur l'ampoule est neutralisé (message ; couleur conservée, retrait via sélection+poubelle).
+// Historique: 2026-09-04 06:45 — bilan en carte flottante non-modale (centrée sur le plateau résolu,
 //           fermable, un tap sur le plateau la rouvre) au lieu du bandeau bas ; chrono et compteur
 //           de solutions masqués à la complétion (l'info de fin est regroupée dans la carte). Paul.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
@@ -879,6 +881,17 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               color: state.hasPossibleSolution ? Colors.amber : Colors.red),
           iconSize: iconSize,
           onPressed: () {
+            // Mode classé (défi, §4.8) : l'appui est neutralisé. La couleur reste (elle sort du
+            // même calcul que le compteur). Le retrait passe par sélection + poubelle.
+            if (state.isRanked) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(const SnackBar(
+                  content: Text('Indice désactivé en mode défi'),
+                  duration: Duration(seconds: 2),
+                ));
+              return;
+            }
             if (state.hasPossibleSolution) {
               HapticFeedback.mediumImpact();
               notifier.applyHint();

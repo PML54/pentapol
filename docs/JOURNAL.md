@@ -70,7 +70,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phase 0 faite** (PRNG) ; **Phase 1 faite** (dérivation hors ligne `challenge.dart` : `weeksSinceEpoch`/`challengeSeed`/`deriveChallenge`, testée + gelée). **Reste Phases 2-5** : mode défi classé (indice neutralisé), identité 128 bits, serveur Worker+D1 (POST/GET, recalcul `minIso`), UI des trois classements |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-2 faites** : PRNG (0), dérivation hors ligne `challenge.dart` (1), **mode défi jouable local** (2 : `startChallenge`, `isRanked`, indice neutralisé, écran de choix, bouton accueil). **Reste Phases 3-5** (réseau) : identité 128 bits, serveur Worker+D1 (POST/GET, recalcul `minIso`), UI des trois classements |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
@@ -344,7 +344,15 @@ figé, pour brancher le défi en Phase 2). **Test de gel** `test/challenge_test.
 premiers défis (6 tailles × semaines 0..9) + spot-check + invariants (masque soluble, orientations
 valides, reproductibilité, semaines) — le garde-fou du §7.3 piège 5. **45/45 tests.**
 
-**Reste** (toutes hors V1) : mode défi classé (§4.8, indice neutralisé), identité 128 bits (§7.4),
+**Phase 2 (2026-09-04) — mode défi jouable en local (mode classé).** `startChallenge(ChallengeDefinition)`
+et `startWeeklyChallenge(size)` construisent le puzzle depuis le **masque + rack dérivés** (pas de
+tirage aléatoire). Nouvel état `isRanked` : l'**appui sur l'ampoule est neutralisé** (§4.8 ; message ;
+couleur/compteur conservés ; retrait via sélection+poubelle). Le défi est **éphémère** — non persisté
+(garde `isRanked` dans `_saveCurrentGame`) et **n'efface pas** la partie de progression sauvegardée
+(garde dans le clear). Écran `challenge_screen.dart` (choix parmi les 6 tailles, §7.2) + **bouton
+drapeau** sur l'accueil. **Décision à confirmer** : une complétion de défi écrit les **records perso**
+de la taille (mélange défi/parties libres dans les mêmes bests) — Paul peut vouloir les séparer.
+`analyze lib/` 0 error/warning, 45/45 tests. **Reste Phases 3-5** (réseau) : identité 128 bits (§7.4),
 serveur Worker+D1 (§7.5-7.6, recalcul serveur du `minIso`), UI des trois classements.
 
 ### Records perso — Phase A (2026-09-04) : calcul + capture du rack + bilan de fin

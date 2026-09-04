@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 05:45 — records perso B (CDC §4.1) : _saveCompletionRecord passe les
+// Modified: 2026-09-04 06:56 — défi hebdo Phase 2 (CDC §7) : état isRanked (mode classé) ;
+//           startChallenge/startWeeklyChallenge (puzzle depuis masque+rack dérivés, non persisté,
+//           n'efface pas la progression). Gardes isRanked dans _saveCurrentGame et le clear.
+// Historique: 2026-09-04 05:45 — records perso B (CDC §4.1) : _saveCompletionRecord passe les
 //           métriques (minIso, isoCount, moves, temps) et clean=hintCount==0 ; fini le bestActions
 //           faux (iso+translation+delete). Fige elapsedSeconds à la complétion (bilan stable).
 // Historique: 2026-09-04 05:20 — records perso A1 (CDC §4) : capture du rack initial
@@ -86,6 +89,7 @@ import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/solution_source.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
+import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
 import 'package:pentapol/pentoscope/corpus_provider.dart';
 
@@ -348,7 +352,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💾 Un indice peut compléter le puzzle : même traitement que pour un placement.
     if (isComplete) {
       _saveCompletionRecord();
-      if (!_isMultiplayer) _clearCurrentGame();
+      if (!_isMultiplayer && !state.isRanked) _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
       _saveCurrentGame();
     }
@@ -776,6 +780,54 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
+  /// 🎽 Démarre le **défi de la semaine** (CDC §7, Phase 2) — **mode classé**. Construit le puzzle
+  /// depuis le masque et le rack **dérivés** ([challenge]), sans tirage aléatoire. `isRanked` (appui
+  /// sur l'ampoule neutralisé, §4.8), non progression. **Éphémère** : ne persiste pas et n'efface
+  /// pas la partie de progression sauvegardée (re-dérivable depuis la semaine).
+  Future<void> startChallenge(ChallengeDefinition challenge) async {
+    _isMultiplayer = false;
+    final size = challenge.size;
+    final pieceIds = challenge.pieceIds;
+    final puzzle = await _generator.generateFromSeed(size, 0, pieceIds); // compte lu dans la table
+    _solutions = await _makeSolutionSource(size, pieceIds);
+
+    final pieces =
+        pieceIds.map((id) => pentominos.firstWhere((p) => p.id == id)).toList();
+    final plateau = Plateau.allVisible(size.width, size.height);
+    final piecePositionIndices = Map<int, int>.from(challenge.orientations);
+
+    resetTimer();
+    state = PentoscopeState(
+      viewOrientation: ViewOrientation.portrait,
+      puzzle: puzzle,
+      plateau: plateau,
+      availablePieces: pieces,
+      placedPieces: [],
+      piecePositionIndices: piecePositionIndices,
+      initialOrientations: Map.from(piecePositionIndices), // rack du défi (acuité §4.2)
+      isComplete: false,
+      isometryCount: 0,
+      translationCount: 0,
+      showSolution: false,
+      currentSolution: null,
+      validPlacements: [],
+      hasPossibleSolution: true,
+      solutionsCount: _solutions.countFrom(plateau),
+      elapsedSeconds: 0,
+      isProgression: false,
+      isRanked: true,
+    );
+  }
+
+  /// 🎽 Démarre le défi `(semaine, size)` : dérive le masque + rack (via les masques solubles triés
+  /// du générateur) puis [startChallenge]. `week` par défaut = la semaine courante.
+  Future<void> startWeeklyChallenge(PentoscopeSize size, {int? week}) async {
+    final w = week ?? weeksSinceEpoch(DateTime.now());
+    final masks = await _generator.solubleMasksFor(size);
+    await startChallenge(
+        deriveChallenge(week: w, size: size, solubleMasks: masks));
+  }
+
   /// 🎽 Les trois mesures de la partie courante (maillots jaune/à pois/vert, CDC §4).
   /// `null` s'il n'y a pas de puzzle. À appeler une partie terminée (état à jour) : le bilan
   /// de fin et l'enregistrement des records en dérivent tout.
@@ -846,7 +898,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// est alors effacée, pas réécrite).
   Future<void> _saveCurrentGame() async {
     final puzzle = state.puzzle;
-    if (puzzle == null || state.isComplete || _isMultiplayer) return;
+    // isRanked : le défi est éphémère (re-dérivable) et ne doit pas écraser la partie de
+    // progression sauvegardée.
+    if (puzzle == null || state.isComplete || _isMultiplayer || state.isRanked) {
+      return;
+    }
 
     final placedJson = jsonEncode([
       for (final p in state.placedPieces)
@@ -1112,7 +1168,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     //    persister l'avancement (no-op en multijoueur, où _isMultiplayer est vrai).
     if (isComplete) {
       _saveCompletionRecord();
-      if (!_isMultiplayer) _clearCurrentGame();
+      if (!_isMultiplayer && !state.isRanked) _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
       _saveCurrentGame();
     }
@@ -2204,6 +2260,11 @@ class PentoscopeState implements PieceManipulationState {
   /// lancé au « + » (choix libre de taille) et en multijoueur.
   final bool isProgression;
 
+  /// Mode classé (défi de la semaine, CDC §4.8) : l'**appui** sur l'ampoule est neutralisé (le
+  /// compteur et la couleur restent, le retrait passe par sélection + poubelle). Un défi n'est ni
+  /// une partie de progression ni persisté (éphémère, re-dérivable).
+  final bool isRanked;
+
   /// Orientations **initiales** du rack (pieceId → index d'orientation tel que distribué au
   /// démarrage), figées une fois pour toutes. `piecePositionIndices` mute quand le joueur
   /// tourne les pièces ; l'acuité (maillot jaune, CDC §4.2) se mesure contre ce rack initial.
@@ -2238,6 +2299,7 @@ class PentoscopeState implements PieceManipulationState {
     this.solutionsCount, // 🔢 null tant qu'aucun puzzle à table n'est démarré
     this.elapsedSeconds = 0, // ⏱️ Timer
     this.isProgression = false,
+    this.isRanked = false,
     this.initialOrientations = const {},
   });
 
@@ -2314,6 +2376,7 @@ class PentoscopeState implements PieceManipulationState {
     int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer
     bool? isProgression,
+    bool? isRanked,
     Map<int, int>? initialOrientations,
   }) {
     return PentoscopeState(
@@ -2358,6 +2421,7 @@ class PentoscopeState implements PieceManipulationState {
       solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
       isProgression: isProgression ?? this.isProgression,
+      isRanked: isRanked ?? this.isRanked,
       initialOrientations: initialOrientations ?? this.initialOrientations,
     );
   }
