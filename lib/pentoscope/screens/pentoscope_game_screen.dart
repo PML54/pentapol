@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 06:56 — défi hebdo Phase 2 : en mode classé (state.isRanked, §4.8) l'appui
+// Modified: 2026-09-04 07:05 — carte de bilan DÉPLAÇABLE au doigt (poignée + _bilanOffset, recentré
+//           au prochain bilan) — choix de Paul.
+// Historique: 2026-09-04 06:56 — défi hebdo Phase 2 : en mode classé (state.isRanked, §4.8) l'appui
 //           sur l'ampoule est neutralisé (message ; couleur conservée, retrait via sélection+poubelle).
 // Historique: 2026-09-04 06:45 — bilan en carte flottante non-modale (centrée sur le plateau résolu,
 //           fermable, un tap sur le plateau la rouvre) au lieu du bandeau bas ; chrono et compteur
@@ -143,6 +145,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // Remis à false en build dès que le puzzle n'est plus complet (voir build()).
   bool _bilanFerme = false;
 
+  // 🏁 Décalage de la carte de bilan par rapport au centre (la fenêtre est déplaçable au doigt).
+  // Remis à zéro au démarrage d'une nouvelle partie (comme _bilanFerme).
+  Offset _bilanOffset = Offset.zero;
+
   /// Gère l'affichage des messages et vibrations selon le résultat de transformation
   void _handleTransformationResult(BuildContext context, TransformationResult result) {
     switch (result) {
@@ -231,7 +237,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     // Bilan non modal : piloté par state.isComplete. _bilanFerme se remet à false dès que le
     // puzzle n'est plus complet (reset, nouvelle partie, retrait d'une pièce), ce qui couvre
     // tous les démarrages sans avoir à le faire dans chaque handler.
-    if (!state.isComplete && _bilanFerme) _bilanFerme = false;
+    if (!state.isComplete) {
+      if (_bilanFerme) _bilanFerme = false;
+      if (_bilanOffset != Offset.zero) _bilanOffset = Offset.zero; // recentrer au prochain bilan
+    }
 
     if (state.puzzle == null) {
       return const Scaffold(body: Center(child: Text('Aucun puzzle')));
@@ -716,7 +725,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // HELPERS
   // ============================================================================
 
-  /// 🏁 Bilan de fin — carte flottante non-modale, centrée par-dessus le plateau résolu.
+  /// 🏁 Bilan de fin — carte flottante non-modale, **déplaçable au doigt** (choix de Paul), posée
+  /// au centre par-dessus le plateau résolu. `_bilanOffset` mémorise le déplacement (recentré au
+  /// prochain bilan). Le glissé bouge la carte ; les boutons restent cliquables (tap ≠ pan).
   Widget _buildBilanCard(
       BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
     // « Niveau suivant » proposé si le puzzle terminé est un puzzle de progression qui n'est pas
@@ -724,21 +735,30 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final canNext = state.isProgression &&
         state.puzzle != null &&
         state.puzzle!.size != sizeForLevel(kMaxLevel);
-    return _BilanCard(
-      metrics: notifier.computeCompletionMetrics(), // trois maillots (CDC §4.5)
-      hintCount: state.hintCount,
-      onClose: () => setState(() => _bilanFerme = true),
-      onNewGame: () {
-        HapticFeedback.mediumImpact();
-        notifier.reset();
-      },
-      onNextLevel: canNext
-          ? () {
+    return Center(
+      child: Transform.translate(
+        offset: _bilanOffset,
+        child: GestureDetector(
+          behavior: HitTestBehavior.deferToChild,
+          onPanUpdate: (d) => setState(() => _bilanOffset += d.delta),
+          child: _BilanCard(
+            metrics: notifier.computeCompletionMetrics(), // trois maillots (CDC §4.5)
+            hintCount: state.hintCount,
+            onClose: () => setState(() => _bilanFerme = true),
+            onNewGame: () {
               HapticFeedback.mediumImpact();
-              final level = ref.read(settingsProvider).currentLevel;
-              notifier.startPuzzle(sizeForLevel(level), isProgression: true);
-            }
-          : null,
+              notifier.reset();
+            },
+            onNextLevel: canNext
+                ? () {
+                    HapticFeedback.mediumImpact();
+                    final level = ref.read(settingsProvider).currentLevel;
+                    notifier.startPuzzle(sizeForLevel(level), isProgression: true);
+                  }
+                : null,
+          ),
+        ),
+      ),
     );
   }
 
@@ -1298,24 +1318,33 @@ class _BilanCard extends StatelessWidget {
             label: const Text('Niveau suivant'),
           );
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
-          child: Card(
-            elevation: 10,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.emoji_events, color: Colors.amber, size: 30),
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Card(
+          elevation: 10,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Poignée de déplacement : la fenêtre se glisse au doigt (Paul).
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.emoji_events, color: Colors.amber, size: 30),
                       const SizedBox(width: 8),
                       Text(
                         'Résolu !',
@@ -1378,7 +1407,6 @@ class _BilanCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

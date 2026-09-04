@@ -405,7 +405,8 @@ d'acuité 100 %. Chantier records perso **clos**. 38/38 tests.
 
 Le bilan de fin **supersède le bandeau non-modal** (`PLAN_BILAN §2`) : c'est désormais une **carte
 flottante non-modale** (`_BilanCard` dans `pentoscope_game_screen.dart`), centrée par-dessus le
-plateau résolu, **fermable** — et un **tap sur le plateau la rouvre**. Elle regroupe tout le bilan
+plateau résolu, **fermable** (tap sur le plateau pour rouvrir) et **déplaçable au doigt** (poignée +
+`_bilanOffset`, recentré au prochain bilan). Elle regroupe tout le bilan
 lisiblement : titre, badge « Vision parfaite » éventuel, les trois maillots en **lignes libellées**
 (acuité / coups / temps + détail), note d'aides, boutons Fermer / Nouvelle partie ou Niveau suivant.
 Nettoyage demandé : à la complétion, le **chrono** et le **compteur de solutions** sont retirés de la
