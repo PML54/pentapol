@@ -142,6 +142,11 @@ dans la grille terminée et à sommer — douze appels au plus, aucune table con
 
 ### 4.1 Trois classements, pas un — décision de Paul, 2026-09-03
 
+> **Amendé le 2026-09-04 : QUATRE maillots, pas trois.** Un **4e maillot** s'ajoute — **Help**
+> (moins de sauvetages rouge→jaune, cf. §7 Acté 3-4) — **maillot blanc** (le 4e du Tour), nommage
+> figé par Paul le 2026-09-04. Le principe ci-dessous (classements indépendants, aucun combiné) est
+> inchangé, étendu à quatre.
+
 Un défi n'a **pas** de vainqueur unique. Les mêmes données produisent **trois classements
 indépendants**, sur le modèle du Tour de France :
 
@@ -377,21 +382,24 @@ Passable dès le premier écran, rejouable depuis les réglages.
 > **Acté 3 — indicateur « Help », métrique.** Un compteur d'**aide** distinct de l'ampoule :
 > les **sauvetages rouge→jaune** = nombre de fois où une action du joueur ramène le plateau
 > d'insoluble à soluble (par **translation OU retrait+repose** — **agnostique au geste**, cohérent
-> avec Q6 §4.7). C'est l'usage réel de l'oracle (la couleur de la lampe). Mesure la seule ; **son
-> rôle reste ouvert** (voir ci-dessous). Détectable au code : au placement/déplacement, comparer
-> `hasPossibleSolution` avant/après.
+> avec Q6 §4.7). C'est l'usage réel de l'oracle (la couleur de la lampe). Détectable au code : au
+> placement/déplacement, comparer `hasPossibleSolution` avant/après.
 >
-> **OUVERT A — rôle de Help** : (a) **info** au bilan + 4e valeur stockée, non filtrante
-> [reco CLI, cohérent avec §4.8 qui garde la lampe visible pour tous] ; (b) **filtre** — une partie
-> avec sauvetages n'entre dans aucun classement (pur, mais en tension avec §4.8) ; (c) **4e maillot**
-> classé (encombrant, §4.1 alertait déjà sur 18 tableaux → 24).
+> **Acté 4 — Help est un 4e MAILLOT classé (Paul, 2026-09-04).** Moins de sauvetages = tête de
+> classement. **§4.1 est amendé : quatre maillots, plus trois** — acuité (jaune), coups (à pois),
+> temps (vert), Help (**maillot blanc**, le 4e du Tour ; nommage figé par Paul le 2026-09-04).
+> Quatre classements indépendants, aucun combiné. Cohérent avec §4.8 :
+> la lampe reste visible pour tous, Help classe simplement *qui s'en sert le moins*. Coût assumé :
+> quatre tableaux par taille (l'encombrement de §4.1 s'accroît — une seule vue, onglets/podiums).
 >
-> **OUVERT B — critère de stockage / « meilleure partie »** : comme §4.1 impose **trois classements
-> indépendants**, il n'existe pas de « meilleure partie » unique. Reco CLI : stocker **la meilleure
-> valeur par dimension** — **une seule ligne par `(joueur, semaine, taille)`** portant les bests
-> indépendants (acuité + sa grille pour re-vérifier `minIso`, coups, temps, Help), chacun mis à jour
-> quand une soumission le bat. Cela **remplacerait §7.1 « le premier essai, pas le meilleur »** — à
-> confirmer par Paul.
+> **Acté 5 — un seul essai par joueur et par config, quatre valeurs (Paul, 2026-09-04).** §7.1
+> « le premier essai, pas le meilleur » est **conservé** : une seule soumission par
+> `(joueur, semaine, taille)`, **insertion unique, jamais de mise à jour**. Cet essai produit
+> **quatre valeurs** (acuité, coups, temps, Help) → **une seule ligne** par `(joueur, semaine, taille)`
+> portant les quatre + la **grille** (pour re-vérifier `minIso`). Chaque maillot trie sur sa colonne
+> (« meilleure valeur par dimension » = classement indépendant par dimension, pas un meilleur sur
+> plusieurs essais). Schéma D1 (§7.6) : **quatre index**, un par maillot. La clé primaire impose
+> l'essai unique (§7.1).
 
 ### 7.1 Forme retenue
 

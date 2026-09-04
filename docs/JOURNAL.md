@@ -484,10 +484,12 @@ le PRNG. **Amorçage paresseux** (Acté 1bis) : au lancement le client lit si le
 sont initialisés côté serveur, sinon **le premier joueur les sème** (écriture idempotente « insérer si
 absent », course inoffensive car dérivation déterministe ; composition à la main = pré-remplir avant le 1er joueur) ;
 (2) le serveur **fait confiance** aux coups/temps/Help d'une partie validée (recalcule seul
-`minIso`) ; (3) indicateur **Help = sauvetages rouge→jaune** (agnostique au geste). **Ouverts** :
-le **rôle de Help** (info / filtre / 4e maillot ; reco CLI = info non filtrante) et le **critère de
-stockage** (reco CLI = meilleure valeur par dimension, 1 ligne par (joueur, semaine, taille), ce qui
-remplacerait §7.1 « premier essai »). Cette mise à jour docs est commitée seule (doc sans code,
+`minIso`) ; (3) indicateur **Help = sauvetages rouge→jaune** (agnostique au geste). **Tranché par Paul
+le 2026-09-04** : (4) **Help est un 4e maillot classé** → **§4.1 amendé : quatre maillots** (acuité,
+coups, temps, Help = **maillot blanc**) ; (5) **un seul essai par joueur et par config**
+— §7.1 « premier essai » **conservé** (insertion unique), l'essai produit **quatre valeurs** → une ligne
+par `(joueur, semaine, taille)` + la grille, quatre index D1, chaque maillot trie sur sa colonne.
+Détail dans `CDC §7` (Actés 4 et 5). Cette mise à jour docs est commitée seule (doc sans code,
 MODUS_VIVENDI §5).
 
 **2026-09-04 — CLI → cowork (la persistance était déjà faite ; correctif `isProgression`).** En
