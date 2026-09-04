@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 07:18 — défi : records séparés (Paul) — _saveCompletionRecord skip si
+// Modified: 2026-09-04 07:25 — FIX minIso toujours 0 : reset() (« recommencer »/« Nouvelle partie »)
+//           construisait piecePositionIndices vide ET sans initialOrientations → rack absent →
+//           acuité bloquée. reset() tire désormais des orientations aléatoires et fige le rack.
+// Historique: 2026-09-04 07:18 — défi : records séparés (Paul) — _saveCompletionRecord skip si
 //           isRanked (un défi n'écrit pas dans les records perso ; classement = serveur, Phases 3-5).
 // Historique: 2026-09-04 06:56 — défi hebdo Phase 2 (CDC §7) : état isRanked (mode classé) ;
 //           startChallenge/startWeeklyChallenge (puzzle depuis masque+rack dérivés, non persisté,
@@ -512,13 +515,22 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // ⏱️ Reset sans démarrer le timer — efface l'origine, la partie suivante repart de zéro
     resetTimer();
 
+    // 🎯 Tirage aléatoire des orientations (le rack à corriger), comme startPuzzle. Sans lui,
+    // toutes les pièces repartiraient à l'orientation 0 ET initialOrientations serait vide → le
+    // maillot jaune (acuité §4.2) resterait bloqué à minIso = 0 sur toute partie relancée.
+    final random = Random();
+    final piecePositionIndices = <int, int>{
+      for (final piece in pieces) piece.id: random.nextInt(piece.numOrientations),
+    };
+
     state = PentoscopeState(
       viewOrientation: state.viewOrientation,
       puzzle: newPuzzle,
       plateau: plateau,
       availablePieces: pieces,
       placedPieces: [],
-      piecePositionIndices: {},
+      piecePositionIndices: piecePositionIndices,
+      initialOrientations: Map.from(piecePositionIndices), // rack figé (acuité, §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,

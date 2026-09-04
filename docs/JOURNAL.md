@@ -402,6 +402,17 @@ geste de trop), **jamais** un seuil sur `minIso` brut (`minIso = 0` récompenser
 hintCount == 0` (partie sans aide) ; icône médaille sur l'écran de records pour les tailles au best
 d'acuité 100 %. Chantier records perso **clos**. 38/38 tests.
 
+### FIX minIso toujours à 0 (2026-09-04)
+
+Bug signalé par Paul : le maillot jaune affichait `minimum 0` sur toute partie **relancée**. Cause :
+`reset()` (« recommencer »/« Nouvelle partie ») construisait l'état avec `piecePositionIndices: {}` et
+**sans** `initialOrientations` → rack de référence absent → `computeMetrics` faisait `rack == null →
+continue` pour chaque pièce → minIso = 0. La partie initiale (via `startPuzzle`) marchait ; `reset()`
+était le seul chemin de démarrage à ne pas capturer le rack. Correctif : `reset()` tire des orientations
+**aléatoires** (comme `startPuzzle`) et fige `initialOrientations`. Effet de bord corrigé : après un
+« recommencer », les pièces repartaient toutes à l'orientation 0 (plus facile, incohérent) ; désormais
+tirage aléatoire comme la partie initiale. `analyze lib/` 0/0, 45/45.
+
 ### Bilan de fin — carte flottante (2026-09-04, choix de Paul)
 
 Le bilan de fin **supersède le bandeau non-modal** (`PLAN_BILAN §2`) : c'est désormais une **carte
