@@ -1,7 +1,10 @@
-// Modified: 2026-09-02 20:37 — progression solo : à la complétion d'un puzzle de progression du
+// Modified: 2026-09-04 05:20 — records perso A2 (CDC §4.5) : le bandeau de bilan affiche les trois
+//           maillots — acuité %, coups (brut), temps — via computeCompletionMetrics ; détail
+//           (isométries, minimums) en tooltip. Remplace les compteurs bruts iso/translation/delete.
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-02 20:37 — progression solo : à la complétion d'un puzzle de progression du
 //           niveau courant → advanceLevel (via ref.listen) ; 1er puzzle réussi → dialogue de saisie
 //           du nom (setUserName) ; bilan avec bouton « Niveau suivant » (remplace « Nouvelle partie »).
-// lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-09-02 19:20 — icônes d'isométrie du PAYSAGE agrandies à isometryIconSize (comme le
 //           portrait) ; la colonne d'actions paysage est élargie pour ne pas rogner.
 // Historique: 2026-09-02 19:15 — suppression aussi du message « Transformation impossible » : plus
@@ -70,6 +73,7 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
+import 'package:pentapol/pentoscope/completion_metrics.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
@@ -699,10 +703,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         state.puzzle!.size != sizeForLevel(kMaxLevel);
     return _BilanBanner(
       isLandscape: isLandscape,
-      elapsedSeconds: state.elapsedSeconds,
-      isometryCount: state.isometryCount,
-      translationCount: state.translationCount,
-      deleteCount: state.deleteCount,
+      metrics: notifier.computeCompletionMetrics(), // trois maillots (CDC §4.5)
       hintCount: state.hintCount,
       onClose: () => setState(() => _bilanFerme = true),
       onNewGame: () {
@@ -1219,10 +1220,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 /// (la barre y est une colonne étroite).
 class _BilanBanner extends StatelessWidget {
   final bool isLandscape;
-  final int elapsedSeconds;
-  final int isometryCount;
-  final int translationCount;
-  final int deleteCount;
+
+  /// Les trois maillots (CDC §4.5). null si aucun puzzle (ne devrait pas arriver à la complétion).
+  final CompletionMetrics? metrics;
+
+  /// Aides utilisées : si > 0, la partie n'est pas « propre » (hors mode classé, §4.8).
   final int hintCount;
   final VoidCallback onClose;
   final VoidCallback onNewGame;
@@ -1233,10 +1235,7 @@ class _BilanBanner extends StatelessWidget {
 
   const _BilanBanner({
     required this.isLandscape,
-    required this.elapsedSeconds,
-    required this.isometryCount,
-    required this.translationCount,
-    required this.deleteCount,
+    required this.metrics,
     required this.hintCount,
     required this.onClose,
     required this.onNewGame,
@@ -1245,18 +1244,41 @@ class _BilanBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
-    final ss = (elapsedSeconds % 60).toString().padLeft(2, '0');
+    final m = metrics;
+    final t = m?.timeSeconds ?? 0;
+    final mm = (t ~/ 60).toString().padLeft(2, '0');
+    final ss = (t % 60).toString().padLeft(2, '0');
 
+    // Trois maillots, brut : acuité en %, coups en nombre, temps mm:ss (§4.5). Le détail
+    // (isométries, minimums) passe en tooltip pour garder le bandeau lisible.
     final chips = <Widget>[
-      _BilanChip(icon: Icons.timer_outlined, value: '$mm:$ss'),
-      _BilanChip(icon: Icons.rotate_right, value: '$isometryCount'),
-      _BilanChip(icon: Icons.open_with, value: '$translationCount'),
-      if (deleteCount > 0)
+      if (m != null) ...[
         _BilanChip(
-            icon: Icons.delete_outline, value: '$deleteCount', color: Colors.orange),
+          icon: Icons.visibility_outlined,
+          value: '${(m.acuity * 100).round()} %',
+          color: const Color(0xFFF2B705), // maillot jaune (acuité)
+          tooltip: '${m.isometryCount} isométries, minimum ${m.minIso}',
+        ),
+        _BilanChip(
+          icon: Icons.touch_app_outlined,
+          value: '${m.moves}',
+          color: const Color(0xFFD64545), // maillot à pois (coups)
+          tooltip: 'coups — minimum ${m.minMoves}',
+        ),
+        _BilanChip(
+          icon: Icons.timer_outlined,
+          value: '$mm:$ss',
+          color: const Color(0xFF2E9E5B), // maillot vert (temps)
+        ),
+      ] else
+        _BilanChip(icon: Icons.timer_outlined, value: '$mm:$ss'),
       if (hintCount > 0)
-        _BilanChip(icon: Icons.lightbulb, value: '$hintCount', color: Colors.orange),
+        _BilanChip(
+          icon: Icons.lightbulb,
+          value: '$hintCount',
+          color: Colors.orange,
+          tooltip: 'aides utilisées',
+        ),
     ];
 
     final closeButton = TextButton(
@@ -1328,18 +1350,25 @@ class _BilanBanner extends StatelessWidget {
   }
 }
 
-/// Puce `icône + valeur` du bandeau de bilan, sans libellé.
+/// Puce `icône + valeur` du bandeau de bilan, sans libellé. `tooltip` optionnel porte le
+/// détail (isométries, minimums) que le format brut (§4.5) laisse hors du bandeau.
 class _BilanChip extends StatelessWidget {
   final IconData icon;
   final String value;
   final Color? color;
+  final String? tooltip;
 
-  const _BilanChip({required this.icon, required this.value, this.color});
+  const _BilanChip({
+    required this.icon,
+    required this.value,
+    this.color,
+    this.tooltip,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.primary;
-    return Row(
+    final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 20, color: c),
@@ -1350,5 +1379,6 @@ class _BilanChip extends StatelessWidget {
         ),
       ],
     );
+    return tooltip == null ? row : Tooltip(message: tooltip!, child: row);
   }
 }

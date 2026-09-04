@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 04:08 — reprise fidèle : CurrentGame.isProgression persisté (la progression
+// Modified: 2026-09-04 05:20 — records perso (CDC §4) : CurrentGame.initialOrientations (rack
+//           distribué, JSON) pour que l'acuité d'une partie REPRISE reste calculable. schemaVersion
+//           5 → 6 (bump + destructif, règle n°6).
+// Historique: 2026-09-04 04:08 — reprise fidèle : CurrentGame.isProgression persisté (la progression
 //           a atterri après la persistance ; sans lui, une partie reprise retombait à false et
 //           « Jouer » la jetait). schemaVersion 4 → 5 (bump + destructif, règle n°6).
 // Historique: 2026-08-31 18:00 — tirage par table (REFERENCE §8 A) : CurrentGame.solutionCount
@@ -57,6 +60,8 @@ class CurrentGame extends Table {
   IntColumn get hintCount => integer()();
   BoolColumn get isProgression =>
       boolean().withDefault(const Constant(false))(); // fait avancer le niveau
+  TextColumn get initialOrientations =>
+      text().withDefault(const Constant('{}'))(); // rack distribué, JSON (acuité §4.2)
   DateTimeColumn get savedAt => dateTime()();
 
   @override
@@ -96,8 +101,8 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5; // 4 → 5 : CurrentGame.isProgression persisté
-  //                              (reprise fidèle de la progression ; règle n°6 : bump + destructif).
+  int get schemaVersion => 6; // 5 → 6 : CurrentGame.initialOrientations (rack, acuité §4.2)
+  //                              (règle n°6 : bump + destructif).
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
   // tables. L'app n'est pas publiée, il n'y a rien à migrer (PLAN_PERSISTANCE §5).
@@ -235,6 +240,7 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int deleteCount,
     required int hintCount,
     required bool isProgression,
+    required String initialOrientations,
   }) async {
     await into(currentGame).insertOnConflictUpdate(
       CurrentGameCompanion.insert(
@@ -249,6 +255,7 @@ class SettingsDatabase extends _$SettingsDatabase {
         deleteCount: deleteCount,
         hintCount: hintCount,
         isProgression: Value(isProgression),
+        initialOrientations: Value(initialOrientations),
         savedAt: DateTime.now(),
       ),
     );

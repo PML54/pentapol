@@ -63,7 +63,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **spécifié, pas encore codé, dans la V1.** Trois maillots (acuité/coups/temps) en records personnels. Q6 tranchée : le déplacement direct ne compte pas comme un coup. ~~Prérequis V1 : suspendre le chronomètre en arrière-plan~~ **fait (2026-09-04, Phase 0)** |
+| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **en cours (2026-09-04).** Trois maillots (acuité/coups/temps). **Phase A faite** : calcul (`completion_metrics.dart`) + rack initial capturé/persisté + bilan de fin. **Reste B** (schéma 3 bests + réécriture `_saveCompletionRecord`) **et C** (écran de lecture). Prérequis chrono : fait (Phase 0) |
 | **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. ~~Prérequis : PRNG écrit dans le dépôt~~ **primitive faite (2026-09-04, `PentapolRng`, Phase 0)** ; reste la dérivation `mix(version, semaine, taille)` + masques triés (Phase 1) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
@@ -323,6 +323,31 @@ Ils ouvrent les phases 1→5 du défi (spec `CDC §7`), mais **ne créent pas** 
 device** : lancer une partie solo, la mettre en arrière-plan (ou passer un appel) 30 s, revenir — le
 chrono n'a pas avancé du trou.
 
+### Records perso — Phase A (2026-09-04) : calcul + capture du rack + bilan de fin
+
+Premier tiers du chantier §4 (les deux maillots recommandés : acuité complète + bilan de fin).
+
+- **Socle de calcul** `lib/pentoscope/completion_metrics.dart` (+ `test/completion_metrics_test.dart`,
+  7 tests) : `minIso = Σ minIsometriesToReach(rack, placement)`, `acuité = (minIso+1)/(iso+1)`,
+  `coups = pièces + 2·retraits` (Q6 : `translationCount` exclu ; démonstration :
+  `poses − retraits = pièces` à la complétion), temps. Vérifié que `rotationCW/symmetryH…` opèrent
+  sur le **même espace d'index** que `positionIndex` — le maillot jaune est sain.
+- **Rack initial** : `PentoscopeState.initialOrientations`, figé au démarrage
+  (`Map.from(piecePositionIndices)`), **persisté** dans `CurrentGame.initialOrientations`
+  (schéma **5→6**, destructif) et restauré → l'acuité survit à une reprise (`piecePositionIndices`
+  mute quand le joueur tourne les pièces, pas ce champ).
+- **Bilan de fin** (`pentoscope_game_screen.dart`) : le bandeau affiche les trois maillots — acuité %
+  (jaune), coups brut (à pois), temps (vert) — détail (isométries, minimums) en tooltip. Remplace les
+  compteurs bruts iso/translation/delete.
+- **Bug corrigé au passage** : `computeCompletionMetrics` lisait le temps **vivant**
+  (`getElapsedSeconds`), qui continue de croître après `stopTimer()` (l'origine n'est pas recalée) →
+  le bilan aurait grandi à chaque rebuild. `elapsedSeconds` est désormais **figé dans l'état** aux deux
+  sites de complétion (placement et indice) et le bilan le lit.
+
+`analyze lib/` 0 error/warning, **29/29 tests**. **À valider sur device** : terminer un puzzle, voir
+les trois maillots ; le temps ne bouge plus une fois résolu. **Rien n'est encore enregistré comme
+record** — c'est la Phase B (`_saveCompletionRecord` stocke encore un `bestActions` faux, réécrit en B).
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
@@ -353,9 +378,9 @@ flutter run --release -d 00008150-000165D4027B401C
 
 ### Git
 
-`origin/main` = **`02212d1`** (bump de build du 2026-09-03, 1.0.3). **Commits locaux non poussés
-(2026-09-04)** : `53f688c` (fix `isProgression`) puis Phase 0 du défi (PRNG + pause chrono). **Pas
-encore de bump de version** — à lancer (`scripts/update_version.sh`, date/heure) juste avant le push.
+`origin/main` = **`8091059`** (poussé le 2026-09-04 : fix `isProgression` + Phase 0 défi + bump
+`202609040505`, 1.0.3). **Commit local non poussé** : records perso **Phase A** (calcul + rack + bilan).
+Bump de version à lancer (`scripts/update_version.sh`, date/heure) juste avant le prochain push.
 La branche `deplacement-piece` a été
 **supprimée** (fusionnée dans `main`). Sauvegarde du
 chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag

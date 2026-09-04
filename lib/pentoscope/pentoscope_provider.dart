@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 04:34 — Phase 0 défi (V1) : (a) CDC §7.3 — le tirage seedé du duel
+// Modified: 2026-09-04 05:20 — records perso A1 (CDC §4) : capture du rack initial
+//           (state.initialOrientations, figé au démarrage + persisté/restauré via CurrentGame),
+//           et computeCompletionMetrics (minIso, acuité, coups = pièces + 2·retraits, temps).
+// Historique: 2026-09-04 04:34 — Phase 0 défi (V1) : (a) CDC §7.3 — le tirage seedé du duel
 //           (orientations) passe par PentapolRng (dépôt) au lieu de Random(seed), reproductible
 //           entre versions du SDK ; (b) CDC §7.7 — pauseTimerForBackground/resumeTimerFromBackground
 //           pour que le temps de fond ne compte pas (maillot vert), câblés dans main.dart.
@@ -79,6 +82,7 @@ import 'package:pentapol/common/pentomino_game_mixin.dart';
 import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/solution_source.dart';
+import 'package:pentapol/pentoscope/completion_metrics.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
 import 'package:pentapol/pentoscope/corpus_provider.dart';
 
@@ -331,6 +335,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount,
       hintCount: state.hintCount + 1, // 💡 Incrémenter le compteur de hints
+      elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
       clearSelectedPiece: true,
       clearSelectedPlacedPiece: true,
       clearPreview: true,
@@ -699,6 +704,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: pieces,
       placedPieces: [],
       piecePositionIndices: piecePositionIndices,
+      initialOrientations: Map.from(piecePositionIndices), // rack figé (acuité, §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -754,6 +760,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: pieces,
       placedPieces: [],
       piecePositionIndices: piecePositionIndices,
+      initialOrientations: Map.from(piecePositionIndices), // rack figé (acuité, §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -763,6 +770,24 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: true,
       solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
+    );
+  }
+
+  /// 🎽 Les trois mesures de la partie courante (maillots jaune/à pois/vert, CDC §4).
+  /// `null` s'il n'y a pas de puzzle. À appeler une partie terminée (état à jour) : le bilan
+  /// de fin et l'enregistrement des records en dérivent tout.
+  CompletionMetrics? computeCompletionMetrics() {
+    final puzzle = state.puzzle;
+    if (puzzle == null) return null;
+    return computeMetrics(
+      placedPieces: state.placedPieces,
+      initialOrientations: state.initialOrientations,
+      isometryCount: state.isometryCount,
+      deleteCount: state.deleteCount,
+      pieceCount: puzzle.size.numPieces,
+      // Temps FIGÉ (state.elapsedSeconds), pas getElapsedSeconds() : stopTimer() ne recale pas
+      // l'origine, le temps vivant continuerait de croître à chaque rebuild après la complétion.
+      timeSeconds: state.elapsedSeconds,
     );
   }
 
@@ -820,6 +845,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final indicesJson = jsonEncode(
       state.piecePositionIndices.map((k, v) => MapEntry(k.toString(), v)),
     );
+    final initialJson = jsonEncode(
+      state.initialOrientations.map((k, v) => MapEntry(k.toString(), v)),
+    );
 
     try {
       await ref.read(settingsDatabaseProvider).saveCurrentGame(
@@ -834,6 +862,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             deleteCount: state.deleteCount,
             hintCount: state.hintCount,
             isProgression: state.isProgression,
+            initialOrientations: initialJson,
           );
     } catch (e) {
       debugPrint('❌ Sauvegarde partie en cours échouée: $e');
@@ -897,6 +926,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final piecePositionIndices =
         (jsonDecode(row.positionIndices) as Map<String, dynamic>)
             .map((k, v) => MapEntry(int.parse(k), v as int));
+    final initialOrientations =
+        (jsonDecode(row.initialOrientations) as Map<String, dynamic>)
+            .map((k, v) => MapEntry(int.parse(k), v as int));
 
     final placedPieces = [
       for (final e in jsonDecode(row.placedPieces) as List)
@@ -943,6 +975,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: availablePieces,
       placedPieces: placedPieces,
       piecePositionIndices: piecePositionIndices,
+      initialOrientations: initialOrientations, // rack figé restauré (acuité §4.2)
       isComplete: false,
       isometryCount: row.isometryCount,
       translationCount: row.translationCount,
@@ -1062,6 +1095,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       validPlacements: [],
       hasPossibleSolution: hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount, // 🔢
+      elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
     );
 
     // 💾 À la complétion : enregistrer le record et effacer la partie en cours. Sinon,
@@ -2160,6 +2194,11 @@ class PentoscopeState implements PieceManipulationState {
   /// lancé au « + » (choix libre de taille) et en multijoueur.
   final bool isProgression;
 
+  /// Orientations **initiales** du rack (pieceId → index d'orientation tel que distribué au
+  /// démarrage), figées une fois pour toutes. `piecePositionIndices` mute quand le joueur
+  /// tourne les pièces ; l'acuité (maillot jaune, CDC §4.2) se mesure contre ce rack initial.
+  final Map<int, int> initialOrientations;
+
   const PentoscopeState({
     this.viewOrientation = ViewOrientation.portrait,
     this.puzzle,
@@ -2189,6 +2228,7 @@ class PentoscopeState implements PieceManipulationState {
     this.solutionsCount, // 🔢 null tant qu'aucun puzzle à table n'est démarré
     this.elapsedSeconds = 0, // ⏱️ Timer
     this.isProgression = false,
+    this.initialOrientations = const {},
   });
 
   factory PentoscopeState.initial() {
@@ -2264,6 +2304,7 @@ class PentoscopeState implements PieceManipulationState {
     int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer
     bool? isProgression,
+    Map<int, int>? initialOrientations,
   }) {
     return PentoscopeState(
       viewOrientation: viewOrientation ?? this.viewOrientation,
@@ -2307,6 +2348,7 @@ class PentoscopeState implements PieceManipulationState {
       solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
       isProgression: isProgression ?? this.isProgression,
+      initialOrientations: initialOrientations ?? this.initialOrientations,
     );
   }
 
