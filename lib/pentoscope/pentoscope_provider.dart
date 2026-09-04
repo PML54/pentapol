@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 06:56 — défi hebdo Phase 2 (CDC §7) : état isRanked (mode classé) ;
+// Modified: 2026-09-04 07:18 — défi : records séparés (Paul) — _saveCompletionRecord skip si
+//           isRanked (un défi n'écrit pas dans les records perso ; classement = serveur, Phases 3-5).
+// Historique: 2026-09-04 06:56 — défi hebdo Phase 2 (CDC §7) : état isRanked (mode classé) ;
 //           startChallenge/startWeeklyChallenge (puzzle depuis masque+rack dérivés, non persisté,
 //           n'efface pas la progression). Gardes isRanked dans _saveCurrentGame et le clear.
 // Historique: 2026-09-04 05:45 — records perso B (CDC §4.1) : _saveCompletionRecord passe les
@@ -853,7 +855,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// autre taille n'a pas de numéro → `PuzzleStats`. Aucun test de taille ici.
   Future<void> _saveCompletionRecord() async {
     final puzzle = state.puzzle;
-    if (puzzle == null || _isMultiplayer) return;
+    // isRanked : un défi n'écrit PAS dans les records perso (parties libres/progression restent
+    // purs) — son classement viendra du serveur (Phases 3-5). Le bilan affiche quand même ses
+    // mesures (computeCompletionMetrics est indépendant). Décision de Paul, 2026-09-04.
+    if (puzzle == null || _isMultiplayer || state.isRanked) return;
 
     final metrics = computeCompletionMetrics();
     if (metrics == null) return;

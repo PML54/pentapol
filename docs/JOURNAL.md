@@ -350,8 +350,9 @@ tirage aléatoire). Nouvel état `isRanked` : l'**appui sur l'ampoule est neutra
 couleur/compteur conservés ; retrait via sélection+poubelle). Le défi est **éphémère** — non persisté
 (garde `isRanked` dans `_saveCurrentGame`) et **n'efface pas** la partie de progression sauvegardée
 (garde dans le clear). Écran `challenge_screen.dart` (choix parmi les 6 tailles, §7.2) + **bouton
-drapeau** sur l'accueil. **Décision à confirmer** : une complétion de défi écrit les **records perso**
-de la taille (mélange défi/parties libres dans les mêmes bests) — Paul peut vouloir les séparer.
+drapeau** sur l'accueil. **Décision de Paul (2026-09-04)** : un défi **n'écrit PAS** dans les records
+perso (`_saveCompletionRecord` skip si `isRanked`) — parties libres/progression restent purs, le
+classement du défi viendra du serveur. Le bilan affiche quand même acuité/coups/temps.
 `analyze lib/` 0 error/warning, 45/45 tests. **Reste Phases 3-5** (réseau) : identité 128 bits (§7.4),
 serveur Worker+D1 (§7.5-7.6, recalcul serveur du `minIso`), UI des trois classements.
 
