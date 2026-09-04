@@ -323,4 +323,16 @@ class SettingsDatabase extends _$SettingsDatabase {
     return (select(currentGame)..where((g) => g.id.equals(0))).getSingleOrNull();
   }
 
+  // ============================================================================
+  // LECTURE DES RECORDS (écran de lecture, CDC §4)
+  // ============================================================================
+
+  /// Tous les agrégats de puzzles à pièces tirées, triés par taille.
+  Future<List<PuzzleStat>> allPuzzleStats() =>
+      (select(puzzleStats)..orderBy([(s) => OrderingTerm(expression: s.sizeName)]))
+          .get();
+
+  /// Toutes les solutions découvertes sur les rectangles complets.
+  Future<List<SolvedSolution>> allSolvedSolutions() => select(solvedSolutions).get();
+
 }

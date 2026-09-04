@@ -45,6 +45,13 @@ difficulté.
   journal pendant la saga du revert.** Correctif `isProgression` du 2026-09-04 ci-dessous. **Reste :
   test device de la reprise** (jamais confirmé), et il n'y a **pas encore d'écran pour lire les
   records** (hors périmètre du plan, cf. `PLAN_PERSISTANCE` §6).
+- **Records perso (CDC §4, V1)** — les **trois maillots** (acuité/coups/temps). Calcul
+  (`completion_metrics.dart`, testé), rack initial capturé/persisté, bilan de fin, schéma à trois
+  bests indépendants (partie avec aide comptée mais hors record, §4.8), et **écran de lecture**
+  (`records_screen.dart`, bouton trophée de l'accueil). Détail en §ÉTAT « Records perso ». Reste
+  possible : la **médaille §4.6** (acuité 100 %), non faite.
+- **Phase 0 du défi hebdo (prérequis V1)** — PRNG du dépôt (`PentapolRng`, testé) et pause du
+  chronomètre en arrière-plan (solo). Détail en §ÉTAT « Phase 0 ».
 - **Suppression de la difficulté puis tirages précalculés (étape A)** — `subset_counts.bin`
   (4096 × uint16, 8 Ko) donne le nombre de solutions de tout tirage 5×n ; le générateur tire un
   masque parmi les solubles (plus d'appel-boucle au solveur, plus de difficulté), le compte est
@@ -63,13 +70,12 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Système de score (records perso)** | `CAHIER_DES_CHARGES_V1.md` §4 | **en cours (2026-09-04).** Trois maillots (acuité/coups/temps). **Phases A et B faites** : calcul + rack persisté + bilan de fin (A) ; schéma à 3 bests indépendants + enregistrement à la complétion (B, testé). **Reste C** : écran de lecture des records. Prérequis chrono : fait (Phase 0) |
 | **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3, modèle payant option 1) — devient la 1re mise à jour. Spec conservée : worker POST/GET + D1, dérivation hors ligne. ~~Prérequis : PRNG écrit dans le dépôt~~ **primitive faite (2026-09-04, `PentapolRng`, Phase 0)** ; reste la dérivation `mix(version, semaine, taille)` + masques triés (Phase 1) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
-**Priorité recommandée** : test device de la reprise (voir « Persistance — correctif `isProgression` »
-ci-dessous), puis les **records perso** (V1, table `SolvedSolutions`/`PuzzleStats` déjà écrite, il
-manque l'écran de lecture et les trois maillots).
+**Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
+`isProgression`, pause chrono, records perso), puis — au choix — la **médaille §4.6** (raffinement
+des records) ou le début du **défi hebdo Phase 1** (hors V1).
 
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
@@ -354,8 +360,15 @@ le temps ne bouge plus une fois résolu.
 faux** (iso+translation+delete). Décision alignée §4.8 : **une partie avec aide compte** (timesSolved
 / completed) **mais ne pose aucun record** (l'indice place à l'optimum, gonflerait l'acuité). Chaque
 best évolue **séparément** (comparaison d'acuité croisée sans flottant, `_isBetterAcuity`). Test
-d'intégration base-mémoire `test/records_db_test.dart` (6 cas). **35/35 tests.** Reste **Phase C**
-(l'écran de lecture) — les records sont écrits mais aucun écran ne les montre encore.
+d'intégration base-mémoire `test/records_db_test.dart` (6 cas). **35/35 tests.**
+
+**Phase C (2026-09-04) — écran de lecture.** `lib/pentoscope/screens/records_screen.dart` : une
+carte par taille jouée, les trois maillots (acuité % / coups / temps, `—` si pas de best), lus depuis
+`PuzzleStats` (pièces tirées) et **agrégés** depuis `SolvedSolutions` (6×10 : meilleure acuité, moins
+de coups, meilleur temps parmi les solutions trouvées). Accès par un **bouton trophée** ajouté à
+l'en-tête de l'accueil. État vide explicite tant qu'aucun record. `analyze lib/` 0 error/warning,
+35/35 tests. Chantier records perso **clos** (reste optionnel : médaille §4.6). **À valider sur
+device** : terminer quelques puzzles (sans aide), ouvrir l'écran, vérifier les trois maillots.
 
 ### Documentation
 
@@ -392,7 +405,7 @@ flutter run --release -d 00008150-000165D4027B401C
 Bump de version à lancer (`scripts/update_version.sh`, date/heure) juste avant le prochain push.
 La branche `deplacement-piece` a été
 **supprimée** (fusionnée dans `main`). Depuis, commits locaux non poussés : records **Phase A**
-(`de3d45f`) et **Phase B** (schéma 3 bests). Sauvegarde du
+(`de3d45f`), **Phase B** (`2cbeb45`) et **Phase C** (écran de lecture). Sauvegarde du
 chantier écarté : branche **`backup/deplacement-piece-c5306b5`** (sur `origin` **et** locale) et tag
 `chantier-deplacement-backup` (local seul), tous deux sur `c5306b5` — **ne pas supprimer** tant que
 la question du déplacement d'une pièce n'est pas retranchée. Détail dans §ÉTAT « REVERT ».
