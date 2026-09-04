@@ -147,6 +147,33 @@ void main() {
     });
   });
 
+  group('computeMetrics — Help / sauvetages (maillot blanc §7)', () {
+    test('rescues reporté tel quel', () {
+      final m = computeMetrics(
+        placedPieces: const [],
+        initialOrientations: const {},
+        isometryCount: 0,
+        deleteCount: 0,
+        pieceCount: 5,
+        timeSeconds: 0,
+        rescues: 3,
+      );
+      expect(m.rescues, 3);
+    });
+
+    test('rescues par défaut = 0', () {
+      final m = computeMetrics(
+        placedPieces: const [],
+        initialOrientations: const {},
+        isometryCount: 0,
+        deleteCount: 0,
+        pieceCount: 5,
+        timeSeconds: 0,
+      );
+      expect(m.rescues, 0);
+    });
+  });
+
   group('computeMetrics — temps (maillot vert)', () {
     test('temps reporté tel quel', () {
       final m = computeMetrics(

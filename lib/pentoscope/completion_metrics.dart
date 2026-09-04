@@ -1,5 +1,6 @@
-// Modified: 2026-09-04 06:13 — médaille §4.6 : getter perfectVision (acuité 100 %, isoCount==minIso).
+// Modified: 2026-09-04 15:57 — maillot blanc : champ rescues (sauvetages rouge→jaune, §7).
 // lib/pentoscope/completion_metrics.dart
+// Historique: 2026-09-04 06:13 — médaille §4.6 : getter perfectVision (acuité 100 %, isoCount==minIso).
 // Historique: 2026-09-04 05:20 — création : les trois mesures d'une partie terminée (maillots
 //           jaune/à pois/vert, CDC §4). Calcul pur, testable hors provider. minIso somme
 //           Pento.minIsometriesToReach(rack, placement) ; coups = pièces + 2·retraits (§4.7).
@@ -26,12 +27,17 @@ class CompletionMetrics {
   /// Temps écoulé, en secondes. Maillot vert.
   final int timeSeconds;
 
+  /// Sauvetages rouge→jaune : nombre de fois où une action a rétabli la solubilité (usage de
+  /// l'oracle). Maillot **blanc** (CDC §7 Acté 3-4). 0 = partie sans recours à la lampe.
+  final int rescues;
+
   const CompletionMetrics({
     required this.minIso,
     required this.isometryCount,
     required this.moves,
     required this.minMoves,
     required this.timeSeconds,
+    required this.rescues,
   });
 
   /// Acuité isométrique (§4.2) : `(minIso + 1) / (isometryCount + 1)`. Le `+1` traite le cas
@@ -60,6 +66,7 @@ CompletionMetrics computeMetrics({
   required int deleteCount,
   required int pieceCount,
   required int timeSeconds,
+  int rescues = 0,
 }) {
   var minIso = 0;
   for (final pp in placedPieces) {
@@ -73,5 +80,6 @@ CompletionMetrics computeMetrics({
     moves: pieceCount + 2 * deleteCount,
     minMoves: pieceCount,
     timeSeconds: timeSeconds,
+    rescues: rescues,
   );
 }

@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 05:45 — records perso B (CDC §4.1) : trois bests INDÉPENDANTS par
+// Modified: 2026-09-04 15:50 — compteur Help : CurrentGame.helpCount (sauvetages rouge→jaune,
+//           maillot blanc §7) persisté pour la reprise. schemaVersion 7 → 8 (bump + destructif).
+// Historique: 2026-09-04 05:45 — records perso B (CDC §4.1) : trois bests INDÉPENDANTS par
 //           dimension (acuité = minIso+isoCount bruts §7.6, coups, temps), nullables (une partie
 //           avec aide compte mais ne pose pas de record). schemaVersion 6 → 7 (bump + destructif).
 // Historique: 2026-09-04 05:20 — records perso (CDC §4) : CurrentGame.initialOrientations (rack
@@ -61,6 +63,8 @@ class CurrentGame extends Table {
   IntColumn get translationCount => integer()();
   IntColumn get deleteCount => integer()();
   IntColumn get hintCount => integer()();
+  IntColumn get helpCount =>
+      integer().withDefault(const Constant(0))(); // ⚪ sauvetages rouge→jaune (§7)
   BoolColumn get isProgression =>
       boolean().withDefault(const Constant(false))(); // fait avancer le niveau
   TextColumn get initialOrientations =>
@@ -117,7 +121,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 7; // 6 → 7 : records à trois bests indépendants (CDC §4.1)
+  int get schemaVersion => 8; // 7 → 8 : CurrentGame.helpCount (maillot blanc, §7)
   //                              (règle n°6 : bump + destructif).
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
@@ -291,6 +295,7 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int translationCount,
     required int deleteCount,
     required int hintCount,
+    required int helpCount,
     required bool isProgression,
     required String initialOrientations,
   }) async {
@@ -306,6 +311,7 @@ class SettingsDatabase extends _$SettingsDatabase {
         translationCount: translationCount,
         deleteCount: deleteCount,
         hintCount: hintCount,
+        helpCount: Value(helpCount),
         isProgression: Value(isProgression),
         initialOrientations: Value(initialOrientations),
         savedAt: DateTime.now(),

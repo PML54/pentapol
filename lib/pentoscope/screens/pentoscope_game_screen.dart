@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 07:05 — carte de bilan DÉPLAÇABLE au doigt (poignée + _bilanOffset, recentré
+// Modified: 2026-09-04 15:57 — bilan : 4e maillot BLANC (Help / sauvetages rouge→jaune) ajouté à la
+//           carte ; pastille bordée pour rendre le blanc visible.
+// Historique: 2026-09-04 07:05 — carte de bilan DÉPLAÇABLE au doigt (poignée + _bilanOffset, recentré
 //           au prochain bilan) — choix de Paul.
 // Historique: 2026-09-04 06:56 — défi hebdo Phase 2 : en mode classé (state.isRanked, §4.8) l'appui
 //           sur l'ampoule est neutralisé (message ; couleur conservée, retrait via sélection+poubelle).
@@ -1378,6 +1380,12 @@ class _BilanCard extends StatelessWidget {
                       label: 'Temps',
                       value: _mmss(m.timeSeconds),
                     ),
+                    _MaillotLine(
+                      color: Colors.white, // maillot blanc — sauvetages (§7)
+                      label: 'Help',
+                      value: '${m.rescues}',
+                      detail: m.rescues == 0 ? 'aucun sauvetage' : 'sauvetages rouge→jaune',
+                    ),
                   ],
                   if (hintCount > 0) ...[
                     const SizedBox(height: 6),
@@ -1435,7 +1443,11 @@ class _MaillotLine extends StatelessWidget {
           Container(
             width: 14,
             height: 14,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black26), // rend le maillot blanc visible
+            ),
           ),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(fontSize: 16)),

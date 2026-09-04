@@ -425,6 +425,18 @@ Nettoyage demandé : à la complétion, le **chrono** et le **compteur de soluti
 barre du haut, et le bandeau du bas disparaît (slider vide). **Pendant le jeu, rien ne change.**
 `analyze lib/` 0 error/warning, 45/45 tests. Testé à l'écran par Paul.
 
+### Compteur Help — maillot blanc (2026-09-04)
+
+Implémenté (CDC §7 Acté 3-4). État `PentoscopeState.helpCount`, incrémenté à chaque **sauvetage
+rouge→jaune** (`_bumpHelp` : lampe `false→true` après une action) aux **trois** sites qui peuvent
+rétablir la solubilité — retrait (`removePlacedPiece`), déplacement (`tryPlaceAtAnchor`), rotation/
+symétrie d'une pièce **posée** (`_applyIsoUsingLookup` CAS 2, `_applySymmetryAbs`). Poser une pièce
+neuve ne peut jamais sortir d'un cul-de-sac (prouvé) → non compté là. Persisté `CurrentGame.helpCount`
+(schéma **7→8**), exposé par `CompletionMetrics.rescues` (param `computeMetrics`, défaut 0, testé),
+affiché au **bilan comme 4e maillot blanc** ⚪ (pastille bordée). Tourne aussi en défi (mode classé).
+`analyze lib/` 0/0, **47/47 tests**. **Ouvert** : les records perso locaux (écran trophée) restent à
+3 maillots — Help n'y est pas encore une 4e colonne (décision à prendre : `bestHelp` + ligne écran).
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
