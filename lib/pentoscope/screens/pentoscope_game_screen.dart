@@ -1,7 +1,9 @@
-// Modified: 2026-09-04 05:20 — records perso A2 (CDC §4.5) : le bandeau de bilan affiche les trois
+// Modified: 2026-09-04 06:13 — médaille §4.6 : badge « Vision parfaite » dans le bandeau quand
+//           acuité 100 % sur une partie sans aide (perfectVision && hintCount==0).
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-04 05:20 — records perso A2 (CDC §4.5) : le bandeau de bilan affiche les trois
 //           maillots — acuité %, coups (brut), temps — via computeCompletionMetrics ; détail
 //           (isométries, minimums) en tooltip. Remplace les compteurs bruts iso/translation/delete.
-// lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-09-02 20:37 — progression solo : à la complétion d'un puzzle de progression du
 //           niveau courant → advanceLevel (via ref.listen) ; 1er puzzle réussi → dialogue de saisie
 //           du nom (setUserName) ; bilan avec bouton « Niveau suivant » (remplace « Nouvelle partie »).
@@ -1249,9 +1251,19 @@ class _BilanBanner extends StatelessWidget {
     final mm = (t ~/ 60).toString().padLeft(2, '0');
     final ss = (t % 60).toString().padLeft(2, '0');
 
+    // Vision parfaite (§4.6) : acuité 100 % sur une partie sans aide → médaille.
+    final perfect = m != null && m.perfectVision && hintCount == 0;
+
     // Trois maillots, brut : acuité en %, coups en nombre, temps mm:ss (§4.5). Le détail
     // (isométries, minimums) passe en tooltip pour garder le bandeau lisible.
     final chips = <Widget>[
+      if (perfect)
+        _BilanChip(
+          icon: Icons.military_tech,
+          value: 'Vision parfaite',
+          color: const Color(0xFFF2B705),
+          tooltip: 'Acuité 100 % — aucun geste de trop',
+        ),
       if (m != null) ...[
         _BilanChip(
           icon: Icons.visibility_outlined,

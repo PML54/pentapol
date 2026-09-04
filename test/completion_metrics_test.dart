@@ -105,6 +105,48 @@ void main() {
     });
   });
 
+  group('computeMetrics — vision parfaite (médaille §4.6)', () {
+    test('acuité 100 % (aucun geste de trop) → perfectVision', () {
+      // rack == placement pour toutes les pièces → minIso 0, et 0 isométrie → parfait
+      final m = computeMetrics(
+        placedPieces: [_placed(asym, 0)],
+        initialOrientations: {asym.id: 0},
+        isometryCount: 0,
+        deleteCount: 0,
+        pieceCount: 1,
+        timeSeconds: 0,
+      );
+      expect(m.minIso, 0);
+      expect(m.perfectVision, isTrue);
+    });
+
+    test('un geste de trop → pas de vision parfaite', () {
+      final m = computeMetrics(
+        placedPieces: [_placed(asym, 0)], // minIso 0
+        initialOrientations: {asym.id: 0},
+        isometryCount: 1, // mais une isométrie faite
+        deleteCount: 0,
+        pieceCount: 1,
+        timeSeconds: 0,
+      );
+      expect(m.perfectVision, isFalse);
+    });
+
+    test('minIso élevé mais atteint exactement → vision parfaite', () {
+      final placedPos = asym.rotationCW(0); // distance 1
+      final m = computeMetrics(
+        placedPieces: [_placed(asym, placedPos)],
+        initialOrientations: {asym.id: 0},
+        isometryCount: 1, // exactement le minimum
+        deleteCount: 0,
+        pieceCount: 1,
+        timeSeconds: 0,
+      );
+      expect(m.minIso, 1);
+      expect(m.perfectVision, isTrue);
+    });
+  });
+
   group('computeMetrics — temps (maillot vert)', () {
     test('temps reporté tel quel', () {
       final m = computeMetrics(

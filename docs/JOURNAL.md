@@ -47,9 +47,9 @@ difficulté.
   records** (hors périmètre du plan, cf. `PLAN_PERSISTANCE` §6).
 - **Records perso (CDC §4, V1)** — les **trois maillots** (acuité/coups/temps). Calcul
   (`completion_metrics.dart`, testé), rack initial capturé/persisté, bilan de fin, schéma à trois
-  bests indépendants (partie avec aide comptée mais hors record, §4.8), et **écran de lecture**
-  (`records_screen.dart`, bouton trophée de l'accueil). Détail en §ÉTAT « Records perso ». Reste
-  possible : la **médaille §4.6** (acuité 100 %), non faite.
+  bests indépendants (partie avec aide comptée mais hors record, §4.8), **écran de lecture**
+  (`records_screen.dart`, bouton trophée de l'accueil) et **médaille « vision parfaite » §4.6**
+  (acuité 100 % : badge au bilan, icône sur l'écran de records). Détail en §ÉTAT « Records perso ».
 - **Phase 0 du défi hebdo (prérequis V1)** — PRNG du dépôt (`PentapolRng`, testé) et pause du
   chronomètre en arrière-plan (solo). Détail en §ÉTAT « Phase 0 ».
 - **Suppression de la difficulté puis tirages précalculés (étape A)** — `subset_counts.bin`
@@ -366,9 +366,14 @@ d'intégration base-mémoire `test/records_db_test.dart` (6 cas). **35/35 tests.
 carte par taille jouée, les trois maillots (acuité % / coups / temps, `—` si pas de best), lus depuis
 `PuzzleStats` (pièces tirées) et **agrégés** depuis `SolvedSolutions` (6×10 : meilleure acuité, moins
 de coups, meilleur temps parmi les solutions trouvées). Accès par un **bouton trophée** ajouté à
-l'en-tête de l'accueil. État vide explicite tant qu'aucun record. `analyze lib/` 0 error/warning,
-35/35 tests. Chantier records perso **clos** (reste optionnel : médaille §4.6). **À valider sur
+l'en-tête de l'accueil. État vide explicite tant qu'aucun record. **À valider sur
 device** : terminer quelques puzzles (sans aide), ouvrir l'écran, vérifier les trois maillots.
+
+**Médaille « vision parfaite » §4.6 (2026-09-04).** Acuité 100 % = `isometryCount == minIso` (aucun
+geste de trop), **jamais** un seuil sur `minIso` brut (`minIso = 0` récompenserait le tirage).
+`CompletionMetrics.perfectVision` (testé) ; badge « Vision parfaite » au bilan si `perfectVision &&
+hintCount == 0` (partie sans aide) ; icône médaille sur l'écran de records pour les tailles au best
+d'acuité 100 %. Chantier records perso **clos**. 38/38 tests.
 
 ### Documentation
 

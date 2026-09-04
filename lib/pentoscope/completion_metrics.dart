@@ -1,7 +1,8 @@
-// Modified: 2026-09-04 05:20 — création : les trois mesures d'une partie terminée (maillots
+// Modified: 2026-09-04 06:13 — médaille §4.6 : getter perfectVision (acuité 100 %, isoCount==minIso).
+// lib/pentoscope/completion_metrics.dart
+// Historique: 2026-09-04 05:20 — création : les trois mesures d'une partie terminée (maillots
 //           jaune/à pois/vert, CDC §4). Calcul pur, testable hors provider. minIso somme
 //           Pento.minIsometriesToReach(rack, placement) ; coups = pièces + 2·retraits (§4.7).
-// lib/pentoscope/completion_metrics.dart
 
 import 'package:pentapol/common/placed_piece.dart';
 
@@ -39,6 +40,11 @@ class CompletionMetrics {
 
   /// Efficacité de placement (§4.7) : `pièces / coups`. Pas de cas dégénéré (`coups ≥ pièces`).
   double get efficiency => minMoves / moves;
+
+  /// « Vision parfaite » (§4.6) : acuité à 100 %, c.-à-d. **aucun geste au-delà du nécessaire**
+  /// (`isometryCount == minIso`). Jamais un seuil sur `minIso` brut : `minIso = 0` récompenserait
+  /// le tirage, pas le joueur. La médaille exige en plus une partie sans aide (traité à l'appel).
+  bool get perfectVision => isometryCount == minIso;
 }
 
 /// Calcule les mesures d'une partie **terminée** à partir de l'état brut.

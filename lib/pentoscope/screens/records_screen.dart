@@ -1,7 +1,9 @@
-// Modified: 2026-09-04 06:05 — création : écran de lecture des records perso (CDC §4). Une carte
+// Modified: 2026-09-04 06:13 — médaille §4.6 : icône « vision parfaite » sur les tailles au best
+//           d'acuité 100 % (hasPerfectVision).
+// lib/pentoscope/screens/records_screen.dart
+// Historique: 2026-09-04 06:05 — création : écran de lecture des records perso (CDC §4). Une carte
 //           par taille jouée, les trois maillots (acuité jaune / coups à pois / temps vert). Lit
 //           PuzzleStats (pièces tirées) et agrège SolvedSolutions (rectangles, 6×10).
-// lib/pentoscope/screens/records_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +33,10 @@ class _SizeRecord {
     if (mi == null || iso == null) return null;
     return ((mi + 1) / (iso + 1) * 100).round();
   }
+
+  /// Médaille « vision parfaite » (§4.6) : un best d'acuité à 100 % (isoCount == minIso).
+  bool get hasPerfectVision =>
+      acuityMinIso != null && acuityMinIso == acuityIsoCount;
 }
 
 /// Agrège les solutions découvertes d'un rectangle : meilleure acuité (ratio le plus grand),
@@ -227,6 +233,14 @@ class _RecordCard extends StatelessWidget {
                   '${size.width}×${size.height}',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
+                if (record.hasPerfectVision) ...[
+                  const SizedBox(width: 6),
+                  const Tooltip(
+                    message: 'Vision parfaite — acuité 100 %',
+                    child: Icon(Icons.military_tech,
+                        color: Color(0xFFF2B705), size: 22),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 Text(
                   '· ${size.numPieces} pièces',
