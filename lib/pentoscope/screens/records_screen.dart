@@ -1,6 +1,8 @@
-// Modified: 2026-09-04 06:13 — médaille §4.6 : icône « vision parfaite » sur les tailles au best
-//           d'acuité 100 % (hasPerfectVision).
+// Modified: 2026-09-04 16:10 — 4e maillot BLANC (Help) dans les records perso : colonne bestHelp
+//           lue/agrégée, ligne + légende, pastilles bordées pour le blanc.
 // lib/pentoscope/screens/records_screen.dart
+// Historique: 2026-09-04 06:13 — médaille §4.6 : icône « vision parfaite » sur les tailles au best
+//           d'acuité 100 % (hasPerfectVision).
 // Historique: 2026-09-04 06:05 — création : écran de lecture des records perso (CDC §4). Une carte
 //           par taille jouée, les trois maillots (acuité jaune / coups à pois / temps vert). Lit
 //           PuzzleStats (pièces tirées) et agrège SolvedSolutions (rectangles, 6×10).
@@ -18,6 +20,7 @@ class _SizeRecord {
   final int? acuityIsoCount;
   final int? moves;
   final int? timeSeconds;
+  final int? help;
 
   const _SizeRecord({
     required this.count,
@@ -25,6 +28,7 @@ class _SizeRecord {
     this.acuityIsoCount,
     this.moves,
     this.timeSeconds,
+    this.help,
   });
 
   /// Acuité en % (§4.2), ou null si pas de best.
@@ -42,7 +46,7 @@ class _SizeRecord {
 /// Agrège les solutions découvertes d'un rectangle : meilleure acuité (ratio le plus grand),
 /// moins de coups, meilleur temps — en ignorant les null (parties avec aide).
 _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
-  int? bestMi, bestIso, bestMoves, bestTime;
+  int? bestMi, bestIso, bestMoves, bestTime, bestHelp;
   for (final r in rows) {
     if (r.bestAcuityMinIso != null && r.bestAcuityIsoCount != null) {
       if (bestMi == null ||
@@ -59,6 +63,9 @@ _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
         (bestTime == null || r.bestTimeSeconds! < bestTime)) {
       bestTime = r.bestTimeSeconds;
     }
+    if (r.bestHelp != null && (bestHelp == null || r.bestHelp! < bestHelp)) {
+      bestHelp = r.bestHelp;
+    }
   }
   return _SizeRecord(
     count: rows.length,
@@ -66,6 +73,7 @@ _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
     acuityIsoCount: bestIso,
     moves: bestMoves,
     timeSeconds: bestTime,
+    help: bestHelp,
   );
 }
 
@@ -92,6 +100,7 @@ Future<Map<PentoscopeSize, _SizeRecord>> _loadRecords(SettingsDatabase db) async
           acuityIsoCount: s.bestAcuityIsoCount,
           moves: s.bestMoves,
           timeSeconds: s.bestTimeSeconds,
+          help: s.bestHelp,
         );
       }
     }
@@ -177,6 +186,7 @@ class _Legend extends StatelessWidget {
           _LegendItem(color: Color(0xFFF2B705), label: 'Acuité'),
           _LegendItem(color: Color(0xFFD64545), label: 'Coups'),
           _LegendItem(color: Color(0xFF2E9E5B), label: 'Temps'),
+          _LegendItem(color: Colors.white, label: 'Help'),
         ],
       ),
     );
@@ -196,7 +206,11 @@ class _LegendItem extends StatelessWidget {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.black26), // maillot blanc visible
+          ),
         ),
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -215,6 +229,7 @@ class _RecordCard extends StatelessWidget {
     final acuity = record.acuityPercent;
     final moves = record.moves;
     final time = record.timeSeconds;
+    final help = record.help;
     final isRectangle = size.table != null;
     final countLabel = isRectangle
         ? '${record.count} solution${record.count > 1 ? 's' : ''}'
@@ -266,6 +281,10 @@ class _RecordCard extends StatelessWidget {
                   color: const Color(0xFF2E9E5B),
                   value: time == null ? '—' : _mmss(time),
                 ),
+                _MaillotValue(
+                  color: Colors.white, // maillot blanc — Help
+                  value: help == null ? '—' : '$help',
+                ),
               ],
             ),
           ],
@@ -294,7 +313,11 @@ class _MaillotValue extends StatelessWidget {
         Container(
           width: 14,
           height: 14,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.black26), // maillot blanc visible
+          ),
         ),
         const SizedBox(width: 6),
         Text(

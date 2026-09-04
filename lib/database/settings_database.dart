@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 15:50 — compteur Help : CurrentGame.helpCount (sauvetages rouge→jaune,
+// Modified: 2026-09-04 16:10 — records perso : 4e best `bestHelp` (maillot blanc, moins de
+//           sauvetages) dans SolvedSolutions et PuzzleStats. schemaVersion 8 → 9 (bump + destructif).
+// Historique: 2026-09-04 15:50 — compteur Help : CurrentGame.helpCount (sauvetages rouge→jaune,
 //           maillot blanc §7) persisté pour la reprise. schemaVersion 7 → 8 (bump + destructif).
 // Historique: 2026-09-04 05:45 — records perso B (CDC §4.1) : trois bests INDÉPENDANTS par
 //           dimension (acuité = minIso+isoCount bruts §7.6, coups, temps), nullables (une partie
@@ -89,6 +91,7 @@ class SolvedSolutions extends Table {
   IntColumn get bestAcuityIsoCount => integer().nullable()(); // 🟡 isométries de la même partie
   IntColumn get bestMoves => integer().nullable()();          // ⚫ coups (à pois)
   IntColumn get bestTimeSeconds => integer().nullable()();    // 🟢 temps (vert)
+  IntColumn get bestHelp => integer().nullable()();           // ⚪ sauvetages (maillot blanc)
   DateTimeColumn get firstSolvedAt => dateTime()();
   DateTimeColumn get lastSolvedAt => dateTime()();
 
@@ -105,6 +108,7 @@ class PuzzleStats extends Table {
   IntColumn get bestAcuityIsoCount => integer().nullable()(); // 🟡
   IntColumn get bestMoves => integer().nullable()();          // ⚫
   IntColumn get bestTimeSeconds => integer().nullable()();    // 🟢
+  IntColumn get bestHelp => integer().nullable()();           // ⚪
 
   @override
   Set<Column> get primaryKey => {sizeName};
@@ -121,7 +125,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 8; // 7 → 8 : CurrentGame.helpCount (maillot blanc, §7)
+  int get schemaVersion => 9; // 8 → 9 : records perso bestHelp (maillot blanc)
   //                              (règle n°6 : bump + destructif).
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
@@ -182,6 +186,7 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int isoCount,
     required int moves,
     required int timeSeconds,
+    required int help,
     required bool clean,
   }) async {
     final existing = await (select(solvedSolutions)
@@ -199,6 +204,7 @@ class SettingsDatabase extends _$SettingsDatabase {
           bestAcuityIsoCount: Value(clean ? isoCount : null),
           bestMoves: Value(clean ? moves : null),
           bestTimeSeconds: Value(clean ? timeSeconds : null),
+          bestHelp: Value(clean ? help : null),
           firstSolvedAt: now,
           lastSolvedAt: now,
         ),
@@ -224,6 +230,9 @@ class SettingsDatabase extends _$SettingsDatabase {
       if (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!) {
         companion = companion.copyWith(bestTimeSeconds: Value(timeSeconds));
       }
+      if (existing.bestHelp == null || help < existing.bestHelp!) {
+        companion = companion.copyWith(bestHelp: Value(help));
+      }
     }
     await (update(solvedSolutions)
           ..where((s) =>
@@ -239,6 +248,7 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int isoCount,
     required int moves,
     required int timeSeconds,
+    required int help,
     required bool clean,
   }) async {
     final existing = await (select(puzzleStats)
@@ -254,6 +264,7 @@ class SettingsDatabase extends _$SettingsDatabase {
           bestAcuityIsoCount: Value(clean ? isoCount : null),
           bestMoves: Value(clean ? moves : null),
           bestTimeSeconds: Value(clean ? timeSeconds : null),
+          bestHelp: Value(clean ? help : null),
         ),
       );
       return;
@@ -273,6 +284,9 @@ class SettingsDatabase extends _$SettingsDatabase {
       }
       if (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!) {
         companion = companion.copyWith(bestTimeSeconds: Value(timeSeconds));
+      }
+      if (existing.bestHelp == null || help < existing.bestHelp!) {
+        companion = companion.copyWith(bestHelp: Value(help));
       }
     }
     await (update(puzzleStats)..where((s) => s.sizeName.equals(sizeName))).write(companion);

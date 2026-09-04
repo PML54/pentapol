@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 15:57 — compteur Help (maillot blanc, §7) : état helpCount, incrémenté à
+// Modified: 2026-09-04 16:10 — records perso : _saveCompletionRecord passe help=metrics.rescues
+//           (4e best bestHelp, maillot blanc).
+// Historique: 2026-09-04 15:57 — compteur Help (maillot blanc, §7) : état helpCount, incrémenté à
 //           chaque sauvetage rouge→jaune (_bumpHelp aux retraits/déplacements/rotations de pièce
 //           posée), persisté (CurrentGame) et exposé par computeCompletionMetrics (rescues).
 // Historique: 2026-09-04 07:25 — FIX minIso toujours 0 : reset() (« recommencer »/« Nouvelle partie »)
@@ -900,6 +902,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           isoCount: metrics.isometryCount,
           moves: metrics.moves,
           timeSeconds: metrics.timeSeconds,
+          help: metrics.rescues,
           clean: clean,
         );
       } else {
@@ -909,6 +912,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           isoCount: metrics.isometryCount,
           moves: metrics.moves,
           timeSeconds: metrics.timeSeconds,
+          help: metrics.rescues,
           clean: clean,
         );
       }

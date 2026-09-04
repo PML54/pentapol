@@ -19,6 +19,7 @@ void main() {
     required int moves,
     required int timeSeconds,
     required bool clean,
+    int help = 0,
   }) async {
     await db.recordPuzzleCompleted(
       sizeName: 'size4x5',
@@ -26,6 +27,7 @@ void main() {
       isoCount: isoCount,
       moves: moves,
       timeSeconds: timeSeconds,
+      help: help,
       clean: clean,
     );
     return (db.select(db.puzzleStats)..where((s) => s.sizeName.equals('size4x5')))
@@ -75,6 +77,17 @@ void main() {
     final r = await completed(minIso: 2, isoCount: 4, moves: 6, timeSeconds: 500, clean: true); // coups 6
     expect(r.bestMoves, 6); // meilleur coups de la 2e
     expect(r.bestTimeSeconds, 50); // meilleur temps de la 1re
+  });
+
+  test('bestHelp : garde le moins de sauvetages (maillot blanc)', () async {
+    await completed(minIso: 2, isoCount: 3, moves: 6, timeSeconds: 80, clean: true, help: 3);
+    var r = await (db.select(db.puzzleStats)..where((s) => s.sizeName.equals('size4x5')))
+        .getSingle();
+    expect(r.bestHelp, 3);
+    r = await completed(minIso: 2, isoCount: 3, moves: 6, timeSeconds: 80, clean: true, help: 1);
+    expect(r.bestHelp, 1); // amélioré
+    r = await completed(minIso: 2, isoCount: 3, moves: 6, timeSeconds: 80, clean: true, help: 5);
+    expect(r.bestHelp, 1); // pas dégradé
   });
 
   test('aide APRÈS une partie propre : ne dégrade pas les bests', () async {

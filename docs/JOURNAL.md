@@ -434,8 +434,11 @@ symétrie d'une pièce **posée** (`_applyIsoUsingLookup` CAS 2, `_applySymmetry
 neuve ne peut jamais sortir d'un cul-de-sac (prouvé) → non compté là. Persisté `CurrentGame.helpCount`
 (schéma **7→8**), exposé par `CompletionMetrics.rescues` (param `computeMetrics`, défaut 0, testé),
 affiché au **bilan comme 4e maillot blanc** ⚪ (pastille bordée). Tourne aussi en défi (mode classé).
-`analyze lib/` 0/0, **47/47 tests**. **Ouvert** : les records perso locaux (écran trophée) restent à
-3 maillots — Help n'y est pas encore une 4e colonne (décision à prendre : `bestHelp` + ligne écran).
+**4e colonne Help dans les records perso locaux (2026-09-04)** : `bestHelp` nullable dans
+`SolvedSolutions`/`PuzzleStats` (schéma **8→9**), mis à jour comme les autres bests sur partie propre
+(le moins de sauvetages = best) ; l'écran trophée affiche désormais **quatre maillots** (acuité/coups/
+temps/Help), agrégation `bestHelp` pour le 6×10. Test `records_db_test` étendu. `analyze lib/` 0/0,
+**48/48 tests**.
 
 ### Documentation
 
