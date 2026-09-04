@@ -70,7 +70,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-2 faites** : PRNG (0), dérivation hors ligne `challenge.dart` (1), **mode défi jouable local** (2 : `startChallenge`, `isRanked`, indice neutralisé, écran de choix, bouton accueil). **Reste Phases 3-5** (réseau) : identité 128 bits, serveur Worker+D1 (POST/GET, recalcul `minIso`), UI des trois classements |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Reste Phase 4** (serveur Worker+D1, modèle **confiance client** — pas de recalcul minIso, grille stockée pour audit) **et Phase 5** (UI des 4 classements). Serveur = à déployer par Paul (le CLI écrit le code) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise

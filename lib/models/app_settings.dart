@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 20:37 — progression solo : champs top-level userName (nom canonique, saisi
+// Modified: 2026-09-04 16:25 — défi Phase 3 : champ top-level playerId (identité 128 bits, distincte
+//           du pseudo, CDC §7.4). JSON, pas de migration (invariant #6).
+// Historique: 2026-09-02 20:37 — progression solo : champs top-level userName (nom canonique, saisi
 //           au 1er puzzle réussi) et currentLevel. JSON, pas de migration (invariant #6).
 // Historique: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : écran de réglages minimal —
 //           retrait des 9 champs morts (6 dans UISettings, 3 dans GameSettings) et de l'enum
@@ -467,12 +469,18 @@ class AppSettings {
   /// Niveau de progression solo courant (1..kMaxLevel, 1 = size3x5, 3 pièces).
   final int currentLevel;
 
+  /// Identité 128 bits (32 hex), **distincte du pseudo** (CDC §7.4) : clé primaire côté serveur du
+  /// classement. Générée à la première ouverture, persistée. null tant que non générée. Le pseudo
+  /// (`userName`) reste une étiquette d'affichage ; en cas d'homonymie on suffixe 4 hex de cet id.
+  final String? playerId;
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
     this.duel = DuelSettings.defaults,
     this.userName,
     this.currentLevel = 1,
+    this.playerId,
   });
 
   AppSettings copyWith({
@@ -482,6 +490,7 @@ class AppSettings {
     String? userName,
     bool clearUserName = false,
     int? currentLevel,
+    String? playerId,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -489,6 +498,7 @@ class AppSettings {
       duel: duel ?? this.duel,
       userName: clearUserName ? null : (userName ?? this.userName),
       currentLevel: currentLevel ?? this.currentLevel,
+      playerId: playerId ?? this.playerId,
     );
   }
 
@@ -499,6 +509,7 @@ class AppSettings {
       'duel': duel.toJson(),
       'userName': userName,
       'currentLevel': currentLevel,
+      'playerId': playerId,
     };
   }
 
@@ -511,6 +522,7 @@ class AppSettings {
           : DuelSettings.defaults,
       userName: json['userName'] as String?,
       currentLevel: (json['currentLevel'] as int?) ?? 1,
+      playerId: json['playerId'] as String?,
     );
   }
 }

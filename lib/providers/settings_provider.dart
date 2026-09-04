@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 20:37 — progression solo : setUserName, advanceLevel (plafonné kMaxLevel),
+// Modified: 2026-09-04 16:25 — défi Phase 3 : generatePlayerId (128 bits, Random.secure) + ensurePlayerId
+//           (paresseux, à la 1re soumission de défi — pas au lancement). Identité §7.4, distincte du pseudo.
+// Historique: 2026-09-02 20:37 — progression solo : setUserName, advanceLevel (plafonné kMaxLevel),
 //           ensureLoaded (attendre le chargement avant de lire currentLevel au démarrage).
 // Historique: 2026-08-31 09:45 — PLAN_ERGONOMIE §8 (décision 62) : retrait des 9 setters des
 //           réglages morts (setDifficulty, setEnableAnimations, setEnableHints, setEnableTimer,
@@ -8,6 +10,7 @@
 // Historique: 2604221200 — Fix print() → debugPrint() dans les catch.
 
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +18,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show kMaxLevel;
+
+/// Génère une identité 128 bits (32 hex) via `Random.secure()` — clé primaire du joueur côté
+/// serveur de classement (CDC §7.4), distincte du pseudo. Fonction pure, testable.
+String generatePlayerId() {
+  final rnd = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
+  return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
 
 /// Provider pour la base de données des paramètres
 final settingsDatabaseProvider = Provider<SettingsDatabase>((ref) {
@@ -46,6 +57,18 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setUserName(String? name) async {
     state = state.copyWith(userName: name, clearUserName: name == null);
     await _saveSettings();
+  }
+
+  /// Identité 128 bits du joueur (CDC §7.4). La génère et la persiste si absente, la retourne.
+  /// **Paresseux** : appelé à la 1re soumission de défi, pas au lancement — l'identifiant persistant
+  /// n'existe donc que quand le classement est utilisé (RGPD, §8). Distinct du pseudo.
+  Future<String> ensurePlayerId() async {
+    final existing = state.playerId;
+    if (existing != null && existing.length == 32) return existing;
+    final id = generatePlayerId();
+    state = state.copyWith(playerId: id);
+    await _saveSettings();
+    return id;
   }
 
   /// Progression solo : passe au niveau suivant (plafonné à kMaxLevel).
