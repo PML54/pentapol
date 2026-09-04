@@ -1,6 +1,9 @@
-// Modified: 2026-09-04 06:13 — médaille §4.6 : badge « Vision parfaite » dans le bandeau quand
-//           acuité 100 % sur une partie sans aide (perfectVision && hintCount==0).
+// Modified: 2026-09-04 06:45 — bilan en carte flottante non-modale (centrée sur le plateau résolu,
+//           fermable, un tap sur le plateau la rouvre) au lieu du bandeau bas ; chrono et compteur
+//           de solutions masqués à la complétion (l'info de fin est regroupée dans la carte). Paul.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-04 06:13 — médaille §4.6 : badge « Vision parfaite » dans le bandeau quand
+//           acuité 100 % sur une partie sans aide (perfectVision && hintCount==0).
 // Historique: 2026-09-04 05:20 — records perso A2 (CDC §4.5) : le bandeau de bilan affiche les trois
 //           maillots — acuité %, coups (brut), temps — via computeCompletionMetrics ; détail
 //           (isométries, minimums) en tooltip. Remplace les compteurs bruts iso/translation/delete.
@@ -300,6 +303,23 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           // 👁️ Mini-plateau adversaire (overlay)
           if (_showOpponentOverlay)
             _buildOpponentOverlay(context, state, settings),
+
+          // 🏁 Bilan fermé : un tap sur le plateau résolu **rouvre** la carte (choix de Paul).
+          // Capteur plein cadre actif uniquement dans cet état (rien d'autre à faire sur le
+          // plateau une fois résolu). N'affecte pas la barre du haut (hors de ce Stack).
+          if (state.isComplete && _bilanFerme)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _bilanFerme = false),
+              ),
+            ),
+
+          // 🏁 Bilan de fin — carte flottante non-modale, posée au centre par-dessus le plateau
+          // résolu (visible derrière). Fermable ; ne bloque pas (les zones hors carte laissent
+          // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
+          if (state.isComplete && !_bilanFerme)
+            _buildBilanCard(context, state, notifier),
         ],
       ),
       ),
@@ -694,17 +714,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // HELPERS
   // ============================================================================
 
-  /// Construit le slider avec DragTarget (drag pièce vers slider = suppression)
-  /// 🏁 Bandeau de bilan non modal, à la place de la barre de pièces (vide à la complétion).
-  Widget _buildBilanBanner(
-      bool isLandscape, PentoscopeState state, PentoscopeNotifier notifier) {
+  /// 🏁 Bilan de fin — carte flottante non-modale, centrée par-dessus le plateau résolu.
+  Widget _buildBilanCard(
+      BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
     // « Niveau suivant » proposé si le puzzle terminé est un puzzle de progression qui n'est pas
     // déjà le niveau maximal. La complétion a déjà avancé currentLevel (via _onPuzzleCompleted).
     final canNext = state.isProgression &&
         state.puzzle != null &&
         state.puzzle!.size != sizeForLevel(kMaxLevel);
-    return _BilanBanner(
-      isLandscape: isLandscape,
+    return _BilanCard(
       metrics: notifier.computeCompletionMetrics(), // trois maillots (CDC §4.5)
       hintCount: state.hintCount,
       onClose: () => setState(() => _bilanFerme = true),
@@ -825,8 +843,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   List<Widget> _buildBarItems(
       BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
     final iconSize = _uiIconSize(context);
+    // Compteur masqué à la complétion : l'info de fin vit dans la carte de bilan (nettoyage).
     final showCounter = ref.read(settingsProvider).game.showSolutionCounter &&
-        state.solutionsCount != null;
+        state.solutionsCount != null &&
+        !state.isComplete;
 
     final items = <Widget>[
       IconButton(
@@ -914,8 +934,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     ];
 
     // ⏱️ Chrono au centre : avec spaceEvenly il reste au milieu quel que soit le nombre
-    // d'icônes conditionnelles affichées (§9.3). leading/leadingWidth disparaissent avec.
-    items.insert(items.length ~/ 2, _buildChrono(context, state));
+    // d'icônes conditionnelles affichées (§9.3). Masqué à la complétion (le temps est dans la
+    // carte de bilan) — nettoyage de la barre à la fin.
+    if (!state.isComplete) {
+      items.insert(items.length ~/ 2, _buildChrono(context, state));
+    }
     return items;
   }
 
@@ -1009,10 +1032,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   ),
                 ],
               ),
-              sliderChild: (state.isComplete && !_bilanFerme)
-                  ? _buildBilanBanner(false, state, notifier)
-                  : PentoscopePieceSlider(
-                      isLandscape: false, pieceCellSize: m.cell),
+              // Le bilan n'occupe plus la zone slider (il est en carte flottante) : slider normal,
+              // vide à la complétion (toutes les pièces posées).
+              sliderChild:
+                  PentoscopePieceSlider(isLandscape: false, pieceCellSize: m.cell),
             ),
           ],
         );
@@ -1088,10 +1111,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                       ),
                     ],
                   ),
-                  sliderChild: (state.isComplete && !_bilanFerme)
-                      ? _buildBilanBanner(true, state, notifier)
-                      : PentoscopePieceSlider(
-                          isLandscape: true, pieceCellSize: m.cell),
+                  sliderChild:
+                      PentoscopePieceSlider(isLandscape: true, pieceCellSize: m.cell),
                 ),
           ],
         );
@@ -1216,17 +1237,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   }
 }
 
-/// 🏁 Bandeau de bilan non modal, affiché à la place de la barre de pièces (vide à la
-/// complétion). Une ligne de puces `icône + valeur` sans libellés, plus « Fermer » et
-/// « Nouvelle partie ». Se dispose horizontalement en portrait, verticalement en paysage
-/// (la barre y est une colonne étroite).
-class _BilanBanner extends StatelessWidget {
-  final bool isLandscape;
-
+/// 🏁 Bilan de fin — **carte flottante non-modale**, centrée par-dessus le plateau résolu (visible
+/// derrière). Regroupe tout le bilan lisiblement : titre, médaille éventuelle, les trois maillots
+/// en lignes libellées (acuité / coups / temps), puis « Fermer » et l'action primaire. « Fermer »
+/// escamote la carte pour admirer la solution ; les zones hors carte laissent passer les taps.
+class _BilanCard extends StatelessWidget {
   /// Les trois maillots (CDC §4.5). null si aucun puzzle (ne devrait pas arriver à la complétion).
   final CompletionMetrics? metrics;
 
-  /// Aides utilisées : si > 0, la partie n'est pas « propre » (hors mode classé, §4.8).
+  /// Aides utilisées : si > 0, la partie n'est pas « propre » (hors record, §4.8).
   final int hintCount;
   final VoidCallback onClose;
   final VoidCallback onNewGame;
@@ -1235,8 +1254,7 @@ class _BilanBanner extends StatelessWidget {
   /// si le niveau maximal vient d'être terminé.
   final VoidCallback? onNextLevel;
 
-  const _BilanBanner({
-    required this.isLandscape,
+  const _BilanCard({
     required this.metrics,
     required this.hintCount,
     required this.onClose,
@@ -1244,153 +1262,182 @@ class _BilanBanner extends StatelessWidget {
     this.onNextLevel,
   });
 
+  static String _mmss(int seconds) {
+    final mm = (seconds ~/ 60).toString().padLeft(2, '0');
+    final ss = (seconds % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+
   @override
   Widget build(BuildContext context) {
     final m = metrics;
-    final t = m?.timeSeconds ?? 0;
-    final mm = (t ~/ 60).toString().padLeft(2, '0');
-    final ss = (t % 60).toString().padLeft(2, '0');
-
-    // Vision parfaite (§4.6) : acuité 100 % sur une partie sans aide → médaille.
     final perfect = m != null && m.perfectVision && hintCount == 0;
 
-    // Trois maillots, brut : acuité en %, coups en nombre, temps mm:ss (§4.5). Le détail
-    // (isométries, minimums) passe en tooltip pour garder le bandeau lisible.
-    final chips = <Widget>[
-      if (perfect)
-        _BilanChip(
-          icon: Icons.military_tech,
-          value: 'Vision parfaite',
-          color: const Color(0xFFF2B705),
-          tooltip: 'Acuité 100 % — aucun geste de trop',
-        ),
-      if (m != null) ...[
-        _BilanChip(
-          icon: Icons.visibility_outlined,
-          value: '${(m.acuity * 100).round()} %',
-          color: const Color(0xFFF2B705), // maillot jaune (acuité)
-          tooltip: '${m.isometryCount} isométries, minimum ${m.minIso}',
-        ),
-        _BilanChip(
-          icon: Icons.touch_app_outlined,
-          value: '${m.moves}',
-          color: const Color(0xFFD64545), // maillot à pois (coups)
-          tooltip: 'coups — minimum ${m.minMoves}',
-        ),
-        _BilanChip(
-          icon: Icons.timer_outlined,
-          value: '$mm:$ss',
-          color: const Color(0xFF2E9E5B), // maillot vert (temps)
-        ),
-      ] else
-        _BilanChip(icon: Icons.timer_outlined, value: '$mm:$ss'),
-      if (hintCount > 0)
-        _BilanChip(
-          icon: Icons.lightbulb,
-          value: '$hintCount',
-          color: Colors.orange,
-          tooltip: 'aides utilisées',
-        ),
-    ];
-
-    final closeButton = TextButton(
-      onPressed: onClose,
-      child: const Text('Fermer'),
-    );
-    final newGameButton = FilledButton.icon(
-      onPressed: onNewGame,
-      icon: const Icon(Icons.refresh, size: 18),
-      label: const Text('Nouvelle partie'),
-    );
-    // En progression, l'action primaire est « Niveau suivant » (remplace « Nouvelle partie »).
     final primaryButton = onNextLevel == null
-        ? newGameButton
+        ? FilledButton.icon(
+            onPressed: onNewGame,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Nouvelle partie'),
+          )
         : FilledButton.icon(
             onPressed: onNextLevel,
             icon: const Icon(Icons.arrow_forward, size: 18),
             label: const Text('Niveau suivant'),
           );
-    const trophy = Icon(Icons.emoji_events, color: Colors.amber, size: 28);
 
-    if (isLandscape) {
-      // Colonne étroite : tout empilé, défilable si l'espace manque.
-      return SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              trophy,
-              const SizedBox(height: 12),
-              for (final chip in chips)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: chip,
-                ),
-              const SizedBox(height: 12),
-              closeButton,
-              const SizedBox(height: 4),
-              primaryButton,
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Portrait : une ligne — trophée, puces, puis les deux boutons.
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          trophy,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: chips,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Card(
+            elevation: 10,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.emoji_events, color: Colors.amber, size: 30),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Résolu !',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  if (perfect) ...[
+                    const SizedBox(height: 10),
+                    const _PerfectBadge(),
+                  ],
+                  const SizedBox(height: 18),
+                  if (m != null) ...[
+                    _MaillotLine(
+                      color: const Color(0xFFF2B705),
+                      label: 'Acuité',
+                      value: '${(m.acuity * 100).round()} %',
+                      detail: '${m.isometryCount} isométries · min ${m.minIso}',
+                    ),
+                    _MaillotLine(
+                      color: const Color(0xFFD64545),
+                      label: 'Coups',
+                      value: '${m.moves}',
+                      detail: 'minimum ${m.minMoves}',
+                    ),
+                    _MaillotLine(
+                      color: const Color(0xFF2E9E5B),
+                      label: 'Temps',
+                      value: _mmss(m.timeSeconds),
+                    ),
+                  ],
+                  if (hintCount > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lightbulb, size: 16, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$hintCount aide${hintCount > 1 ? 's' : ''} — hors record',
+                          style: const TextStyle(color: Colors.orange, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: onClose, child: const Text('Fermer')),
+                      const SizedBox(width: 8),
+                      primaryButton,
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          closeButton,
-          const SizedBox(width: 8),
-          primaryButton,
+        ),
+      ),
+    );
+  }
+}
+
+/// Une ligne de maillot dans la carte de bilan : pastille colorée + libellé, valeur brute à
+/// droite (§4.5), détail (minimums, isométries) en petit dessous.
+class _MaillotLine extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String value;
+  final String? detail;
+
+  const _MaillotLine({
+    required this.color,
+    required this.label,
+    required this.value,
+    this.detail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontSize: 16)),
+          const Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(value,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              if (detail != null)
+                Text(detail!,
+                    style: TextStyle(
+                        fontSize: 11, color: Theme.of(context).hintColor)),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-/// Puce `icône + valeur` du bandeau de bilan, sans libellé. `tooltip` optionnel porte le
-/// détail (isométries, minimums) que le format brut (§4.5) laisse hors du bandeau.
-class _BilanChip extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final Color? color;
-  final String? tooltip;
-
-  const _BilanChip({
-    required this.icon,
-    required this.value,
-    this.color,
-    this.tooltip,
-  });
+/// Badge « Vision parfaite » (§4.6) affiché en tête de carte quand l'acuité est à 100 %.
+class _PerfectBadge extends StatelessWidget {
+  const _PerfectBadge();
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
-    final row = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 20, color: c),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: TextStyle(fontWeight: FontWeight.bold, color: c, fontSize: 16),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2B705).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.military_tech, color: Color(0xFFF2B705), size: 18),
+          SizedBox(width: 6),
+          Text('Vision parfaite',
+              style: TextStyle(
+                  color: Color(0xFF9A7400), fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
-    return tooltip == null ? row : Tooltip(message: tooltip!, child: row);
   }
 }

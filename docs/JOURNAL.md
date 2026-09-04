@@ -393,6 +393,17 @@ geste de trop), **jamais** un seuil sur `minIso` brut (`minIso = 0` récompenser
 hintCount == 0` (partie sans aide) ; icône médaille sur l'écran de records pour les tailles au best
 d'acuité 100 %. Chantier records perso **clos**. 38/38 tests.
 
+### Bilan de fin — carte flottante (2026-09-04, choix de Paul)
+
+Le bilan de fin **supersède le bandeau non-modal** (`PLAN_BILAN §2`) : c'est désormais une **carte
+flottante non-modale** (`_BilanCard` dans `pentoscope_game_screen.dart`), centrée par-dessus le
+plateau résolu, **fermable** — et un **tap sur le plateau la rouvre**. Elle regroupe tout le bilan
+lisiblement : titre, badge « Vision parfaite » éventuel, les trois maillots en **lignes libellées**
+(acuité / coups / temps + détail), note d'aides, boutons Fermer / Nouvelle partie ou Niveau suivant.
+Nettoyage demandé : à la complétion, le **chrono** et le **compteur de solutions** sont retirés de la
+barre du haut, et le bandeau du bas disparaît (slider vide). **Pendant le jeu, rien ne change.**
+`analyze lib/` 0 error/warning, 45/45 tests. Testé à l'écran par Paul.
+
 ### Documentation
 
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
