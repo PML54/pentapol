@@ -466,6 +466,11 @@ test « Test » sur (v1, week0, size1) à purger par Paul si souhaité.*
 locaux) vs défi réseau (classement en ligne), et le **mode de calcul exact des quatre maillots**
 (acuité, coups, temps, Help) + la médaille. Ancré sur l'implémentation et `CDC §4`/`§7`.
 
+`CLOUDFLARE_CONFIG.md` (neuf, 2026-09-05) — mémo opérationnel de l'infra Cloudflare : les deux
+workers (duel WebSocket *hors dépôt* ; défi `pentapol-defi` dans `server/`), la config exacte (URL,
+base D1 `7ea667b1…`, secret `SEED_TOKEN`), le flux de données, et les commandes courantes (déployer,
+init D1, secret, semer, inspecter/purger). Le `SEED_TOKEN` n'y figure pas (secret non relisible).
+
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
 le 2026-08-31 l'ancien `PENTOSCOPE.md`, devenu un doublon partiel une fois qu'il n'est resté
 qu'un module de jeu. `UI_PROPERTIES_GUIDE.md`, guide Flutter générique sans rapport avec
