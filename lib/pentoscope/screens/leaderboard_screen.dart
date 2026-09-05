@@ -1,7 +1,8 @@
-// Modified: 2026-09-05 00:20 — création : écran des quatre classements du défi (CDC §7, Phase 5).
-//           Onglets jaune/à pois/vert/blanc, lit GET /leaderboard, met en avant le joueur courant,
-//           dégradation gracieuse (§7.8).
+// Modified: 2026-09-05 10:30 — trois maillots (A) : onglets acuité / FAUTES / temps (blanc/Help
+//           supprimé, à pois affiche les fautes). Lit GET /leaderboard, met en avant le joueur
+//           courant, dégradation gracieuse (§7.8).
 // lib/pentoscope/screens/leaderboard_screen.dart
+// Historique: 2026-09-05 00:20 — création : écran des quatre classements du défi (CDC §7, Phase 5).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,7 @@ import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 
-/// Les quatre maillots, avec couleur et libellé de la valeur affichée.
+/// Les trois maillots, avec couleur et libellé de la valeur affichée.
 class _MaillotSpec {
   final Maillot maillot;
   final Color color;
@@ -20,9 +21,8 @@ class _MaillotSpec {
 
 const List<_MaillotSpec> _maillots = [
   _MaillotSpec(Maillot.jaune, Color(0xFFF2B705), 'Acuité'),
-  _MaillotSpec(Maillot.pois, Color(0xFFD64545), 'Coups'),
+  _MaillotSpec(Maillot.pois, Color(0xFFD64545), 'Fautes'),
   _MaillotSpec(Maillot.vert, Color(0xFF2E9E5B), 'Temps'),
-  _MaillotSpec(Maillot.blanc, Colors.white, 'Help'),
 ];
 
 /// Écran des classements d'un défi `(semaine, taille)` : un onglet par maillot.
@@ -43,12 +43,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       case Maillot.jaune:
         return '${e.acuityPercent} %';
       case Maillot.pois:
-        return '${e.moves}';
+        return '${e.faults}';
       case Maillot.vert:
         final s = e.timeMs ~/ 1000;
         return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
-      case Maillot.blanc:
-        return '${e.help}';
     }
   }
 

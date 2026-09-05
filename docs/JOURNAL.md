@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-04
+## §ÉTAT — au 2026-09-05
 
 ### L'application
 
@@ -45,11 +45,21 @@ difficulté.
   journal pendant la saga du revert.** Correctif `isProgression` du 2026-09-04 ci-dessous. **Reste :
   test device de la reprise** (jamais confirmé), et il n'y a **pas encore d'écran pour lire les
   records** (hors périmètre du plan, cf. `PLAN_PERSISTANCE` §6).
-- **Records perso (CDC §4, V1)** — les **trois maillots** (acuité/coups/temps). Calcul
-  (`completion_metrics.dart`, testé), rack initial capturé/persisté, bilan de fin, schéma à trois
-  bests indépendants (partie avec aide comptée mais hors record, §4.8), **écran de lecture**
-  (`records_screen.dart`, bouton trophée de l'accueil) et **médaille « vision parfaite » §4.6**
-  (acuité 100 % : badge au bilan, icône sur l'écran de records). Détail en §ÉTAT « Records perso ».
+- **Records perso (CDC §4, V1)** — les **trois maillots** (acuité **plafonnée** / **fautes** /
+  temps, refonte « A » du 2026-09-05 — voir plus bas). Calcul (`completion_metrics.dart`, testé),
+  rack initial capturé/persisté, bilan de fin, schéma à trois bests indépendants (partie avec aide
+  comptée mais hors record, §4.8), **écran de lecture** (`records_screen.dart`, bouton trophée de
+  l'accueil) et **médaille « vision parfaite » §4.6** (acuité 100 % : badge au bilan, icône sur
+  l'écran de records). Détail en §ÉTAT « Records perso ».
+- **Refonte « A » des maillots (2026-09-05, choix de Paul)** — retour à **trois** maillots après
+  l'épisode « 4e maillot blanc » du 2026-09-04. L'acuité est **plafonnée à 100 %** (elle dépassait
+  quand l'ampoule plaçait une pièce sans coûter d'isométrie), et les maillots **Coups** et **Help
+  (blanc)** fusionnent en **🔴 À pois — Fautes** = nombre de transitions soluble→insoluble
+  (culs-de-sac), mathématiquement égal aux anciens sauvetages. `helpCount`→`faultCount`,
+  `bestMoves`+`bestHelp`→`bestFaults` (schéma drift **10**, réécriture destructive), `Maillot` à
+  trois cas, serveur `scores.faults` (à **redéployer + réinit D1** par Paul — voir §ÉTAT défi).
+  Bilan d'une **partie avec aide** (`hintCount>0`) : pas de maillots, message « Résolu avec N
+  aide(s) » + temps. Docs : `MANUEL_DEFIS_ET_MAILLOTS.md` (réécrit, fait foi), CDC §4.1 (amendé).
 - **Phase 0 du défi hebdo (prérequis V1)** — PRNG du dépôt (`PentapolRng`, testé) et pause du
   chronomètre en arrière-plan (solo). Détail en §ÉTAT « Phase 0 ».
 - **Suppression de la difficulté puis tirages précalculés (étape A)** — `subset_counts.bin`
@@ -70,7 +80,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (4 onglets), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** Reste seulement : composer/semer les vraies semaines (geste de Paul) |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** ⚠️ **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — Paul doit REDÉPLOYER (`npm run deploy`) et RÉINITIALISER D1 (`npm run db:init:remote`, réécriture destructive OK, seule une ligne de test existe) avant les prochains scores.** Reste ensuite : composer/semer les vraies semaines (geste de Paul) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
@@ -381,6 +391,10 @@ serveur Worker+D1 (§7.5-7.6, recalcul serveur du `minIso`), UI des trois classe
 
 ### Records perso — Phase A (2026-09-04) : calcul + capture du rack + bilan de fin
 
+> ⚠️ **Détails « coups » (`bestMoves`, `pièces + 2·retraits`) SUPERSÉDÉS par la refonte « A »
+> (2026-09-05)** : le maillot Coups est remplacé par **Fautes**. L'acuité et le rack initial
+> ci-dessous restent valides (l'acuité est désormais **plafonnée à 100 %**). Voir §ÉTAT en tête.
+
 Premier tiers du chantier §4 (les deux maillots recommandés : acuité complète + bilan de fin).
 
 - **Socle de calcul** `lib/pentoscope/completion_metrics.dart` (+ `test/completion_metrics_test.dart`,
@@ -448,7 +462,12 @@ Nettoyage demandé : à la complétion, le **chrono** et le **compteur de soluti
 barre du haut, et le bandeau du bas disparaît (slider vide). **Pendant le jeu, rien ne change.**
 `analyze lib/` 0 error/warning, 45/45 tests. Testé à l'écran par Paul.
 
-### Compteur Help — maillot blanc (2026-09-04)
+### Compteur Help — maillot blanc (2026-09-04) — ⚠️ SUPERSÉDÉ par la refonte « A » (2026-09-05)
+
+> Cette section décrit le 4e maillot blanc **tel qu'il a existé du 2026-09-04 au 2026-09-05**. La
+> refonte « A » l'a **fusionné avec Coups** en un seul maillot 🔴 **Fautes** (`helpCount`→
+> `faultCount`, `bestHelp`+`bestMoves`→`bestFaults`, schéma **10**). L'insight qui autorise la
+> fusion : à la complétion, sauvetages (rouge→jaune) = fautes (jaune→rouge). Conservée pour la trace.
 
 Implémenté (CDC §7 Acté 3-4). État `PentoscopeState.helpCount`, incrémenté à chaque **sauvetage
 rouge→jaune** (`_bumpHelp` : lampe `false→true` après une action) aux **trois** sites qui peuvent
@@ -485,9 +504,10 @@ test « Test » sur (v1, week0, size1) à purger par Paul si souhaité.*
 
 ### Documentation
 
-`MANUEL_DEFIS_ET_MAILLOTS.md` (neuf, 2026-09-05) — manuel de référence : défi perso (records
-locaux) vs défi réseau (classement en ligne), et le **mode de calcul exact des quatre maillots**
-(acuité, coups, temps, Help) + la médaille. Ancré sur l'implémentation et `CDC §4`/`§7`.
+`MANUEL_DEFIS_ET_MAILLOTS.md` (neuf 2026-09-05, **réécrit le 2026-09-05** pour la refonte « A ») —
+manuel de référence **faisant foi** : défi perso (records locaux) vs défi réseau (classement en
+ligne), et le **mode de calcul exact des trois maillots** (acuité **plafonnée**, fautes, temps) + la
+médaille + le bilan « avec aide ». Ancré sur l'implémentation et `CDC §4`/`§7`.
 
 `CLOUDFLARE_CONFIG.md` (neuf, 2026-09-05) — mémo opérationnel de l'infra Cloudflare : les deux
 workers (duel WebSocket *hors dépôt* ; défi `pentapol-defi` dans `server/`), la config exacte (URL,
@@ -495,7 +515,7 @@ base D1 `7ea667b1…`, secret `SEED_TOKEN`), le flux de données, et les command
 init D1, secret, semer, inspecter/purger). Le `SEED_TOKEN` n'y figure pas (secret non relisible).
 
 `BASE_LOCALE.md` (neuf, 2026-09-05) — miroir côté appareil : la base drift/SQLite locale
-(`pentapol_settings.db`, `schemaVersion 9`, réécriture destructive), les quatre tables (`Settings` =
+(`pentapol_settings.db`, `schemaVersion 10`, réécriture destructive), les quatre tables (`Settings` =
 AppSettings JSON dont `playerId` ; `CurrentGame` ; `SolvedSolutions` ; `PuzzleStats`), quand c'est
 écrit/effacé, et ce qui n'est PAS stocké. Reflète le schéma courant.
 
@@ -546,6 +566,26 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-05 — CLI → cowork (refonte « A » des maillots : trois maillots, acuité plafonnée, comportement avec aide).**
+Décision de Paul en travaillant le bilan : l'acuité montait **au-delà de 100 %** dès qu'on utilisait
+l'ampoule (elle plaçait une pièce à l'optimum sans coûter d'isométrie), et « coups » classait une
+habitude de geste. Retenu — **option « A »** : (1) **plafonner l'acuité à 1.0** ; (2) **fusionner
+Coups + Help (blanc)** en un seul **🔴 À pois — Fautes** = transitions soluble→insoluble
+(culs-de-sac), mathématiquement égales aux anciens sauvetages rouge→jaune ; (3) une **partie avec
+aide** (`hintCount>0`) n'affiche **ni maillot ni médaille** au bilan, seulement « Résolu avec N
+aide(s) » + temps. Le 4e maillot blanc du 2026-09-04 est donc **annulé**. Code : `completion_metrics`
+(acuité plafonnée, `faults`, `moves`/`deleteCount`/`pieceCount`/`rescues` retirés),
+`pentoscope_provider` (`helpCount`→`faultCount`, `_bumpFault` compte wasSolvable&&!nowSolvable),
+`settings_database` (schéma **10**, `faultCount`, `bestFaults` remplace `bestMoves`+`bestHelp`,
+destructif), écrans bilan/records/leaderboard (3 maillots), `challenge_api` (`Maillot` à 3 cas,
+`faults`), **serveur** `schema.sql`/`index.ts`/`README` (colonne `faults`, MIN(...,1.0) pour l'ordre
+jaune). `analyze lib test` **0 error/warning**, **49/49 tests** (dont cap d'acuité + `bestFaults`),
+`tsc --noEmit` OK. Docs alignées : `MANUEL_DEFIS_ET_MAILLOTS.md` (réécrit, fait foi), CDC §4.1
+(amendé, historique conservé), `BASE_LOCALE`, `CLOUDFLARE_CONFIG`, `FICHE_APP_STORE`,
+`CHECKLIST_APPSTORE` point 19 (caduc). **⚠️ Paul doit redéployer le worker + réinitialiser D1**
+(réécriture destructive OK, une seule ligne de test) avant les prochains scores. Commit à venir
+(doc + code même commit, MODUS_VIVENDI §5) ; bump version au commit+push.
+
 **2026-09-04 — CLI → cowork (discussion défi : composition à la main, vérification, indicateur Help).** Décisions
 de Paul consignées dans `CAHIER_DES_CHARGES_V1.md` §7 (bloc « Révision du 2026-09-04 » en tête). **Aucun
 code touché** — tout est hors V1, le serveur n'existe pas ; le client Phase 2 reste sur `deriveChallenge`
@@ -584,27 +624,5 @@ en §ÉTAT « Phase 0 du défi ». `analyze lib/` 0 error/warning, 22/22 tests. 
 derrière → même commit, MODUS_VIVENDI §5). Phases 1→5 (dérivation défi, mode classé, identité, serveur,
 UI) restent à faire — hors V1.
 
-**2026-09-03 — CLI → cowork (Paul a tranché les sept questions du CDC §12).** Les réponses sont
-encodées dans `CAHIER_DES_CHARGES_V1.md` : §12 réécrit en décisions, sections concernées mises à
-jour. Décisions :
-1. **Déverrouillage progressif** (pas de choix libre) — statu quo du code.
-2. **Compteur = toutes les solutions**, symétries comprises (pas « à symétrie près »).
-3. **Payant, sans classement en V1** (option 1) → **§7 défi de la semaine + classement en ligne
-   passent HORS V1**, deviennent la 1re mise à jour. La V1 garde les **records/stats personnels**.
-4. **Duel temps réel maintenu dans la V1** (priorité #9), contre la reco initiale de couper.
-5. **Nommage Tour de France figé** : jaune = acuité, à pois = coups, vert = temps.
-6. **Le déplacement direct ne compte pas comme un coup** (`translationCount` hors décompte) →
-   §4.7 mis à jour : coup = pose ou retrait, minimum = nombre de pièces.
-7. **3×5 et 4×5 restent ouverts au défi** (défis de vitesse — concerne la mise à jour, défi hors V1).
-
-Impact §ÉTAT : chantier « défi de la semaine » marqué hors V1 ; « records perso » reste V1.
-**À noter côté code (Q6)** : le décompte des coups devra ignorer `translationCount` et sommer
-poses + retraits (`deleteCount` existe, le compteur de poses est à vérifier).
-
-`CHECKLIST_APPSTORE.md` alignée sur Q3 et Q6 : **point 19** (nouveau, bloquant technique) — figer
-la règle des coups avant tout record publié (Q6, sinon les anciens records deviennent
-incomparables) ; **points 12 et 13** annotés — Q3 met le classement en ligne hors V1, donc la
-suppression de compte reste hors sujet pour la V1 et « ne collecte rien » est conservé (les deux
-reviennent à la mise à jour « classement »). **Point 6** aligné sur Q4 : le multijoueur est
-maintenu en V1, donc l'URL en dur et l'absence d'interrupteur distant deviennent bloquants (au
-lieu de « à couper »).
+*(La passation du 2026-09-03 — les sept réponses du CDC §12 — est sortie de la liste des trois
+dernières ; elle reste dans `git log` et ses décisions vivent dans `CAHIER_DES_CHARGES_V1.md` §12.)*

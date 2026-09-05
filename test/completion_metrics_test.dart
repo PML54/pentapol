@@ -1,6 +1,8 @@
-// Modified: 2026-09-04 05:20 — création : test du calcul des trois maillots (CDC §4). Vérifie
-//           l'appariement rack↔placement (minIso), la formule des coups, et les cas 0.
+// Modified: 2026-09-05 10:35 — refonte « A » : trois maillots (acuité plafonnée / FAUTES / temps).
+//           Coups (moves/deleteCount/pieceCount) et Help supprimés ; ajout du plafond d'acuité et
+//           du report des fautes.
 // test/completion_metrics_test.dart
+// Historique: 2026-09-04 05:20 — création : test du calcul des maillots (minIso, coups, cas 0).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pentapol/common/pentominos.dart';
@@ -14,43 +16,12 @@ void main() {
   // Une pièce totalement asymétrique (8 orientations) : une rotation change vraiment l'orientation.
   final asym = pentominos.firstWhere((p) => p.numOrientations == 8);
 
-  group('computeMetrics — coups (maillot à pois, §4.7)', () {
-    test('sans retrait : coups = nombre de pièces', () {
-      final m = computeMetrics(
-        placedPieces: const [],
-        initialOrientations: const {},
-        isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 5,
-        timeSeconds: 100,
-      );
-      expect(m.moves, 5);
-      expect(m.minMoves, 5);
-      expect(m.efficiency, 1.0);
-    });
-
-    test('deleteCount retraits : coups = pièces + 2·retraits', () {
-      final m = computeMetrics(
-        placedPieces: const [],
-        initialOrientations: const {},
-        isometryCount: 0,
-        deleteCount: 2,
-        pieceCount: 5,
-        timeSeconds: 0,
-      );
-      expect(m.moves, 5 + 2 * 2); // 9
-      expect(m.efficiency, 5 / 9);
-    });
-  });
-
   group('computeMetrics — minIso (maillot jaune, §4.2)', () {
     test('rack == placement → 0 par pièce', () {
       final m = computeMetrics(
         placedPieces: [_placed(asym, 0)],
         initialOrientations: {asym.id: 0},
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 1,
         timeSeconds: 0,
       );
       expect(m.minIso, 0);
@@ -65,8 +36,6 @@ void main() {
         placedPieces: [_placed(asym, placedPos)],
         initialOrientations: {asym.id: 0}, // rack = orientation 0
         isometryCount: 3,
-        deleteCount: 0,
-        pieceCount: 1,
         timeSeconds: 0,
       );
       expect(m.minIso, 1);
@@ -84,8 +53,6 @@ void main() {
         ],
         initialOrientations: {asym.id: 0, asym2.id: 0},
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 2,
         timeSeconds: 0,
       );
       expect(m.minIso, 1); // 1 + 0
@@ -97,23 +64,33 @@ void main() {
         placedPieces: [_placed(other, 0)],
         initialOrientations: const {}, // aucun rack
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 1,
         timeSeconds: 0,
       );
       expect(m.minIso, 0);
     });
   });
 
+  group('computeMetrics — acuité plafonnée à 100 % (§4.2 A)', () {
+    test('moins d\'isométries que le minimum théorique → acuité plafonnée à 1.0', () {
+      // minIso = 1 (une rotation d'écart) mais 0 isométrie comptée (aide) → ratio 2/1 = 2.0
+      final placedPos = asym.rotationCW(0);
+      final m = computeMetrics(
+        placedPieces: [_placed(asym, placedPos)],
+        initialOrientations: {asym.id: 0},
+        isometryCount: 0,
+        timeSeconds: 0,
+      );
+      expect(m.minIso, 1);
+      expect(m.acuity, 1.0); // plafonné, jamais 2.0
+    });
+  });
+
   group('computeMetrics — vision parfaite (médaille §4.6)', () {
     test('acuité 100 % (aucun geste de trop) → perfectVision', () {
-      // rack == placement pour toutes les pièces → minIso 0, et 0 isométrie → parfait
       final m = computeMetrics(
         placedPieces: [_placed(asym, 0)],
         initialOrientations: {asym.id: 0},
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 1,
         timeSeconds: 0,
       );
       expect(m.minIso, 0);
@@ -125,8 +102,6 @@ void main() {
         placedPieces: [_placed(asym, 0)], // minIso 0
         initialOrientations: {asym.id: 0},
         isometryCount: 1, // mais une isométrie faite
-        deleteCount: 0,
-        pieceCount: 1,
         timeSeconds: 0,
       );
       expect(m.perfectVision, isFalse);
@@ -138,8 +113,6 @@ void main() {
         placedPieces: [_placed(asym, placedPos)],
         initialOrientations: {asym.id: 0},
         isometryCount: 1, // exactement le minimum
-        deleteCount: 0,
-        pieceCount: 1,
         timeSeconds: 0,
       );
       expect(m.minIso, 1);
@@ -147,30 +120,26 @@ void main() {
     });
   });
 
-  group('computeMetrics — Help / sauvetages (maillot blanc §7)', () {
-    test('rescues reporté tel quel', () {
+  group('computeMetrics — fautes (maillot à pois §4.7 A)', () {
+    test('fautes reportées telles quelles', () {
       final m = computeMetrics(
         placedPieces: const [],
         initialOrientations: const {},
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 5,
         timeSeconds: 0,
-        rescues: 3,
+        faults: 3,
       );
-      expect(m.rescues, 3);
+      expect(m.faults, 3);
     });
 
-    test('rescues par défaut = 0', () {
+    test('fautes par défaut = 0', () {
       final m = computeMetrics(
         placedPieces: const [],
         initialOrientations: const {},
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 5,
         timeSeconds: 0,
       );
-      expect(m.rescues, 0);
+      expect(m.faults, 0);
     });
   });
 
@@ -180,8 +149,6 @@ void main() {
         placedPieces: const [],
         initialOrientations: const {},
         isometryCount: 0,
-        deleteCount: 0,
-        pieceCount: 5,
         timeSeconds: 222,
       );
       expect(m.timeSeconds, 222);

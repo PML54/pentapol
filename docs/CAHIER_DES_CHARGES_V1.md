@@ -142,10 +142,21 @@ dans la grille terminée et à sommer — douze appels au plus, aucune table con
 
 ### 4.1 Trois classements, pas un — décision de Paul, 2026-09-03
 
-> **Amendé le 2026-09-04 : QUATRE maillots, pas trois.** Un **4e maillot** s'ajoute — **Help**
-> (moins de sauvetages rouge→jaune, cf. §7 Acté 3-4) — **maillot blanc** (le 4e du Tour), nommage
-> figé par Paul le 2026-09-04. Le principe ci-dessous (classements indépendants, aucun combiné) est
-> inchangé, étendu à quatre.
+> **Refonte « A » — 2026-09-05 : RETOUR À TROIS maillots, et acuité PLAFONNÉE.** Le 4e maillot
+> **⚪ Blanc (Help)** de l'amendement du 2026-09-04 et le maillot **⚫ Coups (à pois)** sont
+> **fusionnés** en un unique **🔴 À pois — Fautes** : nombre de transitions *soluble→insoluble*
+> (culs-de-sac créés). Trois raisons : (1) l'acuité pouvait **dépasser 100 %** quand l'ampoule
+> plaçait une pièce sans coûter d'isométrie → elle est désormais **plafonnée à 1.0** (§4.2) ;
+> (2) « coups » classait une *habitude de geste* (retirer-reposer vs déplacer) plus qu'une
+> compétence ; (3) à la complétion, le nombre de fautes (jaune→rouge) **égale** exactement le
+> nombre de sauvetages (rouge→jaune, l'ancien « Help ») — une seule mesure pour deux anciens
+> maillots. Bilan/records/serveur portent désormais **trois** valeurs (acuité plafonnée, fautes,
+> temps). Le tableau et les §4.4-4.7 ci-dessous sont à lire à travers ce prisme ; le manuel
+> `MANUEL_DEFIS_ET_MAILLOTS.md` en donne l'état courant faisant foi.
+>
+> **Amendé le 2026-09-04 : QUATRE maillots, pas trois.** (Amendement remplacé par la refonte « A »
+> ci-dessus.) Un **4e maillot** s'ajoutait — **Help** (moins de sauvetages rouge→jaune, cf. §7 Acté
+> 3-4) — **maillot blanc** (le 4e du Tour). Conservé ici pour la trace historique.
 
 Un défi n'a **pas** de vainqueur unique. Les mêmes données produisent **trois classements
 indépendants**, sur le modèle du Tour de France :

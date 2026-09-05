@@ -3,7 +3,7 @@
 --
 -- Deux tables :
 --   challenges — la DÉFINITION d'un défi (composable à la main, autorité serveur, §7 Acté 1).
---   scores     — un essai par (joueur, défi), quatre maillots (§7 Acté 4-5).
+--   scores     — un essai par (joueur, défi), trois maillots (§7 Acté 4-5, refonte « A »).
 
 -- Définition d'un défi : (taille, masque, rack). Clé (version, semaine, taille).
 -- Alimentée par l'admin (composition à la main) ou par un job qui téléverse la dérivation Dart.
@@ -17,20 +17,20 @@ CREATE TABLE IF NOT EXISTS challenges (
 );
 
 -- Un score par joueur et par défi (§7.1 : premier essai, insertion unique — la clé primaire
--- refuse un second essai). Quatre maillots (§4.1 amendé) : acuité (minIso+isoCount bruts, §7.6),
--- coups, temps, Help. La grille est conservée pour l'AUDIT hors ligne (modèle confiance : le
--- serveur ne recalcule pas minIso ; cf. README « Vérification »).
+-- refuse un second essai). Trois maillots (refonte « A ») : acuité (minIso+isoCount bruts,
+-- plafonnée à 100 % côté client/serveur, §7.6), FAUTES (culs-de-sac jaune→rouge, absorbe l'ancien
+-- Help), temps. La grille est conservée pour l'AUDIT hors ligne (modèle confiance : le serveur
+-- ne recalcule pas minIso ; cf. README « Vérification »).
 CREATE TABLE IF NOT EXISTS scores (
   version    INTEGER NOT NULL,
   week       INTEGER NOT NULL,
   size       INTEGER NOT NULL,
   player_id  TEXT    NOT NULL,     -- identité 128 bits (§7.4), clé primaire du joueur
   pseudo     TEXT    NOT NULL,     -- étiquette d'affichage (non unique)
-  min_iso    INTEGER NOT NULL,     -- 🟡 acuité = (min_iso+1)/(iso_count+1)
+  min_iso    INTEGER NOT NULL,     -- 🟡 acuité = (min_iso+1)/(iso_count+1), plafonnée à 1.0
   iso_count  INTEGER NOT NULL,     -- 🟡
-  moves      INTEGER NOT NULL,     -- ⚫ coups
+  faults     INTEGER NOT NULL,     -- 🔴 fautes (culs-de-sac jaune→rouge)
   time_ms    INTEGER NOT NULL,     -- 🟢 temps
-  help       INTEGER NOT NULL,     -- ⚪ sauvetages rouge→jaune
   grid       TEXT    NOT NULL,     -- grille terminée (audit) : ids de pièces par case
   created_at INTEGER NOT NULL,     -- epoch ms de la soumission
   PRIMARY KEY (version, week, size, player_id)

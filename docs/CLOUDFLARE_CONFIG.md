@@ -43,8 +43,8 @@ Schéma dans `server/schema.sql`.
 
 ### `scores` — les résultats des joueurs
 Un **essai par joueur et par défi** (clé primaire `(version, week, size, player_id)` → un seul essai,
-le premier). Colonnes : les quatre maillots en valeurs brutes (`min_iso`, `iso_count`, `moves`,
-`time_ms`, `help`), le `pseudo`, l'identité `player_id` (128 bits), la `grid` (grille terminée,
+le premier). Colonnes : les trois maillots en valeurs brutes (`min_iso`, `iso_count`, `faults`,
+`time_ms`), le `pseudo`, l'identité `player_id` (128 bits), la `grid` (grille terminée,
 conservée pour audit), `created_at`.
 
 ### `challenges` — les définitions (optionnel)
@@ -61,7 +61,7 @@ Base = `https://pentapol-defi.pentapml.workers.dev`
 | Méthode | Route | Rôle | Auth |
 |---|---|---|---|
 | `POST` | `/score` | enregistre un score (201 ; 409 si déjà soumis) | — |
-| `GET` | `/leaderboard?version=&week=&size=&maillot=` | tableau trié (`maillot` = `jaune`/`pois`/`vert`/`blanc`) | — |
+| `GET` | `/leaderboard?version=&week=&size=&maillot=` | tableau trié (`maillot` = `jaune`/`pois`/`vert`) | — |
 | `GET` | `/challenge?version=&week=&size=` | définition composée (`{mask, rack}`) ou 404 | — |
 | `POST` | `/challenge` | pose/compose une définition | **`Bearer SEED_TOKEN`** |
 
@@ -74,9 +74,9 @@ est public — c'est ce qui fait que **le classement marche sans rien configurer
 
 1. **Le joueur ouvre un défi** `(semaine, taille)`. L'app tente `GET /challenge` ; si 404 (non
    composé), elle **dérive** la config localement (même résultat pour tous, sans réseau).
-2. **Il joue** en mode classé (l'app mesure acuité/coups/temps/Help).
-3. **À la fin**, l'app `POST /score` avec son identité 128 bits + les quatre valeurs + la grille.
-4. **Il consulte** `GET /leaderboard` (quatre maillots) — son score y apparaît, surligné.
+2. **Il joue** en mode classé (l'app mesure acuité/fautes/temps).
+3. **À la fin**, l'app `POST /score` avec son identité 128 bits + les trois valeurs + la grille.
+4. **Il consulte** `GET /leaderboard` (trois maillots) — son score y apparaît, surligné.
 
 Le serveur **fait confiance** aux chiffres (l'app mesure, le joueur ne saisit rien) et **garde la
 grille** pour un audit éventuel. Il ne recalcule pas les scores.

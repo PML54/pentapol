@@ -15,8 +15,8 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 /// URL du worker de classement (déployé par Paul). Distinct du worker duel (WebSocket).
 const String kChallengeBaseUrl = 'https://pentapol-defi.pentapml.workers.dev';
 
-/// Les quatre maillots, tels que l'API les nomme (paramètre `maillot`).
-enum Maillot { jaune, pois, vert, blanc }
+/// Les trois maillots, tels que l'API les nomme (paramètre `maillot`).
+enum Maillot { jaune, pois, vert }
 
 /// Une ligne de classement renvoyée par `GET /leaderboard`.
 class LeaderboardEntry {
@@ -24,31 +24,31 @@ class LeaderboardEntry {
   final String pseudo;
   final int minIso;
   final int isoCount;
-  final int moves;
+  final int faults;
   final int timeMs;
-  final int help;
 
   const LeaderboardEntry({
     required this.playerId,
     required this.pseudo,
     required this.minIso,
     required this.isoCount,
-    required this.moves,
+    required this.faults,
     required this.timeMs,
-    required this.help,
   });
 
-  /// Acuité en % (§4.2), pour l'affichage du maillot jaune.
-  int get acuityPercent => ((minIso + 1) / (isoCount + 1) * 100).round();
+  /// Acuité en % (§4.2), plafonnée à 100, pour l'affichage du maillot jaune.
+  int get acuityPercent {
+    final r = (minIso + 1) / (isoCount + 1);
+    return ((r > 1.0 ? 1.0 : r) * 100).round();
+  }
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> j) => LeaderboardEntry(
         playerId: j['player_id'] as String? ?? '',
         pseudo: j['pseudo'] as String? ?? '',
         minIso: (j['min_iso'] as num?)?.toInt() ?? 0,
         isoCount: (j['iso_count'] as num?)?.toInt() ?? 0,
-        moves: (j['moves'] as num?)?.toInt() ?? 0,
+        faults: (j['faults'] as num?)?.toInt() ?? 0,
         timeMs: (j['time_ms'] as num?)?.toInt() ?? 0,
-        help: (j['help'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -71,9 +71,8 @@ class ChallengeApi {
     required String pseudo,
     required int minIso,
     required int isoCount,
-    required int moves,
+    required int faults,
     required int timeMs,
-    required int help,
     required String grid,
   }) async {
     try {
@@ -89,9 +88,8 @@ class ChallengeApi {
               'pseudo': pseudo,
               'minIso': minIso,
               'isoCount': isoCount,
-              'moves': moves,
+              'faults': faults,
               'timeMs': timeMs,
-              'help': help,
               'grid': grid,
             }),
           )

@@ -1,4 +1,7 @@
-// Modified: 2026-09-05 00:35 — défi : startWeeklyChallenge tente la définition composée à la main du
+// Modified: 2026-09-05 17:24 — refonte « A » : helpCount→faultCount, _bumpFault compte les fautes
+//           (soluble→insoluble) aux 4 sites, computeCompletionMetrics/_saveCompletionRecord/
+//           _submitChallengeScore passent `faults` (moves/help/deleteCount retirés).
+// Historique: 2026-09-05 00:35 — défi : startWeeklyChallenge tente la définition composée à la main du
 //           serveur (fetchChallenge) avant de dériver localement (§7 Acté 1).
 // Historique: 2026-09-05 00:05 — défi Phase 4/5 : à la complétion d'un défi (isRanked), POST du score
 //           au serveur (_submitChallengeScore via ChallengeApi ; _activeChallenge porte week/size,
@@ -476,12 +479,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return null;
   }
 
-  /// Incrément Help si une action **rétablit la solubilité** (lampe rouge→jaune) : un sauvetage
-  /// guidé par l'oracle (CDC §7, maillot blanc). Retourne le nouveau `helpCount`. `wasSolvable` =
-  /// avant l'action, `nowSolvable` = après. Seuls le retrait, le déplacement et la rotation d'une
-  /// pièce POSÉE peuvent faire ce passage (poser une pièce neuve ne rend jamais un cul-de-sac soluble).
-  int _bumpHelp(bool wasSolvable, bool nowSolvable) =>
-      state.helpCount + (!wasSolvable && nowSolvable ? 1 : 0);
+  /// Incrément **faute** si une action fait entrer en cul-de-sac (lampe **jaune→rouge**, le plateau
+  /// devient insoluble) — maillot à pois (CDC §4, A). `wasSolvable`/`nowSolvable` = état avant/après.
+  int _bumpFault(bool wasSolvable, bool nowSolvable) =>
+      state.faultCount + (wasSolvable && !nowSolvable ? 1 : 0);
 
   void removePlacedPiece(PlacedPiece placed) {
     final newPlateau = _rebuildPlateau(exclude: placed);
@@ -508,7 +509,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       validPlacements: [],
       hasPossibleSolution: hasPossibleSolution,
       deleteCount: state.deleteCount + 1, // 🗑️ Incrémenter le compteur de suppressions
-      helpCount: _bumpHelp(state.hasPossibleSolution, hasPossibleSolution), // ⚪ sauvetage ?
+      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (soluble→insoluble)
     );
 
     // 🗄️ Persister l'avancement (no-op en multijoueur).
@@ -892,12 +893,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       placedPieces: state.placedPieces,
       initialOrientations: state.initialOrientations,
       isometryCount: state.isometryCount,
-      deleteCount: state.deleteCount,
-      pieceCount: puzzle.size.numPieces,
       // Temps FIGÉ (state.elapsedSeconds), pas getElapsedSeconds() : stopTimer() ne recale pas
       // l'origine, le temps vivant continuerait de croître à chaque rebuild après la complétion.
       timeSeconds: state.elapsedSeconds,
-      rescues: state.helpCount,
+      faults: state.faultCount,
     );
   }
 
@@ -927,9 +926,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           solutionNumber: solutionNumber,
           minIso: metrics.minIso,
           isoCount: metrics.isometryCount,
-          moves: metrics.moves,
+          faults: metrics.faults,
           timeSeconds: metrics.timeSeconds,
-          help: metrics.rescues,
           clean: clean,
         );
       } else {
@@ -937,9 +935,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           sizeName: puzzle.size.name,
           minIso: metrics.minIso,
           isoCount: metrics.isometryCount,
-          moves: metrics.moves,
+          faults: metrics.faults,
           timeSeconds: metrics.timeSeconds,
-          help: metrics.rescues,
           clean: clean,
         );
       }
@@ -965,9 +962,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         pseudo: pseudo,
         minIso: metrics.minIso,
         isoCount: metrics.isometryCount,
-        moves: metrics.moves,
+        faults: metrics.faults,
         timeMs: metrics.timeSeconds * 1000,
-        help: metrics.rescues,
         grid: _gridString(),
       );
     } catch (e) {
@@ -1027,7 +1023,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             translationCount: state.translationCount,
             deleteCount: state.deleteCount,
             hintCount: state.hintCount,
-            helpCount: state.helpCount,
+            faultCount: state.faultCount,
             isProgression: state.isProgression,
             initialOrientations: initialJson,
           );
@@ -1149,7 +1145,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       translationCount: row.translationCount,
       deleteCount: row.deleteCount,
       hintCount: row.hintCount,
-      helpCount: row.helpCount, // ⚪ sauvetages restaurés
+      faultCount: row.faultCount, // 🔴 fautes restaurées
       showSolution: false, // non restaurable (§2.4)
       currentSolution: null,
       validPlacements: [],
@@ -1265,7 +1261,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount, // 🔢
       elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
-      helpCount: _bumpHelp(state.hasPossibleSolution, hasPossibleSolution), // ⚪ sauvetage ? (déplacement)
+      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (déplacement)
     );
 
     // 💾 À la complétion : enregistrer le record et effacer la partie en cours. Sinon,
@@ -1620,7 +1616,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isometryCount: state.isometryCount + 1,
       hasPossibleSolution: hasPossibleSolution, // 💡 Mise à jour!
       solutionsCount: solutionsCount, // 🔢
-      helpCount: _bumpHelp(state.hasPossibleSolution, hasPossibleSolution), // ⚪ sauvetage ? (rotation posée)
+      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (rotation posée)
     );
 
     // === LOG APRES TRANSFO ===
@@ -1866,7 +1862,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isometryCount: state.isometryCount + 1,
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount, // 🔢
-      helpCount: _bumpHelp(state.hasPossibleSolution, hasPossibleSolution), // ⚪ sauvetage ? (symétrie posée)
+      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (symétrie posée)
     );
 
     final finalMasterRaw = getRawMastercaseCoords(
@@ -2344,7 +2340,7 @@ class PentoscopeState implements PieceManipulationState {
   final int translationCount;
   final int hintCount;   // 💡 Nombre de fois où la lampe a été utilisée
   final int deleteCount; // 🗑️ Nombre de suppressions de pièces
-  final int helpCount;   // ⚪ Sauvetages rouge→jaune (maillot blanc, CDC §7 Acté 3-4)
+  final int faultCount;  // ⚫ Fautes (entrées en cul-de-sac, jaune→rouge) — maillot à pois
 
   final bool isSnapped;
   final bool isDragging;
@@ -2399,7 +2395,7 @@ class PentoscopeState implements PieceManipulationState {
     this.translationCount = 0,
     this.hintCount = 0,   // 💡
     this.deleteCount = 0, // 🗑️
-    this.helpCount = 0, // ⚪
+    this.faultCount = 0, // ⚫
     this.isSnapped = false,
     this.isDragging = false,
     this.showSolution = false,
@@ -2477,7 +2473,7 @@ class PentoscopeState implements PieceManipulationState {
     int? translationCount,
     int? hintCount,   // 💡
     int? deleteCount, // 🗑️
-    int? helpCount, // ⚪
+    int? faultCount, // ⚫
     bool? isSnapped,
     bool? isDragging,
     bool? showSolution, // ✅ NOUVEAU
@@ -2522,7 +2518,7 @@ class PentoscopeState implements PieceManipulationState {
       translationCount: translationCount ?? this.translationCount,
       hintCount: hintCount ?? this.hintCount,
       deleteCount: deleteCount ?? this.deleteCount,
-      helpCount: helpCount ?? this.helpCount,
+      faultCount: faultCount ?? this.faultCount,
       isSnapped: isSnapped ?? this.isSnapped,
       isDragging: isDragging ?? this.isDragging,
       showSolution: showSolution ?? this.showSolution,

@@ -57,7 +57,7 @@ Permet de **reprendre** une partie interrompue. Ne stocke **ni le plateau** (rec
 | `positionIndices` | JSON `{pieceId: orientation}` — orientations courantes |
 | `initialOrientations` | JSON — le **rack distribué** (figé), pour l'acuité (🟡) |
 | `elapsedSeconds` | temps écoulé |
-| `isometryCount`, `translationCount`, `deleteCount`, `hintCount`, `helpCount` | compteurs (voir maillots) |
+| `isometryCount`, `translationCount`, `deleteCount`, `hintCount`, `faultCount` | compteurs (voir maillots) |
 | `isProgression` | la partie fait-elle avancer le niveau |
 | `savedAt` | horodatage |
 
@@ -71,16 +71,15 @@ Clé `(board, solutionNumber)`. Pour le 6×10 (et, à terme, 5×12/4×15).
 |---|---|
 | `board`, `solutionNumber` | quelle solution (ex. `6x10`, n° 1..9356) |
 | `timesSolved` | nombre de fois résolue |
-| `bestAcuityMinIso` + `bestAcuityIsoCount` | 🟡 meilleur score d'acuité (ingrédients bruts) |
-| `bestMoves` | ⚫ moins de coups |
+| `bestAcuityMinIso` + `bestAcuityIsoCount` | 🟡 meilleur score d'acuité (ingrédients bruts, plafonné à 100 %) |
+| `bestFaults` | 🔴 moins de fautes (culs-de-sac jaune→rouge) |
 | `bestTimeSeconds` | 🟢 meilleur temps |
-| `bestHelp` | ⚪ moins de sauvetages |
 | `firstSolvedAt`, `lastSolvedAt` | horodatages |
 
 ### `PuzzleStats` — records des tailles à pièces tirées (un agrégat par taille)
-Clé `sizeName`. Mêmes quatre bests que ci-dessus, plus `completed` (nombre de complétions).
+Clé `sizeName`. Mêmes trois bests que ci-dessus, plus `completed` (nombre de complétions).
 
-> Les quatre bests sont **nullables** et **indépendants** (ils peuvent venir de quatre parties
+> Les trois bests sont **nullables** et **indépendants** (ils peuvent venir de trois parties
 > différentes). Une partie **avec aide** (`hintCount > 0`) incrémente `completed`/`timesSolved` mais
 > **ne pose aucun record**. Une partie de **défi** (mode classé) **n'écrit pas** ici (son classement
 > est en ligne).

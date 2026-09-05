@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 16:10 — 4e maillot BLANC (Help) dans les records perso : colonne bestHelp
+// Modified: 2026-09-05 17:24 — trois maillots (A) : acuité / FAUTES / temps (coups et Help supprimés,
+//           bestFaults remplace bestMoves+bestHelp).
+// Historique: 2026-09-04 16:10 — 4e maillot BLANC (Help) dans les records perso : colonne bestHelp
 //           lue/agrégée, ligne + légende, pastilles bordées pour le blanc.
 // lib/pentoscope/screens/records_screen.dart
 // Historique: 2026-09-04 06:13 — médaille §4.6 : icône « vision parfaite » sur les tailles au best
@@ -18,17 +20,15 @@ class _SizeRecord {
   final int count; // complétions (pièces tirées) ou solutions distinctes (rectangle)
   final int? acuityMinIso;
   final int? acuityIsoCount;
-  final int? moves;
+  final int? faults;
   final int? timeSeconds;
-  final int? help;
 
   const _SizeRecord({
     required this.count,
     this.acuityMinIso,
     this.acuityIsoCount,
-    this.moves,
+    this.faults,
     this.timeSeconds,
-    this.help,
   });
 
   /// Acuité en % (§4.2), ou null si pas de best.
@@ -46,7 +46,7 @@ class _SizeRecord {
 /// Agrège les solutions découvertes d'un rectangle : meilleure acuité (ratio le plus grand),
 /// moins de coups, meilleur temps — en ignorant les null (parties avec aide).
 _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
-  int? bestMi, bestIso, bestMoves, bestTime, bestHelp;
+  int? bestMi, bestIso, bestFaults, bestTime;
   for (final r in rows) {
     if (r.bestAcuityMinIso != null && r.bestAcuityIsoCount != null) {
       if (bestMi == null ||
@@ -56,24 +56,20 @@ _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
         bestIso = r.bestAcuityIsoCount;
       }
     }
-    if (r.bestMoves != null && (bestMoves == null || r.bestMoves! < bestMoves)) {
-      bestMoves = r.bestMoves;
+    if (r.bestFaults != null && (bestFaults == null || r.bestFaults! < bestFaults)) {
+      bestFaults = r.bestFaults;
     }
     if (r.bestTimeSeconds != null &&
         (bestTime == null || r.bestTimeSeconds! < bestTime)) {
       bestTime = r.bestTimeSeconds;
-    }
-    if (r.bestHelp != null && (bestHelp == null || r.bestHelp! < bestHelp)) {
-      bestHelp = r.bestHelp;
     }
   }
   return _SizeRecord(
     count: rows.length,
     acuityMinIso: bestMi,
     acuityIsoCount: bestIso,
-    moves: bestMoves,
+    faults: bestFaults,
     timeSeconds: bestTime,
-    help: bestHelp,
   );
 }
 
@@ -98,9 +94,8 @@ Future<Map<PentoscopeSize, _SizeRecord>> _loadRecords(SettingsDatabase db) async
           count: s.completed,
           acuityMinIso: s.bestAcuityMinIso,
           acuityIsoCount: s.bestAcuityIsoCount,
-          moves: s.bestMoves,
+          faults: s.bestFaults,
           timeSeconds: s.bestTimeSeconds,
-          help: s.bestHelp,
         );
       }
     }
@@ -184,9 +179,8 @@ class _Legend extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _LegendItem(color: Color(0xFFF2B705), label: 'Acuité'),
-          _LegendItem(color: Color(0xFFD64545), label: 'Coups'),
+          _LegendItem(color: Color(0xFFD64545), label: 'Fautes'),
           _LegendItem(color: Color(0xFF2E9E5B), label: 'Temps'),
-          _LegendItem(color: Colors.white, label: 'Help'),
         ],
       ),
     );
@@ -209,7 +203,7 @@ class _LegendItem extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black26), // maillot blanc visible
+            border: Border.all(color: Colors.black26), // léger bord pour détacher la pastille
           ),
         ),
         const SizedBox(width: 6),
@@ -227,9 +221,8 @@ class _RecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final acuity = record.acuityPercent;
-    final moves = record.moves;
+    final faults = record.faults;
     final time = record.timeSeconds;
-    final help = record.help;
     final isRectangle = size.table != null;
     final countLabel = isRectangle
         ? '${record.count} solution${record.count > 1 ? 's' : ''}'
@@ -275,15 +268,11 @@ class _RecordCard extends StatelessWidget {
                 ),
                 _MaillotValue(
                   color: const Color(0xFFD64545),
-                  value: moves == null ? '—' : '$moves',
+                  value: faults == null ? '—' : '$faults',
                 ),
                 _MaillotValue(
                   color: const Color(0xFF2E9E5B),
                   value: time == null ? '—' : _mmss(time),
-                ),
-                _MaillotValue(
-                  color: Colors.white, // maillot blanc — Help
-                  value: help == null ? '—' : '$help',
                 ),
               ],
             ),
@@ -316,7 +305,7 @@ class _MaillotValue extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black26), // maillot blanc visible
+            border: Border.all(color: Colors.black26), // léger bord pour détacher la pastille
           ),
         ),
         const SizedBox(width: 6),

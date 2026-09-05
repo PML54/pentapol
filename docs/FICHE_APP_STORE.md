@@ -98,9 +98,9 @@ d'autre n'ait à être connecté.
 **[conditionnel — classement asynchrone livré, et §9 du cahier des charges tranché]**
 ```
 COMPAREZ VOTRE RÉSOLUTION
-Envoyez votre résultat sur une configuration commune et comparez-le : aides
-d'abord, rotations ensuite, coups, puis le temps. L'envoi est facultatif et
-désactivé par défaut.
+Envoyez votre résultat sur une configuration commune et comparez-le : trois
+maillots indépendants — acuité, fautes (culs-de-sac), temps. L'envoi est
+facultatif et désactivé par défaut.
 ```
 Si ce bloc est publié, la phrase « rien ne quitte votre appareil » du §2 doit devenir
 « rien ne quitte votre appareil tant que vous n'envoyez pas de score », et la déclaration
@@ -139,7 +139,7 @@ réelle** — une capture non représentative est un motif de rejet.
 | 1 | **Douze pièces. Une grille.** | la 6 × 10 en cours, tiroir visible | — |
 | 2 | **Chaque placement réduit les solutions.** | le compteur en gros, une suite réelle | **prendre les chiffres du 6 × 10** (9 356 au départ) ou d'un niveau 7-8. Aux niveaux 1 à 3 le compteur part de 4, 8 ou 16 : un « 128 » y serait faux |
 | 3 | **Tournez moins. Voyez mieux.** | la barre d'isométries, compteur de rotations | montrer l'acuité à côté du nombre, sinon le nombre brut ne veut rien dire |
-| 4 | **Résolvez sans aide.** | bilan de fin : `0 aide / acuité 86 % / 17 coups / 03:42` | exige `minIso` et l'acuité, cahier des charges §4.2 |
+| 4 | **Résolvez sans aide.** | bilan de fin : `acuité 86 % / 0 faute / 03:42` | exige `minIso` et l'acuité, cahier des charges §4.2 (refonte « A » : trois maillots acuité/fautes/temps) |
 | 5 | **996 configurations, jusqu'à la 6 × 10.** | la grille de choix des niveaux | ne pas écrire « 996 sur 9 niveaux » |
 | 6 | **[conditionnel]** **Comparez votre résolution.** | le classement | seulement si le classement est livré |
 

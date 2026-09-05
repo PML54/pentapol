@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 16:10 — records perso : 4e best `bestHelp` (maillot blanc, moins de
+// Modified: 2026-09-05 17:24 — trois maillots (A) : « coups » et « Help » remplacés par les FAUTES.
+//           CurrentGame.helpCount → faultCount ; records bestMoves+bestHelp → bestFaults.
+//           schemaVersion 9 → 10 (bump + destructif).
+// Historique: 2026-09-04 16:10 — records perso : 4e best `bestHelp` (maillot blanc, moins de
 //           sauvetages) dans SolvedSolutions et PuzzleStats. schemaVersion 8 → 9 (bump + destructif).
 // Historique: 2026-09-04 15:50 — compteur Help : CurrentGame.helpCount (sauvetages rouge→jaune,
 //           maillot blanc §7) persisté pour la reprise. schemaVersion 7 → 8 (bump + destructif).
@@ -65,8 +68,8 @@ class CurrentGame extends Table {
   IntColumn get translationCount => integer()();
   IntColumn get deleteCount => integer()();
   IntColumn get hintCount => integer()();
-  IntColumn get helpCount =>
-      integer().withDefault(const Constant(0))(); // ⚪ sauvetages rouge→jaune (§7)
+  IntColumn get faultCount =>
+      integer().withDefault(const Constant(0))(); // ⚫ fautes (cul-de-sac, jaune→rouge)
   BoolColumn get isProgression =>
       boolean().withDefault(const Constant(false))(); // fait avancer le niveau
   TextColumn get initialOrientations =>
@@ -89,9 +92,8 @@ class SolvedSolutions extends Table {
   IntColumn get timesSolved => integer().withDefault(const Constant(1))();
   IntColumn get bestAcuityMinIso => integer().nullable()();   // 🟡 minIso du meilleur score d'acuité
   IntColumn get bestAcuityIsoCount => integer().nullable()(); // 🟡 isométries de la même partie
-  IntColumn get bestMoves => integer().nullable()();          // ⚫ coups (à pois)
+  IntColumn get bestFaults => integer().nullable()();         // ⚫ fautes (à pois)
   IntColumn get bestTimeSeconds => integer().nullable()();    // 🟢 temps (vert)
-  IntColumn get bestHelp => integer().nullable()();           // ⚪ sauvetages (maillot blanc)
   DateTimeColumn get firstSolvedAt => dateTime()();
   DateTimeColumn get lastSolvedAt => dateTime()();
 
@@ -106,9 +108,8 @@ class PuzzleStats extends Table {
   IntColumn get completed => integer().withDefault(const Constant(0))();
   IntColumn get bestAcuityMinIso => integer().nullable()();   // 🟡
   IntColumn get bestAcuityIsoCount => integer().nullable()(); // 🟡
-  IntColumn get bestMoves => integer().nullable()();          // ⚫
+  IntColumn get bestFaults => integer().nullable()();         // ⚫ fautes
   IntColumn get bestTimeSeconds => integer().nullable()();    // 🟢
-  IntColumn get bestHelp => integer().nullable()();           // ⚪
 
   @override
   Set<Column> get primaryKey => {sizeName};
@@ -125,7 +126,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 9; // 8 → 9 : records perso bestHelp (maillot blanc)
+  int get schemaVersion => 10; // 9 → 10 : coups/Help → fautes (3 maillots), faultCount
   //                              (règle n°6 : bump + destructif).
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
@@ -184,9 +185,8 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int solutionNumber,
     required int minIso,
     required int isoCount,
-    required int moves,
+    required int faults,
     required int timeSeconds,
-    required int help,
     required bool clean,
   }) async {
     final existing = await (select(solvedSolutions)
@@ -202,9 +202,8 @@ class SettingsDatabase extends _$SettingsDatabase {
           solutionNumber: solutionNumber,
           bestAcuityMinIso: Value(clean ? minIso : null),
           bestAcuityIsoCount: Value(clean ? isoCount : null),
-          bestMoves: Value(clean ? moves : null),
+          bestFaults: Value(clean ? faults : null),
           bestTimeSeconds: Value(clean ? timeSeconds : null),
-          bestHelp: Value(clean ? help : null),
           firstSolvedAt: now,
           lastSolvedAt: now,
         ),
@@ -224,14 +223,11 @@ class SettingsDatabase extends _$SettingsDatabase {
           bestAcuityIsoCount: Value(isoCount),
         );
       }
-      if (existing.bestMoves == null || moves < existing.bestMoves!) {
-        companion = companion.copyWith(bestMoves: Value(moves));
+      if (existing.bestFaults == null || faults < existing.bestFaults!) {
+        companion = companion.copyWith(bestFaults: Value(faults));
       }
       if (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!) {
         companion = companion.copyWith(bestTimeSeconds: Value(timeSeconds));
-      }
-      if (existing.bestHelp == null || help < existing.bestHelp!) {
-        companion = companion.copyWith(bestHelp: Value(help));
       }
     }
     await (update(solvedSolutions)
@@ -246,9 +242,8 @@ class SettingsDatabase extends _$SettingsDatabase {
     required String sizeName,
     required int minIso,
     required int isoCount,
-    required int moves,
+    required int faults,
     required int timeSeconds,
-    required int help,
     required bool clean,
   }) async {
     final existing = await (select(puzzleStats)
@@ -262,9 +257,8 @@ class SettingsDatabase extends _$SettingsDatabase {
           completed: const Value(1),
           bestAcuityMinIso: Value(clean ? minIso : null),
           bestAcuityIsoCount: Value(clean ? isoCount : null),
-          bestMoves: Value(clean ? moves : null),
+          bestFaults: Value(clean ? faults : null),
           bestTimeSeconds: Value(clean ? timeSeconds : null),
-          bestHelp: Value(clean ? help : null),
         ),
       );
       return;
@@ -279,14 +273,11 @@ class SettingsDatabase extends _$SettingsDatabase {
           bestAcuityIsoCount: Value(isoCount),
         );
       }
-      if (existing.bestMoves == null || moves < existing.bestMoves!) {
-        companion = companion.copyWith(bestMoves: Value(moves));
+      if (existing.bestFaults == null || faults < existing.bestFaults!) {
+        companion = companion.copyWith(bestFaults: Value(faults));
       }
       if (existing.bestTimeSeconds == null || timeSeconds < existing.bestTimeSeconds!) {
         companion = companion.copyWith(bestTimeSeconds: Value(timeSeconds));
-      }
-      if (existing.bestHelp == null || help < existing.bestHelp!) {
-        companion = companion.copyWith(bestHelp: Value(help));
       }
     }
     await (update(puzzleStats)..where((s) => s.sizeName.equals(sizeName))).write(companion);
@@ -309,7 +300,7 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int translationCount,
     required int deleteCount,
     required int hintCount,
-    required int helpCount,
+    required int faultCount,
     required bool isProgression,
     required String initialOrientations,
   }) async {
@@ -325,7 +316,7 @@ class SettingsDatabase extends _$SettingsDatabase {
         translationCount: translationCount,
         deleteCount: deleteCount,
         hintCount: hintCount,
-        helpCount: Value(helpCount),
+        faultCount: Value(faultCount),
         isProgression: Value(isProgression),
         initialOrientations: Value(initialOrientations),
         savedAt: DateTime.now(),

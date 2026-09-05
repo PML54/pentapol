@@ -9,7 +9,7 @@ Objects) ; ici aucun Durable Object.
 
 ## Vérification — modèle de confiance (décision Paul, 2026-09-04)
 
-L'app **mesure** les quatre valeurs (acuité, coups, temps, Help) localement ; le joueur ne saisit
+L'app **mesure** les trois valeurs (acuité plafonnée, fautes, temps) localement ; le joueur ne saisit
 rien → il ne peut pas tricher via le jeu. Le seul vecteur résiduel est un **POST forgé** hors de
 l'app (`curl` sur l'endpoint public) ; jugé négligeable pour une app payante à petite population.
 **Le serveur ne recalcule donc pas `minIso`** (on évite le portage en JS de la géométrie + du BFS
@@ -47,13 +47,13 @@ Base URL = l'URL du worker déployé.
 - **`POST /score`** — enregistre l'essai (unique par joueur/défi, §7.1). Corps JSON :
   ```json
   { "version": 1, "week": 35, "size": 1, "playerId": "<32 hex>", "pseudo": "Paul",
-    "minIso": 4, "isoCount": 5, "moves": 12, "timeMs": 92000, "help": 0, "grid": "<ids par case>" }
+    "minIso": 4, "isoCount": 5, "faults": 2, "timeMs": 92000, "grid": "<ids par case>" }
   ```
   `201` si enregistré ; `409` si un essai existe déjà (premier essai seulement) ; `400` si invalide.
 
 - **`GET /leaderboard?version=&week=&size=&maillot=&limit=`** — tableau trié.
-  `maillot` ∈ `jaune` (acuité ↓), `pois` (coups ↑), `vert` (temps ↑), `blanc` (Help ↑).
-  Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, min_iso, iso_count, moves, time_ms, help }, ... ] }`.
+  `maillot` ∈ `jaune` (acuité ↓, plafonnée à 100 %), `pois` (fautes ↑), `vert` (temps ↑).
+  Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, min_iso, iso_count, faults, time_ms }, ... ] }`.
 
 - **`GET /challenge?version=&week=&size=`** — définition composée à la main : `{ mask, rack }`, ou
   `404` si non définie (le client retombe alors sur sa dérivation locale).

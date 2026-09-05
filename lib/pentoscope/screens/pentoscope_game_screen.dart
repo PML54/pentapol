@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 — hub d'accueil : barre de jeu allégée — bouton « Accueil » (retour au menu
+// Modified: 2026-09-05 17:24 — bilan 3 maillots (A) : acuité (plafonnée) / FAUTES / temps ; partie AVEC
+//           aide → « Résolu avec N aide(s) » + temps, sans maillots ni médaille. Plus de « coups »/« Help ».
+// Historique: 2026-09-05 — hub d'accueil : barre de jeu allégée — bouton « Accueil » (retour au menu
 //           via popUntil isFirst), retrait du multijoueur et des réglages (déplacés sur l'accueil).
 // Historique: 2026-09-05 01:10 — bilan d'un défi : bouton « Voir le classement » → LeaderboardScreen
 //           (week/size du défi actif). Accès direct au classement après avoir joué.
@@ -1307,7 +1309,8 @@ class _BilanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = metrics;
-    final perfect = m != null && m.perfectVision && hintCount == 0;
+    final assisted = hintCount > 0; // partie avec aide → pas de score de performance affiché
+    final perfect = m != null && m.perfectVision && !assisted;
 
     final primaryButton = onNextLevel == null
         ? FilledButton.icon(
@@ -1363,7 +1366,8 @@ class _BilanCard extends StatelessWidget {
                     const _PerfectBadge(),
                   ],
                   const SizedBox(height: 18),
-                  if (m != null) ...[
+                  if (m != null && !assisted) ...[
+                    // Partie SANS aide : les trois maillots (acuité plafonnée / fautes / temps).
                     _MaillotLine(
                       color: const Color(0xFFF2B705),
                       label: 'Acuité',
@@ -1372,34 +1376,34 @@ class _BilanCard extends StatelessWidget {
                     ),
                     _MaillotLine(
                       color: const Color(0xFFD64545),
-                      label: 'Coups',
-                      value: '${m.moves}',
-                      detail: 'minimum ${m.minMoves}',
+                      label: 'Fautes',
+                      value: '${m.faults}',
+                      detail: m.faults == 0 ? 'aucun cul-de-sac' : 'culs-de-sac',
                     ),
                     _MaillotLine(
                       color: const Color(0xFF2E9E5B),
                       label: 'Temps',
                       value: _mmss(m.timeSeconds),
                     ),
-                    _MaillotLine(
-                      color: Colors.white, // maillot blanc — sauvetages (§7)
-                      label: 'Help',
-                      value: '${m.rescues}',
-                      detail: m.rescues == 0 ? 'aucun sauvetage' : 'sauvetages rouge→jaune',
-                    ),
-                  ],
-                  if (hintCount > 0) ...[
-                    const SizedBox(height: 6),
+                  ] else if (m != null) ...[
+                    // Partie AVEC aide : pas de score de performance (§4.8). Temps seulement.
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.lightbulb, size: 16, color: Colors.orange),
-                        const SizedBox(width: 6),
+                        const Icon(Icons.lightbulb, size: 18, color: Colors.orange),
+                        const SizedBox(width: 8),
                         Text(
-                          '$hintCount aide${hintCount > 1 ? 's' : ''} — hors record',
-                          style: const TextStyle(color: Colors.orange, fontSize: 13),
+                          'Résolu avec $hintCount aide${hintCount > 1 ? 's' : ''}',
+                          style: const TextStyle(
+                              color: Colors.orange, fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    _MaillotLine(
+                      color: const Color(0xFF2E9E5B),
+                      label: 'Temps',
+                      value: _mmss(m.timeSeconds),
                     ),
                   ],
                   const SizedBox(height: 18),
@@ -1458,7 +1462,7 @@ class _MaillotLine extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.black26), // rend le maillot blanc visible
+              border: Border.all(color: Colors.black26), // léger bord pour détacher la pastille
             ),
           ),
           const SizedBox(width: 12),
