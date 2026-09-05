@@ -253,7 +253,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildScene(BoxConstraints constraints, Color Function(int) colorOf) {
     // Disposition du vrai jeu : barre d'isométrie EN HAUT, plateau au milieu, rack EN BAS.
     const gap = 18.0;
-    const toolbarH = 44.0;
+    const toolbarH = 64.0; // barre haute pour des icônes d'isométrie bien visibles
     const rackCells = kPieceToBoardCellRatio * 3; // hauteur du rack, en cases-équivalent
     final cellByW = constraints.maxWidth / kHomeBoardWidth;
     final cellByH = (constraints.maxHeight - toolbarH - gap * 2 - 24) /
@@ -491,7 +491,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
     if (opacity <= 0.01) return const SizedBox.shrink();
 
-    final iconSize = (toolbarH * 0.5).clamp(16.0, 28.0).toDouble();
+    final iconSize = (toolbarH * 0.62).clamp(22.0, 42.0).toDouble();
     final items = <(IconData, bool)>[
       (GameIcons.isometryRotationTW.icon, false),
       (GameIcons.isometryRotationCW.icon, inIso1),
@@ -513,8 +513,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             children: [
               for (final (icon, active) in items)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.all(5),
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: active ? Colors.amber : Colors.grey.shade200,
                     shape: BoxShape.circle,
