@@ -57,7 +57,7 @@ difficulté.
   (blanc)** fusionnent en **🔴 À pois — Fautes** = nombre de transitions soluble→insoluble
   (culs-de-sac), mathématiquement égal aux anciens sauvetages. `helpCount`→`faultCount`,
   `bestMoves`+`bestHelp`→`bestFaults` (schéma drift **10**, réécriture destructive), `Maillot` à
-  trois cas, serveur `scores.faults` (à **redéployer + réinit D1** par Paul — voir §ÉTAT défi).
+  trois cas, serveur `scores.faults` (**redéployé + D1 réinitialisée le 2026-09-05** — voir §ÉTAT défi).
   Bilan d'une **partie avec aide** (`hintCount>0`) : pas de maillots, message « Résolu avec N
   aide(s) » + temps. Docs : `MANUEL_DEFIS_ET_MAILLOTS.md` (réécrit, fait foi), CDC §4.1 (amendé).
 - **Phase 0 du défi hebdo (prérequis V1)** — PRNG du dépôt (`PentapolRng`, testé) et pause du
@@ -80,7 +80,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** ⚠️ **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — Paul doit REDÉPLOYER (`npm run deploy`) et RÉINITIALISER D1 (`npm run db:init:remote`, réécriture destructive OK, seule une ligne de test existe) avant les prochains scores.** Reste ensuite : composer/semer les vraies semaines (geste de Paul) |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — worker REDÉPLOYÉ (`Version ID a459eb84…`) et D1 RÉINITIALISÉE le 2026-09-05 (DROP `scores` puis `schema.sql` ; `challenges` intacte ; round-trip revalidé au curl : POST 201, doublon 409, leaderboard renvoie `faults`).** Reste : composer/semer les vraies semaines (geste de Paul) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
@@ -582,9 +582,10 @@ destructif), écrans bilan/records/leaderboard (3 maillots), `challenge_api` (`M
 jaune). `analyze lib test` **0 error/warning**, **49/49 tests** (dont cap d'acuité + `bestFaults`),
 `tsc --noEmit` OK. Docs alignées : `MANUEL_DEFIS_ET_MAILLOTS.md` (réécrit, fait foi), CDC §4.1
 (amendé, historique conservé), `BASE_LOCALE`, `CLOUDFLARE_CONFIG`, `FICHE_APP_STORE`,
-`CHECKLIST_APPSTORE` point 19 (caduc). **⚠️ Paul doit redéployer le worker + réinitialiser D1**
-(réécriture destructive OK, une seule ligne de test) avant les prochains scores. Commit à venir
-(doc + code même commit, MODUS_VIVENDI §5) ; bump version au commit+push.
+`CHECKLIST_APPSTORE` point 19 (caduc). Code + docs commités `3d6f8f0` ; fixes suivants (faute
+fantôme à la complétion, icône miroir de la vignette) commités `441411f`. **Serveur redéployé + D1
+réinitialisée le 2026-09-05** (DROP `scores` → `schema.sql`, worker `Version ID a459eb84…`,
+round-trip revalidé). Ce dernier point de doc est commité seul (doc sans code, MODUS_VIVENDI §5).
 
 **2026-09-04 — CLI → cowork (discussion défi : composition à la main, vérification, indicateur Help).** Décisions
 de Paul consignées dans `CAHIER_DES_CHARGES_V1.md` §7 (bloc « Révision du 2026-09-04 » en tête). **Aucun
