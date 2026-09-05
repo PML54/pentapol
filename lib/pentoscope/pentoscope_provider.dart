@@ -155,6 +155,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   ChallengeDefinition? _activeChallenge;
   final ChallengeApi _challengeApi = ChallengeApi();
 
+  /// Le défi en cours (semaine/taille), pour ouvrir son classement depuis le bilan. null hors défi.
+  ChallengeDefinition? get activeChallenge => _activeChallenge;
+
   // ⏱️ Timer
   
   // ============================================================================

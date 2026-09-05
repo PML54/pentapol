@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 15:57 — bilan : 4e maillot BLANC (Help / sauvetages rouge→jaune) ajouté à la
+// Modified: 2026-09-05 01:10 — bilan d'un défi : bouton « Voir le classement » → LeaderboardScreen
+//           (week/size du défi actif). Accès direct au classement après avoir joué.
+// Historique: 2026-09-04 15:57 — bilan : 4e maillot BLANC (Help / sauvetages rouge→jaune) ajouté à la
 //           carte ; pastille bordée pour rendre le blanc visible.
 // Historique: 2026-09-04 07:05 — carte de bilan DÉPLAÇABLE au doigt (poignée + _bilanOffset, recentré
 //           au prochain bilan) — choix de Paul.
@@ -85,6 +87,7 @@ import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
+import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
@@ -737,6 +740,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final canNext = state.isProgression &&
         state.puzzle != null &&
         state.puzzle!.size != sizeForLevel(kMaxLevel);
+    // Défi : proposer de voir le classement (on vient d'y soumettre son score).
+    final challenge = state.isRanked ? notifier.activeChallenge : null;
     return Center(
       child: Transform.translate(
         offset: _bilanOffset,
@@ -746,6 +751,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           child: _BilanCard(
             metrics: notifier.computeCompletionMetrics(), // trois maillots (CDC §4.5)
             hintCount: state.hintCount,
+            onLeaderboard: challenge == null
+                ? null
+                : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LeaderboardScreen(
+                            week: challenge.week, size: challenge.size),
+                      ),
+                    ),
             onClose: () => setState(() => _bilanFerme = true),
             onNewGame: () {
               HapticFeedback.mediumImpact();
@@ -1282,6 +1296,9 @@ class _BilanCard extends StatelessWidget {
 
   /// Aides utilisées : si > 0, la partie n'est pas « propre » (hors record, §4.8).
   final int hintCount;
+
+  /// Défi : ouvrir le classement (on vient d'y soumettre son score). null hors défi.
+  final VoidCallback? onLeaderboard;
   final VoidCallback onClose;
   final VoidCallback onNewGame;
 
@@ -1292,6 +1309,7 @@ class _BilanCard extends StatelessWidget {
   const _BilanCard({
     required this.metrics,
     required this.hintCount,
+    this.onLeaderboard,
     required this.onClose,
     required this.onNewGame,
     this.onNextLevel,
@@ -1402,6 +1420,17 @@ class _BilanCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 18),
+                  if (onLeaderboard != null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.tonalIcon(
+                        onPressed: onLeaderboard,
+                        icon: const Icon(Icons.leaderboard_outlined, size: 18),
+                        label: const Text('Voir le classement'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
