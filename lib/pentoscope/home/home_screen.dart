@@ -1,6 +1,11 @@
-// Modified: 2026-09-04 06:56 — défi hebdo Phase 2 : bouton drapeau dans l'en-tête → ChallengeScreen
-//           (choix de taille du défi de la semaine).
+// Modified: 2026-09-05 — vignette « une pièce, deux isométries, une pose » : l'animation-démo montre
+//           les autres pièces déjà posées + UNE pièce du rack sélectionnée (halo) → rotation (iso 1)
+//           → miroir (iso 2), avec les VRAIES icônes d'isométrie surlignées → montée/pose. Boucle en
+//           changeant de tirage/pièce. Remplace l'ancien remplissage multi-pièces. Onboarding + met
+//           en avant la barre d'isométrie (découvrabilité, REFERENCE_ISOMETRIES §4).
 // lib/pentoscope/home/home_screen.dart
+// Historique: 2026-09-04 06:56 — défi hebdo Phase 2 : bouton drapeau dans l'en-tête → ChallengeScreen
+//           (choix de taille du défi de la semaine).
 // Historique: 2026-09-04 06:05 — records perso C : bouton trophée dans l'en-tête → RecordsScreen
 //           (écran de lecture des trois maillots).
 // Historique: 2026-09-02 20:37 — progression : label « Niveau N » sous la démo ; « Jouer » enchaîne
@@ -18,6 +23,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
+import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/screens/records_screen.dart';
@@ -41,21 +47,14 @@ class _Placement {
       this.wCells, this.hCells);
 }
 
-/// Fenêtres temporelles (secondes) d'une pièce dans la boucle (§2).
-class _Span {
-  final double rotStart;
-  final double rotEnd;
-  final double riseStart;
-  final double riseEnd;
-  const _Span(this.rotStart, this.rotEnd, this.riseStart, this.riseEnd);
-}
-
-// Durées (§2), en secondes.
-const double _kRotPerQuarter = 0.40;
-const double _kGapRotToRise = 0.18;
-const double _kRiseDur = 0.66;
-const double _kBetweenPieces = 0.18;
-const double _kFinalPause = 2.0;
+// Vignette « une pièce, deux isométries, une pose ». Une pièce du rack est sélectionnée (halo),
+// tournée (icône rotation), retournée (icône miroir), puis montée à sa place. Fractions de la
+// boucle (0..1) où finit chaque phase.
+const int _kLoopMs = 6000;
+const double _kSelectEnd = 0.16; // sélection + halo
+const double _kIso1End = 0.42; // 1re isométrie : rotation
+const double _kIso2End = 0.68; // 2e isométrie : miroir
+const double _kRiseEnd = 0.88; // montée + pose  (0.88..1.0 : maintien)
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -73,9 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final List<List<_Placement>> _tirages;
 
   int _tirageIndex = 0;
-  List<int> _quarters = const []; // quarts d'écart initiaux, par pièce, pour la boucle courante
-  List<_Span> _spans = const [];
-  double _loopDuration = 1;
+  int _demoIndex = 0; // quelle pièce du tirage fait la démo (le reste est déjà posé)
 
   bool get _reduceMotion =>
       MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -113,34 +110,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _startLoop() {
-    _prepareLoop();
+    // Une pièce au hasard fait la démo ; les autres sont déjà posées (case laissée vide = la cible).
+    _demoIndex = _rng.nextInt(_tirages[_tirageIndex].length);
     _controller
-      ..duration = Duration(milliseconds: (_loopDuration * 1000).round())
+      ..duration = const Duration(milliseconds: _kLoopMs)
       ..forward(from: 0);
   }
 
   void _nextTirage() {
     if (!mounted) return;
+    // Tirage suivant (autre pièce-démo au prochain _startLoop).
     setState(() => _tirageIndex = (_tirageIndex + 1) % _tirages.length);
     _startLoop();
-  }
-
-  /// Prépare les quarts d'écart et la chronologie de la boucle courante.
-  void _prepareLoop() {
-    final pieces = _tirages[_tirageIndex];
-    _quarters = [for (var _ in pieces) 1 + _rng.nextInt(3)]; // 1..3
-    final spans = <_Span>[];
-    double t = 0;
-    for (int i = 0; i < pieces.length; i++) {
-      final rotStart = t;
-      final rotEnd = rotStart + _quarters[i] * _kRotPerQuarter;
-      final riseStart = rotEnd + _kGapRotToRise;
-      final riseEnd = riseStart + _kRiseDur;
-      spans.add(_Span(rotStart, rotEnd, riseStart, riseEnd));
-      t = riseEnd + _kBetweenPieces;
-    }
-    _spans = spans;
-    _loopDuration = (spans.last.riseEnd + _kFinalPause).clamp(0.5, 60.0);
   }
 
   // ── Géométrie des pièces ────────────────────────────────────────────────────
@@ -290,8 +271,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
-          final elapsed =
-              _reduceMotion ? _loopDuration : _controller.value * _loopDuration;
+          final f = _reduceMotion ? 1.0 : _controller.value;
           final pieces = _tirages[_tirageIndex];
           return Stack(
             clipBehavior: Clip.none,
@@ -302,20 +282,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 top: 0,
                 child: _buildBoardBackdrop(boardW, boardH, cell),
               ),
-              // Pièces (miniatures → posées).
+              // Les autres pièces sont DÉJÀ posées (la case de la pièce-démo reste vide = la cible).
               for (int i = 0; i < pieces.length; i++)
-                _buildAnimatedPiece(
-                  pieces[i],
-                  i,
-                  pieces.length,
-                  cell,
-                  boardH,
-                  gap,
-                  stripH,
-                  sceneW,
-                  elapsed,
-                  colorOf,
-                ),
+                if (i != _demoIndex) _buildPlacedPiece(pieces[i], cell, colorOf),
+              // La pièce-démo : sélection (halo) → rotation → miroir → montée + pose.
+              _buildDemoPiece(pieces[_demoIndex], f, cell, boardH, gap, stripH,
+                  sceneW, colorOf),
+              // La barre d'isométrie (vraies icônes), surlignée pendant les isométries.
+              if (!_reduceMotion)
+                _buildIsoToolbar(f, cell, boardH, gap, sceneW),
             ],
           );
         },
@@ -355,63 +330,151 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildAnimatedPiece(
-    _Placement pl,
-    int index,
-    int count,
-    double cell,
-    double boardH,
-    double gap,
-    double stripH,
-    double sceneW,
-    double elapsed,
-    Color Function(int) colorOf,
-  ) {
-    final span = _reduceMotion ? null : _spans[index];
-    final quarters = _reduceMotion ? 0 : _quarters[index];
-
-    // Progrès des deux phases.
-    final rotP = span == null
-        ? 1.0
-        : ((elapsed - span.rotStart) / (span.rotEnd - span.rotStart))
-            .clamp(0.0, 1.0);
-    final riseP = span == null
-        ? 1.0
-        : ((elapsed - span.riseStart) / (span.riseEnd - span.riseStart))
-            .clamp(0.0, 1.0);
-
-    // Taille du widget PieceRenderer à taille réelle (cellSize = cell).
+  /// Une pièce déjà posée à sa place sur le plateau (statique, pièces nues §1).
+  Widget _buildPlacedPiece(
+      _Placement pl, double cell, Color Function(int) colorOf) {
     final fullW = pl.wCells * cell + 8;
     final fullH = pl.hCells * cell + 8;
+    final center = Offset(
+      (pl.anchorX + pl.wCells / 2) * cell,
+      (pl.anchorY + pl.hCells / 2) * cell,
+    );
+    return Positioned(
+      left: center.dx - fullW / 2,
+      top: center.dy - fullH / 2,
+      child: PieceRenderer(
+        piece: pl.pento,
+        positionIndex: pl.orientation,
+        getPieceColor: colorOf,
+        cellSize: cell,
+        showLabel: false,
+      ),
+    );
+  }
 
-    // Centre final : au milieu de la zone de cases occupée sur le plateau.
+  /// La pièce-démo : dans le rack avec un halo de sélection, tournée (iso 1), retournée (iso 2),
+  /// puis montée + posée à sa place. `f` = progression de la boucle (0..1).
+  Widget _buildDemoPiece(_Placement pl, double f, double cell, double boardH,
+      double gap, double stripH, double sceneW, Color Function(int) colorOf) {
+    final selectP = (f / _kSelectEnd).clamp(0.0, 1.0);
+    final iso1 =
+        ((f - _kSelectEnd) / (_kIso1End - _kSelectEnd)).clamp(0.0, 1.0);
+    final iso2 = ((f - _kIso1End) / (_kIso2End - _kIso1End)).clamp(0.0, 1.0);
+    final rise = ((f - _kIso2End) / (_kRiseEnd - _kIso2End)).clamp(0.0, 1.0);
+
+    // Taille de case : miniature dans le rack, pleine une fois posée.
+    final effCell = cell * _lerp(kPieceToBoardCellRatio, 1.0, rise);
+    final fullW = pl.wCells * effCell + 8;
+    final fullH = pl.hCells * effCell + 8;
+
     final finalCenter = Offset(
       (pl.anchorX + pl.wCells / 2) * cell,
       (pl.anchorY + pl.hCells / 2) * cell,
     );
-    // Centre de départ : réparti sur la bande basse.
-    final slotCenter = Offset(
-      sceneW * (index + 1) / (count + 1),
-      boardH + gap + stripH / 2,
-    );
+    final rackCenter = Offset(sceneW / 2, boardH + gap + stripH / 2);
+    final center = Offset.lerp(rackCenter, finalCenter, rise)!;
 
-    final center = Offset.lerp(slotCenter, finalCenter, riseP)!;
-    final scale = _lerp(kPieceToBoardCellRatio, 1.0, riseP);
-    final angle = (1 - rotP) * quarters * (math.pi / 2);
+    final angle = (1 - iso1) * (math.pi / 2); // rotation d'un quart, défaite à l'iso 1
+    final mirrorX = _lerp(-1.0, 1.0, iso2); // miroir horizontal, défait à l'iso 2
+    final halo = (selectP * (1 - rise)).clamp(0.0, 1.0);
 
     return Positioned(
       left: center.dx - fullW / 2,
       top: center.dy - fullH / 2,
-      child: Transform.rotate(
-        angle: angle,
-        child: Transform.scale(
-          scale: scale,
-          child: PieceRenderer(
-            piece: pl.pento,
-            positionIndex: pl.orientation,
-            getPieceColor: colorOf,
-            cellSize: cell,
-            showLabel: false, // accueil : pièces nues (PLAN_ECRAN_ACCUEIL §1)
+      width: fullW,
+      height: fullH,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: halo > 0.02
+              ? [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.55 * halo),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  )
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Transform.rotate(
+            angle: angle, // iso 1 : rotation d'un quart
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.diagonal3Values(mirrorX, 1.0, 1.0), // iso 2 : miroir horizontal
+              child: PieceRenderer(
+                piece: pl.pento,
+                positionIndex: pl.orientation,
+                getPieceColor: colorOf,
+                cellSize: effCell,
+                showLabel: false,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// La barre d'isométrie (VRAIES icônes du jeu), surlignée sur l'icône active pendant chaque
+  /// isométrie — c'est l'info à faire découvrir. Fondu au début, disparaît à la montée.
+  Widget _buildIsoToolbar(
+      double f, double cell, double boardH, double gap, double sceneW) {
+    final inIso1 = f >= _kSelectEnd && f < _kIso1End; // rotation
+    final inIso2 = f >= _kIso1End && f < _kIso2End; // miroir
+    double opacity;
+    if (f < _kSelectEnd * 0.4) {
+      opacity = 0;
+    } else if (f < _kSelectEnd) {
+      opacity = ((f - _kSelectEnd * 0.4) / (_kSelectEnd * 0.6)).clamp(0.0, 1.0);
+    } else if (f < _kIso2End) {
+      opacity = 1;
+    } else {
+      opacity = (1 - (f - _kIso2End) / 0.06).clamp(0.0, 1.0);
+    }
+    if (opacity <= 0.01) return const SizedBox.shrink();
+
+    final iconSize = (cell * 0.42).clamp(16.0, 30.0).toDouble();
+    final items = <(IconData, bool)>[
+      (GameIcons.isometryRotationTW.icon, false),
+      (GameIcons.isometryRotationCW.icon, inIso1),
+      (GameIcons.isometrySymmetryH.icon, inIso2),
+      (GameIcons.isometrySymmetryV.icon, false),
+    ];
+
+    return Positioned(
+      top: boardH + gap * 0.12,
+      left: 0,
+      width: sceneW,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: opacity,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final (icon, active) in items)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: active ? Colors.amber : Colors.grey.shade200,
+                    shape: BoxShape.circle,
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                                color: Colors.amber.withValues(alpha: 0.6),
+                                blurRadius: 10,
+                                spreadRadius: 1)
+                          ]
+                        : null,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: iconSize * (active ? 1.15 : 1.0),
+                    color: active ? Colors.white : Colors.black45,
+                  ),
+                ),
+            ],
           ),
         ),
       ),

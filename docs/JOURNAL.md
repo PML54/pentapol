@@ -240,6 +240,17 @@ Deux ajouts, sur retour de Paul.
 (solo) est **dormant** (`_showOpponentOverlay` jamais mis à `true`) et **simulé** ; le vrai mini du
 duel vit dans `PentoscopeMpGameScreen` et utilise des données réelles.
 
+### Vignette d'accueil (2026-09-05) — « une pièce, deux isométries, une pose »
+
+L'animation-démo a été **remplacée** (choix de Paul, après avis) : au lieu du remplissage multi-pièces,
+elle montre les autres pièces **déjà posées** + **une** pièce du rack **sélectionnée** (halo) →
+**rotation** (iso 1) → **miroir** (iso 2), avec les **vraies icônes d'isométrie** (`GameIcons`)
+surlignées → **montée + pose**. Boucle ~6 s en changeant de tirage/pièce. But : onboarding **et** mise
+en avant de la barre d'isométrie (découvrabilité, `REFERENCE_ISOMETRIES §4` : 42,9 % des 1res parties
+insolubles sans le miroir). Constantes de réglage : `_kLoopMs`, `_kSelectEnd`, `_kIso1End`, `_kIso2End`,
+`_kRiseEnd` dans `home_screen.dart`. `analyze` 0/0, 50/50. **À valider sur device** (timing, tailles,
+lisibilité du flip).
+
 ### Écran d'accueil (2026-09-02) — implémenté (PLAN_ECRAN_ACCUEIL)
 
 L'écran d'accueil du plan est implémenté et vérifié au **simulateur** (pas encore device). `main.dart`
