@@ -471,6 +471,11 @@ workers (duel WebSocket *hors dépôt* ; défi `pentapol-defi` dans `server/`), 
 base D1 `7ea667b1…`, secret `SEED_TOKEN`), le flux de données, et les commandes courantes (déployer,
 init D1, secret, semer, inspecter/purger). Le `SEED_TOKEN` n'y figure pas (secret non relisible).
 
+`BASE_LOCALE.md` (neuf, 2026-09-05) — miroir côté appareil : la base drift/SQLite locale
+(`pentapol_settings.db`, `schemaVersion 9`, réécriture destructive), les quatre tables (`Settings` =
+AppSettings JSON dont `playerId` ; `CurrentGame` ; `SolvedSolutions` ; `PuzzleStats`), quand c'est
+écrit/effacé, et ce qui n'est PAS stocké. Reflète le schéma courant.
+
 `FONCTIONNEMENT.md` est la description de référence de l'application — elle absorbe depuis
 le 2026-08-31 l'ancien `PENTOSCOPE.md`, devenu un doublon partiel une fois qu'il n'est resté
 qu'un module de jeu. `UI_PROPERTIES_GUIDE.md`, guide Flutter générique sans rapport avec
