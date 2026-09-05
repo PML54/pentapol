@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 — hub d'accueil : bouton « Multijoueur » ajouté sous « Jouer » (→ lobby duel).
+// Modified: 2026-09-05 17:58 — vignette : icône de miroir surlignée corrigée — la démo fait un flip
+//           gauche↔droite (scaleX=-1 = SymV/swap_horiz), on surligne donc SymV et non SymH.
+// Historique: 2026-09-05 — hub d'accueil : bouton « Multijoueur » ajouté sous « Jouer » (→ lobby duel).
 //           Avec le drapeau/trophée/engrenage de l'en-tête, l'accueil devient le hub de navigation.
 // Historique: 2026-09-05 — vignette « une pièce, deux isométries, une pose » : l'animation-démo montre
 //           les autres pièces déjà posées + UNE pièce du rack sélectionnée (halo) → rotation (iso 1)
@@ -482,7 +484,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             angle: angle, // iso 1 : rotation d'un quart
             child: Transform(
               alignment: Alignment.center,
-              transform: Matrix4.diagonal3Values(mirrorX, 1.0, 1.0), // iso 2 : miroir horizontal
+              transform: Matrix4.diagonal3Values(mirrorX, 1.0, 1.0), // iso 2 : miroir gauche↔droite (SymV)
               child: PieceRenderer(
                 piece: pl.pento,
                 positionIndex: pl.orientation,
@@ -523,8 +525,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final items = <(IconData, bool)>[
       (GameIcons.isometryRotationTW.icon, false),
       (GameIcons.isometryRotationCW.icon, rotActive),
-      (GameIcons.isometrySymmetryH.icon, mirrorActive),
-      (GameIcons.isometrySymmetryV.icon, false),
+      (GameIcons.isometrySymmetryH.icon, false),
+      // La démo applique scaleX = -1 (miroir gauche↔droite) = SymV (swap_horiz), pas SymH.
+      (GameIcons.isometrySymmetryV.icon, mirrorActive),
     ];
 
     return Positioned(

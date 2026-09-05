@@ -1,4 +1,7 @@
-// Modified: 2026-09-05 17:24 — refonte « A » : helpCount→faultCount, _bumpFault compte les fautes
+// Modified: 2026-09-05 17:42 — fix faute fantôme : le coup qui COMPLÈTE le plateau vidait
+//           availablePieces → hasPossibleSolution passait à faux (pris pour un cul-de-sac) et
+//           comptait +1 faute. La complétion (isComplete) ne compte plus jamais de faute.
+// Historique: 2026-09-05 17:24 — refonte « A » : helpCount→faultCount, _bumpFault compte les fautes
 //           (soluble→insoluble) aux 4 sites, computeCompletionMetrics/_saveCompletionRecord/
 //           _submitChallengeScore passent `faults` (moves/help/deleteCount retirés).
 // Historique: 2026-09-05 00:35 — défi : startWeeklyChallenge tente la définition composée à la main du
@@ -1261,7 +1264,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount, // 🔢
       elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
-      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (déplacement)
+      // 🔴 faute ? Le coup qui COMPLÈTE le plateau vide `availablePieces` → `hasPossibleSolution`
+      //    devient faux (§_solutionStatus) : ce n'est pas un cul-de-sac mais la VICTOIRE. On ne
+      //    compte donc jamais de faute sur la complétion.
+      faultCount: isComplete
+          ? state.faultCount
+          : _bumpFault(state.hasPossibleSolution, hasPossibleSolution),
     );
 
     // 💾 À la complétion : enregistrer le record et effacer la partie en cours. Sinon,
