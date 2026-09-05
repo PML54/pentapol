@@ -246,7 +246,10 @@ L'animation-démo a été **remplacée** (choix de Paul, après avis), **disposi
 **barre d'isométrie EN HAUT** (vraies icônes `GameIcons`, surlignées pendant chaque isométrie),
 **plateau au milieu** (vide, avec une **case-cible fantôme**), **rack EN BAS** contenant **toutes les
 pièces** du tirage en minis. Une pièce (la démo) est **sélectionnée** (halo) → **rotation** (iso 1) →
-**miroir** (iso 2) → **montée** du rack jusqu'à sa case. Boucle ~6 s en changeant de tirage/pièce. But : onboarding **et** mise
+**miroir** (iso 2) → **montée** du rack jusqu'à sa case. Boucle **~10 s** (ralentie, avec pauses) en
+changeant de tirage/pièce. **Pièces symétriques** (ex. le U) : la 2e isométrie devient une **2e
+rotation** (`_mirrorChanges` : le miroir ne serait pas visible) → jamais d'isométrie sans effet ;
+l'icône surlignée suit (rotation vs miroir). But : onboarding **et** mise
 en avant de la barre d'isométrie (découvrabilité, `REFERENCE_ISOMETRIES §4` : 42,9 % des 1res parties
 insolubles sans le miroir). Constantes de réglage : `_kLoopMs`, `_kSelectEnd`, `_kIso1End`, `_kIso2End`,
 `_kRiseEnd` dans `home_screen.dart`. `analyze` 0/0, 50/50. **À valider sur device** (timing, tailles,

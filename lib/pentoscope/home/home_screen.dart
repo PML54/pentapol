@@ -50,11 +50,12 @@ class _Placement {
 // Vignette « une pièce, deux isométries, une pose ». Une pièce du rack est sélectionnée (halo),
 // tournée (icône rotation), retournée (icône miroir), puis montée à sa place. Fractions de la
 // boucle (0..1) où finit chaque phase.
-const int _kLoopMs = 6000;
-const double _kSelectEnd = 0.16; // sélection + halo
-const double _kIso1End = 0.42; // 1re isométrie : rotation
-const double _kIso2End = 0.68; // 2e isométrie : miroir
-const double _kRiseEnd = 0.88; // montée + pose  (0.88..1.0 : maintien)
+const int _kLoopMs = 10000; // boucle lente (démo pédagogique)
+// Fractions de la boucle (0..1). Des pauses (dwell) séparent les phases pour laisser lire.
+const double _kSelectEnd = 0.14; // sélection + halo
+const double _kIso1Start = 0.22, _kIso1End = 0.42; // 1re isométrie
+const double _kIso2Start = 0.52, _kIso2End = 0.72; // 2e isométrie
+const double _kRiseStart = 0.80, _kRiseEnd = 0.94; // montée + pose (0.94..1.0 : maintien)
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -72,7 +73,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final List<List<_Placement>> _tirages;
 
   int _tirageIndex = 0;
-  int _demoIndex = 0; // quelle pièce du tirage fait la démo (le reste est déjà posé)
+  int _demoIndex = 0; // quelle pièce du tirage fait la démo
+  bool _demoUseMirror = false; // 2e isométrie = miroir (si visible) sinon 2e rotation
 
   bool get _reduceMotion =>
       MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -110,8 +112,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _startLoop() {
-    // Une pièce au hasard fait la démo ; les autres sont déjà posées (case laissée vide = la cible).
+    // Une pièce au hasard fait la démo ; les autres restent dans le rack.
     _demoIndex = _rng.nextInt(_tirages[_tirageIndex].length);
+    // 2e isométrie = miroir seulement s'il CHANGE la pièce (sinon 2e rotation, toujours visible :
+    // le U/pièce 7 est symétrique par miroir → le miroir ne ferait rien).
+    _demoUseMirror = _mirrorChanges(_tirages[_tirageIndex][_demoIndex]);
     _controller
       ..duration = const Duration(milliseconds: _kLoopMs)
       ..forward(from: 0);
@@ -152,6 +157,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
       return _Placement(pento, oi, minX, minY, maxX - minX + 1, maxY - minY + 1);
     }).toList();
+  }
+
+  /// Le miroir horizontal change-t-il la pièce (à son orientation posée) ? Faux pour une pièce
+  /// symétrique (ex. le U) — auquel cas la démo utilise une 2e rotation à la place.
+  bool _mirrorChanges(_Placement pl) {
+    final cells = pl.pento.orientations[pl.orientation]
+        .map((n) => [(n - 1) % 5, (n - 1) ~/ 5])
+        .toList();
+    final flipped = [for (final c in cells) [-c[0], c[1]]];
+    return _normKey(flipped) != _normKey(cells);
   }
 
   String _normKey(List<List<int>> cells) {
@@ -414,9 +429,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       Color Function(int) colorOf) {
     final selectP = (f / _kSelectEnd).clamp(0.0, 1.0);
     final iso1 =
-        ((f - _kSelectEnd) / (_kIso1End - _kSelectEnd)).clamp(0.0, 1.0);
-    final iso2 = ((f - _kIso1End) / (_kIso2End - _kIso1End)).clamp(0.0, 1.0);
-    final rise = ((f - _kIso2End) / (_kRiseEnd - _kIso2End)).clamp(0.0, 1.0);
+        ((f - _kIso1Start) / (_kIso1End - _kIso1Start)).clamp(0.0, 1.0);
+    final iso2 =
+        ((f - _kIso2Start) / (_kIso2End - _kIso2Start)).clamp(0.0, 1.0);
+    final rise = ((f - _kRiseStart) / (_kRiseEnd - _kRiseStart)).clamp(0.0, 1.0);
 
     // Taille de case : miniature dans le rack, pleine une fois posée.
     final effCell = cell * _lerp(kPieceToBoardCellRatio, 1.0, rise);
@@ -432,8 +448,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
     final center = Offset.lerp(rackCenter, boardCenter, rise)!;
 
-    final angle = (1 - iso1) * (math.pi / 2); // rotation d'un quart, défaite à l'iso 1
-    final mirrorX = _lerp(-1.0, 1.0, iso2); // miroir horizontal, défait à l'iso 2
+    // Rotation : 1 quart si la 2e isométrie est un miroir ; sinon 2 quarts (les deux isométries
+    // sont des rotations — cas des pièces symétriques comme le U). Chaque quart est défait à son iso.
+    final startQuarters = _demoUseMirror ? 1 : 2;
+    final quartersLeft = startQuarters - iso1 - (_demoUseMirror ? 0.0 : iso2);
+    final angle = quartersLeft * (math.pi / 2);
+    final mirrorX = _demoUseMirror ? _lerp(-1.0, 1.0, iso2) : 1.0;
     final halo = (selectP * (1 - rise)).clamp(0.0, 1.0);
 
     return Positioned(
@@ -477,13 +497,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// La barre d'isométrie (VRAIES icônes du jeu), surlignée sur l'icône active pendant chaque
   /// isométrie — c'est l'info à faire découvrir. Fondu au début, disparaît à la montée.
   Widget _buildIsoToolbar(double f, double toolbarH, double sceneW) {
-    final inIso1 = f >= _kSelectEnd && f < _kIso1End; // rotation
-    final inIso2 = f >= _kIso1End && f < _kIso2End; // miroir
+    final inIso1 = f >= _kIso1Start && f < _kIso1End;
+    final inIso2 = f >= _kIso2Start && f < _kIso2End;
+    // Icône active : rotation pendant iso 1 (et iso 2 si la 2e isométrie est une rotation) ;
+    // miroir seulement quand la 2e isométrie est un miroir.
+    final rotActive = inIso1 || (inIso2 && !_demoUseMirror);
+    final mirrorActive = inIso2 && _demoUseMirror;
+
     double opacity;
-    if (f < _kSelectEnd * 0.4) {
+    if (f < _kIso1Start - 0.06) {
       opacity = 0;
-    } else if (f < _kSelectEnd) {
-      opacity = ((f - _kSelectEnd * 0.4) / (_kSelectEnd * 0.6)).clamp(0.0, 1.0);
+    } else if (f < _kIso1Start) {
+      opacity = ((f - (_kIso1Start - 0.06)) / 0.06).clamp(0.0, 1.0);
     } else if (f < _kIso2End) {
       opacity = 1;
     } else {
@@ -494,8 +519,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final iconSize = (toolbarH * 0.62).clamp(22.0, 42.0).toDouble();
     final items = <(IconData, bool)>[
       (GameIcons.isometryRotationTW.icon, false),
-      (GameIcons.isometryRotationCW.icon, inIso1),
-      (GameIcons.isometrySymmetryH.icon, inIso2),
+      (GameIcons.isometryRotationCW.icon, rotActive),
+      (GameIcons.isometrySymmetryH.icon, mirrorActive),
       (GameIcons.isometrySymmetryV.icon, false),
     ];
 
