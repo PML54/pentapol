@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 00:05 — défi Phase 4/5 : à la complétion d'un défi (isRanked), POST du score
+// Modified: 2026-09-05 00:35 — défi : startWeeklyChallenge tente la définition composée à la main du
+//           serveur (fetchChallenge) avant de dériver localement (§7 Acté 1).
+// Historique: 2026-09-05 00:05 — défi Phase 4/5 : à la complétion d'un défi (isRanked), POST du score
 //           au serveur (_submitChallengeScore via ChallengeApi ; _activeChallenge porte week/size,
 //           grille sérialisée pour l'audit). Fire-and-forget, échec silencieux (§7.8).
 // Historique: 2026-09-04 16:10 — records perso : _saveCompletionRecord passe help=metrics.rescues
@@ -863,6 +865,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// du générateur) puis [startChallenge]. `week` par défaut = la semaine courante.
   Future<void> startWeeklyChallenge(PentoscopeSize size, {int? week}) async {
     final w = week ?? weeksSinceEpoch(DateTime.now());
+    // Composition à la main : le serveur fait autorité (§7 Acté 1). On tente sa définition ; à
+    // défaut (404 non composé, ou hors ligne) on dérive localement — le défaut algorithmique,
+    // identique au serveur tant qu'une semaine n'est pas composée à la main.
+    final fetched =
+        await _challengeApi.fetchChallenge(version: kChallengeVersion, week: w, size: size);
+    if (fetched != null) {
+      await startChallenge(fetched);
+      return;
+    }
     final masks = await _generator.solubleMasksFor(size);
     await startChallenge(
         deriveChallenge(week: w, size: size, solubleMasks: masks));

@@ -77,9 +77,24 @@ Choix retenu ici : **`POST /challenge` est gardé par `SEED_TOKEN`.** Conséquen
   (ne pas définir `SEED_TOKEN`), au prix du risque d'empoisonnement — **non recommandé**. À
   reconsigner dans le CDC si tu changes d'avis.
 
-## Reste à faire (côté app, prochaines étapes)
+## Côté app — fait
 
-- **Intégration client** : `ensurePlayerId()` (déjà là) + un service HTTP qui POST le score à la
-  complétion d'un défi et GET les tableaux. Non écrit tant que l'endpoint n'est pas déployé/testé.
-- **Phase 5 (UI)** : afficher les quatre classements (une vue, onglets/podiums), dégradation
-  gracieuse si le serveur ne répond pas (§7.8 : jamais de bouton mort).
+- **Identité 128 bits** (`ensurePlayerId`), **soumission auto** du score à la complétion d'un défi,
+  et **fetch de la définition composée** (`GET /challenge`, repli sur la dérivation locale).
+- **Phase 5 (UI)** : `LeaderboardScreen` — quatre classements (onglets), joueur courant surligné,
+  dégradation gracieuse (§7.8).
+
+## Semer les défis d'une semaine
+
+Pour remplir les semaines **non composées à la main** (le serveur a alors le rack pour l'audit, et
+tout est cohérent avec ce que le client dérive), un semeur Dart dérive les six défis et les POST :
+
+```bash
+# depuis la racine du dépôt (pas server/)
+dart run tools/seed_challenges.dart --dry-run --week=35      # aperçu, ne POST pas
+dart run tools/seed_challenges.dart --token=<SEED_TOKEN>     # sème la semaine courante
+```
+
+Il **auto-contrôle** sa dérivation contre le digest gelé du test (refuse de tourner s'il a divergé
+de `lib/challenge.dart`). Pour **composer à la main** une semaine, POST ta propre définition
+`{version, week, size, mask, rack}` avec le même en-tête `Authorization: Bearer <SEED_TOKEN>`.

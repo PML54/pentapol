@@ -1,12 +1,16 @@
-// Modified: 2026-09-05 00:00 — création : client HTTP du classement du défi (CDC §7, Phase 4/5).
+// Modified: 2026-09-05 00:35 — fetchChallenge (GET /challenge) : récupère la définition composée à
+//           la main (§7 Acté 1), null si non composée → l'appelant dérive localement.
+// lib/pentoscope/challenge_api.dart
+// Historique: 2026-09-05 00:00 — création : client HTTP du classement du défi (CDC §7, Phase 4/5).
 //           POST du score à la fin d'un défi, GET des classements. Échecs silencieux (§7.8 : le jeu
 //           reste entier sans réseau — jamais de bouton mort).
-// lib/pentoscope/challenge_api.dart
 
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:pentapol/pentoscope/challenge.dart';
+import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 
 /// URL du worker de classement (déployé par Paul). Distinct du worker duel (WebSocket).
 const String kChallengeBaseUrl = 'https://pentapol-defi.pentapml.workers.dev';
@@ -96,6 +100,38 @@ class ChallengeApi {
     } catch (e) {
       debugPrint('❌ submitScore échoué: $e');
       return false;
+    }
+  }
+
+  /// La définition **composée à la main** d'un défi (§7 Acté 1), ou `null` si le serveur n'en a
+  /// pas (404) ou est injoignable → l'appelant retombe sur la dérivation locale. Reconstruit un
+  /// `ChallengeDefinition` depuis `{mask, rack}`.
+  Future<ChallengeDefinition?> fetchChallenge({
+    required int version,
+    required int week,
+    required PentoscopeSize size,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/challenge').replace(queryParameters: {
+        'version': '$version',
+        'week': '$week',
+        'size': '${size.index}',
+      });
+      final resp = await _client.get(uri).timeout(const Duration(seconds: 6));
+      if (resp.statusCode != 200) return null; // 404 = non composé → dériver localement
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final mask = (data['mask'] as num).toInt();
+      final rack = (data['rack'] as Map<String, dynamic>)
+          .map((k, v) => MapEntry(int.parse(k), (v as num).toInt()));
+      final pieceIds = <int>[
+        for (int id = 1; id <= 12; id++)
+          if (mask & (1 << (id - 1)) != 0) id,
+      ];
+      return ChallengeDefinition(
+          week: week, size: size, mask: mask, pieceIds: pieceIds, orientations: rack);
+    } catch (e) {
+      debugPrint('❌ fetchChallenge échoué: $e');
+      return null;
     }
   }
 
