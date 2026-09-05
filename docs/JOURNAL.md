@@ -70,7 +70,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 code écrit** (`server/` : worker TS + schéma D1 + wrangler + README, modèle **confiance client** — pas de recalcul minIso, grille stockée pour audit) — **à déployer par Paul**. **Reste** : intégration client HTTP (POST score/GET tableau) + **Phase 5** (UI des 4 classements) |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Reste** : **Phase 5** (UI des 4 classements) + fetch `GET /challenge` (composition) + script Dart de semage |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
@@ -450,9 +450,15 @@ Endpoints : `POST /score` (essai unique par clé primaire `(version,week,size,pl
 `GET /leaderboard?maillot=jaune|pois|vert|blanc`, `GET/POST /challenge` (définition composée à la main,
 `POST` gardé par `SEED_TOKEN` pour éviter l'empoisonnement — **révise Acté 1bis** : l'amorçage n'est
 plus ouvert au premier joueur mais réservé à un semeur de confiance, cf. `server/README.md`).
-**À déployer par Paul** (wrangler ; le CLI n'a pas Cloudflare). **Reste** : intégration client HTTP
-(non écrite tant que l'endpoint n'est pas déployé/testé) et Phase 5 (UI). Aucun impact `lib/` (backend
-seul), 50/50 tests app inchangés.
+**Déployée par Paul le 2026-09-04** : worker en ligne `https://pentapol-defi.pentapml.workers.dev`,
+base D1 + tables créées, `SEED_TOKEN` posé. Round-trip validé au curl (POST /score → 201, doublon →
+409, GET /leaderboard trié). **Intégration client (2026-09-05)** : `lib/pentoscope/challenge_api.dart`
+(client HTTP, échec silencieux §7.8, `submitScore`/`leaderboard`) et **soumission auto** — à la
+complétion d'un défi (`isRanked`), le provider POST le score (`_submitChallengeScore` ; `_activeChallenge`
+porte week/size ; grille sérialisée pour l'audit). `analyze lib/` 0/0, 50/50. **Reste Phase 5** : écran
+des quatre classements (une vue, onglets/podiums, dégradation gracieuse), + fetch `GET /challenge`
+(composition à la main côté client) + un script Dart de semage (dérive + POST avec le token). *Ligne de
+test « Test » sur (v1, week0, size1) à purger par Paul si souhaité.*
 
 ### Documentation
 

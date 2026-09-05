@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 16:10 — records perso : _saveCompletionRecord passe help=metrics.rescues
+// Modified: 2026-09-05 00:05 — défi Phase 4/5 : à la complétion d'un défi (isRanked), POST du score
+//           au serveur (_submitChallengeScore via ChallengeApi ; _activeChallenge porte week/size,
+//           grille sérialisée pour l'audit). Fire-and-forget, échec silencieux (§7.8).
+// Historique: 2026-09-04 16:10 — records perso : _saveCompletionRecord passe help=metrics.rescues
 //           (4e best bestHelp, maillot blanc).
 // Historique: 2026-09-04 15:57 — compteur Help (maillot blanc, §7) : état helpCount, incrémenté à
 //           chaque sauvetage rouge→jaune (_bumpHelp aux retraits/déplacements/rotations de pièce
@@ -100,6 +103,7 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/solution_source.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
+import 'package:pentapol/pentoscope/challenge_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
 import 'package:pentapol/pentoscope/corpus_provider.dart';
 
@@ -144,6 +148,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// La persistance (CurrentGame, records) est **solo uniquement** : le multijoueur
   /// partage ce provider mais ne doit ni sauvegarder ni enregistrer de record.
   bool _isMultiplayer = false;
+
+  /// Défi en cours (mode classé). null hors défi. Sa complétion POST le score au serveur.
+  ChallengeDefinition? _activeChallenge;
+  final ChallengeApi _challengeApi = ChallengeApi();
 
   // ⏱️ Timer
   
@@ -362,6 +370,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💾 Un indice peut compléter le puzzle : même traitement que pour un placement.
     if (isComplete) {
       _saveCompletionRecord();
+      if (state.isRanked) _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
       if (!_isMultiplayer && !state.isRanked) _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
       _saveCurrentGame();
@@ -510,6 +519,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (puzzle == null) return;
 
     _isMultiplayer = false;
+    _activeChallenge = null;
     // Générer un nouveau puzzle avec la même taille
     final newPuzzle = await _generator.generate(puzzle.size);
     _solutions = await _makeSolutionSource(newPuzzle.size, newPuzzle.pieceIds);
@@ -703,6 +713,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     bool isProgression = false,
   }) async {
     _isMultiplayer = false;
+    _activeChallenge = null;
     final puzzle = mask != null
         ? _generator.puzzleFromMask(size, mask)
         : await _generator.generate(size);
@@ -763,6 +774,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   ) async {
     // Partie multijoueur : la persistance solo (CurrentGame, records) est désactivée.
     _isMultiplayer = true;
+    _activeChallenge = null;
     // Générer le puzzle avec les paramètres fournis
     final puzzle = await _generator.generateFromSeed(size, seed, pieceIds);
     _solutions = await _makeSolutionSource(size, pieceIds);
@@ -813,6 +825,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// pas la partie de progression sauvegardée (re-dérivable depuis la semaine).
   Future<void> startChallenge(ChallengeDefinition challenge) async {
     _isMultiplayer = false;
+    _activeChallenge = challenge; // sa complétion POST le score au serveur
     final size = challenge.size;
     final pieceIds = challenge.pieceIds;
     final puzzle = await _generator.generateFromSeed(size, 0, pieceIds); // compte lu dans la table
@@ -921,6 +934,46 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
+  /// 🎽 POST le score d'un défi terminé au serveur de classement (§7). Fire-and-forget, échec
+  /// silencieux (§7.8 : le jeu reste entier sans réseau). N'a d'effet qu'à la complétion d'un défi.
+  Future<void> _submitChallengeScore() async {
+    final ch = _activeChallenge;
+    final metrics = computeCompletionMetrics();
+    if (ch == null || metrics == null) return;
+    try {
+      final playerId = await ref.read(settingsProvider.notifier).ensurePlayerId();
+      final pseudo = ref.read(settingsProvider).userName ?? 'Joueur';
+      await _challengeApi.submitScore(
+        version: kChallengeVersion,
+        week: ch.week,
+        size: ch.size.index,
+        playerId: playerId,
+        pseudo: pseudo,
+        minIso: metrics.minIso,
+        isoCount: metrics.isometryCount,
+        moves: metrics.moves,
+        timeMs: metrics.timeSeconds * 1000,
+        help: metrics.rescues,
+        grid: _gridString(),
+      );
+    } catch (e) {
+      debugPrint('❌ Soumission du score de défi échouée: $e');
+    }
+  }
+
+  /// Grille terminée sérialisée (id de pièce par case, ligne par ligne) — conservée côté serveur
+  /// pour l'audit hors ligne (modèle confiance, §7.5).
+  String _gridString() {
+    final board = _rebuildPlateau();
+    final cells = <int>[];
+    for (int y = 0; y < board.height; y++) {
+      for (int x = 0; x < board.width; x++) {
+        cells.add(board.getCell(x, y));
+      }
+    }
+    return cells.join(',');
+  }
+
   // ==========================================================================
   // PARTIE EN COURS - persistance (PLAN_PERSISTANCE §2)
   // ==========================================================================
@@ -1014,6 +1067,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// compteurs et l'origine du chrono. `showSolution` n'est pas restaurable (§2.4).
   Future<void> restoreGame(CurrentGameData row) async {
     _isMultiplayer = false;
+    _activeChallenge = null;
     final size = PentoscopeSize.values.firstWhere((s) => s.name == row.sizeName);
     final pieceIds = row.pieceIds.split(',').map(int.parse).toList();
     final puzzle = PentoscopePuzzle(
@@ -1204,6 +1258,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     //    persister l'avancement (no-op en multijoueur, où _isMultiplayer est vrai).
     if (isComplete) {
       _saveCompletionRecord();
+      if (state.isRanked) _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
       if (!_isMultiplayer && !state.isRanked) _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
       _saveCurrentGame();
