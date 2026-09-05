@@ -1,6 +1,7 @@
-// Modified: 2026-09-04 07:05 — création : écran « Défi de la semaine » (CDC §7, Phase 2). Choix
-//           d'une des six tailles ; lance le défi dérivé (mode classé) puis l'écran de jeu. HORS V1.
+// Modified: 2026-09-05 00:20 — Phase 5 : icône « classement » par taille → LeaderboardScreen.
 // lib/pentoscope/screens/challenge_screen.dart
+// Historique: 2026-09-04 07:05 — création : écran « Défi de la semaine » (CDC §7, Phase 2). Choix
+//           d'une des six tailles ; lance le défi dérivé (mode classé) puis l'écran de jeu. HORS V1.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
+import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 
 /// Écran de sélection du défi de la semaine : le joueur choisit une dimension de plateau, tout le
 /// reste (masque + rack) est dérivé de la semaine courante (CDC §7.1). Mode classé.
@@ -48,7 +50,25 @@ class ChallengeScreen extends ConsumerWidget {
                         fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('${size.numPieces} pièces'),
-                  trailing: const Icon(Icons.play_arrow),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.leaderboard_outlined),
+                        tooltip: 'Classement',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LeaderboardScreen(
+                              week: weeksSinceEpoch(DateTime.now()),
+                              size: size,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.play_arrow),
+                    ],
+                  ),
                   onTap: () => _launch(context, ref, size),
                 ),
               ),
