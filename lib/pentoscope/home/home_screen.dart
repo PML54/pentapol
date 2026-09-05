@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 — vignette « une pièce, deux isométries, une pose » : l'animation-démo montre
+// Modified: 2026-09-05 — hub d'accueil : bouton « Multijoueur » ajouté sous « Jouer » (→ lobby duel).
+//           Avec le drapeau/trophée/engrenage de l'en-tête, l'accueil devient le hub de navigation.
+// Historique: 2026-09-05 — vignette « une pièce, deux isométries, une pose » : l'animation-démo montre
 //           les autres pièces déjà posées + UNE pièce du rack sélectionnée (halo) → rotation (iso 1)
 //           → miroir (iso 2), avec les VRAIES icônes d'isométrie surlignées → montée/pose. Boucle en
 //           changeant de tirage/pièce. Remplace l'ancien remplissage multi-pièces. Onboarding + met
@@ -28,6 +30,7 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
+import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show sizeForLevel;
@@ -594,6 +597,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: const Text(
                 'Jouer',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PentoscopeMPLobbyScreen()),
+              ),
+              icon: const Icon(Icons.people_outline),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              label: const Text(
+                'Multijoueur',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
           ),

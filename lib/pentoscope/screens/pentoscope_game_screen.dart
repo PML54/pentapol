@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 01:10 — bilan d'un défi : bouton « Voir le classement » → LeaderboardScreen
+// Modified: 2026-09-05 — hub d'accueil : barre de jeu allégée — bouton « Accueil » (retour au menu
+//           via popUntil isFirst), retrait du multijoueur et des réglages (déplacés sur l'accueil).
+// Historique: 2026-09-05 01:10 — bilan d'un défi : bouton « Voir le classement » → LeaderboardScreen
 //           (week/size du défi actif). Accès direct au classement après avoir joué.
 // Historique: 2026-09-04 15:57 — bilan : 4e maillot BLANC (Help / sauvetages rouge→jaune) ajouté à la
 //           carte ; pastille bordée pour rendre le blanc visible.
@@ -91,8 +93,6 @@ import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
-import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
-import 'package:pentapol/screens/settings_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 // RÉGLAGE VISUEL — les sept valeurs « à régler à l'œil » de l'ergonomie hors plateau,
@@ -888,18 +888,21 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
     final items = <Widget>[
       IconButton(
+        icon: const Icon(Icons.home_outlined),
+        iconSize: iconSize,
+        color: Colors.blueGrey,
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          Navigator.popUntil(context, (r) => r.isFirst); // retour au menu d'entrée
+        },
+        tooltip: 'Accueil',
+      ),
+      IconButton(
         icon: const Icon(Icons.add_circle_outline),
         iconSize: iconSize,
         color: Colors.blue,
         onPressed: () => _showNewGameDialog(context, ref),
         tooltip: 'Nouvelle partie',
-      ),
-      IconButton(
-        icon: const Icon(Icons.people_outline),
-        iconSize: iconSize,
-        color: Colors.purple,
-        onPressed: () => _navigateToMultiplayer(context),
-        tooltip: 'Mode multijoueur',
       ),
       IconButton(
         icon: Icon(Icons.person,
@@ -968,18 +971,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           tooltip: 'Solutions compatibles',
         ),
       if (showCounter) _buildSolutionCounter(context, state),
-      IconButton(
-        icon: const Icon(Icons.settings),
-        iconSize: iconSize,
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-          );
-        },
-        tooltip: 'Réglages',
-      ),
+      // Réglages retiré de la barre de jeu (choix de Paul) : il vit sur le menu d'accueil.
     ];
 
     // ⏱️ Chrono au centre : avec spaceEvenly il reste au milieu quel que soit le nombre
@@ -1275,15 +1267,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  /// 👥 Navigation vers le mode multijoueur
-  void _navigateToMultiplayer(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const PentoscopeMPLobbyScreen(),
-      ),
-    );
-  }
 }
 
 /// 🏁 Bilan de fin — **carte flottante non-modale**, centrée par-dessus le plateau résolu (visible

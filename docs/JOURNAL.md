@@ -240,6 +240,14 @@ Deux ajouts, sur retour de Paul.
 (solo) est **dormant** (`_showOpponentOverlay` jamais mis à `true`) et **simulé** ; le vrai mini du
 duel vit dans `PentoscopeMpGameScreen` et utilise des données réelles.
 
+### Menu d'entrée = hub de navigation (2026-09-05, choix de Paul)
+
+L'accueil devient le **hub** : sous « Jouer » (solo/progression), un **bouton « Multijoueur »** (→
+lobby duel) ; l'en-tête garde **Défi 🚩 / Records 🏆 / Réglages ⚙️**. La **barre du jeu solo** est
+**allégée** : bouton **« Accueil » 🏠** (retour au menu, `popUntil isFirst`), et **retrait** du
+multijoueur (people) et des **Réglages** (déplacés sur l'accueil). Le joueur part toujours du menu,
+choisit solo/multi, et revient au menu depuis le solo. `analyze` 0/0, 50/50.
+
 ### Vignette d'accueil (2026-09-05) — « une pièce, deux isométries, une pose »
 
 L'animation-démo a été **remplacée** (choix de Paul, après avis), **disposition du vrai jeu** :
