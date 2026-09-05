@@ -109,7 +109,9 @@ npx wrangler secret put SEED_TOKEN     # écrit une valeur (écrase l'ancienne).
 ```bash
 # depuis la RACINE du dépôt :
 dart run tools/seed_challenges.dart --dry-run --week=34    # aperçu, ne POST pas
-dart run tools/seed_challenges.dart --token=LE_TOKEN       # sème la semaine courante
+export SEED_TOKEN=…                                        # token via l'environnement (recommandé)
+dart run tools/seed_challenges.dart                        # sème la semaine courante
+# (équivaut à --token=… ; --token est prioritaire s'il est passé)
 ```
 
 ### Inspecter / purger la base (SQL direct)

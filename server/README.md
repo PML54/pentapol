@@ -92,9 +92,18 @@ tout est cohérent avec ce que le client dérive), un semeur Dart dérive les si
 ```bash
 # depuis la racine du dépôt (pas server/)
 dart run tools/seed_challenges.dart --dry-run --week=35      # aperçu, ne POST pas
-dart run tools/seed_challenges.dart --token=<SEED_TOKEN>     # sème la semaine courante
+
+# sème la semaine courante — le token vient de --token OU de l'environnement :
+export SEED_TOKEN=…                                          # (recommandé : hors ligne de commande)
+dart run tools/seed_challenges.dart
+# … ou en une fois, sans le laisser dans l'historique du shell :
+SEED_TOKEN=… dart run tools/seed_challenges.dart
+# … ou explicitement :
+dart run tools/seed_challenges.dart --token=<SEED_TOKEN>
 ```
 
-Il **auto-contrôle** sa dérivation contre le digest gelé du test (refuse de tourner s'il a divergé
+Le token est lu depuis `--token` en priorité, sinon depuis la **variable d'environnement
+`SEED_TOKEN`** — préférer l'environnement pour ne pas l'exposer sur la ligne de commande. Le semeur
+**auto-contrôle** sa dérivation contre le digest gelé du test (refuse de tourner s'il a divergé
 de `lib/challenge.dart`). Pour **composer à la main** une semaine, POST ta propre définition
 `{version, week, size, mask, rack}` avec le même en-tête `Authorization: Bearer <SEED_TOKEN>`.

@@ -1,13 +1,16 @@
-// Modified: 2026-09-05 00:35 — création : semeur des définitions de défi (CDC §7). Dérive les
+// Modified: 2026-09-05 18:20 — le token peut venir de la variable d'environnement SEED_TOKEN
+//           (repli si --token absent), pour ne jamais l'exposer sur la ligne de commande.
+// tools/seed_challenges.dart
+// Historique: 2026-09-05 00:35 — création : semeur des définitions de défi (CDC §7). Dérive les
 //           six défis d'une semaine (défaut algorithmique) et les POST au serveur avec SEED_TOKEN,
 //           pour remplir les semaines non composées à la main (le serveur a alors le rack pour
 //           l'audit). Pur Dart (pas d'import Flutter) : réimplémente la dérivation de challenge.dart
 //           et l'AUTO-CONTRÔLE contre le digest gelé du test (refuse de tourner s'il a divergé).
-// tools/seed_challenges.dart
 //
 // Usage :
-//   dart run tools/seed_challenges.dart --token=XXXX [--week=N] [--url=...] [--dry-run]
-//     --token    SEED_TOKEN du worker (requis sauf --dry-run).
+//   dart run tools/seed_challenges.dart [--token=XXXX] [--week=N] [--url=...] [--dry-run]
+//     --token    SEED_TOKEN du worker (requis sauf --dry-run). À défaut, lu depuis la variable
+//                d'environnement SEED_TOKEN (export SEED_TOKEN=… ; évite de l'exposer en ligne).
 //     --week     semaine à semer (défaut : la semaine courante).
 //     --url      base URL du worker (défaut : pentapol-defi.pentapml.workers.dev).
 //     --dry-run  dérive et affiche, ne POST pas (et ne demande pas de token).
@@ -123,7 +126,8 @@ String? _arg(List<String> args, String name) {
 Future<void> main(List<String> args) async {
   final dryRun = args.contains('--dry-run');
   final url = _arg(args, 'url') ?? kDefaultUrl;
-  final token = _arg(args, 'token');
+  // --token prioritaire ; à défaut, la variable d'environnement SEED_TOKEN (hors ligne de commande).
+  final token = _arg(args, 'token') ?? Platform.environment['SEED_TOKEN'];
   final week = int.tryParse(_arg(args, 'week') ?? '') ?? _weeksSinceEpoch(DateTime.now());
 
   final byPop = _loadSolubleByPop();
@@ -138,7 +142,8 @@ Future<void> main(List<String> args) async {
   stdout.writeln('✅ Auto-contrôle OK (digest $kFrozenDigest). Semaine $week, base $url.');
 
   if (!dryRun && (token == null || token.isEmpty)) {
-    stderr.writeln('❌ --token requis pour semer (ou utiliser --dry-run). Voir README.');
+    stderr.writeln('❌ Token requis pour semer : --token=XXXX ou export SEED_TOKEN=… '
+        '(ou utiliser --dry-run). Voir README.');
     exit(2);
   }
 
