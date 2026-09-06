@@ -1,4 +1,6 @@
-// Modified: 2026-08-31 16:39 — table de lettres unique (REFERENCE_TIRAGES §10) : la lettre de
+// Modified: 2026-09-06 04:50 — i18n : titre, tooltip, libellé de pièce, dialogue et bouton via
+//           AppLocalizations.
+// Historique: 2026-08-31 16:39 — table de lettres unique (REFERENCE_TIRAGES §10) : la lettre de
 //           chaque pièce vient de pentominos.pentominoLetter (l'utilisateur voyait des lettres
 //           fausses via getPieceName/piece_utils, table périmée retirée).
 // lib/screens/custom_colors_screen.dart
@@ -6,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/utils/piece_utils.dart';
@@ -35,13 +38,14 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Couleurs personnalisées'),
+        title: Text(l10n.customColorsTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
-            tooltip: 'Enregistrer',
+            tooltip: l10n.saveTooltip,
             onPressed: () async {
               await ref.read(settingsProvider.notifier).setCustomColors(_colors);
               if (mounted) {
@@ -66,7 +70,7 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
                 pieceId: pieceId,
                 color: _colors[index],
               ),
-              title: Text('Pièce $pieceName (#$pieceId)'),
+              title: Text(l10n.pieceLabel(pieceName, pieceId)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -87,7 +91,7 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _resetToDefault,
         icon: const Icon(Icons.refresh),
-        label: const Text('Réinitialiser'),
+        label: Text(l10n.reset),
       ),
     );
   }
@@ -97,7 +101,7 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Couleur de la pièce $pieceName'),
+        title: Text(AppLocalizations.of(context).pieceColorTitle(pieceName)),
         content: SingleChildScrollView(
           child: Wrap(
             spacing: 8,
@@ -134,7 +138,7 @@ class _CustomColorsScreenState extends ConsumerState<CustomColorsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
         ],
       ),

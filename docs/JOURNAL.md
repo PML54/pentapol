@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-05
+## §ÉTAT — au 2026-09-06
 
 ### L'application
 
@@ -75,6 +75,22 @@ difficulté.
   table-backed** (6×10 via `SolutionMatcher`/BigInt pour son navigateur ; 5×n via corpus/bytes).
 
 Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVENDI` §5).
+
+- **Bilinguisme EN/FR (i18n, 2026-09-06)** — l'app était **française en dur** ; `lib/l10n/` ne contenait
+  que 4 clés jamais câblées. Désormais : `flutter_localizations` + `generate: true`, `l10n.yaml`,
+  délégués et `supportedLocales: [en, fr]` dans le `MaterialApp` (`main.dart`), **locale résolue depuis
+  `AppSettings.localeCode`** (nouveau champ JSON, `null` = suit l'appareil ; pas de migration, invariant #6)
+  et **sélecteur `Système / Français / English`** dans les Réglages (`setLocale`). **~90 clés** (dont
+  pluriels et placeholders) dans `app_en.arb` (template) / `app_fr.arb` ; **toutes les chaînes visibles**
+  des 13 écrans/widgets passent par `AppLocalizations` (accueil, jeu solo, bilan/maillots, records,
+  réglages, couleurs perso, navigateur de solutions, défi, classement, **et** duel/multijoueur — choix
+  de Paul « tout d'un coup »). Restent **littéraux** par choix : `PENTAPOL` (logo), `Pentoscope
+  Multiplayer` (nom), `Go`/`DNF`/`GO!` (abréviations), le SnackBar de debug « test DB » du lobby, et les
+  libellés `DuelDuration` (« 1 min »… numériques ; « Perso » n'apparaît jamais à l'écran). `analyze lib
+  test` **0 error/0 warning** (61 infos, toutes préexistantes), **49/49 tests**. **Fichiers générés
+  `lib/l10n/app_localizations*.dart` non encore suivis par git** — à committer avec le reste pour que
+  l'arbre soit autonome (imports résolus sur clone neuf). **Reste : test device** (langue système + bascule
+  manuelle) par Paul.
 
 ### Chantiers ouverts
 
@@ -566,6 +582,20 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-06 — CLI → cowork (bilinguisme EN/FR, i18n complet).** Décision de Paul : « une app
+Anglais/Français ». Constat : l'app était **française en dur**, `lib/l10n/` n'avait que 4 clés jamais
+câblées. Livré (choix de Paul : sélecteur **+** locale système, et **tous** les écrans d'un coup) —
+infrastructure `flutter_localizations`/`gen-l10n` (`l10n.yaml`, `generate: true`, délégués +
+`supportedLocales [en,fr]`), champ `AppSettings.localeCode` (JSON, pas de migration) résolu dans
+`main.dart`, setter `setLocale`, sélecteur `Système/Français/English` dans les Réglages, **~90 clés**
+(pluriels + placeholders) `app_en.arb`/`app_fr.arb`, et **toutes les chaînes visibles** des 13
+écrans/widgets migrées vers `AppLocalizations` (y compris duel/multijoueur, hors V1). Quelques littéraux
+gardés par choix (logo/nom produit/abréviations/debug ; libellés `DuelDuration`). `analyze lib test`
+**0 error/0 warning** (61 infos préexistantes), **49/49 tests**. **Non commité** (attente du feu vert de
+Paul) : les 18 fichiers `lib/`, `pubspec.yaml`/`pubspec.lock`, `l10n.yaml`, **les 3 fichiers générés
+`lib/l10n/app_localizations*.dart` (à `git add`)**, et ce journal (doc avec code, MODUS_VIVENDI §5).
+**Reste : test device** (langue système + bascule manuelle).
+
 **2026-09-05 — CLI → cowork (refonte « A » des maillots : trois maillots, acuité plafonnée, comportement avec aide).**
 Décision de Paul en travaillant le bilan : l'acuité montait **au-delà de 100 %** dès qu'on utilisait
 l'ampoule (elle plaçait une pièce à l'optimum sans coûter d'isométrie), et « coups » classait une
@@ -605,25 +635,6 @@ par `(joueur, semaine, taille)` + la grille, quatre index D1, chaque maillot tri
 Détail dans `CDC §7` (Actés 4 et 5). Cette mise à jour docs est commitée seule (doc sans code,
 MODUS_VIVENDI §5).
 
-**2026-09-04 — CLI → cowork (la persistance était déjà faite ; correctif `isProgression`).** En
-reprenant « la persistance », constat : les **4 étapes du `PLAN_PERSISTANCE` sont codées et
-committées** depuis `ea23af7`→`30e4fae` (ancêtres de `main`, conservées par le revert). Le §ÉTAT les
-disait à tort « reste à faire » — l'état « complète » (`30e4fae`) avait disparu dans les réécritures
-du journal pendant la saga du revert. §ÉTAT corrigé : persistance déplacée en « chantiers terminés »,
-priorité recommandée passée aux **records perso**. **Un vrai bug corrigé** : `isProgression` n'était
-ni stocké ni restauré → une partie de progression reprise était jetée par « Jouer » et n'avançait pas
-le niveau. Colonne ajoutée, `schemaVersion` 4→5 (destructif), save/restore câblés, `build_runner`
-régénéré, `analyze lib/` 0 error/warning. **Commité `53f688c`** (2 fichiers `lib/` + journal, un seul
-commit), non poussé — à tester sur device (base existante : réécriture destructive une fois).
-
-**Puis Phase 0 du défi (V1, décision de Paul).** Deux prérequis qui servent aussi les records perso :
-**`PentapolRng`** (PRNG du dépôt, xorshift32 + test de gel ; migration du seul chemin seedé actuel, les
-orientations du duel) et la **pause du chrono en arrière-plan** (solo, câblée dans `main.dart`). Détail
-en §ÉTAT « Phase 0 du défi ». `analyze lib/` 0 error/warning, 22/22 tests. **Modifs non commitées**
-(attente du feu vert de Paul) : `lib/common/pentapol_rng.dart` (neuf), `test/pentapol_rng_test.dart`
-(neuf), `lib/pentoscope/pentoscope_provider.dart`, `lib/main.dart`, et **ce journal** (doc avec code
-derrière → même commit, MODUS_VIVENDI §5). Phases 1→5 (dérivation défi, mode classé, identité, serveur,
-UI) restent à faire — hors V1.
-
-*(La passation du 2026-09-03 — les sept réponses du CDC §12 — est sortie de la liste des trois
-dernières ; elle reste dans `git log` et ses décisions vivent dans `CAHIER_DES_CHARGES_V1.md` §12.)*
+*(Les passations du 2026-09-04 — « la persistance était déjà faite » + Phase 0 du défi, et « discussion
+défi » ci-dessus est la plus ancienne des trois — sont sorties/sortent de la liste au fil des ajouts ;
+elles restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

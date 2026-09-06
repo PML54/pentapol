@@ -1,4 +1,6 @@
-// Modified: 2026-09-04 16:25 — défi Phase 3 : champ top-level playerId (identité 128 bits, distincte
+// Modified: 2026-09-06 04:50 — i18n : champ top-level localeCode (null = suit la locale de l'appareil,
+//           'en'/'fr' = forcé depuis les Réglages). JSON, pas de migration (invariant #6).
+// Historique: 2026-09-04 16:25 — défi Phase 3 : champ top-level playerId (identité 128 bits, distincte
 //           du pseudo, CDC §7.4). JSON, pas de migration (invariant #6).
 // Historique: 2026-09-02 20:37 — progression solo : champs top-level userName (nom canonique, saisi
 //           au 1er puzzle réussi) et currentLevel. JSON, pas de migration (invariant #6).
@@ -474,6 +476,10 @@ class AppSettings {
   /// (`userName`) reste une étiquette d'affichage ; en cas d'homonymie on suffixe 4 hex de cet id.
   final String? playerId;
 
+  /// Code de langue forcé depuis les Réglages : `null` = suivre la locale de l'appareil
+  /// (défaut), `'en'` ou `'fr'` = forcer. Résolu en `Locale?` par [PentapolApp].
+  final String? localeCode;
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
@@ -481,6 +487,7 @@ class AppSettings {
     this.userName,
     this.currentLevel = 1,
     this.playerId,
+    this.localeCode,
   });
 
   AppSettings copyWith({
@@ -491,6 +498,8 @@ class AppSettings {
     bool clearUserName = false,
     int? currentLevel,
     String? playerId,
+    String? localeCode,
+    bool clearLocaleCode = false,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -499,6 +508,7 @@ class AppSettings {
       userName: clearUserName ? null : (userName ?? this.userName),
       currentLevel: currentLevel ?? this.currentLevel,
       playerId: playerId ?? this.playerId,
+      localeCode: clearLocaleCode ? null : (localeCode ?? this.localeCode),
     );
   }
 
@@ -510,6 +520,7 @@ class AppSettings {
       'userName': userName,
       'currentLevel': currentLevel,
       'playerId': playerId,
+      'localeCode': localeCode,
     };
   }
 
@@ -523,6 +534,7 @@ class AppSettings {
       userName: json['userName'] as String?,
       currentLevel: (json['currentLevel'] as int?) ?? 1,
       playerId: json['playerId'] as String?,
+      localeCode: json['localeCode'] as String?,
     );
   }
 }

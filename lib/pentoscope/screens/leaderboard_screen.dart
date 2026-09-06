@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 10:30 — trois maillots (A) : onglets acuité / FAUTES / temps (blanc/Help
+// Modified: 2026-09-06 04:50 — i18n : titre, semaine, onglets (label de maillot résolu par helper —
+//           le const _maillots ne peut pas appeler l10n), état vide et « Joueur » par défaut.
+// Historique: 2026-09-05 10:30 — trois maillots (A) : onglets acuité / FAUTES / temps (blanc/Help
 //           supprimé, à pois affiche les fautes). Lit GET /leaderboard, met en avant le joueur
 //           courant, dégradation gracieuse (§7.8).
 // lib/pentoscope/screens/leaderboard_screen.dart
@@ -6,24 +8,37 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 
-/// Les trois maillots, avec couleur et libellé de la valeur affichée.
+/// Les trois maillots, avec leur couleur. Le libellé est résolu par [_maillotLabel] (le const
+/// ne peut pas appeler AppLocalizations).
 class _MaillotSpec {
   final Maillot maillot;
   final Color color;
-  final String label;
-  const _MaillotSpec(this.maillot, this.color, this.label);
+  const _MaillotSpec(this.maillot, this.color);
 }
 
 const List<_MaillotSpec> _maillots = [
-  _MaillotSpec(Maillot.jaune, Color(0xFFF2B705), 'Acuité'),
-  _MaillotSpec(Maillot.pois, Color(0xFFD64545), 'Fautes'),
-  _MaillotSpec(Maillot.vert, Color(0xFF2E9E5B), 'Temps'),
+  _MaillotSpec(Maillot.jaune, Color(0xFFF2B705)),
+  _MaillotSpec(Maillot.pois, Color(0xFFD64545)),
+  _MaillotSpec(Maillot.vert, Color(0xFF2E9E5B)),
 ];
+
+/// Libellé localisé d'un maillot (les mêmes trois mots que la légende des records).
+String _maillotLabel(AppLocalizations l10n, Maillot m) {
+  switch (m) {
+    case Maillot.jaune:
+      return l10n.legendAcuity;
+    case Maillot.pois:
+      return l10n.legendFaults;
+    case Maillot.vert:
+      return l10n.legendTime;
+  }
+}
 
 /// Écran des classements d'un défi `(semaine, taille)` : un onglet par maillot.
 class LeaderboardScreen extends ConsumerStatefulWidget {
@@ -52,12 +67,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final myId = ref.read(settingsProvider).playerId;
     return DefaultTabController(
       length: _maillots.length,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Classement · ${widget.size.width}×${widget.size.height}'),
+          title: Text(l10n.leaderboardTitle(widget.size.width, widget.size.height)),
           bottom: TabBar(
             tabs: [
               for (final m in _maillots)
@@ -76,7 +92,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(m.label),
+                      Text(_maillotLabel(l10n, m.maillot)),
                     ],
                   ),
                 ),
@@ -88,7 +104,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text('Défi de la semaine ${widget.week}',
+                child: Text(l10n.challengeWeek(widget.week.toString()),
                     style: TextStyle(color: Theme.of(context).hintColor)),
               ),
               Expanded(
@@ -131,7 +147,7 @@ class _MaillotTab extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Text(
-                'Aucun score cette semaine\n(ou serveur injoignable).',
+                AppLocalizations.of(context).leaderboardEmpty,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Theme.of(context).hintColor, fontSize: 16),
               ),
@@ -151,7 +167,7 @@ class _MaillotTab extends StatelessWidget {
                 leading: Text('${i + 1}',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 title: Text(
-                  e.pseudo.isEmpty ? 'Joueur' : e.pseudo,
+                  e.pseudo.isEmpty ? AppLocalizations.of(context).defaultPlayer : e.pseudo,
                   style: TextStyle(
                       fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
                 ),

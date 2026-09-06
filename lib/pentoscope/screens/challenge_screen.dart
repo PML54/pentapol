@@ -1,10 +1,13 @@
-// Modified: 2026-09-05 00:20 — Phase 5 : icône « classement » par taille → LeaderboardScreen.
+// Modified: 2026-09-06 04:50 — i18n : chaînes visibles passées par AppLocalizations (titre, intro,
+//           compte de pièces au pluriel, tooltip classement).
+// Historique: 2026-09-05 00:20 — Phase 5 : icône « classement » par taille → LeaderboardScreen.
 // lib/pentoscope/screens/challenge_screen.dart
 // Historique: 2026-09-04 07:05 — création : écran « Défi de la semaine » (CDC §7, Phase 2). Choix
 //           d'une des six tailles ; lance le défi dérivé (mode classé) puis l'écran de jeu. HORS V1.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
@@ -18,15 +21,16 @@ class ChallengeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final week = weeksSinceEpoch(DateTime.now());
     return Scaffold(
-      appBar: AppBar(title: const Text('Défi de la semaine')),
+      appBar: AppBar(title: Text(l10n.challengeTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              'Semaine $week',
+              l10n.challengeWeekLabel(week.toString()),
               style: Theme.of(context)
                   .textTheme
                   .titleLarge
@@ -34,8 +38,7 @@ class ChallengeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Choisis une taille. La configuration est la même pour tous cette semaine, '
-              'et l\'indice est désactivé (mode classé).',
+              l10n.challengeIntro,
               style: TextStyle(color: Theme.of(context).hintColor),
             ),
             const SizedBox(height: 16),
@@ -49,13 +52,13 @@ class ChallengeScreen extends ConsumerWidget {
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('${size.numPieces} pièces'),
+                  subtitle: Text(l10n.piecesCount(size.numPieces)),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.leaderboard_outlined),
-                        tooltip: 'Classement',
+                        tooltip: l10n.rankingTooltip,
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(

@@ -1,4 +1,5 @@
-// Modified: 2026-09-02 09:42 — #6 répartition verticale : en portrait le plateau est ancré en bas
+// Modified: 2026-09-06 04:50 — i18n : « Aucun puzzle » via AppLocalizations.
+// Historique: 2026-09-02 09:42 — #6 répartition verticale : en portrait le plateau est ancré en bas
 //           (Alignment.bottomCenter) au lieu d'être centré ; offsetY du hit-test drag couplé au
 //           même alignement (portrait = bas, paysage = haut) sinon le dépôt viserait le centre.
 // lib/pentoscope/widgets/pentoscope_board.dart
@@ -22,6 +23,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
@@ -64,7 +66,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
     final puzzle = state.puzzle;
     if (puzzle == null) {
-      return const Center(child: Text('Aucun puzzle'));
+      return Center(child: Text(AppLocalizations.of(context).noPuzzle));
     }
 
     final boardWidth = puzzle.size.width;

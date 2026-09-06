@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 17:58 — vignette : icône de miroir surlignée corrigée — la démo fait un flip
+// Modified: 2026-09-06 04:50 — i18n : en-tête (tooltips défi/records/réglages), label « Niveau N » et
+//           boutons Jouer/Multijoueur via AppLocalizations.
+// Historique: 2026-09-05 17:58 — vignette : icône de miroir surlignée corrigée — la démo fait un flip
 //           gauche↔droite (scaleX=-1 = SymV/swap_horiz), on surligne donc SymV et non SymH.
 // Historique: 2026-09-05 — hub d'accueil : bouton « Multijoueur » ajouté sous « Jouer » (→ lobby duel).
 //           Avec le drapeau/trophée/engrenage de l'en-tête, l'accueil devient le hub de navigation.
@@ -25,6 +27,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/config/game_icons_config.dart';
@@ -219,6 +222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildHeader(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 8, 8),
       child: Row(
@@ -239,7 +243,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               IconButton(
                 icon: const Icon(Icons.flag_outlined, color: Colors.black54),
                 iconSize: 28,
-                tooltip: 'Défi de la semaine',
+                tooltip: l10n.homeChallenge,
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ChallengeScreen()),
@@ -248,7 +252,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               IconButton(
                 icon: const Icon(Icons.emoji_events_outlined, color: Colors.black54),
                 iconSize: 28,
-                tooltip: 'Mes records',
+                tooltip: l10n.homeRecords,
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const RecordsScreen()),
@@ -257,7 +261,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               IconButton(
                 icon: const Icon(Icons.settings, color: Colors.black54),
                 iconSize: 28,
-                tooltip: 'Réglages',
+                tooltip: l10n.homeSettings,
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -573,13 +577,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildPlayButton(BuildContext context, int level) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Niveau $level',
+            l10n.levelLabel(level),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -597,9 +602,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Jouer',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              child: Text(
+                l10n.play,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -618,9 +623,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              label: const Text(
-                'Multijoueur',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              label: Text(
+                l10n.multiplayer,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
           ),

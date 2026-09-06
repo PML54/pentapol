@@ -1,0 +1,7 @@
+# Configuration de la génération flutter_localizations (flutter gen-l10n).
+# ARB dans lib/l10n/ ; classe générée AppLocalizations (non nullable via .of).
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

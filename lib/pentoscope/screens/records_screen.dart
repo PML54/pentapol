@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 17:24 — trois maillots (A) : acuité / FAUTES / temps (coups et Help supprimés,
+// Modified: 2026-09-06 04:50 — i18n : titre, légende (acuité/fautes/temps), état vide, médaille
+//           « vision parfaite » et compte de pièces via AppLocalizations.
+// Historique: 2026-09-05 17:24 — trois maillots (A) : acuité / FAUTES / temps (coups et Help supprimés,
 //           bestFaults remplace bestMoves+bestHelp).
 // Historique: 2026-09-04 16:10 — 4e maillot BLANC (Help) dans les records perso : colonne bestHelp
 //           lue/agrégée, ligne + légende, pastilles bordées pour le blanc.
@@ -11,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
@@ -111,7 +114,7 @@ class RecordsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.read(settingsDatabaseProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Mes records')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).recordsTitle)),
       body: SafeArea(
         child: FutureBuilder<Map<PentoscopeSize, _SizeRecord>>(
           future: _loadRecords(db),
@@ -155,10 +158,10 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.emoji_events_outlined,
                 size: 64, color: Theme.of(context).disabledColor),
             const SizedBox(height: 16),
-            const Text(
-              'Aucun record pour l\'instant.\nTermine un puzzle sans aide pour en poser un.',
+            Text(
+              AppLocalizations.of(context).recordsEmpty,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
           ],
         ),
@@ -173,14 +176,15 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _LegendItem(color: Color(0xFFF2B705), label: 'Acuité'),
-          _LegendItem(color: Color(0xFFD64545), label: 'Fautes'),
-          _LegendItem(color: Color(0xFF2E9E5B), label: 'Temps'),
+          _LegendItem(color: const Color(0xFFF2B705), label: l10n.legendAcuity),
+          _LegendItem(color: const Color(0xFFD64545), label: l10n.legendFaults),
+          _LegendItem(color: const Color(0xFF2E9E5B), label: l10n.legendTime),
         ],
       ),
     );
@@ -243,15 +247,15 @@ class _RecordCard extends StatelessWidget {
                 ),
                 if (record.hasPerfectVision) ...[
                   const SizedBox(width: 6),
-                  const Tooltip(
-                    message: 'Vision parfaite — acuité 100 %',
-                    child: Icon(Icons.military_tech,
+                  Tooltip(
+                    message: AppLocalizations.of(context).perfectVisionMsg,
+                    child: const Icon(Icons.military_tech,
                         color: Color(0xFFF2B705), size: 22),
                   ),
                 ],
                 const SizedBox(width: 8),
                 Text(
-                  '· ${size.numPieces} pièces',
+                  '· ${AppLocalizations.of(context).piecesCount(size.numPieces)}',
                   style: TextStyle(color: Theme.of(context).hintColor),
                 ),
                 const Spacer(),

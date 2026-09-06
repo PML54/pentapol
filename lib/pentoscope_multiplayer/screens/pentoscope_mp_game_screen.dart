@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 15:27 — tailles d'icônes du duel (portrait) calées au test de Paul (mode à
+// Modified: 2026-09-06 04:50 — i18n : tooltips « Quitter », libellé « Moi » et dialogue d'abandon
+//           via AppLocalizations.
+// Historique: 2026-09-02 15:27 — tailles d'icônes du duel (portrait) calées au test de Paul (mode à
 //           2) : barre d'isométrie 36 en dur (la taille partagée ~47 était trop grosse pour la
 //           barre compacte du duel) ; quitter / ampoule / œil remontés à 30 (étaient à 24).
 // lib/pentoscope_multiplayer/screens/pentoscope_mp_game_screen.dart
@@ -15,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/config/game_icons_config.dart';
@@ -133,7 +136,7 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
                           IconButton(
                             icon: const Icon(Icons.close, color: Colors.red, size: 30),
                             onPressed: () => _showQuitDialog(context, ref),
-                            tooltip: 'Quitter',
+                            tooltip: AppLocalizations.of(context).quit,
                           ),
                           // ⏱️ Chronomètre
                           Text(
@@ -269,7 +272,7 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                player.isMe ? 'Moi' : player.name.substring(0, min(4, player.name.length)),
+                player.isMe ? AppLocalizations.of(context).me : player.name.substring(0, min(4, player.name.length)),
                 style: TextStyle(
                   fontSize: 10,
                   color: color,
@@ -535,23 +538,24 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
   Future<void> _showQuitDialog(BuildContext context, WidgetRef ref) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Quitter la partie ?'),
-        content: const Text(
-          'Tu vas abandonner la partie en cours.\nLes autres joueurs continueront sans toi.',
-        ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+        title: Text(l10n.quitGameTitle),
+        content: Text(l10n.quitGameBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Quitter'),
+            child: Text(l10n.quit),
           ),
         ],
-      ),
+        );
+      },
     );
 
     if (result == true && context.mounted) {
@@ -706,7 +710,7 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.red, size: 20),
                 onPressed: () => _showQuitDialog(context, ref),
-                tooltip: 'Quitter',
+                tooltip: AppLocalizations.of(context).quit,
               ),
             ],
           ),

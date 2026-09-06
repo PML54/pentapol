@@ -1,4 +1,6 @@
-// Modified: 2026-08-29 14:09 — déménagé vers lib/pentoscope/screens/ (suppression du mode
+// Modified: 2026-09-06 04:50 — i18n : titre, état vide et tooltips (précédente/suivante) via
+//           AppLocalizations.
+// Historique: 2026-08-29 14:09 — déménagé vers lib/pentoscope/screens/ (suppression du mode
 //           classique, §5 étape 7) : le seul appelant restant est Pentoscope. Le dégraissage
 //           du singleton (afficheur pur de List<BigInt>, un seul constructeur forSolutions)
 //           avait été fait à l'étape 3.
@@ -9,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 
@@ -70,15 +73,16 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_allSolutions.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Solutions'),
+          title: Text(l10n.solutionsTitle),
           backgroundColor: Colors.blue[700],
         ),
-        body: const Center(
+        body: Center(
           child: Text(
-            'Aucune solution compatible avec ce plateau.',
+            l10n.solutionsEmpty,
             textAlign: TextAlign.center,
           ),
         ),
@@ -141,7 +145,7 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
               children: [
                 IconButton(
                   icon: Icon(Icons.arrow_back, color: Colors.red.shade300),
-                  tooltip: 'Précédente',
+                  tooltip: l10n.previous,
                   onPressed: _previousSolution,
                 ),
                 const SizedBox(width: 8),
@@ -156,7 +160,7 @@ class _SolutionsBrowserScreenState extends ConsumerState<SolutionsBrowserScreen>
                 const SizedBox(width: 8),
                 IconButton(
                   icon: Icon(Icons.arrow_forward, color: Colors.red.shade300),
-                  tooltip: 'Suivante',
+                  tooltip: l10n.next,
                   onPressed: _nextSolution,
                 ),
               ],

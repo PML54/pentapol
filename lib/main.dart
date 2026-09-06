@@ -1,4 +1,7 @@
-// Modified: 2026-09-04 04:34 — CDC §7.7 : pause du chrono en arrière-plan (paused → pauseTimer,
+// Modified: 2026-09-06 04:50 — i18n : MaterialApp câblé (localizationsDelegates, supportedLocales
+//           en/fr), locale résolue depuis AppSettings.localeCode (null = appareil) ; écran de
+//           chargement localisé.
+// Historique: 2026-09-04 04:34 — CDC §7.7 : pause du chrono en arrière-plan (paused → pauseTimer,
 //           resumed → resumeTimer) pour que le temps de fond ne compte pas (maillot vert).
 // lib/main.dart
 // Historique: 2026-09-02 20:37 — progression solo : le puzzle de départ est sizeForLevel(currentLevel)
@@ -16,6 +19,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
@@ -113,25 +117,31 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
 
   @override
   Widget build(BuildContext context) {
+    // localeCode : null = suit la locale de l'appareil (résolution par supportedLocales),
+    // 'en'/'fr' = forcé depuis les Réglages.
+    final code = ref.watch(settingsProvider.select((s) => s.localeCode));
     return MaterialApp(
       title: 'Pentapol',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
+      locale: code == null ? null : Locale(code),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: _isInitialized ? const HomeScreen() : _buildLoadingScreen(),
     );
   }
 
   Widget _buildLoadingScreen() {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Chargement de Pentoscope...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(AppLocalizations.of(context).loading),
           ],
         ),
       ),

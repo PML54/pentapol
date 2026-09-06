@@ -1,3 +1,5 @@
+// Modified: 2026-09-06 04:50 — i18n : titre, boutons et cartes de résultat via AppLocalizations
+//           (l10n passé aux helpers _buildMyRankCard/_buildRankingsList).
 // lib/pentoscope_multiplayer/screens/pentoscope_mp_result_screen.dart
 // Écran de résultats Pentoscope Multiplayer
 
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope_multiplayer/models/pentoscope_mp_state.dart';
 import 'package:pentapol/pentoscope_multiplayer/providers/pentoscope_mp_provider.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
@@ -17,6 +20,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
     final state = ref.watch(pentoscopeMPProvider);
     final rankings = state.rankings;
     final me = state.me;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -26,19 +30,19 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             
             // Titre
-            const Text(
-              '🏆 Résultats',
-              style: TextStyle(
+            Text(
+              l10n.resultsTitle,
+              style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Mon rang
             if (me != null)
-              _buildMyRankCard(me, rankings.length),
+              _buildMyRankCard(l10n, me, rankings.length),
             
             const SizedBox(height: 24),
             
@@ -50,7 +54,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
             
             // Liste complète
             Expanded(
-              child: _buildRankingsList(rankings, me?.id),
+              child: _buildRankingsList(l10n, rankings, me?.id),
             ),
             
             // Boutons
@@ -67,7 +71,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
                         }
                       },
                       icon: const Icon(Icons.home),
-                      label: const Text('Accueil'),
+                      label: Text(l10n.homeTooltip),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -86,7 +90,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
                         }
                       },
                       icon: const Icon(Icons.replay),
-                      label: const Text('Rejouer'),
+                      label: Text(l10n.replay),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.green,
@@ -102,7 +106,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMyRankCard(MPPlayer me, int totalPlayers) {
+  Widget _buildMyRankCard(AppLocalizations l10n, MPPlayer me, int totalPlayers) {
     final isWinner = me.rank == 1;
     
     return Container(
@@ -154,7 +158,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isWinner ? 'Victoire ! 🎉' : 'Bien joué !',
+                  isWinner ? l10n.victory : l10n.niceTry,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -163,9 +167,9 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  me.isCompleted 
-                      ? 'Terminé en ${_formatTime(me.completionTime ?? 0)}'
-                      : '${me.placedCount} pièces placées',
+                  me.isCompleted
+                      ? l10n.finishedIn(_formatTime(me.completionTime ?? 0))
+                      : l10n.piecesPlaced(me.placedCount),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.9),
@@ -294,7 +298,7 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRankingsList(List<MPPlayer> rankings, String? myId) {
+  Widget _buildRankingsList(AppLocalizations l10n, List<MPPlayer> rankings, String? myId) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       itemCount: rankings.length,
@@ -355,17 +359,17 @@ class PentoscopeMPResultScreen extends ConsumerWidget {
                               color: Colors.blue,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Moi',
-                              style: TextStyle(color: Colors.white, fontSize: 10),
+                            child: Text(
+                              l10n.me,
+                              style: const TextStyle(color: Colors.white, fontSize: 10),
                             ),
                           ),
                       ],
                     ),
                     Text(
-                      player.isCompleted 
-                          ? 'Terminé' 
-                          : '${player.placedCount} pièces',
+                      player.isCompleted
+                          ? l10n.finished
+                          : l10n.piecesCount(player.placedCount),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],

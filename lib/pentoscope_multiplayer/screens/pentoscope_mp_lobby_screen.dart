@@ -1,4 +1,7 @@
-// Modified: 2026-09-02 20:37 — pseudo unique : le champ « Ton pseudo » lit/écrit settings.userName
+// Modified: 2026-09-06 04:50 — i18n : toutes les chaînes visibles du lobby via AppLocalizations
+//           (le titre « Pentoscope Multiplayer », « Go », « DNF » et le SnackBar debug restent
+//           littéraux — nom produit / abréviations universelles / artefact de test).
+// Historique: 2026-09-02 20:37 — pseudo unique : le champ « Ton pseudo » lit/écrit settings.userName
 //           (nom canonique partagé avec la progression solo et les Réglages) au lieu d'une clé DB
 //           dédiée (multiplayer_player_name retirée).
 // lib/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart
@@ -8,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope_multiplayer/models/pentoscope_mp_state.dart';
 import 'package:pentapol/pentoscope_multiplayer/providers/pentoscope_mp_provider.dart';
@@ -51,8 +55,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
     // Nom unique canonique : settings.userName (partagé avec la progression solo et les Réglages).
     await ref.read(settingsProvider.notifier).ensureLoaded();
     final saved = ref.read(settingsProvider).userName;
-    _playerNameController.text =
-        (saved != null && saved.isNotEmpty) ? saved : 'Joueur';
+    _playerNameController.text = (saved != null && saved.isNotEmpty)
+        ? saved
+        : (mounted ? AppLocalizations.of(context).defaultPlayer : 'Joueur');
     if (mounted) setState(() {});
   }
 
@@ -133,7 +138,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
           TextField(
             controller: _playerNameController,
             decoration: InputDecoration(
-              labelText: 'Ton pseudo',
+              labelText: AppLocalizations.of(context).yourNickname,
               prefixIcon: const Icon(Icons.person),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -153,6 +158,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
   }
 
   Widget _buildMainButtonsSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('main_buttons'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -163,7 +169,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
             final name = _playerNameController.text.trim();
             if (name.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Entre ton pseudo')),
+                SnackBar(content: Text(l10n.enterNickname)),
               );
               return;
             }
@@ -174,7 +180,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
             );
           },
           icon: const Icon(Icons.add_circle_outline),
-          label: const Text('Créer une Partie'),
+          label: Text(l10n.createGame),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -187,7 +193,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
         OutlinedButton.icon(
           onPressed: () => setState(() => _showJoinInput = true),
           icon: const Icon(Icons.login),
-          label: const Text('Rejoindre une Partie'),
+          label: Text(l10n.joinGame),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -199,6 +205,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
   }
 
   Widget _buildJoinInputSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('join_input'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,14 +215,14 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
           controller: _roomCodeController,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: 'Code de la room',
-            hintText: 'Ex: ABCD',
+            labelText: l10n.roomCode,
+            hintText: l10n.roomCodeHint,
             prefixIcon: const Icon(Icons.tag),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () => setState(() => _showJoinInput = false),
-              tooltip: 'Retour',
+              tooltip: l10n.back,
             ),
           ),
           textCapitalization: TextCapitalization.characters,
@@ -248,13 +255,13 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
   // ==========================================================================
 
   Widget _buildConnectingView() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 24),
-          Text('Connexion...', style: TextStyle(fontSize: 18)),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 24),
+          Text(AppLocalizations.of(context).connecting, style: const TextStyle(fontSize: 18)),
         ],
       ),
     );
@@ -265,6 +272,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
   // ==========================================================================
 
   Widget _buildWaitingView(PentoscopeMPState state) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -282,9 +290,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
           const SizedBox(height: 24),
           
           // Liste des joueurs
-          const Text(
-            'Joueurs',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.playersLabel,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           
@@ -304,9 +312,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
             ElevatedButton.icon(
               onPressed: state.canStart ? _startGame : null,
               icon: const Icon(Icons.play_arrow),
-              label: Text(state.playerCount < 2 
-                  ? 'En attente de joueurs (${state.playerCount}/4)'
-                  : 'Démarrer (${state.playerCount} joueurs)'),
+              label: Text(state.playerCount < 2
+                  ? l10n.waitingPlayers(state.playerCount)
+                  : l10n.startGame(state.playerCount)),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: state.canStart ? Colors.green : Colors.grey,
@@ -321,15 +329,15 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
                 color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 20, height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  SizedBox(width: 12),
-                  Text('En attente du lancement...'),
+                  const SizedBox(width: 12),
+                  Text(l10n.waitingLaunch),
                 ],
               ),
             ),
@@ -342,7 +350,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
               await ref.read(pentoscopeMPProvider.notifier).leaveRoom();
             },
             icon: const Icon(Icons.exit_to_app, color: Colors.red),
-            label: const Text('Quitter', style: TextStyle(color: Colors.red)),
+            label: Text(l10n.quit, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -369,9 +377,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
       ),
       child: Column(
         children: [
-          const Text(
-            'Code de la room',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+          Text(
+            AppLocalizations.of(context).roomCode,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Row(
@@ -392,9 +400,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: code));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Code copié !'),
-                      duration: Duration(seconds: 1),
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context).codeCopied),
+                      duration: const Duration(seconds: 1),
                     ),
                   );
                 },
@@ -402,9 +410,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Partage ce code avec tes amis',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
+          Text(
+            AppLocalizations.of(context).shareCode,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -421,10 +429,10 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildConfigItem(Icons.grid_4x4, 'Format', config.format),
-          _buildConfigItem(Icons.extension, 'Pièces', '${config.pieceCount}'),
+          _buildConfigItem(Icons.grid_4x4, AppLocalizations.of(context).configFormat, config.format),
+          _buildConfigItem(Icons.extension, AppLocalizations.of(context).piecesLabel, '${config.pieceCount}'),
           if (config.timeLimit > 0)
-            _buildConfigItem(Icons.timer, 'Limite', '${config.timeLimit}s'),
+            _buildConfigItem(Icons.timer, AppLocalizations.of(context).configLimit, '${config.timeLimit}s'),
         ],
       ),
     );
@@ -475,7 +483,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
                 ),
                 if (player.isHost)
                   Text(
-                    'Hôte',
+                    AppLocalizations.of(context).host,
                     style: TextStyle(color: Colors.amber.shade700, fontSize: 12),
                   ),
               ],
@@ -490,9 +498,9 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
                 color: Colors.blue,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Moi',
-                style: TextStyle(color: Colors.white, fontSize: 12),
+              child: Text(
+                AppLocalizations.of(context).me,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
         ],
@@ -514,7 +522,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              state.errorMessage ?? 'Une erreur est survenue',
+              state.errorMessage ?? AppLocalizations.of(context).genericError,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
@@ -524,7 +532,7 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
                 await ref.read(pentoscopeMPProvider.notifier).leaveRoom();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Réessayer'),
+              label: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -543,14 +551,14 @@ class _PentoscopeMPLobbyScreenState extends ConsumerState<PentoscopeMPLobbyScree
     
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entre ton pseudo')),
+        SnackBar(content: Text(AppLocalizations.of(context).enterNickname)),
       );
       return;
     }
-    
+
     if (code.length != 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Le code doit faire 4 caractères')),
+        SnackBar(content: Text(AppLocalizations.of(context).codeMustBe4)),
       );
       return;
     }

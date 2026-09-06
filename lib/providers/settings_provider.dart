@@ -1,4 +1,5 @@
-// Modified: 2026-09-04 16:25 — défi Phase 3 : generatePlayerId (128 bits, Random.secure) + ensurePlayerId
+// Modified: 2026-09-06 04:50 — i18n : setLocale(code) — null = suit l'appareil, 'en'/'fr' = forcé.
+// Historique: 2026-09-04 16:25 — défi Phase 3 : generatePlayerId (128 bits, Random.secure) + ensurePlayerId
 //           (paresseux, à la 1re soumission de défi — pas au lancement). Identité §7.4, distincte du pseudo.
 // Historique: 2026-09-02 20:37 — progression solo : setUserName, advanceLevel (plafonné kMaxLevel),
 //           ensureLoaded (attendre le chargement avant de lire currentLevel au démarrage).
@@ -69,6 +70,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(playerId: id);
     await _saveSettings();
     return id;
+  }
+
+  /// Langue de l'interface : `null` = suit la locale de l'appareil, `'en'`/`'fr'` = forcé.
+  Future<void> setLocale(String? code) async {
+    state = state.copyWith(localeCode: code, clearLocaleCode: code == null);
+    await _saveSettings();
   }
 
   /// Progression solo : passe au niveau suivant (plafonné à kMaxLevel).

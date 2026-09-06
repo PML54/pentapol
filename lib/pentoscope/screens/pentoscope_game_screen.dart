@@ -1,4 +1,6 @@
-// Modified: 2026-09-05 17:24 — bilan 3 maillots (A) : acuité (plafonnée) / FAUTES / temps ; partie AVEC
+// Modified: 2026-09-06 04:50 — i18n : toutes les chaînes visibles (barre, dialogues nouvelle partie /
+//           saisie du nom, bilan, maillots, tooltips d'isométrie) via AppLocalizations.
+// Historique: 2026-09-05 17:24 — bilan 3 maillots (A) : acuité (plafonnée) / FAUTES / temps ; partie AVEC
 //           aide → « Résolu avec N aide(s) » + temps, sans maillots ni médaille. Plus de « coups »/« Help ».
 // Historique: 2026-09-05 — hub d'accueil : barre de jeu allégée — bouton « Accueil » (retour au menu
 //           via popUntil isFirst), retrait du multijoueur et des réglages (déplacés sur l'accueil).
@@ -84,6 +86,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
@@ -196,20 +199,22 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final name = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Bravo ! 🎉'),
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+        return AlertDialog(
+        title: Text(l10n.congrats),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Premier puzzle réussi. Comment t\'appelles-tu ?'),
+            Text(l10n.firstPuzzlePrompt),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Ton nom',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.yourName,
+                border: const OutlineInputBorder(),
               ),
               onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
             ),
@@ -218,10 +223,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Valider'),
+            child: Text(l10n.validate),
           ),
         ],
-      ),
+        );
+      },
     );
     controller.dispose();
     if (name != null && name.isNotEmpty) {
@@ -234,6 +240,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
+    final l10n = AppLocalizations.of(context);
 
     // Progression / nom : réagir à la transition « puzzle complété ».
     ref.listen<PentoscopeState>(pentoscopeProvider, (prev, next) {
@@ -250,7 +257,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     }
 
     if (state.puzzle == null) {
-      return const Scaffold(body: Center(child: Text('Aucun puzzle')));
+      return Scaffold(body: Center(child: Text(l10n.noPuzzle)));
     }
 
     // Détection du mode transformation
@@ -574,9 +581,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     // Icônes de la barre de transformation : taille dédiée partagée (solo + duel), plus grosse
     // que la barre d'état (cibles d'action ; retour de Paul « trop petites sur iPhone »).
     final double iconSize = isometryIconSize(context);
+    final l10n = AppLocalizations.of(context);
 
     final hasDeleteButton = state.selectedPlacedPiece != null;
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -590,7 +598,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             final result = notifier.applyIsometryRotationTW();
             _handleTransformationResult(context, result);
           },
-          tooltip: GameIcons.isometryRotationTW.tooltip,
+          tooltip: l10n.isoRotateTW,
           color: GameIcons.isometryRotationTW.color,
         ),
         // Rotation horaire
@@ -603,7 +611,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             final result = notifier.applyIsometryRotationCW();
             _handleTransformationResult(context, result);
           },
-          tooltip: GameIcons.isometryRotationCW.tooltip,
+          tooltip: l10n.isoRotateCW,
           color: GameIcons.isometryRotationCW.color,
         ),
         // Symétrie horizontale
@@ -616,7 +624,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             final result = notifier.applyIsometrySymmetryH();
             _handleTransformationResult(context, result);
           },
-          tooltip: GameIcons.isometrySymmetryH.tooltip,
+          tooltip: l10n.isoSymH,
           color: GameIcons.isometrySymmetryH.color,
         ),
         // Symétrie verticale
@@ -629,7 +637,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             final result = notifier.applyIsometrySymmetryV();
             _handleTransformationResult(context, result);
           },
-          tooltip: GameIcons.isometrySymmetryV.tooltip,
+          tooltip: l10n.isoSymV,
           color: GameIcons.isometrySymmetryV.color,
         ),
         // Supprimer (si pièce placée)
@@ -642,7 +650,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               HapticFeedback.selectionClick();
               notifier.removePlacedPiece(state.selectedPlacedPiece!);
             },
-            tooltip: GameIcons.removePiece.tooltip,
+            tooltip: l10n.isoRemove,
             color: GameIcons.removePiece.color,
           ),
       ],
@@ -658,8 +666,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     // Icônes de la barre de transformation (paysage) : même taille dédiée qu'en portrait
     // (isometryIconSize), sinon elles « rétrécissent » en tournant en paysage (retour de Paul).
     final iconSize = isometryIconSize(context);
+    final l10n = AppLocalizations.of(context);
     final hasDeleteButton = state.selectedPlacedPiece != null;
-    
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -672,7 +681,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotationTW();
           },
-          tooltip: GameIcons.isometryRotationTW.tooltip,
+          tooltip: l10n.isoRotateTW,
           color: GameIcons.isometryRotationTW.color,
         ),
         // Rotation horaire
@@ -684,7 +693,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotationCW();
           },
-          tooltip: GameIcons.isometryRotationCW.tooltip,
+          tooltip: l10n.isoRotateCW,
           color: GameIcons.isometryRotationCW.color,
         ),
         // Symétrie horizontale
@@ -696,7 +705,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             HapticFeedback.selectionClick();
             notifier.applyIsometrySymmetryH();
           },
-          tooltip: GameIcons.isometrySymmetryH.tooltip,
+          tooltip: l10n.isoSymH,
           color: GameIcons.isometrySymmetryH.color,
         ),
         // Symétrie verticale
@@ -708,7 +717,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             HapticFeedback.selectionClick();
             notifier.applyIsometrySymmetryV();
           },
-          tooltip: GameIcons.isometrySymmetryV.tooltip,
+          tooltip: l10n.isoSymV,
           color: GameIcons.isometrySymmetryV.color,
         ),
         // Supprimer (si pièce placée)
@@ -721,7 +730,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               HapticFeedback.selectionClick();
               notifier.removePlacedPiece(state.selectedPlacedPiece!);
             },
-            tooltip: GameIcons.removePiece.tooltip,
+            tooltip: l10n.isoRemove,
             color: GameIcons.removePiece.color,
           ),
       ],
@@ -883,6 +892,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   List<Widget> _buildBarItems(
       BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
     final iconSize = _uiIconSize(context);
+    final l10n = AppLocalizations.of(context);
     // Compteur masqué à la complétion : l'info de fin vit dans la carte de bilan (nettoyage).
     final showCounter = ref.read(settingsProvider).game.showSolutionCounter &&
         state.solutionsCount != null &&
@@ -897,14 +907,14 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           HapticFeedback.selectionClick();
           Navigator.popUntil(context, (r) => r.isFirst); // retour au menu d'entrée
         },
-        tooltip: 'Accueil',
+        tooltip: l10n.homeTooltip,
       ),
       IconButton(
         icon: const Icon(Icons.add_circle_outline),
         iconSize: iconSize,
         color: Colors.blue,
         onPressed: () => _showNewGameDialog(context, ref),
-        tooltip: 'Nouvelle partie',
+        tooltip: l10n.newGame,
       ),
       IconButton(
         icon: Icon(Icons.person,
@@ -914,7 +924,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           HapticFeedback.mediumImpact();
           notifier.reset();
         },
-        tooltip: 'Recommencer (même taille)',
+        tooltip: l10n.restartTooltip,
       ),
       if (!state.isComplete && state.availablePieces.isNotEmpty)
         IconButton(
@@ -927,9 +937,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             if (state.isRanked) {
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
-                ..showSnackBar(const SnackBar(
-                  content: Text('Indice désactivé en mode défi'),
-                  duration: Duration(seconds: 2),
+                ..showSnackBar(SnackBar(
+                  content: Text(l10n.hintDisabledChallenge),
+                  duration: const Duration(seconds: 2),
                 ));
               return;
             }
@@ -947,8 +957,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             }
           },
           tooltip: state.hasPossibleSolution
-              ? 'Indice'
-              : 'Aucune solution — revenir en arrière',
+              ? l10n.hint
+              : l10n.noSolutionBack,
         ),
       // Navigateur de solutions compatibles : seul le 6×10 le sert (BigInt, rendu 6×10).
       // Les petites tailles ont un compte non-nul mais pas de navigateur — sinon il serait vide.
@@ -965,12 +975,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               MaterialPageRoute(
                 builder: (_) => SolutionsBrowserScreen.forSolutions(
                   solutions: sols,
-                  title: '${sols.length} solution(s) compatible(s)',
+                  title: l10n.compatibleSolutionsTitle(sols.length),
                 ),
               ),
             );
           },
-          tooltip: 'Solutions compatibles',
+          tooltip: l10n.compatibleSolutionsTooltip,
         ),
       if (showCounter) _buildSolutionCounter(context, state),
       // Réglages retiré de la barre de jeu (choix de Paul) : il vit sur le menu d'accueil.
@@ -1196,21 +1206,22 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             setState(() => tirage = t);
           }
 
+          final l10n = AppLocalizations.of(context);
           return AlertDialog(
-            title: const Text('Nouvelle partie'),
+            title: Text(l10n.newGame),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Taille du plateau',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(l10n.boardSize,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   ...PentoscopeSize.values.map(
                     (size) => RadioListTile<PentoscopeSize>(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       title:
-                          Text('${size.label} (${size.width}×${size.height})'),
+                          Text(l10n.sizeOption(size.label, size.width, size.height)),
                       value: size,
                       groupValue: selectedSize,
                       onChanged: (value) async {
@@ -1224,7 +1235,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          '${tirage.count} solution${tirage.count > 1 ? "s" : ""}',
+                          l10n.drawSolutionsCount(tirage.count),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -1232,14 +1243,14 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                         TextButton.icon(
                           onPressed: redraw,
                           icon: const Icon(Icons.casino_outlined),
-                          label: const Text('Autre tirage'),
+                          label: Text(l10n.otherDraw),
                         ),
                     ],
                   ),
                   SwitchListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Montrer la solution'),
+                    title: Text(l10n.showSolutionOpt),
                     value: showSolution,
                     onChanged: (value) => setState(() => showSolution = value),
                   ),
@@ -1249,7 +1260,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Annuler'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -1260,7 +1271,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                     showSolution: showSolution,
                   );
                 },
-                child: const Text('Lancer'),
+                child: Text(l10n.launch),
               ),
             ],
           );
@@ -1308,6 +1319,7 @@ class _BilanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final m = metrics;
     final assisted = hintCount > 0; // partie avec aide → pas de score de performance affiché
     final perfect = m != null && m.perfectVision && !assisted;
@@ -1316,12 +1328,12 @@ class _BilanCard extends StatelessWidget {
         ? FilledButton.icon(
             onPressed: onNewGame,
             icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Nouvelle partie'),
+            label: Text(l10n.newGame),
           )
         : FilledButton.icon(
             onPressed: onNextLevel,
             icon: const Icon(Icons.arrow_forward, size: 18),
-            label: const Text('Niveau suivant'),
+            label: Text(l10n.nextLevel),
           );
 
     return Padding(
@@ -1353,7 +1365,7 @@ class _BilanCard extends StatelessWidget {
                     const Icon(Icons.emoji_events, color: Colors.amber, size: 30),
                       const SizedBox(width: 8),
                       Text(
-                        'Résolu !',
+                        l10n.solved,
                         style: Theme.of(context)
                             .textTheme
                             .headlineSmall
@@ -1370,19 +1382,19 @@ class _BilanCard extends StatelessWidget {
                     // Partie SANS aide : les trois maillots (acuité plafonnée / fautes / temps).
                     _MaillotLine(
                       color: const Color(0xFFF2B705),
-                      label: 'Acuité',
+                      label: l10n.legendAcuity,
                       value: '${(m.acuity * 100).round()} %',
-                      detail: '${m.isometryCount} isométries · min ${m.minIso}',
+                      detail: l10n.isometryDetail(m.isometryCount, m.minIso),
                     ),
                     _MaillotLine(
                       color: const Color(0xFFD64545),
-                      label: 'Fautes',
+                      label: l10n.legendFaults,
                       value: '${m.faults}',
-                      detail: m.faults == 0 ? 'aucun cul-de-sac' : 'culs-de-sac',
+                      detail: m.faults == 0 ? l10n.faultsNone : l10n.faultsSome,
                     ),
                     _MaillotLine(
                       color: const Color(0xFF2E9E5B),
-                      label: 'Temps',
+                      label: l10n.legendTime,
                       value: _mmss(m.timeSeconds),
                     ),
                   ] else if (m != null) ...[
@@ -1393,7 +1405,7 @@ class _BilanCard extends StatelessWidget {
                         const Icon(Icons.lightbulb, size: 18, color: Colors.orange),
                         const SizedBox(width: 8),
                         Text(
-                          'Résolu avec $hintCount aide${hintCount > 1 ? 's' : ''}',
+                          l10n.solvedWithHelp(hintCount),
                           style: const TextStyle(
                               color: Colors.orange, fontSize: 16, fontWeight: FontWeight.w600),
                         ),
@@ -1402,7 +1414,7 @@ class _BilanCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     _MaillotLine(
                       color: const Color(0xFF2E9E5B),
-                      label: 'Temps',
+                      label: l10n.legendTime,
                       value: _mmss(m.timeSeconds),
                     ),
                   ],
@@ -1413,7 +1425,7 @@ class _BilanCard extends StatelessWidget {
                       child: FilledButton.tonalIcon(
                         onPressed: onLeaderboard,
                         icon: const Icon(Icons.leaderboard_outlined, size: 18),
-                        label: const Text('Voir le classement'),
+                        label: Text(l10n.viewRanking),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1421,7 +1433,7 @@ class _BilanCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(onPressed: onClose, child: const Text('Fermer')),
+                      TextButton(onPressed: onClose, child: Text(l10n.close)),
                       const SizedBox(width: 8),
                       primaryButton,
                     ],
@@ -1497,13 +1509,13 @@ class _PerfectBadge extends StatelessWidget {
         color: const Color(0xFFF2B705).withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.military_tech, color: Color(0xFFF2B705), size: 18),
-          SizedBox(width: 6),
-          Text('Vision parfaite',
-              style: TextStyle(
+          const Icon(Icons.military_tech, color: Color(0xFFF2B705), size: 18),
+          const SizedBox(width: 6),
+          Text(AppLocalizations.of(context).perfectVision,
+              style: const TextStyle(
                   color: Color(0xFF9A7400), fontWeight: FontWeight.w600)),
         ],
       ),

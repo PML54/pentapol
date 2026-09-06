@@ -1,4 +1,6 @@
-// Modified: 2026-09-02 20:37 — pseudo unique : « Nom du joueur » lit/écrit settings.userName (nom
+// Modified: 2026-09-06 04:50 — i18n : toutes les chaînes de l'écran via AppLocalizations + sélecteur
+//           de langue (Système/Français/English → settings.localeCode) sous la section Interface.
+// Historique: 2026-09-02 20:37 — pseudo unique : « Nom du joueur » lit/écrit settings.userName (nom
 //           canonique) au lieu de duel.playerName ; setUserName remplace setDuelPlayerName ici.
 // lib/screens/settings_screen.dart
 // Historique: 2026-09-01 08:58 — sortie fiable sur iPad : bouton « Fermer » ancré en bas
@@ -13,6 +15,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/custom_colors_screen.dart';
@@ -25,30 +28,29 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Paramètres'),
+        title: Text(l10n.settingsTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Réinitialiser',
+            tooltip: l10n.reset,
             onPressed: () async {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Réinitialiser'),
-                  content: const Text(
-                    'Voulez-vous réinitialiser tous les paramètres par défaut ?',
-                  ),
+                  title: Text(l10n.reset),
+                  content: Text(l10n.settingsResetConfirm),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Annuler'),
+                      child: Text(l10n.cancel),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Réinitialiser'),
+                      child: Text(l10n.reset),
                     ),
                   ],
                 ),
@@ -71,7 +73,7 @@ class SettingsScreen extends ConsumerWidget {
           child: FilledButton.icon(
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.close),
-            label: const Text('Fermer'),
+            label: Text(l10n.close),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -82,13 +84,21 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
         children: [
           // === SECTION UI ===
-          _buildSectionHeader('Interface'),
+          _buildSectionHeader(l10n.sectionInterface),
+
+          // Langue de l'interface (Système = suit l'appareil)
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(l10n.settingsLanguage),
+            subtitle: Text(_languageName(l10n, settings.localeCode)),
+            onTap: () => _showLanguageDialog(context, notifier, settings.localeCode),
+          ),
 
           // Schéma de couleurs
           ListTile(
             leading: const Icon(Icons.palette),
-            title: const Text('Couleurs des pièces'),
-            subtitle: Text(_getColorSchemeName(settings.ui.colorScheme)),
+            title: Text(l10n.pieceColors),
+            subtitle: Text(_colorSchemeName(l10n, settings.ui.colorScheme)),
             onTap: () => _showColorSchemeDialog(context, notifier, settings.ui.colorScheme),
           ),
 
@@ -96,8 +106,8 @@ class SettingsScreen extends ConsumerWidget {
           if (settings.ui.colorScheme == PieceColorScheme.custom)
             ListTile(
               leading: const Icon(Icons.color_lens),
-              title: const Text('Personnaliser les couleurs'),
-              subtitle: const Text('Définir les 12 couleurs des pièces'),
+              title: Text(l10n.customizeColors),
+              subtitle: Text(l10n.customizeColorsSub),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
                 Navigator.push(
@@ -110,13 +120,13 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
 
           // === SECTION JEU ===
-          _buildSectionHeader('Jeu'),
+          _buildSectionHeader(l10n.sectionGame),
 
           // Compteur de solutions
           SwitchListTile(
             secondary: const Icon(Icons.emoji_events),
-            title: const Text('Compteur de solutions'),
-            subtitle: const Text('Afficher le nombre de solutions possibles'),
+            title: Text(l10n.solutionCounter),
+            subtitle: Text(l10n.solutionCounterSub),
             value: settings.game.showSolutionCounter,
             onChanged: (value) => notifier.setShowSolutionCounter(value),
           ),
@@ -124,8 +134,8 @@ class SettingsScreen extends ConsumerWidget {
           // Retour haptique
           SwitchListTile(
             secondary: const Icon(Icons.vibration),
-            title: const Text('Retour haptique'),
-            subtitle: const Text('Vibrations lors des actions'),
+            title: Text(l10n.haptics),
+            subtitle: Text(l10n.hapticsSub),
             value: settings.game.enableHaptics,
             onChanged: (value) => notifier.setEnableHaptics(value),
           ),
@@ -133,8 +143,8 @@ class SettingsScreen extends ConsumerWidget {
           // Durée du long press
           ListTile(
             leading: const Icon(Icons.touch_app),
-            title: const Text('Sensibilité du drag'),
-            subtitle: Text('${settings.game.longPressDuration}ms'),
+            title: Text(l10n.dragSensitivity),
+            subtitle: Text(l10n.dragMs(settings.game.longPressDuration)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -157,7 +167,7 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
 
           // === SECTION DUEL ===
-          _buildSectionHeader('Mode Duel'),
+          _buildSectionHeader(l10n.sectionDuel),
 
           // Tile pour accéder aux paramètres Duel
           _buildDuelSettingsTile(context, ref, settings),
@@ -165,7 +175,7 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
 
           // === SECTION À PROPOS ===
-          _buildSectionHeader('À propos'),
+          _buildSectionHeader(l10n.sectionAbout),
 
           // Version de l'app
           _buildVersionTile(context),
@@ -180,9 +190,11 @@ class SettingsScreen extends ConsumerWidget {
   // === WIDGETS DUEL ===
 
   Widget _buildDuelSettingsTile(BuildContext context, WidgetRef ref, AppSettings settings) {
-    final playerName = settings.userName ?? 'Non défini';
+    final l10n = AppLocalizations.of(context);
+    final playerName = settings.userName ?? l10n.notDefined;
     final duration = settings.duel.durationFormatted;
-    final stats = '${settings.duel.totalWins}V / ${settings.duel.totalLosses}D / ${settings.duel.totalDraws}N';
+    final stats = l10n.duelStatsSummary(settings.duel.totalWins,
+        settings.duel.totalLosses, settings.duel.totalDraws);
 
     return ListTile(
       leading: Container(
@@ -193,7 +205,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         child: const Icon(Icons.sports_esports, color: Colors.deepPurple),
       ),
-      title: const Text('Paramètres Duel'),
+      title: Text(l10n.duelSettings),
       subtitle: Text('$playerName • $duration • $stats'),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => _showDuelSettingsDialog(context, ref),
@@ -215,7 +227,9 @@ class SettingsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
+        builder: (ctx, setModalState) {
+          final l10n = AppLocalizations.of(ctx);
+          return Padding(
           padding: EdgeInsets.only(
             left: 20,
             right: 20,
@@ -232,9 +246,9 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     const Icon(Icons.sports_esports, color: Colors.deepPurple, size: 28),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Paramètres Duel',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n.duelSettings,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
                     IconButton(
@@ -249,8 +263,8 @@ class SettingsScreen extends ConsumerWidget {
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
-                    labelText: 'Nom du joueur',
-                    hintText: 'Entrez votre pseudo',
+                    labelText: l10n.duelPlayerName,
+                    hintText: l10n.duelNicknameHint,
                     prefixIcon: const Icon(Icons.person_outline),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -262,9 +276,9 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // Durée de partie
-                const Text(
-                  'Durée de partie',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                Text(
+                  l10n.gameDuration,
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -296,24 +310,24 @@ class SettingsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '📊 Statistiques',
-                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                      Text(
+                        l10n.statsHeader,
+                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                       ),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatColumn('Parties', '${settings.duel.totalGamesPlayed}', Icons.sports_esports),
-                          _buildStatColumn('Victoires', '${settings.duel.totalWins}', Icons.emoji_events, Colors.green),
-                          _buildStatColumn('Défaites', '${settings.duel.totalLosses}', Icons.close, Colors.red),
-                          _buildStatColumn('Égalités', '${settings.duel.totalDraws}', Icons.handshake, Colors.orange),
+                          _buildStatColumn(l10n.statGames, '${settings.duel.totalGamesPlayed}', Icons.sports_esports),
+                          _buildStatColumn(l10n.statWins, '${settings.duel.totalWins}', Icons.emoji_events, Colors.green),
+                          _buildStatColumn(l10n.statLosses, '${settings.duel.totalLosses}', Icons.close, Colors.red),
+                          _buildStatColumn(l10n.statDraws, '${settings.duel.totalDraws}', Icons.handshake, Colors.orange),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Center(
                         child: Text(
-                          'Taux de victoire : ${settings.duel.winRate.toStringAsFixed(1)}%',
+                          l10n.winRate(settings.duel.winRate.toStringAsFixed(1)),
                           style: TextStyle(color: Colors.grey.shade700),
                         ),
                       ),
@@ -334,7 +348,7 @@ class SettingsScreen extends ConsumerWidget {
                           foregroundColor: Colors.red,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Réinit. stats'),
+                        child: Text(l10n.duelResetStats),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -354,7 +368,7 @@ class SettingsScreen extends ConsumerWidget {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Sauvegarder'),
+                        child: Text(l10n.save),
                       ),
                     ),
                   ],
@@ -362,7 +376,8 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -391,13 +406,15 @@ class SettingsScreen extends ConsumerWidget {
   void _confirmResetDuelStats(BuildContext context, SettingsNotifier notifier) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Effacer les statistiques ?'),
-        content: const Text('Cette action est irréversible.'),
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+        return AlertDialog(
+        title: Text(l10n.clearStatsTitle),
+        content: Text(l10n.clearStatsBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -405,10 +422,11 @@ class SettingsScreen extends ConsumerWidget {
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Effacer'),
+            child: Text(l10n.clearAction),
           ),
         ],
-      ),
+        );
+      },
     );
   }
 
@@ -424,7 +442,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         child: const Icon(Icons.info_outline, color: Colors.blue),
       ),
-      title: const Text('Version'),
+      title: Text(AppLocalizations.of(context).version),
       subtitle: Text(
         BuildInfo.versionWithDate,
         style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
@@ -436,7 +454,9 @@ class SettingsScreen extends ConsumerWidget {
   void _showAboutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+        return AlertDialog(
         title: Row(
           children: [
             Icon(Icons.extension, color: Colors.deepPurple.shade400),
@@ -448,9 +468,9 @@ class SettingsScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildAboutRow('Version', BuildInfo.fullVersion),
-            _buildAboutRow('Build', BuildInfo.buildDateFormatted),
-            _buildAboutRow('Auteur', BuildInfo.author),
+            _buildAboutRow(l10n.version, BuildInfo.fullVersion),
+            _buildAboutRow(l10n.buildLabel, BuildInfo.buildDateFormatted),
+            _buildAboutRow(l10n.aboutAuthor, BuildInfo.author),
             const Divider(height: 24),
             Text(
               BuildInfo.description,
@@ -472,10 +492,11 @@ class SettingsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Fermer'),
+            child: Text(l10n.close),
           ),
         ],
-      ),
+        );
+      },
     );
   }
 
@@ -508,21 +529,62 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  String _getColorSchemeName(PieceColorScheme scheme) {
+  String _colorSchemeName(AppLocalizations l10n, PieceColorScheme scheme) {
     switch (scheme) {
       case PieceColorScheme.classic:
-        return 'Classique';
+        return l10n.colorSchemeClassic;
       case PieceColorScheme.pastel:
-        return 'Pastel';
+        return l10n.colorSchemePastel;
       case PieceColorScheme.neon:
-        return 'Néon';
+        return l10n.colorSchemeNeon;
       case PieceColorScheme.monochrome:
-        return 'Monochrome';
+        return l10n.colorSchemeMonochrome;
       case PieceColorScheme.rainbow:
-        return 'Arc-en-ciel';
+        return l10n.colorSchemeRainbow;
       case PieceColorScheme.custom:
-        return 'Personnalisé';
+        return l10n.colorSchemeCustom;
     }
+  }
+
+  /// Libellé du choix de langue (Système = suit l'appareil).
+  String _languageName(AppLocalizations l10n, String? code) {
+    switch (code) {
+      case 'fr':
+        return l10n.languageFrench;
+      case 'en':
+        return l10n.languageEnglish;
+      default:
+        return l10n.languageSystem;
+    }
+  }
+
+  void _showLanguageDialog(
+      BuildContext context, SettingsNotifier notifier, String? current) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        // null = Système ; 'fr'/'en' = forcé.
+        final options = <String?>[null, 'fr', 'en'];
+        return AlertDialog(
+          title: Text(l10n.settingsLanguage),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((code) {
+              return RadioListTile<String?>(
+                title: Text(_languageName(l10n, code)),
+                value: code,
+                groupValue: current,
+                onChanged: (value) {
+                  notifier.setLocale(value);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
   }
 
   void _showColorSchemeDialog(
@@ -532,13 +594,15 @@ class SettingsScreen extends ConsumerWidget {
       ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Couleurs des pièces'),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+        title: Text(l10n.pieceColors),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: PieceColorScheme.values.map((scheme) {
             return RadioListTile<PieceColorScheme>(
-              title: Text(_getColorSchemeName(scheme)),
+              title: Text(_colorSchemeName(l10n, scheme)),
               value: scheme,
               groupValue: current,
               onChanged: (value) {
@@ -550,7 +614,8 @@ class SettingsScreen extends ConsumerWidget {
             );
           }).toList(),
         ),
-      ),
+        );
+      },
     );
   }
 
