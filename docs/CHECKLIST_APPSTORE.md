@@ -54,6 +54,7 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 | 13 | **Suppression de compte** | Sans création de compte, sans objet. Le jour où un classement partagé arrive, Apple **exige** la suppression du compte depuis l'app. À garder en tête avant de se lancer dans le connecté. **Confirmé hors V1 le 2026-09-03 (CDC §12, Q3 — modèle payant sans classement)** : pas de classement partagé en V1, donc **rien à faire ici pour la V1**. L'exigence revient à la **première mise à jour** (défi de la semaine + classement en ligne), avec l'identité 128 bits de CDC §7.4 |
 | 14 | **RGPD** | Aujourd'hui : aucune donnée ne quitte l'appareil, sauf en multijoueur. Le point 6 est donc aussi un point de conformité |
 | 15 | **Politique de confidentialité** | Une URL est demandée à la soumission, même pour une app qui ne collecte rien |
+| 20 | **Localiser les métadonnées App Store (EN + FR)** | Depuis le 2026-09-06 l'app est **bilingue EN/FR** (`docs/I18N.md`). Il faut **déclarer les deux langues** dans App Store Connect et fournir des **métadonnées localisées** : nom, sous-titre, description, mots-clés, et **captures** par langue. Une app bilingue avec une fiche unilingue perd le bénéfice — surtout côté anglophone. Ce n'est pas du code : c'est un livrable de soumission | App Store Connect, `FICHE_APP_STORE.md` |
 
 ---
 
@@ -76,6 +77,9 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 - `flutter pub add collection` — lint `depend_on_referenced_packages` préexistant.
 - La preview cyan morte dans `pentoscope_board.dart` (lit `state.isSnapped`, que personne
   n'écrit).
+- **Le SnackBar de debug « 🎯 Lobby chargé - test DB »** au lancement du lobby multijoueur
+  (`pentoscope_mp_lobby_screen.dart`, `initState`) — artefact de développement, visible en prod.
+  À **retirer** (il est volontairement laissé non traduit, cf. `docs/I18N.md`).
 - Le paramètre `cellSize` de `PieceRenderer` — la miniature signalée par Paul au déplacement
   d'une pièce, taille de case codée en dur à 22 px alors que celle du plateau est calculée.
 

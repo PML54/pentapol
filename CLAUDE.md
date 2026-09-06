@@ -25,7 +25,8 @@ lib/
   data/                    documentation backend (pas de code Dart)
   database/                drift — persistance des réglages
   debug/                   database_debug_screen (orphelin, voué à disparaître — §9)
-  l10n/                    localisation
+  l10n/                    localisation EN/FR — ARB (app_en/app_fr) + AppLocalizations généré
+                           (câblé depuis 2026-09-06 ; voir docs/I18N.md)
   models/                  app_settings
   pentoscope/              LE module de jeu : provider, plateau, barre, écrans,
                            générateur, solveur, sources de solutions
@@ -130,6 +131,13 @@ done
 7. **Vérifier plutôt qu'affirmer.** Ce projet contient des invariants combinatoires
    (2339 solutions canoniques, 9356 après expansion) : ils se contrôlent par
    exécution, pas par raisonnement.
+8. **Aucune chaîne visible en dur.** Depuis le 2026-09-06 l'app est bilingue EN/FR
+   (`flutter_localizations` + ARB). Toute chaîne affichée à l'utilisateur passe par
+   `AppLocalizations` et existe dans **`app_en.arb` ET `app_fr.arb`** ; jamais de
+   `Text('texte français')`. Procédure, pièges (`const` sans `context`, helpers) et
+   littéraux volontairement gardés : `docs/I18N.md`. Régénérer avec `flutter gen-l10n`
+   après toute édition d'ARB ; les fichiers générés `lib/l10n/app_localizations*.dart`
+   sont versionnés.
 
 ## Invariants et pièges — vérifiés, à ne pas redécouvrir
 
@@ -216,6 +224,8 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
   production s'y inscrit avec sa raison
 - `docs/PLAN_PERSISTANCE.md` — ce que l'app garde sur l'appareil : quatre tables drift,
   la partie en cours, les records
+- `docs/I18N.md` — bilinguisme EN/FR : mécanisme (ARB, `gen-l10n`, `localeCode`), procédure
+  pour ajouter une chaîne, pièges (`const`/helpers/dialogues) et littéraux gardés
 > Les plans **appliqués et testés sont supprimés**, pas archivés — `git log` les conserve.
 > Cinq l'ont été le 2026-08-31 (démo, unification, suppression classical, bilan, ergonomie).
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation

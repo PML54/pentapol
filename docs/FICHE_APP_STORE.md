@@ -8,6 +8,12 @@
 > paragraphes qui dépendent d'un chantier non terminé sont marqués **[conditionnel]** et ne
 > doivent être collés dans App Store Connect que lorsque le chantier est livré.
 
+> 🇬🇧 **À FAIRE (cowork) — l'app est bilingue EN/FR depuis le 2026-09-06** (`docs/I18N.md`,
+> `CHECKLIST_APPSTORE.md` point 20). Cette fiche ne couvre que le **français**. Il faut un
+> **pendant anglais** de tous les champs ci-dessous (nom, sous-titre, mots-clés, description,
+> texte promotionnel), pensé pour l'App Store US — pas une traduction littérale : les mots-clés
+> et la promesse doivent être choisis pour l'anglophone. Domaine de cowork.
+
 Limites App Store Connect, par localisation : nom 30, sous-titre 30, mots-clés 100,
 texte promotionnel 170, description 4 000.
 
