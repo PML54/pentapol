@@ -51,6 +51,12 @@ Base URL = l'URL du worker déployé.
   ```
   `201` si enregistré ; `409` si un essai existe déjà (premier essai seulement) ; `400` si invalide.
 
+- **`DELETE /score?playerId=<32 hex>`** — suppression RGPD (CDC §7.4) : efface **toutes** les lignes
+  du joueur (toutes semaines/tailles/versions). `200 { "ok": true, "deleted": <n> }`. Non authentifié :
+  le `playerId` est un secret 128 bits connu du seul propriétaire → n'expose que ses propres données
+  (même modèle de confiance que `POST /score`). Appelé par le bouton « Supprimer mes données de
+  classement » des Réglages.
+
 - **`GET /leaderboard?version=&week=&size=&maillot=&limit=`** — tableau trié.
   `maillot` ∈ `jaune` (acuité ↓, plafonnée à 100 %), `pois` (fautes ↑), `vert` (temps ↑).
   Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, min_iso, iso_count, faults, time_ms }, ... ] }`.

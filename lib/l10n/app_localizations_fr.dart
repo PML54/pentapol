@@ -516,4 +516,45 @@ class AppLocalizationsFr extends AppLocalizations {
   String isometryDetail(int count, int min) {
     return '$count isométries · min $min';
   }
+
+  @override
+  String get sectionRanking => 'Classement en ligne';
+
+  @override
+  String get shareScores => 'Participer au classement en ligne';
+
+  @override
+  String get shareScoresSub =>
+      'Envoie ton pseudo et un identifiant anonyme au serveur de classement. Désactivé par défaut.';
+
+  @override
+  String get deleteOnlineData => 'Supprimer mes données de classement';
+
+  @override
+  String get deleteOnlineDataSub =>
+      'Efface tes scores du serveur et ton identifiant sur cet appareil.';
+
+  @override
+  String get deleteOnlineDataConfirm =>
+      'Ceci efface tes scores du classement en ligne et ton identifiant sur cet appareil. C\'est irréversible.';
+
+  @override
+  String get deleteAction => 'Supprimer';
+
+  @override
+  String get deleteOnlineDataDone =>
+      'Tes données de classement ont été supprimées.';
+
+  @override
+  String get consentTitle => 'Participer au classement en ligne ?';
+
+  @override
+  String get consentBody =>
+      'Pour afficher le classement, Pentapol envoie ton pseudo et un identifiant anonyme à son serveur à la fin d\'un défi. Rien n\'est envoyé autrement. Tu peux le désactiver et supprimer tes données à tout moment dans les Réglages.';
+
+  @override
+  String get consentEnable => 'Participer';
+
+  @override
+  String get consentLater => 'Plus tard';
 }

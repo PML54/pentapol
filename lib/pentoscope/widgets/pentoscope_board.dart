@@ -1,4 +1,6 @@
-// Modified: 2026-09-06 04:50 — i18n : « Aucun puzzle » via AppLocalizations.
+// Modified: 2026-09-07 09:13 — taille des pièces : cellSize plafonné par kMaxBoardCellSize (borne
+//           haute partagée avec _barMetrics) — supprime la « falaise » de réduction des petits plateaux.
+// Historique: 2026-09-06 04:50 — i18n : « Aucun puzzle » via AppLocalizations.
 // Historique: 2026-09-02 09:42 — #6 répartition verticale : en portrait le plateau est ancré en bas
 //           (Alignment.bottomCenter) au lieu d'être centré ; offsetY du hit-test drag couplé au
 //           même alignement (portrait = bas, paysage = haut) sinon le dépôt viserait le centre.
@@ -33,7 +35,7 @@ import 'package:pentapol/common/widgets/piece_renderer.dart';
 // Le rapport pièce/plateau (feedback de drag) est regroupé avec les autres réglages visuels
 // en tête de pentoscope_game_screen.dart. Import ciblé pour ne prendre que cette constante.
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
-    show kPieceToBoardCellRatio;
+    show kPieceToBoardCellRatio, kMaxBoardCellSize;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
@@ -81,9 +83,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         // Réserver 8px de marge uniquement en portrait (largeur limitée)
         // En paysage, pas besoin de marge car le plateau a plus d'espace
         final availableWidth = widget.isLandscape ? constraints.maxWidth : constraints.maxWidth - 8;
-        final cellSize = (availableWidth / visualCols)
-            .clamp(0.0, constraints.maxHeight / visualRows)
-            .toDouble();
+        // Plafond de hauteur ET plafond absolu partagé (kMaxBoardCellSize) : sans lui, un petit
+        // plateau s'affiche démesuré et le passage à un plus grand fait une falaise de réduction.
+        final heightCap = constraints.maxHeight / visualRows;
+        final upperCap =
+            heightCap < kMaxBoardCellSize ? heightCap : kMaxBoardCellSize;
+        final cellSize =
+            (availableWidth / visualCols).clamp(0.0, upperCap).toDouble();
 
         final gridWidth = cellSize * visualCols;
         final gridHeight = cellSize * visualRows;

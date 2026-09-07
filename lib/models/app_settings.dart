@@ -1,4 +1,11 @@
-// Modified: 2026-09-06 04:50 — i18n : champ top-level localeCode (null = suit la locale de l'appareil,
+// Modified: 2026-09-07 07:34 — conformité défi V1 : champs shareScoresOptIn (défaut false — envoi de
+//           score désactivé par défaut, CDC §8) et challengeConsentAsked (proposition unique de
+//           l'opt-in à la 1re complétion d'un défi) + drapeau clearPlayerId dans copyWith (suppression
+//           d'identité RGPD, CDC §7.4). JSON, pas de migration (invariant #6).
+// Historique: 2026-09-07 07:17 — conformité défi V1 : champ shareScoresOptIn (défaut false — envoi de
+//           score désactivé par défaut, CDC §8) + drapeau clearPlayerId dans copyWith (suppression
+//           d'identité RGPD, CDC §7.4). JSON, pas de migration (invariant #6).
+// Historique: 2026-09-06 04:50 — i18n : champ top-level localeCode (null = suit la locale de l'appareil,
 //           'en'/'fr' = forcé depuis les Réglages). JSON, pas de migration (invariant #6).
 // Historique: 2026-09-04 16:25 — défi Phase 3 : champ top-level playerId (identité 128 bits, distincte
 //           du pseudo, CDC §7.4). JSON, pas de migration (invariant #6).
@@ -480,6 +487,17 @@ class AppSettings {
   /// (défaut), `'en'` ou `'fr'` = forcer. Résolu en `Locale?` par [PentapolApp].
   final String? localeCode;
 
+  /// Consentement à l'envoi de score au classement en ligne (CDC §8). **Défaut `false`** :
+  /// tant qu'il est faux, aucun score n'est envoyé, **aucun `playerId` n'est généré**, et le
+  /// classement n'est pas consultable — l'app « ne collecte rien » par défaut (App Privacy).
+  /// Activé par un geste explicite du joueur (dialogue de consentement / interrupteur Réglages).
+  final bool shareScoresOptIn;
+
+  /// Vrai dès qu'on a **proposé** l'opt-in automatiquement à la fin d'un défi (accepté ou refusé).
+  /// Garde la proposition **unique** (pas de harcèlement à chaque défi) ; le joueur peut toujours
+  /// activer plus tard via les Réglages ou en ouvrant le classement (geste explicite).
+  final bool challengeConsentAsked;
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
@@ -488,6 +506,8 @@ class AppSettings {
     this.currentLevel = 1,
     this.playerId,
     this.localeCode,
+    this.shareScoresOptIn = false,
+    this.challengeConsentAsked = false,
   });
 
   AppSettings copyWith({
@@ -498,8 +518,11 @@ class AppSettings {
     bool clearUserName = false,
     int? currentLevel,
     String? playerId,
+    bool clearPlayerId = false,
     String? localeCode,
     bool clearLocaleCode = false,
+    bool? shareScoresOptIn,
+    bool? challengeConsentAsked,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -507,8 +530,10 @@ class AppSettings {
       duel: duel ?? this.duel,
       userName: clearUserName ? null : (userName ?? this.userName),
       currentLevel: currentLevel ?? this.currentLevel,
-      playerId: playerId ?? this.playerId,
+      playerId: clearPlayerId ? null : (playerId ?? this.playerId),
       localeCode: clearLocaleCode ? null : (localeCode ?? this.localeCode),
+      shareScoresOptIn: shareScoresOptIn ?? this.shareScoresOptIn,
+      challengeConsentAsked: challengeConsentAsked ?? this.challengeConsentAsked,
     );
   }
 
@@ -521,6 +546,8 @@ class AppSettings {
       'currentLevel': currentLevel,
       'playerId': playerId,
       'localeCode': localeCode,
+      'shareScoresOptIn': shareScoresOptIn,
+      'challengeConsentAsked': challengeConsentAsked,
     };
   }
 
@@ -535,6 +562,8 @@ class AppSettings {
       currentLevel: (json['currentLevel'] as int?) ?? 1,
       playerId: json['playerId'] as String?,
       localeCode: json['localeCode'] as String?,
+      shareScoresOptIn: json['shareScoresOptIn'] as bool? ?? false,
+      challengeConsentAsked: json['challengeConsentAsked'] as bool? ?? false,
     );
   }
 }

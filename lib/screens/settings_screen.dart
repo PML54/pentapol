@@ -1,4 +1,6 @@
-// Modified: 2026-09-06 04:50 — i18n : toutes les chaînes de l'écran via AppLocalizations + sélecteur
+// Modified: 2026-09-07 07:17 — conformité défi V1 : section « Classement en ligne » — interrupteur
+//           opt-in (shareScoresOptIn, §8) + suppression des données de classement (RGPD §7.4).
+// Historique: 2026-09-06 04:50 — i18n : toutes les chaînes de l'écran via AppLocalizations + sélecteur
 //           de langue (Système/Français/English → settings.localeCode) sous la section Interface.
 // Historique: 2026-09-02 20:37 — pseudo unique : « Nom du joueur » lit/écrit settings.userName (nom
 //           canonique) au lieu de duel.playerName ; setUserName remplace setDuelPlayerName ici.
@@ -166,6 +168,32 @@ class SettingsScreen extends ConsumerWidget {
 
           const Divider(),
 
+          // === SECTION CLASSEMENT EN LIGNE ===
+          _buildSectionHeader(l10n.sectionRanking),
+
+          // Opt-in à l'envoi de score (§8 : désactivé par défaut, activé par geste explicite).
+          SwitchListTile(
+            secondary: const Icon(Icons.leaderboard_outlined),
+            title: Text(l10n.shareScores),
+            subtitle: Text(l10n.shareScoresSub),
+            value: settings.shareScoresOptIn,
+            onChanged: (value) => notifier.setShareScoresOptIn(value),
+          ),
+
+          // Suppression RGPD (§7.4) : efface les scores serveur + l'identité locale. Inactif tant
+          // qu'aucune identité n'a été créée (rien à supprimer).
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.deleteOnlineData),
+            subtitle: Text(l10n.deleteOnlineDataSub),
+            enabled: settings.playerId != null,
+            onTap: settings.playerId == null
+                ? null
+                : () => _confirmDeleteOnlineData(context, ref),
+          ),
+
+          const Divider(),
+
           // === SECTION DUEL ===
           _buildSectionHeader(l10n.sectionDuel),
 
@@ -185,6 +213,33 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Confirme puis supprime les données de classement (RGPD §7.4) : scores serveur + identité locale.
+  Future<void> _confirmDeleteOnlineData(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteOnlineData),
+        content: Text(l10n.deleteOnlineDataConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.deleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(settingsProvider.notifier).deleteOnlineIdentity();
+    messenger.showSnackBar(SnackBar(content: Text(l10n.deleteOnlineDataDone)));
   }
 
   // === WIDGETS DUEL ===

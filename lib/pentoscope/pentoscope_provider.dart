@@ -1,4 +1,7 @@
-// Modified: 2026-09-05 17:42 — fix faute fantôme : le coup qui COMPLÈTE le plateau vidait
+// Modified: 2026-09-07 07:17 — conformité défi V1 : _submitChallengeScore ne fait rien sans
+//           shareScoresOptIn (envoi désactivé par défaut, §8) → aucun playerId généré par défaut ;
+//           wrapper public submitChallengeScore() pour la soumission après consentement.
+// Historique: 2026-09-05 17:42 — fix faute fantôme : le coup qui COMPLÈTE le plateau vidait
 //           availablePieces → hasPossibleSolution passait à faux (pris pour un cul-de-sac) et
 //           comptait +1 faute. La complétion (isComplete) ne compte plus jamais de faute.
 // Historique: 2026-09-05 17:24 — refonte « A » : helpCount→faultCount, _bumpFault compte les fautes
@@ -948,9 +951,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
+  /// 🎽 POST le score du défi actif au serveur de classement (§7). Public : appelé automatiquement
+  /// à la complétion d'un défi ET par le flux de consentement (après activation de l'opt-in au
+  /// bilan). Idempotent côté serveur (409 sur doublon, ignoré). Échec silencieux (§7.8).
+  Future<void> submitChallengeScore() => _submitChallengeScore();
+
   /// 🎽 POST le score d'un défi terminé au serveur de classement (§7). Fire-and-forget, échec
   /// silencieux (§7.8 : le jeu reste entier sans réseau). N'a d'effet qu'à la complétion d'un défi.
+  /// **Conformité V1** : ne fait **rien** sans `shareScoresOptIn` (envoi désactivé par défaut, §8) —
+  /// c'est aussi ce qui garantit qu'aucun `playerId` n'est généré tant que le joueur n'a pas consenti.
   Future<void> _submitChallengeScore() async {
+    if (!ref.read(settingsProvider).shareScoresOptIn) return; // consentement requis (§8)
     final ch = _activeChallenge;
     final metrics = computeCompletionMetrics();
     if (ch == null || metrics == null) return;

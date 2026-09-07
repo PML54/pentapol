@@ -1,4 +1,13 @@
-// Modified: 2026-09-06 04:50 — i18n : toutes les chaînes visibles (barre, dialogues nouvelle partie /
+// Modified: 2026-09-07 09:20 — AppBar : icônes agrandies (_kIconSizeFactor 0.075→0.11, min 30→40)
+//           et retrait de l'icône Icons.person (reset « recommencer ») — choix de Paul.
+// Historique: 2026-09-07 09:13 — taille des pièces : k 0.22→0.26 (pièces de barre plus grosses) +
+//           kMaxBoardCellSize (borne haute de la case du plateau, supprime la « falaise » des
+//           petits plateaux) ; le plafond est aussi appliqué à boardCell dans _barMetrics.
+// Historique: 2026-09-07 07:34 — conformité défi V1 : proposition d'opt-in à la 1re complétion d'un défi
+//           (maybeProposeConsentOnChallengeCompletion, après l'éventuelle saisie du nom).
+// Historique: 2026-09-07 07:17 — conformité défi V1 : « Voir le classement » du bilan passe par
+//           openLeaderboardWithConsent (opt-in requis §4.5 ; soumission du défi terminé après consentement).
+// Historique: 2026-09-06 04:50 — i18n : toutes les chaînes visibles (barre, dialogues nouvelle partie /
 //           saisie du nom, bilan, maillots, tooltips d'isométrie) via AppLocalizations.
 // Historique: 2026-09-05 17:24 — bilan 3 maillots (A) : acuité (plafonnée) / FAUTES / temps ; partie AVEC
 //           aide → « Résolu avec N aide(s) » + temps, sans maillots ni médaille. Plus de « coups »/« Help ».
@@ -94,6 +103,7 @@ import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
+import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
@@ -108,11 +118,22 @@ import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
 
 /// Rapport pièce/plateau : `pieceCellSize = boardCellSize × k`. Gouverne la taille des pièces
 /// de la barre **et** du feedback de drag ; l'épaisseur de la barre en dérive.
-const double kPieceToBoardCellRatio = 0.22;
+/// **À régler à l'œil sur device.** (0.22 → 0.26 le 2026-09-07 : pièces de barre plus grosses.)
+const double kPieceToBoardCellRatio = 0.26;
 
-/// Icônes (AppBar + colonne d'actions) : `shortestSide × facteur`, borné.
-const double _kIconSizeFactor = 0.075;
-const double _kIconSizeMin = 30.0;
+/// Borne HAUTE de la taille d'une case du plateau (pt logiques ≈ physiques). Sans elle,
+/// `cellSize = min(W/w, H/h)` n'a pas de plafond : les petits plateaux (3×5, 4×5) s'affichent
+/// démesurés et le passage à un plateau plus grand fait une « falaise » de réduction. Plafond
+/// **absolu** (pas relatif à l'appareil) : une case > ~84 pt est démesurée sur tout écran, et un
+/// plafond absolu évite de réintroduire une détection de tablette (§3). Conséquence assumée : un
+/// petit plateau ne remplit pas un iPad (marges). Appliqué au board ET à `_barMetrics` (cohérence
+/// §3). **À régler à l'œil sur device.**
+const double kMaxBoardCellSize = 84.0;
+
+/// Icônes (AppBar + colonne d'actions) : `shortestSide × facteur`, borné. **À régler à l'œil.**
+/// (0.075→0.11, min 30→40 le 2026-09-07 : « trop petites dans l'AppBar » — retour de Paul.)
+const double _kIconSizeFactor = 0.11;
+const double _kIconSizeMin = 40.0;
 const double _kIconSizeMax = 64.0;
 
 /// Hauteur de l'AppBar : `shortestSide × facteur`, borné.
@@ -186,9 +207,17 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         st.puzzle!.size == sizeForLevel(settings.currentLevel)) {
       ref.read(settingsProvider.notifier).advanceLevel();
     }
-    if (settings.userName == null || settings.userName!.trim().isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _promptUserName(context);
+    final needName =
+        settings.userName == null || settings.userName!.trim().isEmpty;
+    final rankedCompletion = st.isRanked; // défi terminé → proposer l'opt-in (une fois)
+    if (needName || rankedCompletion) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        // this.context (State.context) gardé par State.mounted : motif sûr entre await successifs.
+        if (needName) await _promptUserName(this.context);
+        if (rankedCompletion && mounted) {
+          await maybeProposeConsentOnChallengeCompletion(this.context, ref);
+        }
       });
     }
   }
@@ -764,12 +793,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             hintCount: state.hintCount,
             onLeaderboard: challenge == null
                 ? null
-                : () => Navigator.push(
+                : () => openLeaderboardWithConsent(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => LeaderboardScreen(
-                            week: challenge.week, size: challenge.size),
-                      ),
+                      ref,
+                      submitAfterOptIn: true,
+                      builder: () => LeaderboardScreen(
+                          week: challenge.week, size: challenge.size),
                     ),
             onClose: () => setState(() => _bilanFerme = true),
             onNewGame: () {
@@ -916,16 +945,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         onPressed: () => _showNewGameDialog(context, ref),
         tooltip: l10n.newGame,
       ),
-      IconButton(
-        icon: Icon(Icons.person,
-            color: state.isComplete ? Colors.green : Colors.indigo),
-        iconSize: iconSize,
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          notifier.reset();
-        },
-        tooltip: l10n.restartTooltip,
-      ),
+      // Icône « person » (reset « recommencer ») retirée le 2026-09-07 (choix de Paul) : la remise à
+      // zéro reste accessible par « Nouvelle partie » (add_circle) et par la carte de bilan.
       if (!state.isComplete && state.availablePieces.isNotEmpty)
         IconButton(
           icon: Icon(Icons.lightbulb,
@@ -1036,7 +1057,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final cols = isLandscape ? size.height : size.width;
     final rows = isLandscape ? size.width : size.height;
     const k = kPieceToBoardCellRatio;
-    final double boardCell;
+    double boardCell;
     if (isLandscape) {
       boardCell = math.min(
         (body.width - reserve - _kSliderPad) / (cols + 5 * k),
@@ -1048,6 +1069,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         (body.height - _kSliderPad) / (rows + 5 * k),
       );
     }
+    // Même plafond que le plateau (kMaxBoardCellSize) → la barre reste ancrée sur la case réelle (§3).
+    boardCell = math.min(boardCell, kMaxBoardCellSize);
     final cell = math.max(8.0, boardCell * k);
     return (cell: cell, extent: cell * 5 + _kSliderPad);
   }

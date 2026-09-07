@@ -1,6 +1,8 @@
-// Modified: 2026-09-05 00:35 — fetchChallenge (GET /challenge) : récupère la définition composée à
-//           la main (§7 Acté 1), null si non composée → l'appelant dérive localement.
+// Modified: 2026-09-07 07:17 — conformité défi V1 : deleteMyScores (DELETE /score?playerId=…) — efface
+//           toutes les lignes du joueur pour la suppression RGPD (§7.4). Échec silencieux comme le reste.
 // lib/pentoscope/challenge_api.dart
+// Historique: 2026-09-05 00:35 — fetchChallenge (GET /challenge) : récupère la définition composée à
+//           la main (§7 Acté 1), null si non composée → l'appelant dérive localement.
 // Historique: 2026-09-05 00:00 — création : client HTTP du classement du défi (CDC §7, Phase 4/5).
 //           POST du score à la fin d'un défi, GET des classements. Échecs silencieux (§7.8 : le jeu
 //           reste entier sans réseau — jamais de bouton mort).
@@ -130,6 +132,21 @@ class ChallengeApi {
     } catch (e) {
       debugPrint('❌ fetchChallenge échoué: $e');
       return null;
+    }
+  }
+
+  /// Supprime **toutes** les lignes de classement d'un joueur (toutes semaines/tailles), pour la
+  /// suppression RGPD (§7.4). `true` si le serveur a répondu 200. Échec (panne, endpoint pas encore
+  /// déployé) → `false` sans exception : le local est nettoyé par l'appelant quoi qu'il arrive.
+  Future<bool> deleteMyScores({required String playerId}) async {
+    try {
+      final uri = Uri.parse('$baseUrl/score')
+          .replace(queryParameters: {'playerId': playerId});
+      final resp = await _client.delete(uri).timeout(const Duration(seconds: 6));
+      return resp.statusCode == 200;
+    } catch (e) {
+      debugPrint('❌ deleteMyScores échoué: $e');
+      return false;
     }
   }
 

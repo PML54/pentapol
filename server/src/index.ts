@@ -20,7 +20,7 @@ export interface Env {
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
   'access-control-allow-headers': 'content-type, authorization',
 };
 
@@ -111,6 +111,16 @@ async function postScore(env: Env, request: Request): Promise<Response> {
   return json({ ok: true }, 201);
 }
 
+// Suppression RGPD (CDC §7.4) : efface TOUTES les lignes d'un joueur (toutes semaines/tailles/
+// versions). Le player_id est un secret aléatoire de 128 bits connu du seul propriétaire → un
+// DELETE non authentifié n'expose que ses propres données (même modèle de confiance que POST /score).
+async function deleteScores(env: Env, url: URL): Promise<Response> {
+  const playerId = String(url.searchParams.get('playerId') ?? '');
+  if (!/^[0-9a-f]{32}$/.test(playerId)) return err('playerId doit être 32 hex', 400);
+  const res = await env.DB.prepare(`DELETE FROM scores WHERE player_id = ?`).bind(playerId).run();
+  return json({ ok: true, deleted: res.meta?.changes ?? 0 }, 200);
+}
+
 async function getChallenge(env: Env, url: URL): Promise<Response> {
   const p = partition(url);
   if (!p) return err('paramètres version/week/size invalides', 400);
@@ -156,6 +166,7 @@ export default {
     try {
       if (request.method === 'GET' && url.pathname === '/leaderboard') return await getLeaderboard(env, url);
       if (request.method === 'POST' && url.pathname === '/score') return await postScore(env, request);
+      if (request.method === 'DELETE' && url.pathname === '/score') return await deleteScores(env, url);
       if (request.method === 'GET' && url.pathname === '/challenge') return await getChallenge(env, url);
       if (request.method === 'POST' && url.pathname === '/challenge') return await postChallenge(env, request);
       return err('route inconnue', 404);

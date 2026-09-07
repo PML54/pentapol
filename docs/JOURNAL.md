@@ -96,12 +96,73 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 | chantier | document | reste à faire |
 |---|---|---|
-| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | **HORS V1** (Paul, §12 Q3). **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — worker REDÉPLOYÉ (`Version ID a459eb84…`) et D1 RÉINITIALISÉE le 2026-09-05 (DROP `scores` puis `schema.sql` ; `challenges` intacte ; round-trip revalidé au curl : POST 201, doublon 409, leaderboard renvoie `faults`).** Reste : composer/semer les vraies semaines (geste de Paul) |
+| **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | ⚠️ **EN V1 (décision de Paul du 2026-09-07, révise le « hors V1 » du 2026-09-03)** — rendu conforme : envoi de score **désactivé par défaut** (opt-in explicite), consultation du classement conditionnée à l'opt-in (§4.5), **suppression des données** (RGPD §7.4). Détail en §ÉTAT « Conformité défi V1 ». **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — worker REDÉPLOYÉ (`Version ID a459eb84…`) et D1 RÉINITIALISÉE le 2026-09-05 (DROP `scores` puis `schema.sql` ; `challenges` intacte ; round-trip revalidé au curl : POST 201, doublon 409, leaderboard renvoie `faults`).** Reste : composer/semer les vraies semaines (geste de Paul) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
 `isProgression`, pause chrono, records perso), puis — au choix — la **médaille §4.6** (raffinement
 des records) ou le début du **défi hebdo Phase 1** (hors V1).
+
+### Conformité défi V1 (2026-09-07) — opt-in + suppression (décision de Paul)
+
+**Décision de Paul (2026-09-07), déclenchée par `INDEX_DOCS.md` §3.1 de cowork** : le défi en ligne
+**reste dans la V1** (révise le « hors V1 » du 2026-09-03). Or le code envoyait `playerId` + pseudo
++ grille **sans condition** à la complétion d'un défi, alors que la déclaration App Privacy visée
+(« ne collecte rien ») supposait le défi hors V1. Rendu conforme sans couper le défi :
+
+- **Opt-in, désactivé par défaut** (CDC §8). `AppSettings.shareScoresOptIn` (bool, défaut `false`,
+  JSON sans migration, invariant #6). `_submitChallengeScore` **ne fait rien** sans opt-in → **aucun
+  `playerId` n'est généré** par défaut (`ensurePlayerId` n'est appelé que sous opt-in) : « ne collecte
+  rien » redevient vrai pour une install par défaut.
+- **Consultation du classement conditionnée** (CDC §4.5). Les deux accès (icône classement d'une
+  taille dans `ChallengeScreen` ; « Voir le classement » au bilan d'un défi) passent par
+  `openLeaderboardWithConsent` (`challenge_consent.dart`) : sans opt-in, un **dialogue de
+  consentement** explique ce qui est envoyé et propose Activer / Plus tard. Refus → rien ne s'ouvre.
+  Depuis le bilan, l'activation soumet le défi qu'on vient de terminer (`submitAfterOptIn`).
+- **Proposition à la 1re complétion d'un défi** (choix de Paul, 2026-09-07) : à la fin d'un défi, si
+  l'opt-in n'est pas donné, un dialogue le propose — **une seule fois** (drapeau
+  `challengeConsentAsked`, JSON sans migration), après l'éventuelle saisie du nom. Refus → ne
+  redemande plus automatiquement (activable ensuite via Réglages / classement).
+  `maybeProposeConsentOnChallengeCompletion` dans `challenge_consent.dart`, appelé depuis
+  `_onPuzzleCompleted`.
+- **Interrupteur permanent** dans les Réglages (nouvelle section « Classement en ligne »).
+- **Suppression RGPD** (CDC §7.4, exigence Apple en V1). Bouton « Supprimer mes données de
+  classement » (Réglages) → `deleteOnlineIdentity()` : `DELETE /score?playerId=…` (efface toutes les
+  lignes du joueur) puis efface le `playerId` local et coupe l'opt-in. Route serveur `DELETE /score`
+  ajoutée (`server/src/index.ts`) — **à redéployer par Paul** avant que le nettoyage serveur soit
+  effectif (le nettoyage local, lui, se fait toujours).
+- **i18n** : ~12 clés (consentement, section réglages, suppression) dans `app_en.arb`/`app_fr.arb`,
+  `gen-l10n` régénéré (invariant #8).
+- **Docs** : `CHECKLIST_APPSTORE.md` points 12-14 réécrits (le défi est en V1, opt-in, suppression
+  faite) + **nouveau bloquant 21** (bundle id `com.example.pentapol`) et note de divergence de
+  version sur le point 7, tous deux signalés par `INDEX_DOCS.md` §3.2.
+
+`flutter analyze lib test` **0 error / 0 warning** (61 infos préexistantes), **49/49 tests**,
+`tsc --noEmit` (serveur) OK. **Reste : (1) redéploiement du worker par Paul** (route DELETE),
+**(2) test device** (dialogue de consentement, bascule Réglages, suppression), **(3)** déclarer le
+comportement opt-in dans App Store Connect (point 12).
+
+### Taille des pièces et icônes (2026-09-07) — retour de Paul « réduction perturbante entre configs »
+
+Gêne signalée par Paul : les pièces rétrécissent d'une config à l'autre (plus le plateau est grand,
+plus la case — et donc la pièce de barre `= boardCell × k` — est petite). **Cause** : `cellSize =
+min(W/w, H/h)` **sans borne haute** → les petits plateaux (3×5, 4×5) s'affichent démesurés et le
+passage à un plus grand fait une « falaise ». Le rétrécissement des pièces **du plateau** est en
+partie inévitable (géométrie : le 6×10 a 4× plus de cases), mais la falaise, elle, est corrigeable.
+Direction retenue par Paul (Levier 1+3) :
+
+- **Borne haute `kMaxBoardCellSize = 84.0`** (pt absolus, pas relatifs à l'appareil pour ne pas
+  réintroduire une détection de tablette, §3) appliquée au `cellSize` du board **et** au `boardCell`
+  de `_barMetrics` (cohérence §3). Effet iPhone : la case des niveaux 1-2 passe de 112/95 à 84.
+- **`kPieceToBoardCellRatio` 0.22 → 0.26** : pièces de barre ~+18 % partout (le 6×10 reste préhensible).
+- **Icônes d'isométrie** `isometryIconSize` facteur 0.12 → 0.14 (≈47→55 pt).
+- **Icônes de l'AppBar** (`_uiIconSize`) : `_kIconSizeFactor` 0.075 → 0.11 et plancher 30 → 40 (elles
+  étaient collées au plancher 30 sur iPhone → ≈43 pt) — « trop petites dans l'AppBar » (Paul).
+- **Retrait de l'icône `Icons.person`** de l'AppBar (elle faisait `reset()` « recommencer ») — choix
+  de Paul ; la remise à zéro reste dans « Nouvelle partie » (add_circle) et la carte de bilan.
+
+Toutes ces valeurs sont des **constantes nommées « à régler à l'œil sur device »**. `analyze lib test`
+**0/0**, **49/49 tests**. **Reste : test device** (calage des valeurs par Paul).
 
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
@@ -582,6 +643,18 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-07 — cowork → CLI, puis CLI → cowork (défi en V1 + conformité).** Retour de cowork :
+`docs/INDEX_DOCS.md` (index de `docs/` + écarts), commité seul par le CLI (`681b4fe`, doc sans code,
+MODUS_VIVENDI §5). Son §3.1 pose la question : le défi est dit « hors V1 » mais est livré, déployé et
+**envoie une identité persistante sans condition** — la déclaration App Privacy « ne collecte rien »
+en dépend. **Tranché par Paul : le défi reste en V1**, donc rendu **conforme** (voir §ÉTAT
+« Conformité défi V1 ») — opt-in désactivé par défaut (§8), classement conditionné à l'opt-in (§4.5),
+suppression RGPD (§7.4, route serveur `DELETE /score`), section Réglages « Classement en ligne », et
+**proposition unique de l'opt-in à la 1re complétion d'un défi** (choix de Paul du même jour).
+9 fichiers `lib/` + `server/src/index.ts` + 2 ARB + 3 générés, docs `CHECKLIST`/`JOURNAL`. `analyze`
+0/0, 49/49, `tsc` OK. **Non commité** (attente du feu vert de Paul). **Reste** : redéploiement du
+worker (route DELETE) + test device + déclaration App Store Connect du comportement opt-in.
+
 **2026-09-06 — CLI → cowork (bilinguisme EN/FR, i18n complet).** Décision de Paul : « une app
 Anglais/Français ». Constat : l'app était **française en dur**, `lib/l10n/` n'avait que 4 clés jamais
 câblées. Livré (choix de Paul : sélecteur **+** locale système, et **tous** les écrans d'un coup) —
@@ -617,24 +690,5 @@ fantôme à la complétion, icône miroir de la vignette) commités `441411f`. *
 réinitialisée le 2026-09-05** (DROP `scores` → `schema.sql`, worker `Version ID a459eb84…`,
 round-trip revalidé). Ce dernier point de doc est commité seul (doc sans code, MODUS_VIVENDI §5).
 
-**2026-09-04 — CLI → cowork (discussion défi : composition à la main, vérification, indicateur Help).** Décisions
-de Paul consignées dans `CAHIER_DES_CHARGES_V1.md` §7 (bloc « Révision du 2026-09-04 » en tête). **Aucun
-code touché** — tout est hors V1, le serveur n'existe pas ; le client Phase 2 reste sur `deriveChallenge`
-en interim (et futur repli). **Actés** : (1) le défi est **composable à la main, autorité serveur** — définition
-`(taille, masque, rack)` en table serveur, `deriveChallenge` devient générateur par défaut (téléversé
-depuis Dart, pas de PRNG en JS) + repli offline ; le serveur a le rack → recalcule `minIso` sans porter
-le PRNG. **Amorçage paresseux** (Acté 1bis) : au lancement le client lit si les *n* défis de la semaine
-sont initialisés côté serveur, sinon **le premier joueur les sème** (écriture idempotente « insérer si
-absent », course inoffensive car dérivation déterministe ; composition à la main = pré-remplir avant le 1er joueur) ;
-(2) le serveur **fait confiance** aux coups/temps/Help d'une partie validée (recalcule seul
-`minIso`) ; (3) indicateur **Help = sauvetages rouge→jaune** (agnostique au geste). **Tranché par Paul
-le 2026-09-04** : (4) **Help est un 4e maillot classé** → **§4.1 amendé : quatre maillots** (acuité,
-coups, temps, Help = **maillot blanc**) ; (5) **un seul essai par joueur et par config**
-— §7.1 « premier essai » **conservé** (insertion unique), l'essai produit **quatre valeurs** → une ligne
-par `(joueur, semaine, taille)` + la grille, quatre index D1, chaque maillot trie sur sa colonne.
-Détail dans `CDC §7` (Actés 4 et 5). Cette mise à jour docs est commitée seule (doc sans code,
-MODUS_VIVENDI §5).
-
-*(Les passations du 2026-09-04 — « la persistance était déjà faite » + Phase 0 du défi, et « discussion
-défi » ci-dessus est la plus ancienne des trois — sont sorties/sortent de la liste au fil des ajouts ;
-elles restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*
+*(Les passations du 2026-09-04 et antérieures sont sorties de la liste au fil des ajouts ; elles
+restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

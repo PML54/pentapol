@@ -1,4 +1,6 @@
-// Modified: 2026-09-06 04:50 — i18n : chaînes visibles passées par AppLocalizations (titre, intro,
+// Modified: 2026-09-07 07:17 — conformité défi V1 : l'icône classement passe par
+//           openLeaderboardWithConsent (opt-in requis, §4.5) au lieu d'un Navigator.push direct.
+// Historique: 2026-09-06 04:50 — i18n : chaînes visibles passées par AppLocalizations (titre, intro,
 //           compte de pièces au pluriel, tooltip classement).
 // Historique: 2026-09-05 00:20 — Phase 5 : icône « classement » par taille → LeaderboardScreen.
 // lib/pentoscope/screens/challenge_screen.dart
@@ -11,6 +13,7 @@ import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
+import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 
@@ -59,13 +62,12 @@ class ChallengeScreen extends ConsumerWidget {
                       IconButton(
                         icon: const Icon(Icons.leaderboard_outlined),
                         tooltip: l10n.rankingTooltip,
-                        onPressed: () => Navigator.push(
+                        onPressed: () => openLeaderboardWithConsent(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => LeaderboardScreen(
-                              week: weeksSinceEpoch(DateTime.now()),
-                              size: size,
-                            ),
+                          ref,
+                          builder: () => LeaderboardScreen(
+                            week: weeksSinceEpoch(DateTime.now()),
+                            size: size,
                           ),
                         ),
                       ),

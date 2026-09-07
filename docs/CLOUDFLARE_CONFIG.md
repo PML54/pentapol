@@ -61,6 +61,7 @@ Base = `https://pentapol-defi.pentapml.workers.dev`
 | Méthode | Route | Rôle | Auth |
 |---|---|---|---|
 | `POST` | `/score` | enregistre un score (201 ; 409 si déjà soumis) | — |
+| `DELETE` | `/score?playerId=` | suppression RGPD : efface toutes les lignes du joueur (200) | — |
 | `GET` | `/leaderboard?version=&week=&size=&maillot=` | tableau trié (`maillot` = `jaune`/`pois`/`vert`) | — |
 | `GET` | `/challenge?version=&week=&size=` | définition composée (`{mask, rack}`) ou 404 | — |
 | `POST` | `/challenge` | pose/compose une définition | **`Bearer SEED_TOKEN`** |

@@ -180,5 +180,17 @@
   "piecesPlaced": "{count, plural, one{{count} piece placed} other{{count} pieces placed}}",
   "@piecesPlaced": { "placeholders": { "count": { "type": "int" } } },
   "isometryDetail": "{count} isometries · min {min}",
-  "@isometryDetail": { "placeholders": { "count": { "type": "int" }, "min": { "type": "int" } } }
+  "@isometryDetail": { "placeholders": { "count": { "type": "int" }, "min": { "type": "int" } } },
+  "sectionRanking": "Online ranking",
+  "shareScores": "Take part in the online ranking",
+  "shareScoresSub": "Sends your nickname and an anonymous identifier to the ranking server. Off by default.",
+  "deleteOnlineData": "Delete my ranking data",
+  "deleteOnlineDataSub": "Erases your scores from the server and your identifier on this device.",
+  "deleteOnlineDataConfirm": "This erases your scores from the online ranking and your identifier on this device. This cannot be undone.",
+  "deleteAction": "Delete",
+  "deleteOnlineDataDone": "Your ranking data has been deleted.",
+  "consentTitle": "Take part in the online ranking?",
+  "consentBody": "To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.",
+  "consentEnable": "Take part",
+  "consentLater": "Not now"
 }

@@ -955,6 +955,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} isometries · min {min}'**
   String isometryDetail(int count, int min);
+
+  /// No description provided for @sectionRanking.
+  ///
+  /// In en, this message translates to:
+  /// **'Online ranking'**
+  String get sectionRanking;
+
+  /// No description provided for @shareScores.
+  ///
+  /// In en, this message translates to:
+  /// **'Take part in the online ranking'**
+  String get shareScores;
+
+  /// No description provided for @shareScoresSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends your nickname and an anonymous identifier to the ranking server. Off by default.'**
+  String get shareScoresSub;
+
+  /// No description provided for @deleteOnlineData.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my ranking data'**
+  String get deleteOnlineData;
+
+  /// No description provided for @deleteOnlineDataSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Erases your scores from the server and your identifier on this device.'**
+  String get deleteOnlineDataSub;
+
+  /// No description provided for @deleteOnlineDataConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This erases your scores from the online ranking and your identifier on this device. This cannot be undone.'**
+  String get deleteOnlineDataConfirm;
+
+  /// No description provided for @deleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAction;
+
+  /// No description provided for @deleteOnlineDataDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your ranking data has been deleted.'**
+  String get deleteOnlineDataDone;
+
+  /// No description provided for @consentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Take part in the online ranking?'**
+  String get consentTitle;
+
+  /// No description provided for @consentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.'**
+  String get consentBody;
+
+  /// No description provided for @consentEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Take part'**
+  String get consentEnable;
+
+  /// No description provided for @consentLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get consentLater;
 }
 
 class _AppLocalizationsDelegate

@@ -1,4 +1,11 @@
-// Modified: 2026-09-06 04:50 — i18n : setLocale(code) — null = suit l'appareil, 'en'/'fr' = forcé.
+// Modified: 2026-09-07 07:34 — conformité défi V1 : setShareScoresOptIn(bool) (consentement §8),
+//           setChallengeConsentAsked (proposition unique à la 1re complétion d'un défi) et
+//           deleteOnlineIdentity() (efface les scores serveur + le playerId local + coupe l'opt-in,
+//           suppression RGPD §7.4). ensurePlayerId reste paresseux, appelé sous opt-in seulement.
+// Historique: 2026-09-07 07:17 — conformité défi V1 : setShareScoresOptIn(bool) (consentement §8) et
+//           deleteOnlineIdentity() (efface les scores serveur + le playerId local + coupe l'opt-in,
+//           suppression RGPD §7.4). ensurePlayerId reste paresseux, appelé sous opt-in seulement.
+// Historique: 2026-09-06 04:50 — i18n : setLocale(code) — null = suit l'appareil, 'en'/'fr' = forcé.
 // Historique: 2026-09-04 16:25 — défi Phase 3 : generatePlayerId (128 bits, Random.secure) + ensurePlayerId
 //           (paresseux, à la 1re soumission de défi — pas au lancement). Identité §7.4, distincte du pseudo.
 // Historique: 2026-09-02 20:37 — progression solo : setUserName, advanceLevel (plafonné kMaxLevel),
@@ -18,6 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/models/app_settings.dart';
+import 'package:pentapol/pentoscope/challenge_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show kMaxLevel;
 
 /// Génère une identité 128 bits (32 hex) via `Random.secure()` — clé primaire du joueur côté
@@ -70,6 +78,35 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(playerId: id);
     await _saveSettings();
     return id;
+  }
+
+  /// Consentement à l'envoi de score au classement en ligne (CDC §8). Défaut `false` ; activé par
+  /// un geste explicite (dialogue de consentement / interrupteur Réglages). Tant qu'il est faux,
+  /// `_submitChallengeScore` ne fait rien et aucun `playerId` n'est généré.
+  Future<void> setShareScoresOptIn(bool value) async {
+    if (state.shareScoresOptIn == value) return;
+    state = state.copyWith(shareScoresOptIn: value);
+    await _saveSettings();
+  }
+
+  /// Marque que l'opt-in a été **proposé** automatiquement à la fin d'un défi (garde la proposition
+  /// unique — le joueur peut toujours activer plus tard via les Réglages / le classement).
+  Future<void> setChallengeConsentAsked(bool value) async {
+    if (state.challengeConsentAsked == value) return;
+    state = state.copyWith(challengeConsentAsked: value);
+    await _saveSettings();
+  }
+
+  /// Suppression RGPD (CDC §7.4) : efface les scores du joueur côté serveur (DELETE), puis efface
+  /// le `playerId` local et **coupe l'opt-in**. Échec réseau silencieux (§7.8) — le local est
+  /// nettoyé quoi qu'il arrive, et l'id étant secret, une ligne serveur orpheline reste inatteignable.
+  Future<void> deleteOnlineIdentity() async {
+    final id = state.playerId;
+    if (id != null && id.length == 32) {
+      await ChallengeApi().deleteMyScores(playerId: id);
+    }
+    state = state.copyWith(clearPlayerId: true, shareScoresOptIn: false);
+    await _saveSettings();
   }
 
   /// Langue de l'interface : `null` = suit la locale de l'appareil, `'en'`/`'fr'` = forcé.
