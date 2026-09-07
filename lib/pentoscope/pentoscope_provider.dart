@@ -1,4 +1,9 @@
-// Modified: 2026-09-07 07:17 — conformité défi V1 : _submitChallengeScore ne fait rien sans
+// Modified: 2026-09-07 14:20 — observation : classification des fautes (analyzeFault) aux 4 sites de
+//           faute — décompte par cause (faultAireCount/faultSubtileCount) + somme de gravité
+//           (faultGraviteSum), hors maillots, NON persistés — pour le bandeau debug (décision Paul).
+// Historique: 2026-09-07 11:05 — observation : compteur redRemovalCount (retraits en plateau rouge =
+//           sorties de cul-de-sac), hors maillots, NON persisté — pour le bandeau debug (décision Paul).
+// Historique: 2026-09-07 07:17 — conformité défi V1 : _submitChallengeScore ne fait rien sans
 //           shareScoresOptIn (envoi désactivé par défaut, §8) → aucun playerId généré par défaut ;
 //           wrapper public submitChallengeScore() pour la soumission après consentement.
 // Historique: 2026-09-05 17:42 — fix faute fantôme : le coup qui COMPLÈTE le plateau vidait
@@ -98,6 +103,7 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
+import 'package:pentapol/pentoscope/fault_analysis.dart';
 import 'package:pentapol/common/point.dart';
 import 'package:pentapol/common/transformation_result.dart';
 export 'package:pentapol/common/transformation_result.dart';
@@ -490,6 +496,19 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   int _bumpFault(bool wasSolvable, bool nowSolvable) =>
       state.faultCount + (wasSolvable && !nowSolvable ? 1 : 0);
 
+  /// 🔎 OBSERVATION (bandeau debug) : classe la faute qui vient de se produire (🟡→🔴 sur [board])
+  /// et renvoie les increments — +1 sur la cause (aire non-mult-5 / subtile) et la gravité. Zéro
+  /// si ce n'est pas une faute. Voir [analyzeFault]. Hors maillots, non persisté.
+  ({int aire, int subtile, double gravite}) _faultObs(
+      bool wasSolvable, bool nowSolvable, Plateau board) {
+    if (!(wasSolvable && !nowSolvable)) {
+      return (aire: 0, subtile: 0, gravite: 0.0);
+    }
+    final a = analyzeFault(board);
+    final isAire = a.kind == FaultKind.aireNonMultipleDe5;
+    return (aire: isAire ? 1 : 0, subtile: isAire ? 0 : 1, gravite: a.gravite);
+  }
+
   void removePlacedPiece(PlacedPiece placed) {
     final newPlateau = _rebuildPlateau(exclude: placed);
 
@@ -501,6 +520,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💡 HINT: Recalculer si une solution est encore possible + le compte
     final (hasPossibleSolution, solutionsCount) =
         _solutionStatus(newPlaced, newAvailable);
+    final obs = _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau); // 🔎
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -516,6 +536,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution,
       deleteCount: state.deleteCount + 1, // 🗑️ Incrémenter le compteur de suppressions
       faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (soluble→insoluble)
+      faultAireCount: state.faultAireCount + obs.aire,
+      faultSubtileCount: state.faultSubtileCount + obs.subtile,
+      faultGraviteSum: state.faultGraviteSum + obs.gravite,
+      // 🚑 Retrait alors que le plateau était ROUGE (state.hasPossibleSolution = valeur AVANT retrait)
+      //    = sortie de cul-de-sac. Compteur d'observation (bandeau debug), hors maillots.
+      redRemovalCount:
+          state.redRemovalCount + (state.hasPossibleSolution ? 0 : 1),
     );
 
     // 🗄️ Persister l'avancement (no-op en multijoueur).
@@ -1258,6 +1285,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💡 HINT: Vérifier si une solution est encore possible + le compte
     final (hasPossibleSolution, solutionsCount) =
         _solutionStatus(newPlacedPieces, newAvailable);
+    // 🔎 Observation : jamais de faute sur la complétion (cf. faultCount ci-dessous).
+    final obs = isComplete
+        ? (aire: 0, subtile: 0, gravite: 0.0)
+        : _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau);
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -1281,6 +1312,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultCount: isComplete
           ? state.faultCount
           : _bumpFault(state.hasPossibleSolution, hasPossibleSolution),
+      faultAireCount: state.faultAireCount + obs.aire,
+      faultSubtileCount: state.faultSubtileCount + obs.subtile,
+      faultGraviteSum: state.faultGraviteSum + obs.gravite,
     );
 
     // 💾 À la complétion : enregistrer le record et effacer la partie en cours. Sinon,
@@ -1571,6 +1605,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💡 Recalculer si une solution est encore possible + le compte
     final (hasPossibleSolution, solutionsCount) =
         _solutionStatus(updatedPlacedPieces, state.availablePieces);
+    final obs = _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau); // 🔎
 
     // Calculer la nouvelle position relative de la mastercase dans la pièce transformée
     Point? newSelectedCellInPiece;
@@ -1636,6 +1671,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution, // 💡 Mise à jour!
       solutionsCount: solutionsCount, // 🔢
       faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (rotation posée)
+      faultAireCount: state.faultAireCount + obs.aire,
+      faultSubtileCount: state.faultSubtileCount + obs.subtile,
+      faultGraviteSum: state.faultGraviteSum + obs.gravite,
     );
 
     // === LOG APRES TRANSFO ===
@@ -1822,6 +1860,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final (hasPossibleSolution, solutionsCount) =
         _solutionStatus(updatedPlacedPieces, state.availablePieces);
+    final obs = _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau); // 🔎
 
     Point? newSelectedCellInPiece;
     if (state.selectedCellInPiece != null) {
@@ -1882,6 +1921,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount, // 🔢
       faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (symétrie posée)
+      faultAireCount: state.faultAireCount + obs.aire,
+      faultSubtileCount: state.faultSubtileCount + obs.subtile,
+      faultGraviteSum: state.faultGraviteSum + obs.gravite,
     );
 
     final finalMasterRaw = getRawMastercaseCoords(
@@ -2360,6 +2402,16 @@ class PentoscopeState implements PieceManipulationState {
   final int hintCount;   // 💡 Nombre de fois où la lampe a été utilisée
   final int deleteCount; // 🗑️ Nombre de suppressions de pièces
   final int faultCount;  // ⚫ Fautes (entrées en cul-de-sac, jaune→rouge) — maillot à pois
+  /// 🚑 Retraits effectués alors que le plateau était ROUGE (insoluble) = sorties de cul-de-sac.
+  /// Compteur d'OBSERVATION (bandeau debug, décision de Paul 2026-09-07) : n'entre PAS dans les
+  /// maillots, **non persisté** (remis à 0 à une reprise de partie — sans importance pour le debug).
+  final int redRemovalCount;
+
+  /// 🔎 OBSERVATION debug (hors maillots, non persistés) : classification des fautes (voir
+  /// fault_analysis) — décompte par cause et somme de gravité, pour le bandeau debug.
+  final int faultAireCount; // ⚠️ aire non multiple de 5
+  final int faultSubtileCount; // 🌫️ impossibilité subtile
+  final double faultGraviteSum; // Σ gravité
 
   final bool isSnapped;
   final bool isDragging;
@@ -2415,6 +2467,10 @@ class PentoscopeState implements PieceManipulationState {
     this.hintCount = 0,   // 💡
     this.deleteCount = 0, // 🗑️
     this.faultCount = 0, // ⚫
+    this.redRemovalCount = 0, // 🚑 (observation, non persisté)
+    this.faultAireCount = 0, // ⚠️ (observation)
+    this.faultSubtileCount = 0, // 🌫️ (observation)
+    this.faultGraviteSum = 0.0, // Σ gravité (observation)
     this.isSnapped = false,
     this.isDragging = false,
     this.showSolution = false,
@@ -2493,6 +2549,10 @@ class PentoscopeState implements PieceManipulationState {
     int? hintCount,   // 💡
     int? deleteCount, // 🗑️
     int? faultCount, // ⚫
+    int? redRemovalCount, // 🚑
+    int? faultAireCount, // ⚠️
+    int? faultSubtileCount, // 🌫️
+    double? faultGraviteSum, // Σ
     bool? isSnapped,
     bool? isDragging,
     bool? showSolution, // ✅ NOUVEAU
@@ -2538,6 +2598,10 @@ class PentoscopeState implements PieceManipulationState {
       hintCount: hintCount ?? this.hintCount,
       deleteCount: deleteCount ?? this.deleteCount,
       faultCount: faultCount ?? this.faultCount,
+      redRemovalCount: redRemovalCount ?? this.redRemovalCount,
+      faultAireCount: faultAireCount ?? this.faultAireCount,
+      faultSubtileCount: faultSubtileCount ?? this.faultSubtileCount,
+      faultGraviteSum: faultGraviteSum ?? this.faultGraviteSum,
       isSnapped: isSnapped ?? this.isSnapped,
       isDragging: isDragging ?? this.isDragging,
       showSolution: showSolution ?? this.showSolution,

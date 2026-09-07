@@ -1,4 +1,10 @@
-// Modified: 2026-09-07 10:45 — DEBUG test : bandeau coin haut-gauche des compteurs live (iso/fautes),
+// Modified: 2026-09-07 14:20 — DEBUG test : bandeau à deux lignes — ligne 2 = classification des
+//           fautes (⚠️ aire non-mult-5 / 🌫️ subtile / Σg somme de gravité, via fault_analysis).
+// Historique: 2026-09-07 11:05 — DEBUG test : bandeau des compteurs live — ajout des retraits en rouge
+//           (🚑 state.redRemovalCount, sorties de cul-de-sac) à côté de iso/fautes/translations.
+// Historique: 2026-09-07 10:59 — DEBUG test : bandeau des compteurs live — ajout des translations
+//           (state.translationCount, déjà suivi) à côté de iso/fautes, pour observer son utilité.
+// Historique: 2026-09-07 10:45 — DEBUG test : bandeau coin haut-gauche des compteurs live (iso/fautes),
 //           gated par kShowLiveCounters (à repasser false avant soumission — CHECKLIST_APPSTORE) ;
 //           chiffres agrandis (fontSize 13→20).
 // Historique: 2026-09-07 09:35 — AppBar : retrait de l'icône visionneuse (navigateur de solutions,
@@ -379,14 +385,31 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                     color: Colors.black.withValues(alpha: 0.62),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    '🔄 ${state.isometryCount}   🔴 ${state.faultCount}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Ligne 1 : compteurs bruts.
+                      Text(
+                        '🔄 ${state.isometryCount}  🔴 ${state.faultCount}  ↔️ ${state.translationCount}  🚑 ${state.redRemovalCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      // Ligne 2 : classification des fautes (décompte par cause + somme de gravité).
+                      Text(
+                        '⚠️ ${state.faultAireCount}  🌫️ ${state.faultSubtileCount}  Σg ${state.faultGraviteSum.toStringAsFixed(1)}',
+                        style: const TextStyle(
+                          color: Colors.amberAccent,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

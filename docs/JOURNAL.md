@@ -170,8 +170,23 @@ Direction retenue par Paul (Levier 1+3) :
   la hausse de `k` (0.22→0.26) faisait se toucher les mini-pièces du rack de la démo (posées à des
   fractions égales de la largeur). La vignette étant décorative, elle garde son propre ratio.
 - **🐞 DEBUG bandeau compteurs live** (`kShowLiveCounters = true`) : coin haut-gauche, `🔄 iso · 🔴
-  fautes` (`state.isometryCount`/`faultCount`), pour le test device. **À repasser `false` avant
-  soumission** — `CHECKLIST_APPSTORE` point 22. Pas `kDebugMode` (test en `--release`).
+  fautes · ↔️ translations · 🚑 retraits-en-rouge` (`state.isometryCount`/`faultCount`/
+  `translationCount`/`redRemovalCount`), pour le test device. **À repasser `false` avant soumission**
+  — `CHECKLIST_APPSTORE` point 22. Pas `kDebugMode` (test en `--release`). *Décision de Paul
+  (2026-09-07)* : ne PAS compter le tâtonnement en rouge (translation ni retrait) comme **faute** —
+  ça casserait l'invariant fautes=culs-de-sac et doublonnerait avec le temps — mais **observer**
+  d'abord les compteurs bruts. `translationCount` existait déjà ; `redRemovalCount` est neuf (retrait
+  quand le plateau était rouge = sortie de cul-de-sac), **non persisté** (compteur d'observation).
+- **🔎 Classifieur de fautes** (`lib/pentoscope/fault_analysis.dart`, pur, testé — `test/fault_analysis_test.dart`).
+  À chaque faute (🟡→🔴), `analyzeFault(board)` classe la cause : **⚠️ aire non multiple de 5** (une zone
+  vide dont la taille n'est pas multiple de 5 ; **englobe les poches < 5** — refonte du 2026-09-07 qui a
+  supprimé `pocheTropPetite`) ou **🌫️ impossibilité subtile** (zones toutes multiples de 5, mais mort).
+  **Gravité continue** = `kGraviteAireCoeff / taille` (défaut 20 → zone de 4 = 5.0, plus petite = plus
+  grave), `kGraviteSubtile` (défaut 1.0) pour le subtil — coefficients **à régler à l'observation**.
+  Câblé aux 4 sites de faute (pose/déplacement, retrait, rotation, symétrie) : `faultAireCount`,
+  `faultSubtileCount`, `faultGraviteSum` (état, **non persistés**), affichés en **2ᵉ ligne** du bandeau
+  debug (`⚠️ n · 🌫️ m · Σg X.X`). **Observation seulement** : n'entre PAS dans les maillots ; le barème
+  et son éventuelle intégration se décideront sur données (avant lock de publication si classé).
 
 Toutes ces valeurs sont des **constantes nommées « à régler à l'œil sur device »**. `analyze lib test`
 **0/0**, **49/49 tests**. **Reste : test device** (calage des valeurs par Paul).
