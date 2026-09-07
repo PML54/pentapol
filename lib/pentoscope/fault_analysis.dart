@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 14:20 — refonte (Paul) : « aire non multiple de 5 » englobe les poches < 5
+// Modified: 2026-09-07 14:41 — centralisation (Paul) : tous les indicateurs d'observation sont
+//           DÉFINIS, DOCUMENTÉS et FORMATÉS ici (FaultIndicators + diagnosticCourant) ; le bandeau
+//           debug ne fait que les afficher. L'accumulation reste dans PentoscopeState (par coup).
+// Historique: 2026-09-07 14:20 — refonte (Paul) : « aire non multiple de 5 » englobe les poches < 5
 //           → suppression de pocheTropPetite ; la gravité devient CONTINUE, décroissante avec la
 //           taille de la zone fautive (zone de 4 plus grave qu'une zone de 9), coefficient réglable.
 // Historique: 2026-09-07 14:08 — création : classifieur des fautes par gravité. Couche d'OBSERVATION
@@ -110,6 +113,76 @@ FaultAnalysis analyzeFault(Plateau board) {
     gravite: kGraviteSubtile,
     zoneSizes: sizes,
   );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// INDICATEURS D'OBSERVATION (bandeau debug) — définition, documentation et formatage centralisés.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+//
+// Tous ces indicateurs sont de l'OBSERVATION : ils N'ENTRENT PAS dans les maillots et ne sont PAS
+// persistés. Ils sont accumulés dans `PentoscopeState` au fil des coups (aux 4 sites de faute et,
+// pour les compteurs bruts, à chaque action correspondante), puis regroupés et formatés ici pour
+// que leur définition vive à UN seul endroit. Affichés par le bandeau `kShowLiveCounters`.
+//
+// L'analyse est faite à CHAQUE mouvement (isométrie dont translation, ajout, retrait) :
+//  - les compteurs d'ÉVÉNEMENTS (lignes 1-2) n'avancent qu'à une transition 🟡→🔴 (une faute) ;
+//  - le DIAGNOSTIC courant (ligne 3, `diagnosticCourant`) est recalculé à chaque coup, quel que
+//    soit l'état — c'est la photo de l'instant.
+
+/// Regroupe et **formate** les indicateurs d'observation d'une partie (valeurs venues de l'état).
+class FaultIndicators {
+  /// 🔄 Isométries appliquées (rotations + miroirs), toutes pièces confondues.
+  final int isometryCount;
+
+  /// 🔴 **Fautes** = entrées en cul-de-sac (transitions 🟡→🔴). C'est le maillot à pois ; ici
+  /// seulement affiché. Cf. `_bumpFault` dans le provider.
+  final int faultCount;
+
+  /// ↔️ Déplacements (translations) d'une pièce **déjà posée**.
+  final int translationCount;
+
+  /// 🚑 Retraits effectués alors que le plateau était **rouge** (sorties de cul-de-sac).
+  final int redRemovalCount;
+
+  /// ⚠️ Fautes classées « **aire non multiple de 5** » (englobe les poches < 5).
+  final int faultAireCount;
+
+  /// 🌫️ Fautes classées « **impossibilité subtile** » (zones multiples de 5, mais plateau mort).
+  final int faultSubtileCount;
+
+  /// Σg **Somme des gravités** des fautes (gravité d'une aire = `kGraviteAireCoeff / taille`).
+  final double faultGraviteSum;
+
+  const FaultIndicators({
+    required this.isometryCount,
+    required this.faultCount,
+    required this.translationCount,
+    required this.redRemovalCount,
+    required this.faultAireCount,
+    required this.faultSubtileCount,
+    required this.faultGraviteSum,
+  });
+
+  /// Ligne 1 — compteurs bruts d'actions/événements.
+  String get ligneCompteurs =>
+      '🔄 $isometryCount  🔴 $faultCount  ↔️ $translationCount  🚑 $redRemovalCount';
+
+  /// Ligne 2 — classification cumulée des fautes (décompte par cause + somme de gravité).
+  String get ligneClassification =>
+      '⚠️ $faultAireCount  🌫️ $faultSubtileCount  Σg ${faultGraviteSum.toStringAsFixed(1)}';
+}
+
+/// Ligne 3 — **diagnostic de l'état COURANT** du plateau, à recalculer à chaque coup :
+/// `✅ résolu` si terminé, `🟢 soluble` si une solution reste atteignable, sinon la cause courante
+/// (`analyzeFault`) avec sa zone et sa gravité (`⚠️ 4 (g5.0)` / `🌫️ · (g1.0)`).
+String diagnosticCourant({
+  required Plateau plateau,
+  required bool hasPossibleSolution,
+  required bool isComplete,
+}) {
+  if (isComplete) return 'maintenant : ✅ résolu';
+  if (hasPossibleSolution) return 'maintenant : 🟢 soluble';
+  return 'maintenant : ${analyzeFault(plateau).labelCourt}';
 }
 
 /// Tailles des zones **vides** (case == 0) connexes (4-voisins), par flood-fill itératif.

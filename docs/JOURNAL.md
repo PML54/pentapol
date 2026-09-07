@@ -187,6 +187,12 @@ Direction retenue par Paul (Levier 1+3) :
   `faultSubtileCount`, `faultGraviteSum` (état, **non persistés**), affichés en **2ᵉ ligne** du bandeau
   debug (`⚠️ n · 🌫️ m · Σg X.X`). **Observation seulement** : n'entre PAS dans les maillots ; le barème
   et son éventuelle intégration se décideront sur données (avant lock de publication si classé).
+  **Centralisation (2026-09-07)** : tous les indicateurs d'observation sont **définis, documentés et
+  formatés dans `fault_analysis.dart`** — `FaultIndicators` (les deux lignes de compteurs) et
+  `diagnosticCourant(...)` (3ᵉ ligne = **diagnostic de l'état courant**, recalculé à **chaque coup** :
+  `✅ résolu` / `🟢 soluble` / `⚠️ zone (g)` / `🌫️ subtile`). Le bandeau (`_debugIndicatorsOverlay`) ne
+  fait que les afficher ; l'accumulation reste dans `PentoscopeState`. L'analyse tourne donc bien à
+  **chaque mouvement** (le bandeau se reconstruit à chaque changement d'état).
 
 Toutes ces valeurs sont des **constantes nommées « à régler à l'œil sur device »**. `analyze lib test`
 **0/0**, **49/49 tests**. **Reste : test device** (calage des valeurs par Paul).

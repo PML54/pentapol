@@ -1,4 +1,6 @@
-// Modified: 2026-09-07 14:20 — DEBUG test : bandeau à deux lignes — ligne 2 = classification des
+// Modified: 2026-09-07 14:41 — DEBUG test : bandeau 3ᵉ ligne = diagnostic de l'ÉTAT COURANT
+//           (analyzeFault(state.plateau) recalculé à chaque coup — iso/translation/ajout/retrait).
+// Historique: 2026-09-07 14:20 — DEBUG test : bandeau à deux lignes — ligne 2 = classification des
 //           fautes (⚠️ aire non-mult-5 / 🌫️ subtile / Σg somme de gravité, via fault_analysis).
 // Historique: 2026-09-07 11:05 — DEBUG test : bandeau des compteurs live — ajout des retraits en rouge
 //           (🚑 state.redRemovalCount, sorties de cul-de-sac) à côté de iso/fautes/translations.
@@ -115,6 +117,7 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
 import 'package:pentapol/pentoscope/challenge_consent.dart';
+import 'package:pentapol/pentoscope/fault_analysis.dart';
 import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
@@ -371,49 +374,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             },
           ),
           
-          // 🐞 DEBUG (test) : compteurs live iso/fautes, coin haut-gauche. Gated kShowLiveCounters,
-          // IgnorePointer (ne capte aucun geste). Emojis + chiffres seulement (pas de chaîne i18n).
-          if (kShowLiveCounters)
-            Positioned(
-              left: 8,
-              top: 8,
-              child: IgnorePointer(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.62),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Ligne 1 : compteurs bruts.
-                      Text(
-                        '🔄 ${state.isometryCount}  🔴 ${state.faultCount}  ↔️ ${state.translationCount}  🚑 ${state.redRemovalCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      // Ligne 2 : classification des fautes (décompte par cause + somme de gravité).
-                      Text(
-                        '⚠️ ${state.faultAireCount}  🌫️ ${state.faultSubtileCount}  Σg ${state.faultGraviteSum.toStringAsFixed(1)}',
-                        style: const TextStyle(
-                          color: Colors.amberAccent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
+          // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
+          if (kShowLiveCounters) _debugIndicatorsOverlay(state),
 
           // 👁️ Mini-plateau adversaire (overlay)
           if (_showOpponentOverlay)
@@ -830,6 +793,57 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // ============================================================================
   // HELPERS
   // ============================================================================
+
+  /// 🐞 Bandeau d'observation (debug, `kShowLiveCounters`), coin haut-gauche. Les trois lignes sont
+  /// **définies et formatées dans `fault_analysis`** (`FaultIndicators` + `diagnosticCourant`) ; ici
+  /// on ne fait que les afficher. `IgnorePointer` : ne capte aucun geste (les glissés passent).
+  Widget _debugIndicatorsOverlay(PentoscopeState state) {
+    final ind = FaultIndicators(
+      isometryCount: state.isometryCount,
+      faultCount: state.faultCount,
+      translationCount: state.translationCount,
+      redRemovalCount: state.redRemovalCount,
+      faultAireCount: state.faultAireCount,
+      faultSubtileCount: state.faultSubtileCount,
+      faultGraviteSum: state.faultGraviteSum,
+    );
+    const base = TextStyle(
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      fontFeatures: [FontFeature.tabularFigures()],
+    );
+    return Positioned(
+      left: 8,
+      top: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(ind.ligneCompteurs, style: base), // ligne 1
+              Text(ind.ligneClassification,
+                  style: base.copyWith(color: Colors.amberAccent)), // ligne 2
+              Text(
+                diagnosticCourant(
+                  plateau: state.plateau,
+                  hasPossibleSolution: state.hasPossibleSolution,
+                  isComplete: state.isComplete,
+                ),
+                style: base.copyWith(color: Colors.lightBlueAccent), // ligne 3
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   /// 🏁 Bilan de fin — carte flottante non-modale, **déplaçable au doigt** (choix de Paul), posée
   /// au centre par-dessus le plateau résolu. `_bilanOffset` mémorise le déplacement (recentré au
