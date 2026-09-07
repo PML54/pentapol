@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 09:35 — AppBar : retrait de l'icône visionneuse (navigateur de solutions,
+// Modified: 2026-09-07 10:45 — DEBUG test : bandeau coin haut-gauche des compteurs live (iso/fautes),
+//           gated par kShowLiveCounters (à repasser false avant soumission — CHECKLIST_APPSTORE) ;
+//           chiffres agrandis (fontSize 13→20).
+// Historique: 2026-09-07 09:35 — AppBar : retrait de l'icône visionneuse (navigateur de solutions,
 //           view_carousel — buggé en 6×10, choix de Paul) ; import solutions_browser_screen devenu inutile.
 // Historique: 2026-09-07 09:20 — AppBar : icônes agrandies (_kIconSizeFactor 0.075→0.11, min 30→40)
 //           et retrait de l'icône Icons.person (reset « recommencer ») — choix de Paul.
@@ -130,6 +133,13 @@ const double kPieceToBoardCellRatio = 0.26;
 /// petit plateau ne remplit pas un iPad (marges). Appliqué au board ET à `_barMetrics` (cohérence
 /// §3). **À régler à l'œil sur device.**
 const double kMaxBoardCellSize = 84.0;
+
+/// 🐞 DEBUG (test device) : affiche un bandeau coin haut-gauche avec les compteurs **live**
+/// d'isométries et de fautes (`state.isometryCount` / `state.faultCount`), pour vérifier qu'ils
+/// s'incrémentent en direct. **NON destiné à la production** — à repasser `false` avant toute
+/// soumission App Store (suivi dans `docs/CHECKLIST_APPSTORE.md`). Pas `kDebugMode` : le test se
+/// fait en `--release`, où il vaut faux.
+const bool kShowLiveCounters = true;
 
 /// Icônes (AppBar + colonne d'actions) : `shortestSide × facteur`, borné. **À régler à l'œil.**
 /// (0.075→0.11, min 30→40 le 2026-09-07 : « trop petites dans l'AppBar » — retour de Paul.)
@@ -355,6 +365,33 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             },
           ),
           
+          // 🐞 DEBUG (test) : compteurs live iso/fautes, coin haut-gauche. Gated kShowLiveCounters,
+          // IgnorePointer (ne capte aucun geste). Emojis + chiffres seulement (pas de chaîne i18n).
+          if (kShowLiveCounters)
+            Positioned(
+              left: 8,
+              top: 8,
+              child: IgnorePointer(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.62),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '🔄 ${state.isometryCount}   🔴 ${state.faultCount}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           // 👁️ Mini-plateau adversaire (overlay)
           if (_showOpponentOverlay)
             _buildOpponentOverlay(context, state, settings),

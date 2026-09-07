@@ -1,4 +1,6 @@
-// Modified: 2026-09-06 04:50 — i18n : en-tête (tooltips défi/records/réglages), label « Niveau N » et
+// Modified: 2026-09-07 10:07 — vignette : ratio mini-pièce découplé du k de gameplay (_kHomePieceRatio,
+//           0.20) — la hausse de k (0.22→0.26) faisait se toucher les pièces du rack de la démo.
+// Historique: 2026-09-06 04:50 — i18n : en-tête (tooltips défi/records/réglages), label « Niveau N » et
 //           boutons Jouer/Multijoueur via AppLocalizations.
 // Historique: 2026-09-05 17:58 — vignette : icône de miroir surlignée corrigée — la démo fait un flip
 //           gauche↔droite (scaleX=-1 = SymV/swap_horiz), on surligne donc SymV et non SymH.
@@ -40,7 +42,7 @@ import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
-    show kPieceToBoardCellRatio, PentoscopeGameScreen;
+    show PentoscopeGameScreen;
 
 /// Placement d'une pièce prêt à rendre : le [Pento], l'index d'orientation qui reproduit les
 /// cellules du tirage, l'ancre (case haut-gauche) sur le plateau 5×3, et la taille en cases.
@@ -59,6 +61,12 @@ class _Placement {
 // tournée (icône rotation), retournée (icône miroir), puis montée à sa place. Fractions de la
 // boucle (0..1) où finit chaque phase.
 const int _kLoopMs = 10000; // boucle lente (démo pédagogique)
+
+/// Ratio mini-pièce / case du plateau **propre à la vignette**, DÉCOUPLÉ de `kPieceToBoardCellRatio`
+/// du jeu : le rack de la démo place ses pièces à des fractions égales de la largeur, donc si les
+/// minis grossissent (ex. hausse du `k` de gameplay) elles se touchent. La vignette étant décorative,
+/// elle garde son propre ratio, réglé pour laisser un écart franc entre pièces voisines.
+const double _kHomePieceRatio = 0.20;
 // Fractions de la boucle (0..1). Des pauses (dwell) séparent les phases pour laisser lire.
 const double _kSelectEnd = 0.14; // sélection + halo
 const double _kIso1Start = 0.22, _kIso1End = 0.42; // 1re isométrie
@@ -278,7 +286,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Disposition du vrai jeu : barre d'isométrie EN HAUT, plateau au milieu, rack EN BAS.
     const gap = 18.0;
     const toolbarH = 64.0; // barre haute pour des icônes d'isométrie bien visibles
-    const rackCells = kPieceToBoardCellRatio * 3; // hauteur du rack, en cases-équivalent
+    const rackCells = _kHomePieceRatio * 3; // hauteur du rack, en cases-équivalent
     final cellByW = constraints.maxWidth / kHomeBoardWidth;
     final cellByH = (constraints.maxHeight - toolbarH - gap * 2 - 24) /
         (kHomeBoardHeight + rackCells);
@@ -405,7 +413,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Une pièce au repos dans le rack (mini, à son emplacement).
   Widget _buildRackMini(_Placement pl, int index, int count, double cell,
       double rackTop, double rackH, double sceneW, Color Function(int) colorOf) {
-    final effCell = cell * kPieceToBoardCellRatio;
+    final effCell = cell * _kHomePieceRatio;
     final fullW = pl.wCells * effCell + 8;
     final fullH = pl.hCells * effCell + 8;
     final center =
@@ -444,7 +452,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final rise = ((f - _kRiseStart) / (_kRiseEnd - _kRiseStart)).clamp(0.0, 1.0);
 
     // Taille de case : miniature dans le rack, pleine une fois posée.
-    final effCell = cell * _lerp(kPieceToBoardCellRatio, 1.0, rise);
+    final effCell = cell * _lerp(_kHomePieceRatio, 1.0, rise);
     final fullW = pl.wCells * effCell + 8;
     final fullH = pl.hCells * effCell + 8;
 

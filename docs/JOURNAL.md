@@ -166,6 +166,12 @@ Direction retenue par Paul (Levier 1+3) :
 - **Retrait de l'icône visionneuse** (`view_carousel`, navigateur de solutions, 6×10) — buggée (Paul).
   `compatibleSolutions()` (provider) et les clés i18n `compatibleSolutionsTitle/Tooltip` deviennent
   orphelines, laissées en place (comme `restartTooltip`).
+- **Vignette d'accueil découplée du `k` de gameplay** (`home_screen.dart`, `_kHomePieceRatio = 0.20`) :
+  la hausse de `k` (0.22→0.26) faisait se toucher les mini-pièces du rack de la démo (posées à des
+  fractions égales de la largeur). La vignette étant décorative, elle garde son propre ratio.
+- **🐞 DEBUG bandeau compteurs live** (`kShowLiveCounters = true`) : coin haut-gauche, `🔄 iso · 🔴
+  fautes` (`state.isometryCount`/`faultCount`), pour le test device. **À repasser `false` avant
+  soumission** — `CHECKLIST_APPSTORE` point 22. Pas `kDebugMode` (test en `--release`).
 
 Toutes ces valeurs sont des **constantes nommées « à régler à l'œil sur device »**. `analyze lib test`
 **0/0**, **49/49 tests**. **Reste : test device** (calage des valeurs par Paul).
