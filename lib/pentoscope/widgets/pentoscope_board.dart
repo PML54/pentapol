@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 09:13 — taille des pièces : cellSize plafonné par kMaxBoardCellSize (borne
+// Modified: 2026-09-07 16:45 — (1) glissé « suivi exact » : feedback réactif (image RÉELLE si posable,
+//           TRANSPARENT si chevauchement, observe isPreviewValid) ; (2) plafond de case PROPORTIONNEL
+//           à l'écran (kMaxBoardCellFactor) au lieu de l'absolu 84 qui rapetissait tout sur tablette.
+// Historique: 2026-09-07 09:13 — taille des pièces : cellSize plafonné par kMaxBoardCellSize (borne
 //           haute partagée avec _barMetrics) — supprime la « falaise » de réduction des petits plateaux.
 // Historique: 2026-09-06 04:50 — i18n : « Aucun puzzle » via AppLocalizations.
 // Historique: 2026-09-02 09:42 — #6 répartition verticale : en portrait le plateau est ancré en bas
@@ -35,7 +38,7 @@ import 'package:pentapol/common/widgets/piece_renderer.dart';
 // Le rapport pièce/plateau (feedback de drag) est regroupé avec les autres réglages visuels
 // en tête de pentoscope_game_screen.dart. Import ciblé pour ne prendre que cette constante.
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
-    show kPieceToBoardCellRatio, kMaxBoardCellSize;
+    show kPieceToBoardCellRatio, kMaxBoardCellFactor;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
@@ -83,11 +86,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         // Réserver 8px de marge uniquement en portrait (largeur limitée)
         // En paysage, pas besoin de marge car le plateau a plus d'espace
         final availableWidth = widget.isLandscape ? constraints.maxWidth : constraints.maxWidth - 8;
-        // Plafond de hauteur ET plafond absolu partagé (kMaxBoardCellSize) : sans lui, un petit
-        // plateau s'affiche démesuré et le passage à un plus grand fait une falaise de réduction.
+        // Plafond de hauteur ET plafond partagé (proportionnel à l'écran, kMaxBoardCellFactor) :
+        // atténue la « falaise » des petits plateaux sans les rapetisser sur une grande tablette.
+        final maxCell = MediaQuery.of(context).size.shortestSide * kMaxBoardCellFactor;
         final heightCap = constraints.maxHeight / visualRows;
-        final upperCap =
-            heightCap < kMaxBoardCellSize ? heightCap : kMaxBoardCellSize;
+        final upperCap = heightCap < maxCell ? heightCap : maxCell;
         final cellSize =
             (availableWidth / visualCols).clamp(0.0, upperCap).toDouble();
 
@@ -444,17 +447,29 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         onDragEnd: (_) => notifier.setDragging(false),
         feedback: Material(
           color: Colors.transparent,
-          child: PieceRenderer(
-            piece: state.selectedPiece!,
-            positionIndex: _getDisplayPositionIndex(
-              state.selectedPositionIndex,
-              state.selectedPiece!,
-              isLandscape,
-            ),
-            isDragging: true,
-            // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
-            cellSize: cellSize * kPieceToBoardCellRatio,
-            getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
+          // Feedback réactif : image réelle si la pose est valide, TRANSPARENT si elle chevauche
+          // (méthode « validité = couleur », 2026-09-07). Le Consumer se reconstruit à chaque
+          // updatePreview → bascule réel ↔ transparent en direct pendant le glissé.
+          child: Consumer(
+            builder: (context, ref, _) {
+              final valid = ref
+                  .watch(pentoscopeProvider.select((s) => s.isPreviewValid));
+              return Opacity(
+                opacity: valid ? 1.0 : 0.0,
+                child: PieceRenderer(
+                  piece: state.selectedPiece!,
+                  positionIndex: _getDisplayPositionIndex(
+                    state.selectedPositionIndex,
+                    state.selectedPiece!,
+                    isLandscape,
+                  ),
+                  isDragging: true,
+                  // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
+                  cellSize: cellSize * kPieceToBoardCellRatio,
+                  getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
+                ),
+              );
+            },
           ),
         ),
         childWhenDragging: previewInfo.isPreview ? cellWidget : emptyCell,

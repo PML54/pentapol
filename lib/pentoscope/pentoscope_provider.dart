@@ -1,4 +1,8 @@
-// Modified: 2026-09-07 14:20 — observation : classification des fautes (analyzeFault) aux 4 sites de
+// Modified: 2026-09-07 16:30 — glissé « suivi exact du doigt » (méthode validée avec Paul) :
+//           updatePreview affiche TOUJOURS l'ancre désirée (case empoignée sous le doigt), sans
+//           aimantation ; validité = couleur (isPreviewValid). Suppression de _findClosestValidPlacement
+//           et _gestureAxis (aimantation + heuristique d'axe devenues inutiles).
+// Historique: 2026-09-07 14:20 — observation : classification des fautes (analyzeFault) aux 4 sites de
 //           faute — décompte par cause (faultAireCount/faultSubtileCount) + somme de gravité
 //           (faultGraviteSum), hors maillots, NON persistés — pour le bandeau debug (décision Paul).
 // Historique: 2026-09-07 11:05 — observation : compteur redRemovalCount (retraits en plateau rouge =
@@ -1340,6 +1344,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // PREVIEW
   // ==========================================================================
 
+  /// Aperçu « suivi exact du doigt » (méthode validée avec Paul, 2026-09-07). La pièce est TOUJOURS
+  /// posée à l'**ancre désirée** (case empoignée sous le doigt) — **plus d'aimantation** qui la
+  /// décollait. La validité (chevauchement / hors limites) ne DÉPLACE plus rien : elle ne fait que la
+  /// **couleur** (`isPreviewValid`), lue par le fantôme du plateau ET le feedback sous le doigt
+  /// (image réelle si valide, transparent sinon).
   void updatePreview(int gridX, int gridY) {
     if (state.selectedPiece == null) {
       if (state.previewX != null || state.previewY != null) {
@@ -1348,34 +1357,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       return;
     }
 
-    // ✨ CAS 1 - AUCUN PLACEMENT POSSIBLE → ROUGE PARTOUT
-    if (state.validPlacements.isEmpty) {
-      // Calculer l'ancre en appliquant le vecteur de translation
-      final desiredAnchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
-      state = state.copyWith(
-        previewX: desiredAnchor.x,
-        previewY: desiredAnchor.y,
-        isPreviewValid: false, // 🔴 ROUGE
-      );
-      return;
-    }
+    final anchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
+    // Validité = l'ancre est-elle un placement valide ? `validPlacements` est déjà calculé pièce
+    // exclue (pour une pièce posée) → l'appartenance vaut pour le tiroir ET le déplacement.
+    final valid =
+        state.validPlacements.any((p) => p.x == anchor.x && p.y == anchor.y);
 
-    // ✨ CAS 2 - PLACEMENTS POSSIBLES → SNAPPING VERT
-    final snappedPlacement = _findClosestValidPlacement(gridX, gridY);
-
-    if (snappedPlacement == null) {
-      if (state.previewX != null || state.previewY != null) {
-        state = state.copyWith(clearPreview: true);
-      }
-      return;
-    }
-
-    // 🔑 Le snappedPlacement est déjà une position d'ancre valide
-    // Pas besoin d'appliquer la mastercase, c'est déjà dedans
     state = state.copyWith(
-      previewX: snappedPlacement.x,
-      previewY: snappedPlacement.y,
-      isPreviewValid: true, // 🟢 VERT
+      previewX: anchor.x,
+      previewY: anchor.y,
+      isPreviewValid: valid,
     );
   }
 
@@ -2182,75 +2173,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return null;
   }
 
-  /// Trouve la position valide la plus proche du vecteur de translation
-  /// dragGridX/Y = position du doigt sur le plateau
-  /// Retourne la position d'ancre valide la plus proche du vecteur
-  ///
-  /// ✅ FIX: On cherche l'ancre la plus proche de l'ancre désirée
-  /// (calculée via le vecteur mastercase -> doigt)
-  /// Axe dominant du geste, mesuré de la **case saisie** (`selectedMasterAbs`) au **doigt**
-  /// courant — pas du pas instantané (trop instable). 0 = ~45° ou immobile → isotrope,
-  /// 1 = proche horizontal, 2 = proche vertical. Seuil ±22,5° autour des axes (le reste,
-  /// c.-à-d. 45°±22,5°, est traité en isotrope). Disponible seulement pour une pièce posée
-  /// (mode B, `selectedMasterAbs != null`) ; sinon 0.
-  int _gestureAxis(int dragGridX, int dragGridY) {
-    final masterAbs = state.selectedMasterAbs;
-    if (masterAbs == null) return 0;
-    final vx = (dragGridX - masterAbs.x).abs().toDouble();
-    final vy = (dragGridY - masterAbs.y).abs().toDouble();
-    if (vx == 0 && vy == 0) return 0;
-    const t = 2.4142135623730951; // tan 67,5° = 1/tan 22,5°
-    if (vx > vy * t) return 1; // horizontal
-    if (vy > vx * t) return 2; // vertical
-    return 0; // proche de 45° → isotrope
-  }
-
-  Point? _findClosestValidPlacement(int dragGridX, int dragGridY) {
-    if (state.validPlacements.isEmpty) return null;
-    if (state.selectedPiece == null) return null;
-
-    final desiredAnchor = _calculateDesiredAnchorFromDrag(dragGridX, dragGridY);
-    final axis = _gestureAxis(dragGridX, dragGridY);
-    final sp = state.selectedPlacedPiece;
-
-    // Correctif A — le snap RESPECTE le sens du geste (mesuré case saisie → doigt, cf. _gestureAxis).
-    // Horizontal : la pièce reste sur sa ligne d'origine (`sp.gridY`) et avance vers le doigt en
-    // colonne → priorité à `|Δligne vs origine|`, puis `|Δcolonne vs doigt|`. Vertical : symétrique
-    // (colonne d'origine `sp.gridX`, puis ligne vers le doigt). ~45° ou pièce du tiroir : isotrope
-    // (dx²+dy² sur l'ancre désirée), comportement d'avant. Remplace la distance isotrope aveugle
-    // qui « montait » d'une ligne (JOURNAL fourche C).
-    final directional = axis != 0 && sp != null;
-
-    Point closest = state.validPlacements[0];
-    double bestPrimary = double.infinity;
-    double bestSecondary = double.infinity;
-
-    for (final placement in state.validPlacements) {
-      double primary;
-      double secondary;
-      if (directional && axis == 1) {
-        primary = (placement.y - sp.gridY).abs().toDouble(); // rester sur la ligne d'origine
-        secondary = (placement.x - desiredAnchor.x).abs().toDouble(); // avancer vers le doigt
-      } else if (directional && axis == 2) {
-        primary = (placement.x - sp.gridX).abs().toDouble(); // rester sur la colonne d'origine
-        secondary = (placement.y - desiredAnchor.y).abs().toDouble();
-      } else {
-        final dx = (desiredAnchor.x - placement.x).toDouble();
-        final dy = (desiredAnchor.y - placement.y).toDouble();
-        primary = dx * dx + dy * dy; // isotrope
-        secondary = 0;
-      }
-
-      if (primary < bestPrimary ||
-          (primary == bestPrimary && secondary < bestSecondary)) {
-        bestPrimary = primary;
-        bestSecondary = secondary;
-        closest = placement;
-      }
-    }
-
-    return closest;
-  }
+  // _gestureAxis et _findClosestValidPlacement (aimantation + heuristique d'axe) SUPPRIMÉS le
+  // 2026-09-07 : méthode « suivi exact du doigt » (updatePreview pose à l'ancre désirée, sans snap).
 
   /// Génère TOUS les placements possibles pour une pièce à une positionIndex donnée
   /// Retourne une liste de Point (gridX, gridY) où la pièce peut être placée

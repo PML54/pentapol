@@ -197,6 +197,36 @@ Direction retenue par Paul (Levier 1+3) :
 Toutes ces valeurs sont des **constantes nommées « à régler à l'œil sur device »**. `analyze lib test`
 **0/0**, **49/49 tests**. **Reste : test device** (calage des valeurs par Paul).
 
+### Déplacement d'une pièce — méthode « suivi exact du doigt » (2026-09-07, testée OK par Paul) ✅
+
+> ⚠️ **Les deux sections ci-dessous (REVERT + cartographie des fourches) sont désormais HISTORIQUES.**
+> Elles décrivaient l'ancien état ; le bug intermittent « la pièce ne suit pas toujours le doigt » a
+> été repris et **corrigé** le 2026-09-07. Correction du §ÉTAT au passage : contrairement à ce que
+> disaient ces sections, les correctifs de `snap-directionnel` **avaient bien été fusionnés dans
+> `main`** (dépôt à l'ancre de l'aperçu, snap directionnel, `setDragMastercase`) — la branche a été
+> supprimée depuis. Le bug **persistait malgré eux**, ce qui a motivé un changement de **méthode**.
+
+**Méthode retenue (validée puis testée par Paul)** : **suivi exact du doigt, validité = couleur, aucune
+aimantation.** La case empoignée reste sous le doigt à tout instant ; la pièce ne « saute » plus vers un
+placement valide.
+
+- **`updatePreview`** pose TOUJOURS à l'ancre désirée (`_calculateDesiredAnchorFromDrag`), sans snap ;
+  `isPreviewValid` = appartenance à `validPlacements` (déjà calculé pièce exclue).
+- **Suppression** de `_findClosestValidPlacement` et `_gestureAxis` (l'aimantation et l'heuristique
+  d'axe, devenues inutiles) — fix **soustractif**.
+- **Feedback sous le doigt réactif** (plateau + tiroir) : **image réelle si posable, transparent si
+  chevauchement** (un `Consumer` sur `isPreviewValid`, se reconstruit à chaque coup). Le **fantôme du
+  plateau** garde son vert/rouge.
+- **Effet de bord corrigé le même jour** : le plafond de case était **absolu** (`kMaxBoardCellSize=84`)
+  et **rapetissait tout sur tablette** (grand écran → tout rogné à 84). Rendu **proportionnel**
+  (`kMaxBoardCellFactor=0.215`, `maxBoardCellSize(context)` = `shortestSide × facteur`) : ≈84 sur
+  iPhone, plein écran sur tablette.
+
+`analyze lib test` **0/0**, **55/55 tests**. **Testé OK sur tablette 9×5 par Paul** (le drag suit le
+doigt, les plateaux remplissent l'écran). Valeurs `à régler à l'œil` : `kMaxBoardCellFactor`,
+`kPieceToBoardCellRatio`. *(Les deux sections historiques ci-dessous peuvent être élaguées à la
+prochaine passe.)*
+
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
 Le chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a fait **apparaître beaucoup d'anomalies**
@@ -702,8 +732,13 @@ Grosse session, **tout commité et poussé** sur `origin/main`. Trois chantiers 
    `INDICATEURS_OBSERVATION.md`.** **Reste (plus tard)** : observer les distributions sur device, puis
    caler le **barème** et décider son intégration éventuelle aux maillots (avant lock de publication si classé).
 
-**Interruption (2026-09-07)** : Paul met ce sujet en pause pour un **autre sujet bloquant** (à documenter
-au reprise).
+**Sujet bloquant traité (2026-09-07) — déplacement d'une pièce.** Le bug de fond « la pièce ne suit
+pas toujours le doigt » (intermittent, testé sur tablette 9×5) a été repris. Découverte : les correctifs
+`snap-directionnel` **étaient déjà dans `main`** (le §ÉTAT le disait à tort non fusionné) et le bug
+**persistait** → changement de **méthode** validé par Paul : **suivi exact du doigt, validité = couleur,
+sans aimantation** (retrait de `_findClosestValidPlacement`/`_gestureAxis` ; feedback réel/transparent
+plateau+tiroir). **Testé OK sur device.** Plafond de case rendu **proportionnel à l'écran** au passage
+(l'absolu 84 rapetissait tout sur tablette). Détail en §ÉTAT « méthode suivi exact ». `analyze` 0/0, 55/55.
 
 **2026-09-06 — CLI → cowork (bilinguisme EN/FR, i18n complet).** Décision de Paul : « une app
 Anglais/Français ». Constat : l'app était **française en dur**, `lib/l10n/` n'avait que 4 clés jamais

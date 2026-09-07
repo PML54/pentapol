@@ -1,4 +1,6 @@
-// Modified: 2026-09-07 09:35 — halo de sélection lisible sur pièce jaune (N°3) : le halo ambré seul
+// Modified: 2026-09-07 16:30 — glissé « suivi exact » : le feedback tiroir (image sous le doigt)
+//           devient réactif — image RÉELLE si posable, TRANSPARENT si chevauchement (isPreviewValid).
+// Historique: 2026-09-07 09:35 — halo de sélection lisible sur pièce jaune (N°3) : le halo ambré seul
 //           ne contrastait pas ; ajout d'un contour sombre net par-dessus (visible quelle que soit
 //           la couleur de la pièce, palettes perso incluses).
 // Historique: 2026-09-03 07:10 — fix drag tiroir : onGrab calcule la cellule empoignée (_grabbedCell,
@@ -202,8 +204,20 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                 cellSize: widget.pieceCellSize,
                 getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
               );
-              // Halo au repos seulement : la pièce en cours de glissement ne le porte pas.
-              if (!isSelected || isDragging) return renderer;
+              // Feedback sous le doigt (glissement) : image RÉELLE si posable, TRANSPARENT si
+              // chevauchement. Le Consumer se reconstruit à chaque updatePreview → bascule en direct.
+              if (isDragging) {
+                return Consumer(
+                  builder: (context, ref, _) {
+                    final valid = ref.watch(
+                        pentoscopeProvider.select((s) => s.isPreviewValid));
+                    return Opacity(
+                        opacity: valid ? 1.0 : 0.0, child: renderer);
+                  },
+                );
+              }
+              // Halo au repos seulement (pièce sélectionnée, immobile).
+              if (!isSelected) return renderer;
               return DecoratedBox(
                 decoration: BoxDecoration(
                   boxShadow: [

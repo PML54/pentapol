@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 14:41 — DEBUG test : bandeau 3ᵉ ligne = diagnostic de l'ÉTAT COURANT
+// Modified: 2026-09-07 16:45 — plafond de case PROPORTIONNEL à l'écran (kMaxBoardCellFactor +
+//           maxBoardCellSize(context)) au lieu de l'absolu 84 qui rapetissait tout sur tablette ;
+//           _barMetrics reçoit le plafond résolu.
+// Historique: 2026-09-07 14:41 — DEBUG test : bandeau 3ᵉ ligne = diagnostic de l'ÉTAT COURANT
 //           (analyzeFault(state.plateau) recalculé à chaque coup — iso/translation/ajout/retrait).
 // Historique: 2026-09-07 14:20 — DEBUG test : bandeau à deux lignes — ligne 2 = classification des
 //           fautes (⚠️ aire non-mult-5 / 🌫️ subtile / Σg somme de gravité, via fault_analysis).
@@ -134,14 +137,17 @@ import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 /// **À régler à l'œil sur device.** (0.22 → 0.26 le 2026-09-07 : pièces de barre plus grosses.)
 const double kPieceToBoardCellRatio = 0.26;
 
-/// Borne HAUTE de la taille d'une case du plateau (pt logiques ≈ physiques). Sans elle,
-/// `cellSize = min(W/w, H/h)` n'a pas de plafond : les petits plateaux (3×5, 4×5) s'affichent
-/// démesurés et le passage à un plateau plus grand fait une « falaise » de réduction. Plafond
-/// **absolu** (pas relatif à l'appareil) : une case > ~84 pt est démesurée sur tout écran, et un
-/// plafond absolu évite de réintroduire une détection de tablette (§3). Conséquence assumée : un
-/// petit plateau ne remplit pas un iPad (marges). Appliqué au board ET à `_barMetrics` (cohérence
-/// §3). **À régler à l'œil sur device.**
-const double kMaxBoardCellSize = 84.0;
+/// Borne HAUTE de la taille d'une case du plateau, **proportionnelle à l'écran** :
+/// `maxCell = shortestSide × kMaxBoardCellFactor`. Sans plafond, `cellSize = min(W/w, H/h)` fait des
+/// petits plateaux (3×5, 4×5) démesurés → « falaise » de réduction vers les grands. Le plafond
+/// l'atténue. Il était **absolu** (84) au départ, mais 84 pt rapetissait TOUT sur une grande tablette
+/// (tout dépasse 84 → tout rogné à 84). **Relatif** : ≈84 sur iPhone (390×0.215), bien plus grand sur
+/// tablette → les plateaux remplissent l'écran. Appliqué au board ET à `_barMetrics`. **À régler à l'œil.**
+const double kMaxBoardCellFactor = 0.215;
+
+/// Le plafond ci-dessus, résolu pour l'écran courant.
+double maxBoardCellSize(BuildContext context) =>
+    MediaQuery.of(context).size.shortestSide * kMaxBoardCellFactor;
 
 /// 🐞 DEBUG (test device) : affiche un bandeau coin haut-gauche avec les compteurs **live**
 /// d'isométries et de fautes (`state.isometryCount` / `state.faultCount`), pour vérifier qu'ils
@@ -1108,7 +1114,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// comme ~5k rangées (portrait) ou colonnes (paysage). [reserve] = largeur déjà prise à côté
   /// (la colonne d'actions, en paysage). Garde-fou : jamais sous 8 pt.
   ({double cell, double extent}) _barMetrics(
-      Size body, PentoscopeSize size, bool isLandscape, double reserve) {
+      Size body, PentoscopeSize size, bool isLandscape, double reserve,
+      double maxCell) {
     final cols = isLandscape ? size.height : size.width;
     final rows = isLandscape ? size.width : size.height;
     const k = kPieceToBoardCellRatio;
@@ -1124,8 +1131,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         (body.height - _kSliderPad) / (rows + 5 * k),
       );
     }
-    // Même plafond que le plateau (kMaxBoardCellSize) → la barre reste ancrée sur la case réelle (§3).
-    boardCell = math.min(boardCell, kMaxBoardCellSize);
+    // Même plafond que le plateau (maxBoardCellSize) → la barre reste ancrée sur la case réelle (§3).
+    boardCell = math.min(boardCell, maxCell);
     final cell = math.max(8.0, boardCell * k);
     return (cell: cell, extent: cell * 5 + _kSliderPad);
   }
@@ -1142,7 +1149,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Taille des pièces de la barre, ancrée sur le plateau ; hauteur de barre dérivée.
-        final m = _barMetrics(constraints.biggest, state.puzzle!.size, false, 0);
+        final m = _barMetrics(constraints.biggest, state.puzzle!.size, false, 0,
+            maxBoardCellSize(context));
         return Column(
           children: [
             // Plateau de jeu
@@ -1192,8 +1200,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         // (0.08 × hauteur) plafonnait.
         final actionColumnWidth = isometryIconSize(context) + 24;
         // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
-        final m = _barMetrics(
-            constraints.biggest, state.puzzle!.size, true, actionColumnWidth);
+        final m = _barMetrics(constraints.biggest, state.puzzle!.size, true,
+            actionColumnWidth, maxBoardCellSize(context));
         final sliderWidth = m.extent;
 
         // §7 : ordre identique au portrait — colonne d'actions, plateau, barre, aplati en
