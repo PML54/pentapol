@@ -160,6 +160,12 @@ Direction retenue par Paul (Levier 1+3) :
   étaient collées au plancher 30 sur iPhone → ≈43 pt) — « trop petites dans l'AppBar » (Paul).
 - **Retrait de l'icône `Icons.person`** de l'AppBar (elle faisait `reset()` « recommencer ») — choix
   de Paul ; la remise à zéro reste dans « Nouvelle partie » (add_circle) et la carte de bilan.
+- **Halo de sélection lisible sur pièce jaune** (`pentoscope_piece_slider.dart`) : le halo ambré seul
+  ne contrastait pas sur la pièce N°3 (jaune) ; ajout d'un **contour sombre net par-dessus**, visible
+  quelle que soit la couleur (palettes perso incluses).
+- **Retrait de l'icône visionneuse** (`view_carousel`, navigateur de solutions, 6×10) — buggée (Paul).
+  `compatibleSolutions()` (provider) et les clés i18n `compatibleSolutionsTitle/Tooltip` deviennent
+  orphelines, laissées en place (comme `restartTooltip`).
 
 Toutes ces valeurs sont des **constantes nommées « à régler à l'œil sur device »**. `analyze lib test`
 **0/0**, **49/49 tests**. **Reste : test device** (calage des valeurs par Paul).

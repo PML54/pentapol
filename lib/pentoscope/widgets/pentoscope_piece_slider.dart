@@ -1,4 +1,7 @@
-// Modified: 2026-09-03 07:10 — fix drag tiroir : onGrab calcule la cellule empoignée (_grabbedCell,
+// Modified: 2026-09-07 09:35 — halo de sélection lisible sur pièce jaune (N°3) : le halo ambré seul
+//           ne contrastait pas ; ajout d'un contour sombre net par-dessus (visible quelle que soit
+//           la couleur de la pièce, palettes perso incluses).
+// Historique: 2026-09-03 07:10 — fix drag tiroir : onGrab calcule la cellule empoignée (_grabbedCell,
 //           depuis l'offset du toucher, centrage + marge PieceRenderer, valable en paysage) et la
 //           passe à selectPiece(grabbedCell:) → le placement colle au doigt comme sur le plateau.
 // Historique: 2026-09-01 09:01 — zone tactile pleine boîte (hitBoxSize = fixedSize) pour attraper le
@@ -204,10 +207,19 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
               return DecoratedBox(
                 decoration: BoxDecoration(
                   boxShadow: [
+                    // Halo ambré « sélection » (langage cohérent avec l'ampoule).
                     BoxShadow(
-                      color: Colors.amber.withOpacity(0.7),
-                      blurRadius: 14,
-                      spreadRadius: 2,
+                      color: Colors.amber.withOpacity(0.85),
+                      blurRadius: 16,
+                      spreadRadius: 3,
+                    ),
+                    // Contour sombre net PAR-DESSUS le halo : garantit une limite visible même quand
+                    // la pièce est elle-même jaune/ambrée (ex. N°3), où l'ambre seul ne contraste pas.
+                    // Dernier de la liste = peint au-dessus.
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.6),
+                      blurRadius: 1.5,
+                      spreadRadius: 1.5,
                     ),
                   ],
                 ),

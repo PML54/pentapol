@@ -1,4 +1,6 @@
-// Modified: 2026-09-07 09:20 — AppBar : icônes agrandies (_kIconSizeFactor 0.075→0.11, min 30→40)
+// Modified: 2026-09-07 09:35 — AppBar : retrait de l'icône visionneuse (navigateur de solutions,
+//           view_carousel — buggé en 6×10, choix de Paul) ; import solutions_browser_screen devenu inutile.
+// Historique: 2026-09-07 09:20 — AppBar : icônes agrandies (_kIconSizeFactor 0.075→0.11, min 30→40)
 //           et retrait de l'icône Icons.person (reset « recommencer ») — choix de Paul.
 // Historique: 2026-09-07 09:13 — taille des pièces : k 0.22→0.26 (pièces de barre plus grosses) +
 //           kMaxBoardCellSize (borne haute de la case du plateau, supprime la « falaise » des
@@ -107,7 +109,6 @@ import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
-import 'package:pentapol/pentoscope/screens/solutions_browser_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 // RÉGLAGE VISUEL — les sept valeurs « à régler à l'œil » de l'ergonomie hors plateau,
@@ -981,28 +982,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               ? l10n.hint
               : l10n.noSolutionBack,
         ),
-      // Navigateur de solutions compatibles : seul le 6×10 le sert (BigInt, rendu 6×10).
-      // Les petites tailles ont un compte non-nul mais pas de navigateur — sinon il serait vide.
-      if (state.puzzle?.size.table != null)
-        IconButton(
-          icon: const Icon(Icons.view_carousel),
-          iconSize: iconSize,
-          color: Colors.indigo,
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            final sols = notifier.compatibleSolutions();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => SolutionsBrowserScreen.forSolutions(
-                  solutions: sols,
-                  title: l10n.compatibleSolutionsTitle(sols.length),
-                ),
-              ),
-            );
-          },
-          tooltip: l10n.compatibleSolutionsTooltip,
-        ),
+      // Navigateur de solutions compatibles (icône visionneuse) retiré le 2026-09-07 (choix de
+      // Paul : buggé en 6×10). Le compteur de solutions reste ; la navigation viendra si refaite.
       if (showCounter) _buildSolutionCounter(context, state),
       // Réglages retiré de la barre de jeu (choix de Paul) : il vit sur le menu d'accueil.
     ];
