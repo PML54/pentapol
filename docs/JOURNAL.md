@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-06
+## §ÉTAT — au 2026-09-07
 
 ### L'application
 
@@ -614,6 +614,10 @@ test « Test » sur (v1, week0, size1) à purger par Paul si souhaité.*
 
 ### Documentation
 
+`INDICATEURS_OBSERVATION.md` (neuf, 2026-09-07) — référence de **tous les indicateurs du bandeau debug**
+(compteurs bruts 🔄🔴↔️🚑, classification des fautes ⚠️🌫️Σg + gravité, diagnostic courant). Outil de
+test/observation, gated `kShowLiveCounters` (à couper avant publication). S'appuie sur `fault_analysis.dart`.
+
 `MANUEL_DEFIS_ET_MAILLOTS.md` (neuf 2026-09-05, **réécrit le 2026-09-05** pour la refonte « A ») —
 manuel de référence **faisant foi** : défi perso (records locaux) vs défi réseau (classement en
 ligne), et le **mode de calcul exact des trois maillots** (acuité **plafonnée**, fautes, temps) + la
@@ -676,17 +680,30 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-07 — cowork → CLI, puis CLI → cowork (défi en V1 + conformité).** Retour de cowork :
-`docs/INDEX_DOCS.md` (index de `docs/` + écarts), commité seul par le CLI (`681b4fe`, doc sans code,
-MODUS_VIVENDI §5). Son §3.1 pose la question : le défi est dit « hors V1 » mais est livré, déployé et
-**envoie une identité persistante sans condition** — la déclaration App Privacy « ne collecte rien »
-en dépend. **Tranché par Paul : le défi reste en V1**, donc rendu **conforme** (voir §ÉTAT
-« Conformité défi V1 ») — opt-in désactivé par défaut (§8), classement conditionné à l'opt-in (§4.5),
-suppression RGPD (§7.4, route serveur `DELETE /score`), section Réglages « Classement en ligne », et
-**proposition unique de l'opt-in à la 1re complétion d'un défi** (choix de Paul du même jour).
-9 fichiers `lib/` + `server/src/index.ts` + 2 ARB + 3 générés, docs `CHECKLIST`/`JOURNAL`. `analyze`
-0/0, 49/49, `tsc` OK. **Non commité** (attente du feu vert de Paul). **Reste** : redéploiement du
-worker (route DELETE) + test device + déclaration App Store Connect du comportement opt-in.
+**2026-09-07 — cowork → CLI puis CLI (session : conformité défi V1, ergonomie, classifieur de fautes).**
+Grosse session, **tout commité et poussé** sur `origin/main`. Trois chantiers :
+1. **Conformité défi V1** (déclenché par `INDEX_DOCS.md` §3.1 de cowork ; tranché par Paul : le défi
+   **reste en V1**). Rendu conforme : opt-in désactivé par défaut (§8), classement conditionné à
+   l'opt-in (§4.5), **proposition unique** à la 1re complétion d'un défi, suppression RGPD (§7.4,
+   route serveur `DELETE /score`), section Réglages « Classement en ligne ». Voir §ÉTAT « Conformité
+   défi V1 ». **Reste** : redéploiement du worker (route DELETE), test device, déclaration App Store
+   Connect du comportement opt-in.
+2. **Ergonomie tailles/icônes** (retours de Paul). Borne haute de la case (`kMaxBoardCellSize=84`,
+   supprime la « falaise »), `k` 0.22→0.26, icônes AppBar 0.075→0.11, icônes d'isométrie 0.12→0.14,
+   retrait de `Icons.person` (reset) et de la **visionneuse** (buggée en 6×10), **halo de sélection**
+   lisible sur pièce jaune, **vignette d'accueil découplée** du `k` de gameplay. Valeurs en constantes
+   « à régler à l'œil ». Voir §ÉTAT « Taille des pièces et icônes ».
+3. **Classifieur de fautes + observation** (`lib/pentoscope/fault_analysis.dart`, testé). Modèle acté
+   avec Paul : **lampe rouge = aide au joueur** (état, la table décide) ; **⚠️ aire non-mult-5** (englobe
+   poches < 5) et **🌫️ impossibilité subtile** = **deux causes pour NOTER** le joueur, hors maillots.
+   **Gravité continue** `20/taille` (zone de 4 = 5.0). Indicateurs centralisés/documentés dans
+   `fault_analysis` (`FaultIndicators` + `diagnosticCourant`), affichés au **bandeau debug**
+   (`kShowLiveCounters`, à repasser `false` avant publication — checklist 22). **Doc de référence neuve :
+   `INDICATEURS_OBSERVATION.md`.** **Reste (plus tard)** : observer les distributions sur device, puis
+   caler le **barème** et décider son intégration éventuelle aux maillots (avant lock de publication si classé).
+
+**Interruption (2026-09-07)** : Paul met ce sujet en pause pour un **autre sujet bloquant** (à documenter
+au reprise).
 
 **2026-09-06 — CLI → cowork (bilinguisme EN/FR, i18n complet).** Décision de Paul : « une app
 Anglais/Français ». Constat : l'app était **française en dur**, `lib/l10n/` n'avait que 4 clés jamais
