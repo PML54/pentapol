@@ -97,7 +97,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 | chantier | document | reste à faire |
 |---|---|---|
 | **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | ⚠️ **EN V1 (décision de Paul du 2026-09-07, révise le « hors V1 » du 2026-09-03)** — rendu conforme : envoi de score **désactivé par défaut** (opt-in explicite), consultation du classement conditionnée à l'opt-in (§4.5), **suppression des données** (RGPD §7.4). Détail en §ÉTAT « Conformité défi V1 ». **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — worker REDÉPLOYÉ (`Version ID a459eb84…`) et D1 RÉINITIALISÉE le 2026-09-05 (DROP `scores` puis `schema.sql` ; `challenges` intacte ; round-trip revalidé au curl : POST 201, doublon 409, leaderboard renvoie `faults`).** Reste : composer/semer les vraies semaines (geste de Paul) |
-| **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Nouveau bloquant** : `PRODUCT_BUNDLE_IDENTIFIER = com.example.pentapol` (voir `FICHE_APP_STORE.md`) |
+| **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Bloquant 21 (bundle id) réglé côté code le 2026-09-08** : `com.example.pentapol` → **`com.pml.pentapol`** sur iOS ET Android ; reste l'enregistrement de l'App ID dans les consoles (hors dépôt). Migration iOS **SPM + min iOS 15** committée le même jour. |
 
 **Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
 `isProgression`, pause chrono, records perso), puis — au choix — la **médaille §4.6** (raffinement
@@ -719,16 +719,32 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-08 — CLI (correctif drag : confinement de l'ancre au plateau).** Retour de Paul : au tout
-premier placement d'une pièce du rack, il faut parfois « procéder en 2 temps » (poser sur le plateau,
-puis repositionner) — impossible de poser **directement au ras du bord bas**, surtout avec les
-**grandes pièces** (Paul : la N°8). Diagnostic : effet de bord du « suivi exact du doigt » du
-2026-09-07 (retrait de l'aimantation) — sans borne, l'ancre pouvait faire déborder la pièce hors du
-plateau → aperçu rouge, dépôt refusé. Correctif **soustractif→additif minimal** : `_clampAnchorToBoard`
-borne l'ancre pour que la pièce tienne entièrement sur le plateau (deux cas : rack + pièce posée
-déplacée), sans réintroduire l'aimantation (suivi du doigt inchangé à l'intérieur, chevauchements
-toujours rouges). **Testé OK sur device par Paul.** `analyze` 0/0, 55/55. Commit `44b9c04` (+ ce
-journal + bump de version). Voir §ÉTAT « méthode suivi exact » (dernier point).
+**2026-09-08 — CLI (correctif drag, migration iOS SPM, identifiants de bundle). Tout poussé sur `origin/main`.**
+Session en trois temps :
+1. **Correctif drag — confinement de l'ancre.** Retour de Paul : au tout premier placement d'une pièce
+   du rack, il faut parfois « procéder en 2 temps » (poser sur le plateau, puis repositionner) —
+   impossible de poser **directement au ras du bord bas**, surtout avec les **grandes pièces** (Paul :
+   la N°8). Diagnostic : effet de bord du « suivi exact du doigt » du 2026-09-07 (retrait de
+   l'aimantation) — sans borne, l'ancre pouvait faire déborder la pièce hors du plateau → aperçu rouge,
+   dépôt refusé. Correctif minimal : `_clampAnchorToBoard` borne l'ancre pour que la pièce tienne
+   entièrement sur le plateau (deux cas : rack + pièce posée déplacée), sans réintroduire l'aimantation
+   (suivi du doigt inchangé à l'intérieur, chevauchements toujours rouges). **Testé OK sur device par
+   Paul.** `analyze` 0/0, 55/55. Commit `44b9c04`. Voir §ÉTAT « méthode suivi exact » (dernier point).
+2. **Migration iOS CocoaPods → Swift Package Manager** (apparue dans le working tree de Paul — un
+   `flutter create`/action Xcode — pas dans notre plan ; Paul a tranché « committer »). `project.pbxproj`
+   référence `FlutterGeneratedPluginSwiftPackage`, `Podfile.lock` allégé (plugins passés en SPM),
+   **min iOS 13 → 15**, `Package.resolved`, exclusion des dossiers de plateforme dans
+   `analysis_options.yaml`. **Scaffold `macos/` (91 fichiers) supprimé** — cible iOS-only (CLAUDE.md).
+   Commit `4f7fb34`.
+3. **Identifiants de bundle `com.example.pentapol` → `com.pml.pentapol`** (choix de Paul) sur les DEUX
+   plateformes — bloquant 21 réglé côté code. Android : `applicationId` + `namespace`, `MainActivity.kt`
+   déplacé (`com/pml/pentapol`) + package (`2c76d28`). iOS : `PRODUCT_BUNDLE_IDENTIFIER` × 6 (Runner
+   Debug/Release/Profile + RunnerTests) (`e42d888`, + checklist point 21). **Build APK debug OK** après
+   avoir réglé un blocage d'environnement : le JBR d'Android Studio est passé à **Java 25**, incompatible
+   avec Gradle 8.14 → `brew install openjdk@17` puis `flutter config --jdk-dir=…openjdk@17…` (config
+   machine-locale, persistante). **Reste hors dépôt** : enregistrer l'App ID `com.pml.pentapol` dans les
+   consoles ; iOS non rebuild (remplacement de chaîne sûr, `flutter clean` conseillé avant build device
+   vu la bascule SPM). Bumps de build `45e5ba3` / `0755e35`.
 
 **2026-09-07 — cowork → CLI puis CLI (session : conformité défi V1, ergonomie, classifieur de fautes).**
 Grosse session, **tout commité et poussé** sur `origin/main`. Trois chantiers :
