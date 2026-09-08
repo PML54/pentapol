@@ -1,4 +1,8 @@
-// Modified: 2026-09-07 16:30 — glissé « suivi exact du doigt » (méthode validée avec Paul) :
+// Modified: 2026-09-08 03:38 — confinement de l'ancre au plateau (_clampAnchorToBoard) : sans
+//           aimantation, une grande pièce (N°8) débordait au ras d'un bord → dépôt refusé. L'ancre
+//           est bornée pour que la pièce tienne entièrement sur le plateau ; suivi du doigt inchangé
+//           à l'intérieur, chevauchements toujours rouges (pas un retour à l'aimantation).
+// Historique: 2026-09-07 16:30 — glissé « suivi exact du doigt » (méthode validée avec Paul) :
 //           updatePreview affiche TOUJOURS l'ancre désirée (case empoignée sous le doigt), sans
 //           aimantation ; validité = couleur (isPreviewValid). Suppression de _findClosestValidPlacement
 //           et _gestureAxis (aimantation + heuristique d'axe devenues inutiles).
@@ -2024,24 +2028,63 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// l'origine de translation (mastercase sélectionnée).
   /// - Si pièce placée: vecteur = (doigt - masterAbs), ancre = originGrid + vecteur
   /// - Sinon: ancre = doigt - mastercase normalisée
+  ///
+  /// **Confinement au plateau** (2026-09-08) : l'ancre est bornée pour que la pièce reste
+  /// ENTIÈREMENT sur le plateau. Le « suivi exact » (2026-09-07) a retiré l'aimantation ; sans
+  /// borne, une grande pièce (ex. N°8) débordait au ras d'un bord (surtout le bas, collé au rack) →
+  /// aperçu rouge et dépôt refusé, obligeant à poser ailleurs puis repositionner. Le confinement
+  /// n'est PAS un retour à l'aimantation vers un emplacement VALIDE : il empêche seulement la pièce
+  /// de sortir de la table (les chevauchements restent rouges). À l'intérieur, le suivi du doigt est
+  /// inchangé.
   Point _calculateDesiredAnchorFromDrag(int dragGridX, int dragGridY) {
     final sp = state.selectedPlacedPiece;
     final masterAbs = state.selectedMasterAbs;
 
+    Point raw;
     if (sp != null && masterAbs != null) {
       final dx = dragGridX - masterAbs.x;
       final dy = dragGridY - masterAbs.y;
-      return Point(sp.gridX + dx, sp.gridY + dy);
-    }
-
-    if (state.selectedCellInPiece != null) {
-      return Point(
+      raw = Point(sp.gridX + dx, sp.gridY + dy);
+    } else if (state.selectedCellInPiece != null) {
+      raw = Point(
         dragGridX - state.selectedCellInPiece!.x,
         dragGridY - state.selectedCellInPiece!.y,
       );
+    } else {
+      raw = Point(dragGridX, dragGridY);
     }
 
-    return Point(dragGridX, dragGridY);
+    return _clampAnchorToBoard(raw);
+  }
+
+  /// Borne l'ancre (coin haut-gauche normalisé) pour que la pièce sélectionnée tienne entièrement
+  /// dans le plateau. `anchorX ∈ [0, W−largeur]`, `anchorY ∈ [0, H−hauteur]`, la boîte englobante
+  /// étant celle de l'orientation courante. Sans effet si la pièce est plus grande que le plateau
+  /// (borne haute négative → ramenée à 0). Ne consulte pas l'occupation : le confinement ne
+  /// « valide » pas la pose, il garde juste la pièce sur la table.
+  Point _clampAnchorToBoard(Point anchor) {
+    final piece = state.selectedPiece;
+    if (piece == null) return anchor;
+
+    final cells = piece.orientations[state.selectedPositionIndex];
+    int minLX = 5, minLY = 5, maxLX = 0, maxLY = 0;
+    for (final n in cells) {
+      final lx = (n - 1) % 5;
+      final ly = (n - 1) ~/ 5;
+      if (lx < minLX) minLX = lx;
+      if (ly < minLY) minLY = ly;
+      if (lx > maxLX) maxLX = lx;
+      if (ly > maxLY) maxLY = ly;
+    }
+    final w = maxLX - minLX + 1;
+    final h = maxLY - minLY + 1;
+
+    final maxAnchorX = state.plateau.width - w;
+    final maxAnchorY = state.plateau.height - h;
+
+    final cx = maxAnchorX < 0 ? 0 : anchor.x.clamp(0, maxAnchorX);
+    final cy = maxAnchorY < 0 ? 0 : anchor.y.clamp(0, maxAnchorY);
+    return Point(cx, cy);
   }
 
   bool _canPlacePieceWithoutChecker(PlacedPiece placed) {
