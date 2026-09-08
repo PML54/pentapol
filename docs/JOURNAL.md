@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-07
+## §ÉTAT — au 2026-09-08
 
 ### L'application
 
@@ -226,6 +226,15 @@ placement valide.
 doigt, les plateaux remplissent l'écran). Valeurs `à régler à l'œil` : `kMaxBoardCellFactor`,
 `kPieceToBoardCellRatio`. *(Les deux sections historiques ci-dessous peuvent être élaguées à la
 prochaine passe.)*
+
+- **Confinement de l'ancre (2026-09-08, testé OK par Paul, `44b9c04`)** — effet de bord du retrait de
+  l'aimantation : une **grande pièce** (Paul : la N°8) glissée au ras d'un bord — surtout le **bas**,
+  collé au rack — **débordait** hors du plateau → aperçu rouge, dépôt refusé, obligeant à poser
+  ailleurs puis repositionner (« en 2 temps »). `_clampAnchorToBoard` borne l'ancre à
+  `x ∈ [0, W−larg]`, `y ∈ [0, H−haut]` (boîte englobante de l'orientation courante), appliqué aux deux
+  cas (rack + pièce posée déplacée). **Pas** un retour à l'aimantation vers un emplacement VALIDE : le
+  suivi du doigt est inchangé à l'intérieur, les chevauchements restent rouges — la pièce ne peut plus
+  sortir de la table. `analyze` 0/0, 55/55.
 
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
@@ -710,6 +719,17 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-08 — CLI (correctif drag : confinement de l'ancre au plateau).** Retour de Paul : au tout
+premier placement d'une pièce du rack, il faut parfois « procéder en 2 temps » (poser sur le plateau,
+puis repositionner) — impossible de poser **directement au ras du bord bas**, surtout avec les
+**grandes pièces** (Paul : la N°8). Diagnostic : effet de bord du « suivi exact du doigt » du
+2026-09-07 (retrait de l'aimantation) — sans borne, l'ancre pouvait faire déborder la pièce hors du
+plateau → aperçu rouge, dépôt refusé. Correctif **soustractif→additif minimal** : `_clampAnchorToBoard`
+borne l'ancre pour que la pièce tienne entièrement sur le plateau (deux cas : rack + pièce posée
+déplacée), sans réintroduire l'aimantation (suivi du doigt inchangé à l'intérieur, chevauchements
+toujours rouges). **Testé OK sur device par Paul.** `analyze` 0/0, 55/55. Commit `44b9c04` (+ ce
+journal + bump de version). Voir §ÉTAT « méthode suivi exact » (dernier point).
+
 **2026-09-07 — cowork → CLI puis CLI (session : conformité défi V1, ergonomie, classifieur de fautes).**
 Grosse session, **tout commité et poussé** sur `origin/main`. Trois chantiers :
 1. **Conformité défi V1** (déclenché par `INDEX_DOCS.md` §3.1 de cowork ; tranché par Paul : le défi
@@ -753,27 +773,6 @@ gardés par choix (logo/nom produit/abréviations/debug ; libellés `DuelDuratio
 Paul) : les 18 fichiers `lib/`, `pubspec.yaml`/`pubspec.lock`, `l10n.yaml`, **les 3 fichiers générés
 `lib/l10n/app_localizations*.dart` (à `git add`)**, et ce journal (doc avec code, MODUS_VIVENDI §5).
 **Reste : test device** (langue système + bascule manuelle).
-
-**2026-09-05 — CLI → cowork (refonte « A » des maillots : trois maillots, acuité plafonnée, comportement avec aide).**
-Décision de Paul en travaillant le bilan : l'acuité montait **au-delà de 100 %** dès qu'on utilisait
-l'ampoule (elle plaçait une pièce à l'optimum sans coûter d'isométrie), et « coups » classait une
-habitude de geste. Retenu — **option « A »** : (1) **plafonner l'acuité à 1.0** ; (2) **fusionner
-Coups + Help (blanc)** en un seul **🔴 À pois — Fautes** = transitions soluble→insoluble
-(culs-de-sac), mathématiquement égales aux anciens sauvetages rouge→jaune ; (3) une **partie avec
-aide** (`hintCount>0`) n'affiche **ni maillot ni médaille** au bilan, seulement « Résolu avec N
-aide(s) » + temps. Le 4e maillot blanc du 2026-09-04 est donc **annulé**. Code : `completion_metrics`
-(acuité plafonnée, `faults`, `moves`/`deleteCount`/`pieceCount`/`rescues` retirés),
-`pentoscope_provider` (`helpCount`→`faultCount`, `_bumpFault` compte wasSolvable&&!nowSolvable),
-`settings_database` (schéma **10**, `faultCount`, `bestFaults` remplace `bestMoves`+`bestHelp`,
-destructif), écrans bilan/records/leaderboard (3 maillots), `challenge_api` (`Maillot` à 3 cas,
-`faults`), **serveur** `schema.sql`/`index.ts`/`README` (colonne `faults`, MIN(...,1.0) pour l'ordre
-jaune). `analyze lib test` **0 error/warning**, **49/49 tests** (dont cap d'acuité + `bestFaults`),
-`tsc --noEmit` OK. Docs alignées : `MANUEL_DEFIS_ET_MAILLOTS.md` (réécrit, fait foi), CDC §4.1
-(amendé, historique conservé), `BASE_LOCALE`, `CLOUDFLARE_CONFIG`, `FICHE_APP_STORE`,
-`CHECKLIST_APPSTORE` point 19 (caduc). Code + docs commités `3d6f8f0` ; fixes suivants (faute
-fantôme à la complétion, icône miroir de la vignette) commités `441411f`. **Serveur redéployé + D1
-réinitialisée le 2026-09-05** (DROP `scores` → `schema.sql`, worker `Version ID a459eb84…`,
-round-trip revalidé). Ce dernier point de doc est commité seul (doc sans code, MODUS_VIVENDI §5).
 
 *(Les passations du 2026-09-04 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*
