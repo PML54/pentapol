@@ -745,6 +745,17 @@ Session en trois temps :
    machine-locale, persistante). **Reste hors dépôt** : enregistrer l'App ID `com.pml.pentapol` dans les
    consoles ; iOS non rebuild (remplacement de chaîne sûr, `flutter clean` conseillé avant build device
    vu la bascule SPM). Bumps de build `45e5ba3` / `0755e35`.
+4. **Premier test Android par Paul** (APK release arm64 envoyé) → deux corrections liées au classement
+   (`95bd840`) : (a) **permission INTERNET** absente du manifest **principal** (Flutter ne la fournit
+   qu'en debug/profile) → réseau bloqué en RELEASE, « serveur introuvable » sur le défi (idem
+   multijoueur) ; ajoutée au manifest principal, vérifiée dans l'APK (`aapt2 dump permissions`). (b)
+   **ergonomie** : le pseudo du classement (`userName`) n'était éditable que dans les réglages du Duel ;
+   nouvelle tuile **« Nom affiché »** en tête de la section « Classement en ligne » → dialogue →
+   `setUserName` (même champ canonique, synchro avec le Duel). Clé i18n `displayName` (EN/FR). `analyze`
+   0/0, 55/55. **Le jeu tourne bien sur Android** (retour de Paul). **Reste** : confirmer sur device que
+   le classement s'ouvre (peut être vide tant que les semaines ne sont pas semées) et que le changement
+   de nom se reflète ; une **release Play Store** demanderait un **keystore** (l'APK envoyé est signé
+   clé debug).
 
 **2026-09-07 — cowork → CLI puis CLI (session : conformité défi V1, ergonomie, classifieur de fautes).**
 Grosse session, **tout commité et poussé** sur `origin/main`. Trois chantiers :
