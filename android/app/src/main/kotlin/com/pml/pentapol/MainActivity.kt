@@ -1,4 +1,4 @@
-package com.example.pentapol
+package com.pml.pentapol
 
 import io.flutter.embedding.android.FlutterActivity
 
