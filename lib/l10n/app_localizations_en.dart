@@ -518,6 +518,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sectionRanking => 'Online ranking';
 
   @override
+  String get displayName => 'Display name';
+
+  @override
   String get shareScores => 'Take part in the online ranking';
 
   @override

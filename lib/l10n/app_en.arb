@@ -182,6 +182,7 @@
   "isometryDetail": "{count} isometries · min {min}",
   "@isometryDetail": { "placeholders": { "count": { "type": "int" }, "min": { "type": "int" } } },
   "sectionRanking": "Online ranking",
+  "displayName": "Display name",
   "shareScores": "Take part in the online ranking",
   "shareScoresSub": "Sends your nickname and an anonymous identifier to the ranking server. Off by default.",
   "deleteOnlineData": "Delete my ranking data",

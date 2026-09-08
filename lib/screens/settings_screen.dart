@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 07:17 — conformité défi V1 : section « Classement en ligne » — interrupteur
+// Modified: 2026-09-08 09:05 — ergonomie : le nom affiché au classement (userName) est exposé DANS la
+//           section « Classement en ligne » (tuile « Nom affiché » → dialogue → setUserName), là où on
+//           l'attend, en plus de la tuile Duel qui écrivait déjà le même champ canonique.
+// Historique: 2026-09-07 07:17 — conformité défi V1 : section « Classement en ligne » — interrupteur
 //           opt-in (shareScoresOptIn, §8) + suppression des données de classement (RGPD §7.4).
 // Historique: 2026-09-06 04:50 — i18n : toutes les chaînes de l'écran via AppLocalizations + sélecteur
 //           de langue (Système/Français/English → settings.localeCode) sous la section Interface.
@@ -171,6 +174,19 @@ class SettingsScreen extends ConsumerWidget {
           // === SECTION CLASSEMENT EN LIGNE ===
           _buildSectionHeader(l10n.sectionRanking),
 
+          // Nom affiché au classement (= settings.userName, nom canonique). Exposé ICI, là où on
+          // l'attend, en plus de la tuile Duel qui écrit le même champ (le pseudo est partagé
+          // classement + duel). Édition par un dialogue simple → setUserName.
+          ListTile(
+            leading: const Icon(Icons.person_outline),
+            title: Text(l10n.displayName),
+            subtitle: Text(settings.userName?.isNotEmpty == true
+                ? settings.userName!
+                : l10n.notDefined),
+            trailing: const Icon(Icons.edit_outlined),
+            onTap: () => _editDisplayName(context, ref),
+          ),
+
           // Opt-in à l'envoi de score (§8 : désactivé par défaut, activé par geste explicite).
           SwitchListTile(
             secondary: const Icon(Icons.leaderboard_outlined),
@@ -213,6 +229,49 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Édite le nom affiché au classement (`settings.userName`). Dialogue simple : champ + Enregistrer.
+  /// Écrit le même champ canonique que la tuile Duel (le pseudo est partagé classement + duel).
+  Future<void> _editDisplayName(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(settingsProvider.notifier);
+    final controller =
+        TextEditingController(text: ref.read(settingsProvider).userName ?? '');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+        return AlertDialog(
+          title: Text(l10n.displayName),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 20,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: l10n.duelNicknameHint,
+              prefixIcon: const Icon(Icons.person_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+    if (name == null) return; // annulé
+    await notifier.setUserName(name.isEmpty ? null : name);
   }
 
   /// Confirme puis supprime les données de classement (RGPD §7.4) : scores serveur + identité locale.

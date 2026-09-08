@@ -962,6 +962,12 @@ abstract class AppLocalizations {
   /// **'Online ranking'**
   String get sectionRanking;
 
+  /// No description provided for @displayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get displayName;
+
   /// No description provided for @shareScores.
   ///
   /// In en, this message translates to:

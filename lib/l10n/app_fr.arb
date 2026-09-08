@@ -163,6 +163,7 @@
   "piecesPlaced": "{count, plural, one{{count} pièce placée} other{{count} pièces placées}}",
   "isometryDetail": "{count} isométries · min {min}",
   "sectionRanking": "Classement en ligne",
+  "displayName": "Nom affiché",
   "shareScores": "Participer au classement en ligne",
   "shareScoresSub": "Envoie ton pseudo et un identifiant anonyme au serveur de classement. Désactivé par défaut.",
   "deleteOnlineData": "Supprimer mes données de classement",

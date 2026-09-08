@@ -521,6 +521,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sectionRanking => 'Classement en ligne';
 
   @override
+  String get displayName => 'Nom affiché';
+
+  @override
   String get shareScores => 'Participer au classement en ligne';
 
   @override

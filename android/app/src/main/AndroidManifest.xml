@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Accès réseau requis en RELEASE (défi hebdo + multijoueur). Sans elle, Flutter ne fournit
+         la permission INTERNET que dans les manifests debug/profile → « serveur introuvable » en
+         release. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Pentapol"
         android:name="${applicationName}"
