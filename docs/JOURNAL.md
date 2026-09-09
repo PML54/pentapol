@@ -325,6 +325,23 @@ prochaine passe.)*
   suivi du doigt est inchangé à l'intérieur, les chevauchements restent rouges — la pièce ne peut plus
   sortir de la table. `analyze` 0/0, 55/55.
 
+- **Pose de la ligne du bas — acceptation du dépôt au bord (2026-09-09, testé OK par Paul)** — le
+  confinement corrigeait le débordement de l'aperçu, mais **pas l'acceptation du dépôt** : le plateau
+  est ancré en bas (design #6) → sa ligne du bas est **collée** à la cible de drop du rack. Viser une
+  case basse (surtout en empoignant une case basse de la pièce) faisait relâcher au ras/au-dessus du
+  rack. Deux causes conjuguées : (1) `pentoscope_board.dart` `onLeave` **appelait `clearPreview()`**
+  (contredisant son propre commentaire) → l'ancre `previewX/Y` était effacée dès que le doigt
+  effleurait le rack ; (2) le rack (`_buildSliderWithDragTarget`) **rejetait** une pièce venue du rack
+  (`onWillAccept → selectedPlacedPiece != null`) → au relâcher, **aucune** cible n'acceptait, geste
+  perdu (« s'y reprendre à plusieurs fois »). Correctif, **câblage des drop-targets uniquement** (la
+  géométrie de pose — `updatePreview`/`tryPlaceAtAnchor`/clamp — est **inchangée**) : (1) `onLeave` ne
+  fait **plus** `clearPreview` (l'aperçu valide survit) ; (2) le rack accepte aussi une pièce **du
+  rack** quand un aperçu valide est en attente (`selectedPiece != null && previewX/Y != null &&
+  isPreviewValid`) et la **pose** via `tryPlaceAtAnchor` ; rouge/poubelle réservés au **retrait** d'une
+  pièce déjà placée. `analyze` 0/0, 67/67. **Non couvert** (à traiter si rencontré) : *déplacer une
+  pièce **déjà posée** vers la ligne du bas* retombe sur le même bord, mais là lâcher sur le rack =
+  retrait volontaire.
+
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
 Le chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a fait **apparaître beaucoup d'anomalies**
@@ -808,7 +825,17 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-09 — CLI (centralisation des règles de score). NON commité.**
+**2026-09-09 (2) — CLI (correctif pose ligne du bas). Commité, non poussé.**
+Retour de Paul : « toujours des problèmes de pose dans la ligne du bas, il faut s'y reprendre à
+plusieurs fois » (capture `screenshot/piece9.png`, pièce du rack). Diagnostic (analyse approuvée
+avant édition) : le plateau ancré en bas (#6) colle sa ligne du bas à la cible de drop du rack ;
+`onLeave` effaçait l'aperçu (contre son propre commentaire) et le rack refusait une pièce du rack
+→ dépôt perdu au relâcher. Correctif **câblage des drop-targets seulement** (géométrie de pose
+inchangée) : `onLeave` ne fait plus `clearPreview` ; le rack pose une pièce du rack à l'aperçu
+valide (`tryPlaceAtAnchor`). **Testé OK sur device par Paul.** `analyze` 0/0, 67/67. Détail en §ÉTAT
+« Pose de la ligne du bas ». Bump build `202609090617` pour repérage device.
+
+**2026-09-09 — CLI (centralisation des règles de score). Commité `21b1327`, poussé (`ea82aef`).**
 Sur demande de Paul, après analyse préalable approuvée. Constat : le socle métrique était déjà
 central, mais la **règle d'acuité** était recopiée en 4 endroits (`completion_metrics`,
 `records_screen`, `settings_database._isBetterAcuity`, `challenge_api`). Livré : module pur
@@ -816,9 +843,8 @@ central, mais la **règle d'acuité** était recopiée en 4 endroits (`completio
 les 5 consommateurs routés dessus, **plafond appliqué partout** (records % désormais plafonné —
 aucun effet visible, parties propres), suppression du mort `calculateNote()`, tests d'équivalence
 `test/score_rules_test.dart`. `analyze` 0/0, **67/67 tests**. Manipulation des pièces inchangée.
-Détail en §ÉTAT « Centralisation des règles de score ». **Rien commité** (non demandé) — ces docs
-sont à committer **avec** ce code (MODUS §5). Le mode entraînement niveau 1 (commit `3c90d00`,
-poussé) attend toujours le **test device** de Paul avant le niveau 2.
+Détail en §ÉTAT « Centralisation des règles de score ». Le mode entraînement niveau 1 (commit
+`3c90d00`, poussé) attend toujours le **test device** de Paul avant le niveau 2.
 
 **2026-09-08 (2) — CLI (mode entraînement niveau 1 + corrections documentaires §8). Commité `3c90d00`, poussé.**
 Application de `PLAN_MODE_ENTRAINEMENT.md` (écrit par cowork le 2026-09-08, non commité).
@@ -835,43 +861,5 @@ Application de `PLAN_MODE_ENTRAINEMENT.md` (écrit par cowork le 2026-09-08, non
    ⚠️ **Rien n'est commité** (règle n°1 : pas de commit sans demande). `git status -s docs/` **non
    vide** en fin de session : ces docs sont à committer **avec** le code du mode (MODUS §5).
 
-**2026-09-08 — CLI (correctif drag, migration iOS SPM, identifiants de bundle). Tout poussé sur `origin/main`.**
-Session en trois temps :
-1. **Correctif drag — confinement de l'ancre.** Retour de Paul : au tout premier placement d'une pièce
-   du rack, il faut parfois « procéder en 2 temps » (poser sur le plateau, puis repositionner) —
-   impossible de poser **directement au ras du bord bas**, surtout avec les **grandes pièces** (Paul :
-   la N°8). Diagnostic : effet de bord du « suivi exact du doigt » du 2026-09-07 (retrait de
-   l'aimantation) — sans borne, l'ancre pouvait faire déborder la pièce hors du plateau → aperçu rouge,
-   dépôt refusé. Correctif minimal : `_clampAnchorToBoard` borne l'ancre pour que la pièce tienne
-   entièrement sur le plateau (deux cas : rack + pièce posée déplacée), sans réintroduire l'aimantation
-   (suivi du doigt inchangé à l'intérieur, chevauchements toujours rouges). **Testé OK sur device par
-   Paul.** `analyze` 0/0, 55/55. Commit `44b9c04`. Voir §ÉTAT « méthode suivi exact » (dernier point).
-2. **Migration iOS CocoaPods → Swift Package Manager** (apparue dans le working tree de Paul — un
-   `flutter create`/action Xcode — pas dans notre plan ; Paul a tranché « committer »). `project.pbxproj`
-   référence `FlutterGeneratedPluginSwiftPackage`, `Podfile.lock` allégé (plugins passés en SPM),
-   **min iOS 13 → 15**, `Package.resolved`, exclusion des dossiers de plateforme dans
-   `analysis_options.yaml`. **Scaffold `macos/` (91 fichiers) supprimé** — cible iOS-only (CLAUDE.md).
-   Commit `4f7fb34`.
-3. **Identifiants de bundle `com.example.pentapol` → `com.pml.pentapol`** (choix de Paul) sur les DEUX
-   plateformes — bloquant 21 réglé côté code. Android : `applicationId` + `namespace`, `MainActivity.kt`
-   déplacé (`com/pml/pentapol`) + package (`2c76d28`). iOS : `PRODUCT_BUNDLE_IDENTIFIER` × 6 (Runner
-   Debug/Release/Profile + RunnerTests) (`e42d888`, + checklist point 21). **Build APK debug OK** après
-   avoir réglé un blocage d'environnement : le JBR d'Android Studio est passé à **Java 25**, incompatible
-   avec Gradle 8.14 → `brew install openjdk@17` puis `flutter config --jdk-dir=…openjdk@17…` (config
-   machine-locale, persistante). **Reste hors dépôt** : enregistrer l'App ID `com.pml.pentapol` dans les
-   consoles ; iOS non rebuild (remplacement de chaîne sûr, `flutter clean` conseillé avant build device
-   vu la bascule SPM). Bumps de build `45e5ba3` / `0755e35`.
-4. **Premier test Android par Paul** (APK release arm64 envoyé) → deux corrections liées au classement
-   (`95bd840`) : (a) **permission INTERNET** absente du manifest **principal** (Flutter ne la fournit
-   qu'en debug/profile) → réseau bloqué en RELEASE, « serveur introuvable » sur le défi (idem
-   multijoueur) ; ajoutée au manifest principal, vérifiée dans l'APK (`aapt2 dump permissions`). (b)
-   **ergonomie** : le pseudo du classement (`userName`) n'était éditable que dans les réglages du Duel ;
-   nouvelle tuile **« Nom affiché »** en tête de la section « Classement en ligne » → dialogue →
-   `setUserName` (même champ canonique, synchro avec le Duel). Clé i18n `displayName` (EN/FR). `analyze`
-   0/0, 55/55. **Le jeu tourne bien sur Android** (retour de Paul). **Reste** : confirmer sur device que
-   le classement s'ouvre (peut être vide tant que les semaines ne sont pas semées) et que le changement
-   de nom se reflète ; une **release Play Store** demanderait un **keystore** (l'APK envoyé est signé
-   clé debug).
-
-*(Les passations du 2026-09-07 et antérieures sont sorties de la liste au fil des ajouts ; elles
+*(Les passations du 2026-09-08 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

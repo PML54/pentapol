@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 16:45 — (1) glissé « suivi exact » : feedback réactif (image RÉELLE si posable,
+// Modified: 2026-09-09 06:06 — pose de la ligne du bas : onLeave ne fait PLUS clearPreview() (le bord
+//           bas est collé au rack ; effleurer le rack effaçait l'ancre → dépôt perdu). L'aperçu valide
+//           survit et le rack le pose (cf. pentoscope_game_screen _buildSliderWithDragTarget).
+// Historique: 2026-09-07 16:45 — (1) glissé « suivi exact » : feedback réactif (image RÉELLE si posable,
 //           TRANSPARENT si chevauchement, observe isPreviewValid) ; (2) plafond de case PROPORTIONNEL
 //           à l'écran (kMaxBoardCellFactor) au lieu de l'absolu 84 qui rapetissait tout sur tablette.
 // Historique: 2026-09-07 09:13 — taille des pièces : cellSize plafonné par kMaxBoardCellSize (borne
@@ -163,11 +166,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             notifier.updatePreview(logicalX, logicalY);
           },
           onLeave: (data) {
-            // ✨ BUGFIX: Ne pas appeler clearPreview()
-            // Garder le preview quand on sort du DragTarget
-
-            notifier.clearPreview();
-            // La pièce reste affichée à sa dernière position valide
+            // NE PAS effacer l'aperçu en sortant du plateau. La ligne du bas est collée au rack :
+            // en visant une case basse, le doigt effleure le rack et déclenchait ce onLeave, qui
+            // effaçait previewX/Y → au relâcher, plus d'ancre, dépôt perdu (« s'y reprendre à
+            // plusieurs fois »). On garde la dernière position valide ; le rack sait la poser
+            // (voir _buildSliderWithDragTarget). Le commentaire l'exigeait déjà ; le clearPreview
+            // était une régression contraire à l'intention.
           },
           onAcceptWithDetails: (details) {
             final renderBox = context.findRenderObject() as RenderBox?;

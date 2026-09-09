@@ -1,4 +1,8 @@
-// Modified: 2026-09-09 05:29 — centralisation score : le % d'acuité du bilan lit m.acuityPercent
+// Modified: 2026-09-09 06:06 — pose ligne du bas : le rack (_buildSliderWithDragTarget) accepte aussi
+//           une pièce DU RACK quand un aperçu valide est en attente (previewX/Y + isPreviewValid) et la
+//           pose via tryPlaceAtAnchor — le bord bas collé au rack faisait relâcher au ras du rack, geste
+//           perdu. Rouge/poubelle réservés au retrait. Géométrie de pose inchangée.
+// Historique: 2026-09-09 05:29 — centralisation score : le % d'acuité du bilan lit m.acuityPercent
 //           (règle unique score_rules) au lieu de recalculer (m.acuity*100).round(). Comportement
 //           identique (parties propres). Manipulation des pièces inchangée.
 // Historique: 2026-09-07 16:45 — plafond de case PROPORTIONNEL à l'écran (kMaxBoardCellFactor +
@@ -913,37 +917,55 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
 
+    // Un dépôt de pièce du RACK est en attente et VALIDE (aperçu vert sur le plateau) : le bord bas
+    // du plateau est collé au rack, donc viser la ligne du bas fait souvent relâcher au ras/au-dessus
+    // du rack. On pose alors à l'ancre de l'aperçu au lieu de perdre le geste (cf. board onLeave qui
+    // ne l'efface plus). La géométrie de pose est inchangée (même tryPlaceAtAnchor).
+    final hasPendingPlacement = state.selectedPlacedPiece == null &&
+        state.selectedPiece != null &&
+        state.previewX != null &&
+        state.previewY != null &&
+        state.isPreviewValid;
+
     return DragTarget<Pento>(
       onWillAcceptWithDetails: (details) {
-        // Accepter seulement si c'est une pièce placée
-        return state.selectedPlacedPiece != null;
+        // Pièce placée → retrait ; pièce du rack avec aperçu valide → pose sur le plateau.
+        return state.selectedPlacedPiece != null || hasPendingPlacement;
       },
       onAcceptWithDetails: (details) {
-        // Retirer la pièce du plateau
         if (state.selectedPlacedPiece != null) {
+          // Retirer la pièce du plateau (geste poubelle).
           HapticFeedback.mediumImpact();
           notifier.removePlacedPiece(state.selectedPlacedPiece!);
+        } else if (hasPendingPlacement) {
+          // Poser la pièce du rack à l'ancre de l'aperçu (relâché au ras du rack, ligne du bas).
+          final success =
+              notifier.tryPlaceAtAnchor(state.previewX!, state.previewY!);
+          HapticFeedback.mediumImpact();
+          if (!success) HapticFeedback.heavyImpact();
+          notifier.clearPreview();
         }
       },
       builder: (context, candidateData, rejectedData) {
-        // Highlight visuel au survol
-        final isHovering = candidateData.isNotEmpty;
+        // Le rouge/poubelle ne concerne QUE le retrait (pièce placée), pas la pose d'une pièce du rack.
+        final isRemoving =
+            candidateData.isNotEmpty && state.selectedPlacedPiece != null;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: width,
           height: height,
           decoration: decoration.copyWith(
-            border: isHovering
+            border: isRemoving
                 ? Border.all(color: Colors.red.shade400, width: 3)
                 : null,
-            color: isHovering ? Colors.red.shade50 : decoration.color,
+            color: isRemoving ? Colors.red.shade50 : decoration.color,
           ),
           child: Stack(
             children: [
               sliderChild,
-              // Icône poubelle au survol
-              if (isHovering)
+              // Icône poubelle au survol (retrait seulement)
+              if (isRemoving)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Container(
