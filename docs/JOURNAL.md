@@ -103,6 +103,66 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 `isProgression`, pause chrono, records perso), puis — au choix — la **médaille §4.6** (raffinement
 des records) ou le début du **défi hebdo Phase 1** (hors V1).
 
+### Mode entraînement — niveau 1 livré (2026-09-08, `PLAN_MODE_ENTRAINEMENT`)
+
+Premier pas contre le **bloquant produit n°8** (« aucun onboarding ») : un exercice interactif de
+**rotation mentale**, hors progression et hors records. **Niveau 1 (une pièce)** appliqué et vérifié
+statiquement ; **niveau 2 (deux pièces) NON fait** — le plan le gate sur un **test device du niveau 1
+par Paul** (à sa demande). Le plan **reste** (supprimé seulement après application ET test, MODUS §5).
+
+- **Logique pure** `lib/pentoscope/training/training_mode.dart` (Flutter-free, testée) : plateau
+  `size5x5` (PLAN §4 — plus petit où les 63 orientations tiennent), tirage reproductible via
+  `PentapolRng`, **validation par égalité des ensembles de cases occupées** (jamais par index),
+  minimum d'appuis via **`Pento.minIsometriesToReach`** (l'orpheline, réutilisée telle quelle).
+  **Terminaison garantie X compris** (le X ne boucle pas : pose seule, `minPresses` 0 ; les autres
+  tirent une orientation de départ de **forme** différente de la cible).
+- **Provider** `training_provider.dart` : état **PUR, aucune écriture DB** (prouvé au grep §9). Les
+  quatre boutons d'isométrie comptent en **appuis** ; le doigt **déplace** (translation, non comptée).
+- **Écran** `training_screen.dart` : plateau 5×5, fantôme (forme cible en surbrillance), pièce
+  déplaçable au doigt (`onPanStart/Update` — grab sur une case occupée, suit le doigt, confiné au
+  plateau par `clampAnchor`), barre des quatre isométries (icônes/tooltips réutilisés), carte de
+  bilan « N appuis · Ns » + « M suffisai(en)t » (informatif, non comparatif), « Suivante ».
+- **Persistance** : `AppSettings.trainingExercisesDone` (`int?`, `null` = jamais joué), setter
+  `recordTrainingExercise` → **retour d'exercice, PAS un record** (aucune écriture PuzzleStats/
+  SolvedSolutions, pas de bump de `schemaVersion`, invariant #6). JSON.
+- **Entrée** : bouton « Mode entraînement » (school_outlined) sous « Multijoueur » sur l'accueil.
+- **i18n** : clés `trainingMode/Instruction/InstructionPose/Presses/Enough/Seconds` en EN **et** FR ;
+  réutilise `isoRotateTW/CW`, `isoSymH/V`, `congrats`, `next`. `gen-l10n` régénéré (générés versionnés).
+- **Tests** `test/training_mode_test.dart` (§9) : terminaison sur les 12 pièces, validation par
+  ensembles (I symétrique), et **catalogue §5 confirmé par exécution** — 342 couples distincts,
+  210 à un appui, 132 à deux, **diamètre 2** (aucun repli `minIsometriesToReach` non trouvé). Les
+  nombres du plan sont donc **vérifiés**, pas supposés (règle n°7).
+
+`flutter analyze lib test` **0 error / 0 warning** (62 infos préexistantes), **59/59 tests**.
+**Reste : test device par Paul** (ressenti du glissé, lisibilité du fantôme, tailles/timing) — puis,
+seulement alors, le **niveau 2** (§3 du plan : accepter TOUT pavage valide de la région). ⚠️ Ce que
+le mode **n'enseigne pas** (PLAN §7) : ni le compteur décroissant, ni la lampe rouge, ni le but du
+jeu — le n°8 ne se refermera qu'avec un écran de vraie partie 3×5 commentée, à planifier à part.
+
+### Corrections documentaires (2026-09-08, `PLAN_MODE_ENTRAINEMENT` §8)
+
+Cinq des six corrections du §8 appliquées ; la sixième **rejetée car son postulat était faux**
+(règle n°7, vérifié au `ls`/`grep`) :
+
+- **`CHECKLIST_APPSTORE.md`** : points **1** (`flutter test` rouge — `widget_test.dart` n'existe
+  plus) et **2** (`supabase_flutter` — absent, `bootstrap.dart` supprimé) **retirés** (note datée).
+  Point **7** reformulé en **point de contrôle de soumission** (`update_version.sh` n'écrit que
+  `build_info.dart`, volontairement ; `pubspec.yaml` renseigné à la main — pas une divergence).
+  Bloquant **9** : tables 5×12/4×15 **abandonnées** (format téléphone), remède reporté sur la
+  `ListSolutionSource` du point 10. En-tête : **Android dans le périmètre** (Play Console, keystore,
+  métadonnées EN/FR ×2 stores).
+- **`CLAUDE.md`** : « Plateforme cible : iOS » → **iOS + Android** (ne pas supprimer `android/`).
+- **⚠️ §8 point 3 NON appliqué** : le plan disait `bigint_plateau`, `shape_recognizer` et
+  `ui_layout_provider` « supprimés » — **c'est faux**, les trois existent toujours et sont suivis
+  par git (aucun importateur). Le §4 du checklist était donc **déjà exact** ; j'y ai ajouté une note
+  datée. `ui_layout_provider` est de plus **entrelacé** avec `ui_layout_manager`→`ui_dimensions` :
+  leur retrait est un **chantier de code** (à décider avec Paul), pas une correction documentaire.
+  `bigint_plateau`/`shape_recognizer` sont autonomes (zéro import) → suppression sûre si voulue.
+- **Suite (2026-09-09, décision de Paul)** : `bigint_plateau.dart` et `shape_recognizer.dart`
+  **supprimés** (`git rm`, zéro importateur). `analyze` 0/0, 59/59 tests inchangés. Reste le seul
+  `ui_layout_provider` (cluster entrelacé). *(Verrou git `index.lock` périmé de la veille retiré au
+  passage — aucun processus git actif.)*
+
 ### Conformité défi V1 (2026-09-07) — opt-in + suppression (décision de Paul)
 
 **Décision de Paul (2026-09-07), déclenchée par `INDEX_DOCS.md` §3.1 de cowork** : le défi en ligne
@@ -719,6 +779,21 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-08 (2) — CLI (mode entraînement niveau 1 + corrections documentaires §8). NON commité.**
+Application de `PLAN_MODE_ENTRAINEMENT.md` (écrit par cowork le 2026-09-08, non commité).
+1. **Corrections doc §8** : `CHECKLIST_APPSTORE.md` (points 1 et 2 retirés, 7 reformulé en point de
+   contrôle, bloquant 9 rebranché sur `ListSolutionSource`, Android au périmètre) et `CLAUDE.md`
+   (cible iOS **+ Android**). **§8 point 3 rejeté** : les trois orphelins qu'il disait « supprimés »
+   existent toujours (vérifié) — j'ai noté le fait au lieu d'inscrire une fausseté. Détail en §ÉTAT.
+2. **Mode entraînement niveau 1** (`lib/pentoscope/training/` : `training_mode.dart` pur + testé,
+   `training_provider.dart` sans DB, `training_screen.dart`), champ `AppSettings.trainingExercisesDone`
+   (JSON, sans migration), bouton d'accueil, clés i18n EN+FR, `test/training_mode_test.dart`. Cœur
+   vérifié par exécution (catalogue §5 : 342/210/132, diamètre 2). `analyze` 0/0, **59/59 tests**.
+   **Niveau 2 PAS fait** (gaté sur test device du niveau 1 par Paul). **Le plan reste** (pas encore
+   testé device → non supprimé, MODUS §5). **Reste : test device par Paul**, puis niveau 2.
+   ⚠️ **Rien n'est commité** (règle n°1 : pas de commit sans demande). `git status -s docs/` **non
+   vide** en fin de session : ces docs sont à committer **avec** le code du mode (MODUS §5).
+
 **2026-09-08 — CLI (correctif drag, migration iOS SPM, identifiants de bundle). Tout poussé sur `origin/main`.**
 Session en trois temps :
 1. **Correctif drag — confinement de l'ancre.** Retour de Paul : au tout premier placement d'une pièce
@@ -787,19 +862,5 @@ sans aimantation** (retrait de `_findClosestValidPlacement`/`_gestureAxis` ; fee
 plateau+tiroir). **Testé OK sur device.** Plafond de case rendu **proportionnel à l'écran** au passage
 (l'absolu 84 rapetissait tout sur tablette). Détail en §ÉTAT « méthode suivi exact ». `analyze` 0/0, 55/55.
 
-**2026-09-06 — CLI → cowork (bilinguisme EN/FR, i18n complet).** Décision de Paul : « une app
-Anglais/Français ». Constat : l'app était **française en dur**, `lib/l10n/` n'avait que 4 clés jamais
-câblées. Livré (choix de Paul : sélecteur **+** locale système, et **tous** les écrans d'un coup) —
-infrastructure `flutter_localizations`/`gen-l10n` (`l10n.yaml`, `generate: true`, délégués +
-`supportedLocales [en,fr]`), champ `AppSettings.localeCode` (JSON, pas de migration) résolu dans
-`main.dart`, setter `setLocale`, sélecteur `Système/Français/English` dans les Réglages, **~90 clés**
-(pluriels + placeholders) `app_en.arb`/`app_fr.arb`, et **toutes les chaînes visibles** des 13
-écrans/widgets migrées vers `AppLocalizations` (y compris duel/multijoueur, hors V1). Quelques littéraux
-gardés par choix (logo/nom produit/abréviations/debug ; libellés `DuelDuration`). `analyze lib test`
-**0 error/0 warning** (61 infos préexistantes), **49/49 tests**. **Non commité** (attente du feu vert de
-Paul) : les 18 fichiers `lib/`, `pubspec.yaml`/`pubspec.lock`, `l10n.yaml`, **les 3 fichiers générés
-`lib/l10n/app_localizations*.dart` (à `git add`)**, et ce journal (doc avec code, MODUS_VIVENDI §5).
-**Reste : test device** (langue système + bascule manuelle).
-
-*(Les passations du 2026-09-04 et antérieures sont sorties de la liste au fil des ajouts ; elles
+*(Les passations du 2026-09-06 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

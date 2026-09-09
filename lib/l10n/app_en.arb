@@ -146,6 +146,16 @@
   "drawSolutionsCount": "{count, plural, one{{count} solution} other{{count} solutions}}",
   "@drawSolutionsCount": { "placeholders": { "count": { "type": "int" } } },
 
+  "trainingMode": "Training mode",
+  "trainingInstruction": "Rotate the piece and drop it onto the highlighted shape.",
+  "trainingInstructionPose": "Drop the piece onto the highlighted shape.",
+  "trainingPresses": "{count, plural, one{{count} press} other{{count} presses}}",
+  "@trainingPresses": { "placeholders": { "count": { "type": "int" } } },
+  "trainingEnough": "{count, plural, =0{no rotation needed} one{{count} press was enough} other{{count} presses would have been enough}}",
+  "@trainingEnough": { "placeholders": { "count": { "type": "int" } } },
+  "trainingSeconds": "{count}s",
+  "@trainingSeconds": { "placeholders": { "count": { "type": "int" } } },
+
   "sectionDuel": "Duel mode",
   "sectionAbout": "About",
   "notDefined": "Not set",

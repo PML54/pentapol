@@ -788,6 +788,42 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{{count} solution} other{{count} solutions}}'**
   String drawSolutionsCount(int count);
 
+  /// No description provided for @trainingMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Training mode'**
+  String get trainingMode;
+
+  /// No description provided for @trainingInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate the piece and drop it onto the highlighted shape.'**
+  String get trainingInstruction;
+
+  /// No description provided for @trainingInstructionPose.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop the piece onto the highlighted shape.'**
+  String get trainingInstructionPose;
+
+  /// No description provided for @trainingPresses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} press} other{{count} presses}}'**
+  String trainingPresses(int count);
+
+  /// No description provided for @trainingEnough.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no rotation needed} one{{count} press was enough} other{{count} presses would have been enough}}'**
+  String trainingEnough(int count);
+
+  /// No description provided for @trainingSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}s'**
+  String trainingSeconds(int count);
+
   /// No description provided for @sectionDuel.
   ///
   /// In en, this message translates to:

@@ -407,6 +407,45 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get trainingMode => 'Training mode';
+
+  @override
+  String get trainingInstruction =>
+      'Rotate the piece and drop it onto the highlighted shape.';
+
+  @override
+  String get trainingInstructionPose =>
+      'Drop the piece onto the highlighted shape.';
+
+  @override
+  String trainingPresses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presses',
+      one: '$count press',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trainingEnough(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count presses would have been enough',
+      one: '$count press was enough',
+      zero: 'no rotation needed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trainingSeconds(int count) {
+    return '${count}s';
+  }
+
+  @override
   String get sectionDuel => 'Duel mode';
 
   @override

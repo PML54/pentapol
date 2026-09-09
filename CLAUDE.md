@@ -10,7 +10,10 @@
 - **Nom** : Pentapol
 - **Package Flutter** : `pentapol`
 - **Langage** : Dart / Flutter
-- **Plateforme cible** : iOS (iPhone, App Store)
+- **Plateformes cibles** : iOS (iPhone, App Store) **et Android** (APK/Play Store) — décision de
+  Paul, 2026-09-08. Le jeu tourne déjà en APK release. ⚠️ Ne pas supprimer le scaffold `android/` ;
+  le scaffold `macos/` a été retiré (cible non visée). Les deux stores sont dans le périmètre de
+  `docs/CHECKLIST_APPSTORE.md`.
 - **Backend** : Cloudflare Workers + Durable Objects (mode multijoueur)
 - **State management** : Riverpod
 - **Imports** : absolus uniquement (`package:pentapol/...`), jamais de `../`

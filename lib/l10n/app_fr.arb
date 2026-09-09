@@ -133,6 +133,13 @@
   "hint": "Indice",
   "drawSolutionsCount": "{count, plural, one{{count} solution} other{{count} solutions}}",
 
+  "trainingMode": "Mode entraînement",
+  "trainingInstruction": "Tourne la pièce et pose-la sur la forme en surbrillance.",
+  "trainingInstructionPose": "Pose la pièce sur la forme en surbrillance.",
+  "trainingPresses": "{count, plural, one{{count} appui} other{{count} appuis}}",
+  "trainingEnough": "{count, plural, =0{aucune rotation nécessaire} one{{count} appui suffisait} other{{count} appuis suffisaient}}",
+  "trainingSeconds": "{count} s",
+
   "sectionDuel": "Mode Duel",
   "sectionAbout": "À propos",
   "notDefined": "Non défini",

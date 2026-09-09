@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 07:34 — conformité défi V1 : champs shareScoresOptIn (défaut false — envoi de
+// Modified: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : champ trainingExercisesDone
+//           (null = jamais joué). Retour d'exercice, PAS un record — aucune écriture dans PuzzleStats
+//           ni SolvedSolutions. JSON, pas de migration (invariant #6).
+// Historique: 2026-09-07 07:34 — conformité défi V1 : champs shareScoresOptIn (défaut false — envoi de
 //           score désactivé par défaut, CDC §8) et challengeConsentAsked (proposition unique de
 //           l'opt-in à la 1re complétion d'un défi) + drapeau clearPlayerId dans copyWith (suppression
 //           d'identité RGPD, CDC §7.4). JSON, pas de migration (invariant #6).
@@ -498,6 +501,11 @@ class AppSettings {
   /// activer plus tard via les Réglages ou en ouvrant le classement (geste explicite).
   final bool challengeConsentAsked;
 
+  /// Nombre d'exercices d'entraînement réussis, cumulé. **`null` = jamais joué** (PLAN §6).
+  /// C'est un **retour d'exercice**, pas un record : le mode entraînement n'écrit **jamais** dans
+  /// `PuzzleStats` ni `SolvedSolutions` (records gelés, invariant #6). JSON → aucune migration.
+  final int? trainingExercisesDone;
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
@@ -508,6 +516,7 @@ class AppSettings {
     this.localeCode,
     this.shareScoresOptIn = false,
     this.challengeConsentAsked = false,
+    this.trainingExercisesDone,
   });
 
   AppSettings copyWith({
@@ -523,6 +532,7 @@ class AppSettings {
     bool clearLocaleCode = false,
     bool? shareScoresOptIn,
     bool? challengeConsentAsked,
+    int? trainingExercisesDone,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -534,6 +544,7 @@ class AppSettings {
       localeCode: clearLocaleCode ? null : (localeCode ?? this.localeCode),
       shareScoresOptIn: shareScoresOptIn ?? this.shareScoresOptIn,
       challengeConsentAsked: challengeConsentAsked ?? this.challengeConsentAsked,
+      trainingExercisesDone: trainingExercisesDone ?? this.trainingExercisesDone,
     );
   }
 
@@ -548,6 +559,7 @@ class AppSettings {
       'localeCode': localeCode,
       'shareScoresOptIn': shareScoresOptIn,
       'challengeConsentAsked': challengeConsentAsked,
+      'trainingExercisesDone': trainingExercisesDone,
     };
   }
 
@@ -564,6 +576,7 @@ class AppSettings {
       localeCode: json['localeCode'] as String?,
       shareScoresOptIn: json['shareScoresOptIn'] as bool? ?? false,
       challengeConsentAsked: json['challengeConsentAsked'] as bool? ?? false,
+      trainingExercisesDone: json['trainingExercisesDone'] as int?,
     );
   }
 }

@@ -410,6 +410,45 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get trainingMode => 'Mode entraînement';
+
+  @override
+  String get trainingInstruction =>
+      'Tourne la pièce et pose-la sur la forme en surbrillance.';
+
+  @override
+  String get trainingInstructionPose =>
+      'Pose la pièce sur la forme en surbrillance.';
+
+  @override
+  String trainingPresses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count appuis',
+      one: '$count appui',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trainingEnough(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count appuis suffisaient',
+      one: '$count appui suffisait',
+      zero: 'aucune rotation nécessaire',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trainingSeconds(int count) {
+    return '$count s';
+  }
+
+  @override
   String get sectionDuel => 'Mode Duel';
 
   @override

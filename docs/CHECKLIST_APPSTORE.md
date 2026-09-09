@@ -7,6 +7,12 @@
 > État de l'application : **non publiée**, `version: 1.0.0+1`. Paul a déjà publié cinq
 > applications ; ce document ne couvre donc **pas** la mécanique de soumission (certificats,
 > App Store Connect, captures), seulement ce qui est spécifique à Pentapol.
+>
+> ⚠️ **Android est dans le périmètre** (décision de Paul, 2026-09-08 ; le jeu tourne déjà en APK
+> release). Ce document parle « App Store » par héritage, mais **les bloquants valent pour les deux
+> stores**. Spécifique au Play Store, à ajouter le moment venu : **Play Console** (compte
+> développeur), **keystore** de signature release (l'APK de test est signé en clé debug),
+> **métadonnées localisées EN/FR** à fournir **deux fois** (App Store Connect + Play Console).
 
 ---
 
@@ -14,19 +20,22 @@
 
 | # | Point | Pourquoi | Où |
 |---|---|---|---|
-| 1 | **`flutter test` est rouge** | `test/widget_test.dart` est le **template par défaut** de Flutter : il cherche un compteur et une icône `+` qui n'existent pas. Il ne peut que planter. À réparer ou à supprimer — mais pas à laisser | `test/widget_test.dart` |
-| 2 | **Retirer `supabase_flutter`** | Dépendance inutilisée (`bootstrap.dart` : « Vide - Supabase n'est pas utilisé »). Poids du binaire, et surtout une déclaration **App Privacy** à remplir pour un service qu'on n'utilise pas | `pubspec.yaml`, `lib/bootstrap.dart` |
 | 3 | **Retirer la réécriture destructive de la base** | `MigrationStrategy` destructive + `schemaVersion` : légitime tant que rien n'est publié, **mine** après. Elle effacerait les records des joueurs, et seulement le jour où le schéma bougera — des mois plus tard | `lib/database/settings_database.dart`, plan `PLAN_PERSISTANCE.md` §5 |
 | 4 | **Ajouter un rapport de crash** | Sans ça, publication à l'aveugle : ceux qui plantent désinstallent sans rien dire. Aucun outil aujourd'hui — ni Crashlytics, ni Sentry | `pubspec.yaml`, `main.dart` |
 | 5 | **Sauvegarder la partie en cours** | Quitter l'app au milieu d'un 6×10 perd tout. Sur mobile c'est un défaut d'usage de premier ordre | `PLAN_PERSISTANCE.md` §2 |
 | 6 | **Fiabiliser le multijoueur, maintenu en V1** | **Paul le garde dans la V1** (CDC §12, Q4 — 2026-09-03), contre la recommandation initiale de couper. Il dépend d'un worker Cloudflare hors dépôt, **URL en dur**, sans interrupteur distant : le jour où il tombe, l'app publiée garde un bouton mort, et un lobby sans joueurs est pire que pas de lobby. Puisqu'il reste, ces deux défauts deviennent **bloquants** — prévoir un interrupteur distant (ou un ping de disponibilité qui masque l'entrée si le service ne répond pas) et sortir l'URL du code. Rappel conformité : le duel est le seul flux qui fait quitter des données à l'appareil (points 12 et 14) | `pentoscope_mp_provider.dart` l.32-35 |
-| 7 | **Incrémenter le build number** | `version: 1.0.0+1`. Chaque téléversement demande un numéro de build supérieur au précédent. **⚠️ Deux sources divergent** (signalé par `INDEX_DOCS.md` §3.2) : `pubspec.yaml` dit `1.0.0+1`, `lib/config/build_info.dart` dit `1.0.3 / build 202609061842`. C'est `pubspec.yaml` qu'Apple lit — à réconcilier via `scripts/update_version.sh` avant tout téléversement | `pubspec.yaml`, `lib/config/build_info.dart` |
+| 7 | **Renseigner `version:` de `pubspec.yaml` le jour de la soumission** | `version: 1.0.0+1`. Chaque téléversement demande un build supérieur au précédent, et c'est `pubspec.yaml` qu'Apple lit. **Ce n'est PAS une divergence à corriger** (précision de Paul, 2026-09-08) : `scripts/update_version.sh` est un **outil de développement** qui n'écrit que `lib/config/build_info.dart` (affichage interne de version/build), **volontairement** ; `pubspec.yaml` est renseigné **à la main** au moment de la soumission. Les deux sources n'ont pas à coïncider en cours de dev — d'où un simple **point de contrôle de soumission**, pas un bloquant permanent | `pubspec.yaml`, `lib/config/build_info.dart`, `scripts/update_version.sh` |
 | 21 | ~~**Changer le bundle identifier**~~ **FAIT côté code (2026-09-08) — reste l'enregistrement dans les consoles** | L'identifiant est passé de `com.example.pentapol` à **`com.pml.pentapol`** sur les deux plateformes : iOS (`PRODUCT_BUNDLE_IDENTIFIER`, 6 occurrences incl. `.RunnerTests`) et Android (`applicationId` + `namespace`, `MainActivity.kt` déplacé). Build APK debug OK. **Reste, hors dépôt** : enregistrer l'**App ID** `com.pml.pentapol` dans App Store Connect (et le package name dans le Play Console si version Android). Rappel règle n°6 : après première publication, cet identifiant est **définitif** | `ios/Runner.xcodeproj/project.pbxproj`, `android/app/build.gradle.kts`, `FICHE_APP_STORE.md` |
 | 22 | **Désactiver le bandeau de debug des compteurs** | `kShowLiveCounters = true` affiche un bandeau coin haut-gauche avec les compteurs live (ligne 1 : iso/fautes/translations/retraits-en-rouge ; ligne 2 : classification des fautes ⚠️ aire non-mult-5 / 🌫️ subtile / Σ gravité) (aide au test device, 2026-09-07). **À repasser `false`** avant toute soumission — sinon un overlay de debug part en production | `lib/pentoscope/screens/pentoscope_game_screen.dart` |
 | 19 | ~~**Figer la règle des coups avant tout record publié**~~ **CADUC (refonte « A », 2026-09-05)** | Le maillot **Coups a été supprimé** : le maillot à pois mesure désormais les **fautes** (transitions soluble→insoluble, `faultCount`), qui n'ont pas de dépendance à `translationCount` ni de formule ambiguë poses/retraits. Il n'y a donc plus de « règle des coups » à figer. Ce qu'il reste à verrouiller avant publication : la **définition des fautes** et le **plafond d'acuité à 100 %** (les changer casserait la comparabilité des records — règle n°6). Réf. : `completion_metrics.dart`, `MANUEL_DEFIS_ET_MAILLOTS.md` §2.2, `CAHIER_DES_CHARGES_V1.md` §4.1 (refonte « A ») |
 
 | 16 | **Six réglages d'affichage ne font rien** | L'écran Réglages expose « Taille des icônes » (curseur 16-48 px), `showPieceNumbers`, `showGridLines`, `enableAnimations`, `pieceOpacity`, `isometriesAppBarColor`. **Aucun n'est lu par le jeu** — vérifié au grep le 2026-08-30 : leurs seuls lecteurs sont le modèle, le provider et l'écran de réglages lui-même (plus `ui_dimensions.dart`, orphelin). L'utilisateur bouge le curseur, la valeur est enregistrée en base, et rien ne change. C'est le genre de détail qui vaut des avis à une étoile | `lib/screens/settings_screen.dart`, `lib/models/app_settings.dart` |
 
+> **Points 1 et 2 retirés le 2026-09-08 (vérifiés au `ls`/`grep`).** 1 (« `flutter test` rouge ») :
+> `test/widget_test.dart` **n'existe plus** ; la suite est verte (55/55). 2 (« retirer
+> `supabase_flutter` ») : **absent** de `pubspec.yaml`/`pubspec.lock`, et `lib/bootstrap.dart` est
+> supprimé — plus aucune trace de Supabase.
+>
 > **Points 17 et 18 résolus le 2026-08-31, retirés.** 17 (« Afficher la solution » morte sur le
 > 6×10) : réglé par l'étape B (commit `3c287c3`) — `currentSolution` vient de `hintFrom`, donc
 > fonctionne sur toutes les tailles, 6×10 compris. 18 (lettres fausses) : réglé par le chantier
@@ -42,7 +51,7 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 | # | Point | Pourquoi |
 |---|---|---|
 | 8 | **Aucun onboarding** | Le tutoriel a été supprimé le 2026-08-28 (décision 5). Un inconnu ouvre l'app, voit un plateau et une barre de pièces, et personne ne lui dit ce qu'est une isométrie ni pourquoi le chiffre en haut change. Ça se paie en désinstallations dans les trente premières secondes |
-| 9 | **Le mode phare n'a qu'un seul puzzle** | Le 6×10, c'est 12 pièces sur 12 : un seul tirage possible, toujours le même. Aucune raison de revenir demain. Les tables **5×12 et 4×15** (plan 6×10 §5) sont le remède direct — elles feraient trois grands plateaux au lieu d'un |
+| 9 | **Le mode phare n'a qu'un seul puzzle** | Le 6×10, c'est 12 pièces sur 12 : un seul tirage possible, toujours le même. Aucune raison de revenir demain. **⚠️ Remède révisé (décision de Paul, 2026-09-08) : les tables 5×12 et 4×15 sont ABANDONNÉES** — inadaptées au format téléphone (bandes de 12/15 cases illisibles à la verticale). Le remède devient le **« second remède » du point 10**, déjà décidé le 2026-08-31 : énumérer les solutions du **tirage** sur les petites tailles et brancher une `ListSolutionSource` en mémoire, pour que le compteur décroissant, le navigateur et l'alerte « aucune solution » existent hors 6×10. La rejouabilité passe donc par la **variété des tirages 5×n**, pas par de nouveaux grands rectangles |
 | 10 | **Le différenciateur et la rejouabilité sont sur deux modes différents** | Le compteur de solutions compatibles en temps réel est ce que l'app a de rare et de vraiment intéressant. Il n'existe que sur les rectangles complets. Les puzzles à pièces tirées, qui portent la variété, n'ont qu'un booléen. Résoudre le point 9 résout celui-ci. **Second remède, décidé le 2026-08-31 comme chantier distinct** : sur les petites tailles, énumérer toutes les solutions au tirage et brancher dessus une source en mémoire (`ListSolutionSource`) — le compteur, le navigateur et l'alerte « aucune solution possible » deviendraient disponibles hors 6×10. Suppose : `_makeSolutionSource` clé sur le puzzle et non sur la taille, ré-énumération à la reprise d'une partie sauvegardée, et un seuil de taille **mesuré**, pas supposé |
 | 11 | **Records et progression** | Rétablis par `PLAN_PERSISTANCE.md` §4 après avoir été abandonnés (décision 32, prise pour un outil personnel). Sans eux, une partie finie ne compte pas demain |
 
@@ -62,9 +71,13 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 
 ## 4. Recommandé, non bloquant
 
-- Trois fichiers orphelins dans `lib/` — `bigint_plateau`, `shape_recognizer`,
-  `ui_layout_provider` (et ses 9 providers). Sans effet à l'exécution, mais ils alourdissent
-  toute relecture future.
+- **`bigint_plateau.dart` et `shape_recognizer.dart` supprimés le 2026-09-09** (`git rm`, décision de
+  Paul) — orphelins autonomes, zéro importateur, `analyze` 0/0 et tests inchangés après retrait.
+- Orphelin restant : **`ui_layout_provider.dart`** (et ses 9 providers). Sans effet à l'exécution,
+  mais alourdit la relecture. Il est **entrelacé** avec `ui_layout_manager` → `ui_dimensions`
+  (import chaîné) : son retrait est un **chantier de code**, pas une correction documentaire, à
+  décider avec Paul. *Note : `PLAN_MODE_ENTRAINEMENT.md` §8 disait les trois « déjà supprimés » —
+  c'était faux ; deux le sont désormais réellement, le troisième reste.*
 - ~~`pentomino_solver.dart`~~ **résolu le 2026-08-31 (étape B, chantier 2)** : `pentomino_solver.dart`,
   `tools/generate_6x10_solutions.dart` et `solution_collector.dart` **supprimés**. Retrait par
   **substitution** : l'énumération du 6×10 est reprise par `tools/generate_solutions_corpus.dart`

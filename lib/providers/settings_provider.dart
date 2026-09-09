@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 07:34 — conformité défi V1 : setShareScoresOptIn(bool) (consentement §8),
+// Modified: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : recordTrainingExercise()
+//           incrémente trainingExercisesDone (retour d'exercice, PAS un record — aucune écriture dans
+//           PuzzleStats/SolvedSolutions). JSON, pas de migration.
+// Historique: 2026-09-07 07:34 — conformité défi V1 : setShareScoresOptIn(bool) (consentement §8),
 //           setChallengeConsentAsked (proposition unique à la 1re complétion d'un défi) et
 //           deleteOnlineIdentity() (efface les scores serveur + le playerId local + coupe l'opt-in,
 //           suppression RGPD §7.4). ensurePlayerId reste paresseux, appelé sous opt-in seulement.
@@ -65,6 +68,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// Progression solo : nom du joueur (saisi au 1er puzzle réussi).
   Future<void> setUserName(String? name) async {
     state = state.copyWith(userName: name, clearUserName: name == null);
+    await _saveSettings();
+  }
+
+  /// Mode entraînement : un exercice réussi de plus (PLAN §6). `null` (jamais joué) → 1.
+  /// **Retour d'exercice, pas un record** — n'écrit **jamais** dans PuzzleStats/SolvedSolutions.
+  Future<void> recordTrainingExercise() async {
+    final done = (state.trainingExercisesDone ?? 0) + 1;
+    state = state.copyWith(trainingExercisesDone: done);
     await _saveSettings();
   }
 

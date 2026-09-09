@@ -1,4 +1,6 @@
-// Modified: 2026-09-07 10:07 — vignette : ratio mini-pièce découplé du k de gameplay (_kHomePieceRatio,
+// Modified: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §2) : bouton « Mode entraînement »
+//           sous « Multijoueur » (→ TrainingScreen). Onboarding rotation mentale, hors progression/records.
+// Historique: 2026-09-07 10:07 — vignette : ratio mini-pièce découplé du k de gameplay (_kHomePieceRatio,
 //           0.20) — la hausse de k (0.22→0.26) faisait se toucher les pièces du rack de la démo.
 // Historique: 2026-09-06 04:50 — i18n : en-tête (tooltips défi/records/réglages), label « Niveau N » et
 //           boutons Jouer/Multijoueur via AppLocalizations.
@@ -39,6 +41,7 @@ import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
+import 'package:pentapol/pentoscope/training/training_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
@@ -633,6 +636,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
               label: Text(
                 l10n.multiplayer,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TrainingScreen()),
+              ),
+              icon: const Icon(Icons.school_outlined),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              label: Text(
+                l10n.trainingMode,
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
