@@ -342,6 +342,34 @@ prochaine passe.)*
   pièce **déjà posée** vers la ligne du bas* retombe sur le même bord, mais là lâcher sur le rack =
   retrait volontaire.
 
+- **Ligne du bas — CAUSE RACINE trouvée et corrigée (2026-09-09, testé OK par Paul).** Les correctifs
+  ci-dessus (rack-coopération, marge) aidaient sans suffire : la pose du bas restait **aléatoire** sur
+  un grand plateau (5×7). Diagnostic de Paul (« ça vient des mouvements du doigt ») + lecture du
+  pipeline : le **feedback de drag est rendu à l'échelle du RACK** (petit, `≈0,26×case plateau`) et la
+  `dragAnchorStrategy` l'ancre par la case empoignée → `details.offset = doigt − localGrab` (px rack).
+  `onMove` mappait ce point **à l'échelle du plateau** sans ré-ajouter `localGrab` → l'ancre se
+  décalait de **~0-1 case selon la ligne empoignée** (et la hauteur de la pièce), non rattrapable au
+  bord bas. **Correctif** : le slider passe `localGrab` au provider (`selectPiece(grabLocal:)` →
+  `dragGrabLocal`) et `onMove` **reconstruit le doigt réel** `details.offset + localGrab` → `ancre =
+  caseDoigt − caseEmpoignée` (la case empoignée tombe exactement sous le doigt). **Portrait + pièce du
+  rack seulement** (paysage = swap d'axes ; pièce posée = branche `masterAbs`, inchangés). `analyze`
+  0/0, 67/67. **Testé OK par Paul.** C'est LA correction qui rend la ligne du bas fiable.
+
+- **Marge latérale du plateau (2026-09-09, retour de Paul, testé OK).** Un grand plateau (5×n, 6×10)
+  prenait toute la largeur (≈4 pt de marge) → avec le suivi 1:1, positionner près d'un bord amenait le
+  doigt contre le biseau. `kBoardSideMargin = 26 pt/côté` (portrait) réservé au plateau **et** à
+  `_barMetrics` (§3). N'affecte que les plateaux **limités par la largeur** (les petits, plafonnés par
+  `maxCell`, gardent leur taille). Constante « à régler à l'œil ».
+
+- **Sensibilité du drag (2026-09-09, retour de Paul).** `longPressDuration` défaut **200 → 100 ms** ;
+  réglage Params borné **50-200** (pas de 50 ; setter clampé). *Une valeur déjà persistée sur l'appareil
+  ne change pas seule — à réajuster une fois via les −/+.*
+
+- **Orientation du rack conservée (2026-09-09, retour de Paul).** `cancelSelection` commit
+  `selectedPositionIndex` dans `piecePositionIndices` pour une pièce du rack → un drag annulé (relâché
+  hors cible) **garde** l'orientation donnée au lieu de revenir à l'initiale. (Cause : `_applyIsoUsingLookup`
+  CAS 1 ne mettait à jour que `selectedPositionIndex` ; `cycleToNextOrientation`, qui committait, était mort.)
+
 ### Chantier « déplacement d'une pièce » — REVERT (2026-09-01)
 
 Le chantier `PLAN_DEPLACEMENT_PIECE` (correctifs 1→5) a fait **apparaître beaucoup d'anomalies**
@@ -825,15 +853,24 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-09 (2) — CLI (correctif pose ligne du bas). Commité, non poussé.**
-Retour de Paul : « toujours des problèmes de pose dans la ligne du bas, il faut s'y reprendre à
-plusieurs fois » (capture `screenshot/piece9.png`, pièce du rack). Diagnostic (analyse approuvée
-avant édition) : le plateau ancré en bas (#6) colle sa ligne du bas à la cible de drop du rack ;
-`onLeave` effaçait l'aperçu (contre son propre commentaire) et le rack refusait une pièce du rack
-→ dépôt perdu au relâcher. Correctif **câblage des drop-targets seulement** (géométrie de pose
-inchangée) : `onLeave` ne fait plus `clearPreview` ; le rack pose une pièce du rack à l'aperçu
-valide (`tryPlaceAtAnchor`). **Testé OK sur device par Paul.** `analyze` 0/0, 67/67. Détail en §ÉTAT
-« Pose de la ligne du bas ». Bump build `202609090617` pour repérage device.
+**2026-09-09 (3) — CLI (ergonomie du drag : ancre à la bonne échelle + marge + sensibilité + orientation). NON commité.**
+Suite du retour de Paul sur la pose de la ligne du bas, qui restait **aléatoire** sur grand plateau
+malgré (2). **CAUSE RACINE trouvée** (piste de Paul « ça vient des mouvements du doigt ») : le feedback
+de drag est à l'échelle du RACK, `details.offset = doigt − localGrab` (px rack), et `onMove` mappait ce
+point en case **plateau** sans ré-ajouter `localGrab` → ancre décalée ~0-1 case selon la prise, fatale
+au bord bas. **Correctif d'échelle** : `selectPiece(grabLocal:)` → `dragGrabLocal` ; `onMove` reconstruit
+le doigt réel `details.offset + localGrab` (portrait + rack seulement). **Testé OK par Paul.** Plus, même
+session, trois retours : **marge latérale** `kBoardSideMargin` (26 pt/côté, grand plateau ne prend plus
+toute la largeur), **sensibilité** `longPressDuration` défaut 100 ms / plage 50-200, **orientation du
+rack conservée** au drag annulé (`cancelSelection` commit). `analyze` 0/0, **67/67**. Détail en §ÉTAT
+« Ligne du bas — CAUSE RACINE ». Build `202609090737`.
+
+**2026-09-09 (2) — CLI (correctif pose ligne du bas, 1er jet). Commité `0887c60`, poussé.**
+Retour de Paul : « toujours des problèmes de pose dans la ligne du bas » (capture `screenshot/piece9.png`).
+1er diagnostic : plateau ancré en bas (#6) collé au rack ; `onLeave` effaçait l'aperçu et le rack refusait
+une pièce du rack → dépôt perdu. Correctif câblage des drop-targets : `onLeave` ne fait plus `clearPreview` ;
+le rack pose une pièce du rack à l'aperçu valide. **A aidé mais pas suffi** (cf. (3), la vraie cause était
+l'échelle de l'ancre). `analyze` 0/0, 67/67.
 
 **2026-09-09 — CLI (centralisation des règles de score). Commité `21b1327`, poussé (`ea82aef`).**
 Sur demande de Paul, après analyse préalable approuvée. Constat : le socle métrique était déjà
@@ -845,21 +882,6 @@ aucun effet visible, parties propres), suppression du mort `calculateNote()`, te
 `test/score_rules_test.dart`. `analyze` 0/0, **67/67 tests**. Manipulation des pièces inchangée.
 Détail en §ÉTAT « Centralisation des règles de score ». Le mode entraînement niveau 1 (commit
 `3c90d00`, poussé) attend toujours le **test device** de Paul avant le niveau 2.
-
-**2026-09-08 (2) — CLI (mode entraînement niveau 1 + corrections documentaires §8). Commité `3c90d00`, poussé.**
-Application de `PLAN_MODE_ENTRAINEMENT.md` (écrit par cowork le 2026-09-08, non commité).
-1. **Corrections doc §8** : `CHECKLIST_APPSTORE.md` (points 1 et 2 retirés, 7 reformulé en point de
-   contrôle, bloquant 9 rebranché sur `ListSolutionSource`, Android au périmètre) et `CLAUDE.md`
-   (cible iOS **+ Android**). **§8 point 3 rejeté** : les trois orphelins qu'il disait « supprimés »
-   existent toujours (vérifié) — j'ai noté le fait au lieu d'inscrire une fausseté. Détail en §ÉTAT.
-2. **Mode entraînement niveau 1** (`lib/pentoscope/training/` : `training_mode.dart` pur + testé,
-   `training_provider.dart` sans DB, `training_screen.dart`), champ `AppSettings.trainingExercisesDone`
-   (JSON, sans migration), bouton d'accueil, clés i18n EN+FR, `test/training_mode_test.dart`. Cœur
-   vérifié par exécution (catalogue §5 : 342/210/132, diamètre 2). `analyze` 0/0, **59/59 tests**.
-   **Niveau 2 PAS fait** (gaté sur test device du niveau 1 par Paul). **Le plan reste** (pas encore
-   testé device → non supprimé, MODUS §5). **Reste : test device par Paul**, puis niveau 2.
-   ⚠️ **Rien n'est commité** (règle n°1 : pas de commit sans demande). `git status -s docs/` **non
-   vide** en fin de session : ces docs sont à committer **avec** le code du mode (MODUS §5).
 
 *(Les passations du 2026-09-08 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

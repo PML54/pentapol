@@ -1,4 +1,11 @@
-// Modified: 2026-09-09 05:29 — centralisation score : suppression de calculateNote() (note 0-20 sur les
+// Modified: 2026-09-09 07:35 — drag rack, ancre à la bonne échelle : selectPiece capte grabLocal
+//           (offset px du toucher) exposé par dragGrabLocal ; onMove reconstruit le doigt réel
+//           (details.offset + localGrab) au lieu de mélanger l'échelle rack/plateau → fin de l'erreur
+//           d'ancre ~1 case selon la prise (ligne du bas). Portrait + pièce du rack uniquement.
+// Historique: 2026-09-09 07:01 — orientation du rack conservée : cancelSelection commit selectedPositionIndex
+//           dans piecePositionIndices pour une pièce du rack (drag annulé/tap ailleurs) → elle garde sa
+//           dernière orientation au lieu de revenir à l'initiale (retour de Paul).
+// Historique: 2026-09-09 05:29 — centralisation score : suppression de calculateNote() (note 0-20 sur les
 //           indices), code MORT (zéro appelant, public → invisible à analyze). La manipulation des
 //           pièces est inchangée.
 // Historique: 2026-09-08 03:38 — confinement de l'ancre au plateau (_clampAnchorToBoard) : sans
@@ -432,7 +439,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         validPlacements: [], // ✨ NOUVEAU
       );
     } else {
+      // Pièce du RACK désélectionnée (drag annulé — relâché hors d'une cible — ou tap ailleurs) :
+      // CONSERVER sa dernière orientation (celle donnée aux boutons d'isométrie), pas revenir à
+      // l'initiale (retour de Paul, 2026-09-09). _applyIsoUsingLookup CAS 1 ne met à jour que
+      // selectedPositionIndex ; on le commit ici dans piecePositionIndices avant de vider la sélection.
+      final sel = state.selectedPiece;
+      final committed = sel == null
+          ? state.piecePositionIndices
+          : (Map<int, int>.from(state.piecePositionIndices)
+            ..[sel.id] = state.selectedPositionIndex);
       state = state.copyWith(
+        piecePositionIndices: committed,
         clearSelectedPiece: true,
         clearSelectedPlacedPiece: true,
         clearSelectedCellInPiece: true,
@@ -600,12 +617,21 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     _clearCurrentGame();
   }
 
+  /// Offset local du toucher au départ d'un drag de pièce du RACK (px, capturé par le slider). Le
+  /// feedback est ancré par la case empoignée (`details.offset = doigt − localGrab`) : onMove
+  /// reconstruit le doigt réel en ré-ajoutant cet offset, sinon l'ancre est décalée d'une échelle
+  /// rack/plateau (erreur ~1 case selon la ligne empoignée — bord bas impossible). null au tap.
+  Offset? _dragGrabLocal;
+  Offset? get dragGrabLocal => _dragGrabLocal;
+
   // ==========================================================================
   // SÉLECTION PIÈCE (SLIDER)
   // ==========================================================================
   /// [grabbedCell] : cellule (normalisée) de la pièce réellement empoignée au tiroir, pour ancrer
   /// le drag sur le doigt comme le fait le plateau (cf. b86e942). null → cellule par défaut (tap).
-  void selectPiece(Pento piece, {Point? grabbedCell}) {
+  /// [grabLocal] : offset px du toucher dans la boîte de la pièce, pour reconstruire le doigt (onMove).
+  void selectPiece(Pento piece, {Point? grabbedCell, Offset? grabLocal}) {
+    _dragGrabLocal = grabLocal;
     // ✨ BUGFIX: Si la pièce est déjà sélectionnée, utiliser selectedPositionIndex
     // (qui a été mis à jour par l'isométrie)
     // Sinon, récupérer l'index depuis piecePositionIndices

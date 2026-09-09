@@ -1,4 +1,6 @@
-// Modified: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : recordTrainingExercise()
+// Modified: 2026-09-09 07:01 — sensibilité du drag : setLongPressDuration borne la valeur à [50, 200] ms
+//           (retour de Paul, défaut 100).
+// Historique: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : recordTrainingExercise()
 //           incrémente trainingExercisesDone (retour d'exercice, PAS un record — aucune écriture dans
 //           PuzzleStats/SolvedSolutions). JSON, pas de migration.
 // Historique: 2026-09-07 07:34 — conformité défi V1 : setShareScoresOptIn(bool) (consentement §8),
@@ -312,10 +314,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
-  /// Change la durée du long press
+  /// Change la durée du long press (sensibilité du drag). Bornée à [50, 200] ms (retour de Paul).
   Future<void> setLongPressDuration(int duration) async {
     state = state.copyWith(
-      game: state.game.copyWith(longPressDuration: duration),
+      game: state.game.copyWith(longPressDuration: duration.clamp(50, 200)),
     );
     await _saveSettings();
   }

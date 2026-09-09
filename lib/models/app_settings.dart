@@ -1,4 +1,6 @@
-// Modified: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : champ trainingExercisesDone
+// Modified: 2026-09-09 07:01 — sensibilité du drag : défaut longPressDuration 200 → 100 ms (retour de
+//           Paul ; plage 50-200 côté réglages). JSON, pas de migration.
+// Historique: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : champ trainingExercisesDone
 //           (null = jamais joué). Retour d'exercice, PAS un record — aucune écriture dans PuzzleStats
 //           ni SolvedSolutions. JSON, pas de migration (invariant #6).
 // Historique: 2026-09-07 07:34 — conformité défi V1 : champs shareScoresOptIn (défaut false — envoi de
@@ -259,7 +261,7 @@ class GameSettings {
   const GameSettings({
     this.showSolutionCounter = true,
     this.enableHaptics = true,
-    this.longPressDuration = 200,
+    this.longPressDuration = 100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
   });
 
   GameSettings copyWith({
@@ -286,7 +288,7 @@ class GameSettings {
     return GameSettings(
       showSolutionCounter: json['showSolutionCounter'] ?? true,
       enableHaptics: json['enableHaptics'] ?? true,
-      longPressDuration: json['longPressDuration'] ?? 200,
+      longPressDuration: json['longPressDuration'] ?? 100,
     );
   }
 }

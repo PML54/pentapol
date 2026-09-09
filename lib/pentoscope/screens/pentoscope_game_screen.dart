@@ -1,4 +1,8 @@
-// Modified: 2026-09-09 06:06 — pose ligne du bas : le rack (_buildSliderWithDragTarget) accepte aussi
+// Modified: 2026-09-09 07:01 — marge latérale du plateau (kBoardSideMargin, 26 pt/côté) appliquée en
+//           portrait au plateau ET à _barMetrics (§3) : un grand plateau prenait toute la largeur →
+//           le doigt butait sur le bord écran en positionnant (suivi 1:1). N'affecte que les plateaux
+//           limités par la largeur. Défaut sensibilité 50-200 (voir app_settings).
+// Historique: 2026-09-09 06:06 — pose ligne du bas : le rack (_buildSliderWithDragTarget) accepte aussi
 //           une pièce DU RACK quand un aperçu valide est en attente (previewX/Y + isPreviewValid) et la
 //           pose via tryPlaceAtAnchor — le bord bas collé au rack faisait relâcher au ras du rack, geste
 //           perdu. Rouge/poubelle réservés au retrait. Géométrie de pose inchangée.
@@ -151,6 +155,15 @@ const double kPieceToBoardCellRatio = 0.26;
 /// (tout dépasse 84 → tout rogné à 84). **Relatif** : ≈84 sur iPhone (390×0.215), bien plus grand sur
 /// tablette → les plateaux remplissent l'écran. Appliqué au board ET à `_barMetrics`. **À régler à l'œil.**
 const double kMaxBoardCellFactor = 0.215;
+
+/// Marge latérale RÉSERVÉE de chaque côté du plateau, en portrait, en points (retour de Paul,
+/// 2026-09-09). Sur un grand plateau (5×n, 6×10) `cellSize` est limité par la largeur → le plateau
+/// prenait TOUTE la largeur (≈4 pt de marge) : avec le suivi exact 1:1 du doigt, positionner une pièce
+/// près d'un bord amenait le doigt contre le biseau → lâcher forcé au mauvais endroit. Réserver cette
+/// marge redonne de la place au doigt de chaque côté. N'affecte QUE les plateaux limités par la largeur
+/// (les petits plateaux, plafonnés par `maxCell`, gardent leur taille). Appliquée au plateau ET à
+/// `_barMetrics` (ancrage §3). **À régler à l'œil sur device.**
+const double kBoardSideMargin = 26.0;
 
 /// Le plafond ci-dessus, résolu pour l'écran courant.
 double maxBoardCellSize(BuildContext context) =>
@@ -1152,7 +1165,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       );
     } else {
       boardCell = math.min(
-        (body.width - 8) / cols,
+        (body.width - 2 * kBoardSideMargin) / cols,
         (body.height - _kSliderPad) / (rows + 5 * k),
       );
     }

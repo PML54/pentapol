@@ -1,4 +1,10 @@
-// Modified: 2026-09-09 06:06 — pose de la ligne du bas : onLeave ne fait PLUS clearPreview() (le bord
+// Modified: 2026-09-09 07:35 — ancre à la bonne échelle : onMove ré-ajoute localGrab (notifier.dragGrabLocal)
+//           à details.offset pour reconstruire le doigt réel — sinon un offset à l'échelle du rack était
+//           mappé en case plateau → ancre décalée ~1 case selon la prise (bord bas). Portrait + rack.
+// Historique: 2026-09-09 07:01 — marge latérale en portrait (kBoardSideMargin) : availableWidth réserve
+//           2×marge → un grand plateau ne prend plus toute la largeur, le doigt garde de la place pour
+//           positionner près d'un bord (suivi 1:1). Cohérent avec _barMetrics (§3).
+// Historique: 2026-09-09 06:06 — pose de la ligne du bas : onLeave ne fait PLUS clearPreview() (le bord
 //           bas est collé au rack ; effleurer le rack effaçait l'ancre → dépôt perdu). L'aperçu valide
 //           survit et le rack le pose (cf. pentoscope_game_screen _buildSliderWithDragTarget).
 // Historique: 2026-09-07 16:45 — (1) glissé « suivi exact » : feedback réactif (image RÉELLE si posable,
@@ -41,7 +47,7 @@ import 'package:pentapol/common/widgets/piece_renderer.dart';
 // Le rapport pièce/plateau (feedback de drag) est regroupé avec les autres réglages visuels
 // en tête de pentoscope_game_screen.dart. Import ciblé pour ne prendre que cette constante.
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
-    show kPieceToBoardCellRatio, kMaxBoardCellFactor;
+    show kPieceToBoardCellRatio, kMaxBoardCellFactor, kBoardSideMargin;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
@@ -86,9 +92,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         final visualCols = widget.isLandscape ? boardHeight : boardWidth;
         final visualRows = widget.isLandscape ? boardWidth : boardHeight;
 
-        // Réserver 8px de marge uniquement en portrait (largeur limitée)
-        // En paysage, pas besoin de marge car le plateau a plus d'espace
-        final availableWidth = widget.isLandscape ? constraints.maxWidth : constraints.maxWidth - 8;
+        // Portrait : réserver kBoardSideMargin de chaque côté pour que le doigt garde de la place
+        // en positionnant près d'un bord (suivi 1:1) — un grand plateau prenait toute la largeur.
+        // Paysage : pas de marge (le plateau a plus d'espace, et l'axe critique n'est pas horizontal).
+        final availableWidth = widget.isLandscape
+            ? constraints.maxWidth
+            : constraints.maxWidth - 2 * kBoardSideMargin;
         // Plafond de hauteur ET plafond partagé (proportionnel à l'écran, kMaxBoardCellFactor) :
         // atténue la « falaise » des petits plateaux sans les rapetisser sur une grande tablette.
         final maxCell = MediaQuery.of(context).size.shortestSide * kMaxBoardCellFactor;
@@ -120,9 +129,19 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
             final localOffset = renderBox.globalToLocal(details.offset);
 
+            // Reconstruction du doigt réel. `details.offset` est le coin du feedback, ancré par la
+            // case empoignée : `details.offset = doigt − localGrab`. Sans le ré-ajout de localGrab,
+            // on mappe un point à l'échelle du RACK dans une case du PLATEAU → l'ancre se décale de
+            // ~1 case selon la ligne empoignée (bord bas impossible ; « aléatoire », retour de Paul).
+            // Portrait + pièce du RACK seulement (le paysage swappe les axes ; la pièce posée suit une
+            // autre branche — masterAbs — inchangée).
+            final grab = (!widget.isLandscape && state.selectedPlacedPiece == null)
+                ? (notifier.dragGrabLocal ?? Offset.zero)
+                : Offset.zero;
+
             // Coordonnées relatives au plateau centré
-            final plateauX = localOffset.dx - offsetX;
-            final plateauY = localOffset.dy - offsetY;
+            final plateauX = localOffset.dx + grab.dx - offsetX;
+            final plateauY = localOffset.dy + grab.dy - offsetY;
 
             // TEST: Agrandir drastiquement la zone pour device réel
             const double margin = 100.0; // Marge GIGANTESQUE pour test

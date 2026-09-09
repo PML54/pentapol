@@ -1,4 +1,6 @@
-// Modified: 2026-09-07 16:30 — glissé « suivi exact » : le feedback tiroir (image sous le doigt)
+// Modified: 2026-09-09 07:35 — drag rack, ancre à la bonne échelle : onGrab passe aussi grabLocal
+//           (offset px du toucher) à selectPiece — le plateau reconstruit le doigt réel dans onMove.
+// Historique: 2026-09-07 16:30 — glissé « suivi exact » : le feedback tiroir (image sous le doigt)
 //           devient réactif — image RÉELLE si posable, TRANSPARENT si chevauchement (isPreviewValid).
 // Historique: 2026-09-07 09:35 — halo de sélection lisible sur pièce jaune (N°3) : le halo ambré seul
 //           ne contrastait pas ; ajout d'un contour sombre net par-dessus (visible quelle que soit
@@ -185,7 +187,9 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
               }
               final cell =
                   _grabbedCell(piece, displayPositionIndex, localGrab, box);
-              notifier.selectPiece(piece, grabbedCell: cell);
+              // grabLocal (px du toucher dans la boîte) : le plateau reconstruit le doigt réel
+              // (details.offset + localGrab) → ancre à la bonne échelle (fin de l'erreur ~1 case).
+              notifier.selectPiece(piece, grabbedCell: cell, grabLocal: localGrab);
             },
             onCycle: () {},
             onCancel: () {
