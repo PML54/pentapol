@@ -163,6 +163,35 @@ Cinq des six corrections du §8 appliquées ; la sixième **rejetée car son pos
   `ui_layout_provider` (cluster entrelacé). *(Verrou git `index.lock` périmé de la veille retiré au
   passage — aucun processus git actif.)*
 
+### Centralisation des règles de score (2026-09-09, décision de Paul)
+
+Les **calculs de score côté Dart** sont désormais isolés, testables et **réellement réutilisés** par
+leurs consommateurs, à **résultats identiques** (prouvé par tests) et **sans toucher à la manipulation
+des pièces**. Le socle métrique (`computeMetrics`/`CompletionMetrics`) était déjà central et partagé
+(records + défi) ; ce qui restait dispersé, c'était la **règle d'acuité**, recopiée en **quatre** endroits.
+
+- **Nouveau module pur, sans dépendance** `lib/pentoscope/score_rules.dart` (importable par la couche
+  drift, l'API, les écrans) : `acuityRatio` (plafonné 1.0), `acuityPercent` (entier plafonné),
+  `isBetterAcuity` (produit croisé sans flottant), `isPerfectVision`. Une seule définition de chaque règle.
+- **Consommateurs routés** : `completion_metrics.dart` (`acuity`/`acuityPercent`/`perfectVision`
+  délèguent), `pentoscope_game_screen.dart` (bilan lit `m.acuityPercent`), `records_screen.dart`
+  (`acuityPercent`, agrégation 6×10, `hasPerfectVision`), `settings_database.dart` (`_isBetterAcuity`
+  **retiré**, deux sites → `isBetterAcuity`), `challenge_api.dart` (`LeaderboardEntry.acuityPercent`).
+- **Plafond partout (décision de Paul, 2026-09-09)** : `records_screen.acuityPercent` était **non
+  plafonné**, il l'est maintenant. **Aucun effet visible** : les records ne stockent que les parties
+  **propres** (`isoCount ≥ minIso` → ratio ≤ 1) — prouvé par un test d'équivalence sur ce domaine.
+- **Code mort supprimé** : `PentoscopeNotifier.calculateNote()` (note 0-20 sur les indices), **zéro
+  appelant** (public → invisible à `analyze`, famille des « membres publics morts » de CHECKLIST §4).
+- **Tests** `test/score_rules_test.dart` : plafond, équivalence exhaustive de `isBetterAcuity` avec
+  l'ancien `_isBetterAcuity` (grille 9⁴), et de `acuityPercent` avec les anciennes formules (API
+  plafonnée partout ; records non plafonné sur le domaine propre). `completion_metrics_test` et
+  `records_db_test` protègent les comportements existants.
+
+`flutter analyze lib test` **0 error / 0 warning** (62 infos préexistantes), **67/67 tests**. Aucune
+ligne de la manipulation des pièces (drag/rotation/pose) touchée. **Incohérence latente laissée
+telle quelle** (à décider si besoin) : `isBetterAcuity` compare des ratios **non** plafonnés (ordre
+total) alors que l'affichage est plafonné — sans conséquence tant que les records sont propres.
+
 ### Conformité défi V1 (2026-09-07) — opt-in + suppression (décision de Paul)
 
 **Décision de Paul (2026-09-07), déclenchée par `INDEX_DOCS.md` §3.1 de cowork** : le défi en ligne
@@ -779,7 +808,19 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-08 (2) — CLI (mode entraînement niveau 1 + corrections documentaires §8). NON commité.**
+**2026-09-09 — CLI (centralisation des règles de score). NON commité.**
+Sur demande de Paul, après analyse préalable approuvée. Constat : le socle métrique était déjà
+central, mais la **règle d'acuité** était recopiée en 4 endroits (`completion_metrics`,
+`records_screen`, `settings_database._isBetterAcuity`, `challenge_api`). Livré : module pur
+`lib/pentoscope/score_rules.dart` (`acuityRatio`/`acuityPercent`/`isBetterAcuity`/`isPerfectVision`),
+les 5 consommateurs routés dessus, **plafond appliqué partout** (records % désormais plafonné —
+aucun effet visible, parties propres), suppression du mort `calculateNote()`, tests d'équivalence
+`test/score_rules_test.dart`. `analyze` 0/0, **67/67 tests**. Manipulation des pièces inchangée.
+Détail en §ÉTAT « Centralisation des règles de score ». **Rien commité** (non demandé) — ces docs
+sont à committer **avec** ce code (MODUS §5). Le mode entraînement niveau 1 (commit `3c90d00`,
+poussé) attend toujours le **test device** de Paul avant le niveau 2.
+
+**2026-09-08 (2) — CLI (mode entraînement niveau 1 + corrections documentaires §8). Commité `3c90d00`, poussé.**
 Application de `PLAN_MODE_ENTRAINEMENT.md` (écrit par cowork le 2026-09-08, non commité).
 1. **Corrections doc §8** : `CHECKLIST_APPSTORE.md` (points 1 et 2 retirés, 7 reformulé en point de
    contrôle, bloquant 9 rebranché sur `ListSolutionSource`, Android au périmètre) et `CLAUDE.md`
@@ -832,35 +873,5 @@ Session en trois temps :
    de nom se reflète ; une **release Play Store** demanderait un **keystore** (l'APK envoyé est signé
    clé debug).
 
-**2026-09-07 — cowork → CLI puis CLI (session : conformité défi V1, ergonomie, classifieur de fautes).**
-Grosse session, **tout commité et poussé** sur `origin/main`. Trois chantiers :
-1. **Conformité défi V1** (déclenché par `INDEX_DOCS.md` §3.1 de cowork ; tranché par Paul : le défi
-   **reste en V1**). Rendu conforme : opt-in désactivé par défaut (§8), classement conditionné à
-   l'opt-in (§4.5), **proposition unique** à la 1re complétion d'un défi, suppression RGPD (§7.4,
-   route serveur `DELETE /score`), section Réglages « Classement en ligne ». Voir §ÉTAT « Conformité
-   défi V1 ». **Reste** : redéploiement du worker (route DELETE), test device, déclaration App Store
-   Connect du comportement opt-in.
-2. **Ergonomie tailles/icônes** (retours de Paul). Borne haute de la case (`kMaxBoardCellSize=84`,
-   supprime la « falaise »), `k` 0.22→0.26, icônes AppBar 0.075→0.11, icônes d'isométrie 0.12→0.14,
-   retrait de `Icons.person` (reset) et de la **visionneuse** (buggée en 6×10), **halo de sélection**
-   lisible sur pièce jaune, **vignette d'accueil découplée** du `k` de gameplay. Valeurs en constantes
-   « à régler à l'œil ». Voir §ÉTAT « Taille des pièces et icônes ».
-3. **Classifieur de fautes + observation** (`lib/pentoscope/fault_analysis.dart`, testé). Modèle acté
-   avec Paul : **lampe rouge = aide au joueur** (état, la table décide) ; **⚠️ aire non-mult-5** (englobe
-   poches < 5) et **🌫️ impossibilité subtile** = **deux causes pour NOTER** le joueur, hors maillots.
-   **Gravité continue** `20/taille` (zone de 4 = 5.0). Indicateurs centralisés/documentés dans
-   `fault_analysis` (`FaultIndicators` + `diagnosticCourant`), affichés au **bandeau debug**
-   (`kShowLiveCounters`, à repasser `false` avant publication — checklist 22). **Doc de référence neuve :
-   `INDICATEURS_OBSERVATION.md`.** **Reste (plus tard)** : observer les distributions sur device, puis
-   caler le **barème** et décider son intégration éventuelle aux maillots (avant lock de publication si classé).
-
-**Sujet bloquant traité (2026-09-07) — déplacement d'une pièce.** Le bug de fond « la pièce ne suit
-pas toujours le doigt » (intermittent, testé sur tablette 9×5) a été repris. Découverte : les correctifs
-`snap-directionnel` **étaient déjà dans `main`** (le §ÉTAT le disait à tort non fusionné) et le bug
-**persistait** → changement de **méthode** validé par Paul : **suivi exact du doigt, validité = couleur,
-sans aimantation** (retrait de `_findClosestValidPlacement`/`_gestureAxis` ; feedback réel/transparent
-plateau+tiroir). **Testé OK sur device.** Plafond de case rendu **proportionnel à l'écran** au passage
-(l'absolu 84 rapetissait tout sur tablette). Détail en §ÉTAT « méthode suivi exact ». `analyze` 0/0, 55/55.
-
-*(Les passations du 2026-09-06 et antérieures sont sorties de la liste au fil des ajouts ; elles
+*(Les passations du 2026-09-07 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

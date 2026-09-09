@@ -1,4 +1,6 @@
-// Modified: 2026-09-07 07:17 — conformité défi V1 : deleteMyScores (DELETE /score?playerId=…) — efface
+// Modified: 2026-09-09 05:29 — centralisation score : LeaderboardEntry.acuityPercent délègue à
+//           score_rules.acuityPercent (formule plafonnée unique) au lieu de la recopier.
+// Historique: 2026-09-07 07:17 — conformité défi V1 : deleteMyScores (DELETE /score?playerId=…) — efface
 //           toutes les lignes du joueur pour la suppression RGPD (§7.4). Échec silencieux comme le reste.
 // lib/pentoscope/challenge_api.dart
 // Historique: 2026-09-05 00:35 — fetchChallenge (GET /challenge) : récupère la définition composée à
@@ -13,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
+import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// URL du worker de classement (déployé par Paul). Distinct du worker duel (WebSocket).
 const String kChallengeBaseUrl = 'https://pentapol-defi.pentapml.workers.dev';
@@ -38,11 +41,8 @@ class LeaderboardEntry {
     required this.timeMs,
   });
 
-  /// Acuité en % (§4.2), plafonnée à 100, pour l'affichage du maillot jaune.
-  int get acuityPercent {
-    final r = (minIso + 1) / (isoCount + 1);
-    return ((r > 1.0 ? 1.0 : r) * 100).round();
-  }
+  /// Acuité en % (§4.2), plafonnée à 100, pour l'affichage du maillot jaune. Règle unique score_rules.
+  int get acuityPercent => rules.acuityPercent(minIso, isoCount);
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> j) => LeaderboardEntry(
         playerId: j['player_id'] as String? ?? '',

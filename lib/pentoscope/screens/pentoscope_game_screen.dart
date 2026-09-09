@@ -1,4 +1,7 @@
-// Modified: 2026-09-07 16:45 — plafond de case PROPORTIONNEL à l'écran (kMaxBoardCellFactor +
+// Modified: 2026-09-09 05:29 — centralisation score : le % d'acuité du bilan lit m.acuityPercent
+//           (règle unique score_rules) au lieu de recalculer (m.acuity*100).round(). Comportement
+//           identique (parties propres). Manipulation des pièces inchangée.
+// Historique: 2026-09-07 16:45 — plafond de case PROPORTIONNEL à l'écran (kMaxBoardCellFactor +
 //           maxBoardCellSize(context)) au lieu de l'absolu 84 qui rapetissait tout sur tablette ;
 //           _barMetrics reçoit le plafond résolu.
 // Historique: 2026-09-07 14:41 — DEBUG test : bandeau 3ᵉ ligne = diagnostic de l'ÉTAT COURANT
@@ -1469,7 +1472,7 @@ class _BilanCard extends StatelessWidget {
                     _MaillotLine(
                       color: const Color(0xFFF2B705),
                       label: l10n.legendAcuity,
-                      value: '${(m.acuity * 100).round()} %',
+                      value: '${m.acuityPercent} %',
                       detail: l10n.isometryDetail(m.isometryCount, m.minIso),
                     ),
                     _MaillotLine(

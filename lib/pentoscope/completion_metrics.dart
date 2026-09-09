@@ -1,10 +1,14 @@
-// Modified: 2026-09-05 17:24 — trois maillots (A) : acuité (PLAFONNÉE à 100 %), FAUTES (remplace les
+// Modified: 2026-09-09 05:29 — centralisation des règles de score : acuity/acuityPercent/perfectVision
+//           délèguent à score_rules.dart (formule plafonnée et prédicat uniques, testés) — plus de
+//           formule d'acuité recopiée ici.
+// Historique: 2026-09-05 17:24 — trois maillots (A) : acuité (PLAFONNÉE à 100 %), FAUTES (remplace les
 //           coups ; = passages en cul-de-sac), temps. Suppression de moves/minMoves/efficiency ;
 //           rescues renommé faults (le maillot « Help » est fusionné dans « fautes »).
 // lib/pentoscope/completion_metrics.dart
 // Historique: 2026-09-04 05:20 — création : mesures d'une partie terminée (calcul pur, testable).
 
 import 'package:pentapol/common/placed_piece.dart';
+import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// Les mesures d'une partie terminée (CDC §4), en valeurs **brutes**. Trois maillots : acuité
 /// (jaune), fautes (à pois), temps (vert). L'acuité se dérive ; on ne stocke que le brut.
@@ -30,17 +34,15 @@ class CompletionMetrics {
     required this.timeSeconds,
   });
 
-  /// Acuité isométrique (§4.2), **plafonnée à 100 %** : `min(1, (minIso+1)/(isometryCount+1))`. Le
-  /// plafond couvre le cas de l'indice, qui pose une pièce sans que le joueur fasse l'isométrie
-  /// (`minIso` la compte, `isometryCount` non → ratio > 1). Le `+1` traite `minIso = 0`.
-  double get acuity {
-    final r = (minIso + 1) / (isometryCount + 1);
-    return r > 1.0 ? 1.0 : r;
-  }
+  /// Acuité isométrique (§4.2), plafonnée à 100 % — règle unique dans `score_rules.acuityRatio`.
+  double get acuity => rules.acuityRatio(minIso, isometryCount);
 
-  /// « Vision parfaite » (§4.6) : `isometryCount == minIso` (aucun geste de trop). La médaille
-  /// exige en plus une partie **sans aide** (traité à l'appel).
-  bool get perfectVision => isometryCount == minIso;
+  /// Acuité en pourcentage entier (0..100), plafonné — règle unique dans `score_rules.acuityPercent`.
+  int get acuityPercent => rules.acuityPercent(minIso, isometryCount);
+
+  /// « Vision parfaite » (§4.6) : aucun geste de trop — règle unique dans `score_rules.isPerfectVision`.
+  /// La médaille exige en plus une partie **sans aide** (traité à l'appel).
+  bool get perfectVision => rules.isPerfectVision(minIso, isometryCount);
 }
 
 /// Calcule les mesures d'une partie **terminée** à partir de l'état brut.

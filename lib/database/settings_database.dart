@@ -1,4 +1,7 @@
-// Modified: 2026-09-05 17:24 — trois maillots (A) : « coups » et « Help » remplacés par les FAUTES.
+// Modified: 2026-09-09 05:29 — centralisation score : _isBetterAcuity retiré, les deux sites appellent
+//           isBetterAcuity de score_rules (comparaison unique, même produit croisé). Aucun changement
+//           de schéma ni de valeurs stockées.
+// Historique: 2026-09-05 17:24 — trois maillots (A) : « coups » et « Help » remplacés par les FAUTES.
 //           CurrentGame.helpCount → faultCount ; records bestMoves+bestHelp → bestFaults.
 //           schemaVersion 9 → 10 (bump + destructif).
 // Historique: 2026-09-04 16:10 — records perso : 4e best `bestHelp` (maillot blanc, moins de
@@ -33,6 +36,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:pentapol/pentoscope/score_rules.dart';
 
 part 'settings_database.g.dart';
 
@@ -170,13 +174,6 @@ class SettingsDatabase extends _$SettingsDatabase {
   // RECORDS - SolvedSolutions (rectangles complets) / PuzzleStats (pièces tirées)
   // ============================================================================
 
-  /// Acuité `(minIso+1)/(iso+1)` la plus GRANDE = la meilleure (CDC §4.2). Comparaison croisée
-  /// (sans flottant). `true` si le nouveau score bat l'existant, ou s'il n'y a pas encore de best.
-  bool _isBetterAcuity(int? bestMinIso, int? bestIso, int newMinIso, int newIso) {
-    if (bestMinIso == null || bestIso == null) return true;
-    return (newMinIso + 1) * (bestIso + 1) > (bestMinIso + 1) * (newIso + 1);
-  }
-
   /// Enregistre une solution découverte sur un rectangle complet. Incrémente `timesSolved` ;
   /// met à jour **chaque** best indépendamment (acuité / coups / temps) — mais seulement si
   /// [clean] (partie sans aide, §4.8). Une partie avec aide compte sans poser de record.
@@ -216,7 +213,7 @@ class SettingsDatabase extends _$SettingsDatabase {
       lastSolvedAt: Value(now),
     );
     if (clean) {
-      if (_isBetterAcuity(
+      if (isBetterAcuity(
           existing.bestAcuityMinIso, existing.bestAcuityIsoCount, minIso, isoCount)) {
         companion = companion.copyWith(
           bestAcuityMinIso: Value(minIso),
@@ -266,7 +263,7 @@ class SettingsDatabase extends _$SettingsDatabase {
 
     var companion = PuzzleStatsCompanion(completed: Value(existing.completed + 1));
     if (clean) {
-      if (_isBetterAcuity(
+      if (isBetterAcuity(
           existing.bestAcuityMinIso, existing.bestAcuityIsoCount, minIso, isoCount)) {
         companion = companion.copyWith(
           bestAcuityMinIso: Value(minIso),

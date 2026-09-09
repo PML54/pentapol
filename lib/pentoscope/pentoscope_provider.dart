@@ -1,4 +1,7 @@
-// Modified: 2026-09-08 03:38 — confinement de l'ancre au plateau (_clampAnchorToBoard) : sans
+// Modified: 2026-09-09 05:29 — centralisation score : suppression de calculateNote() (note 0-20 sur les
+//           indices), code MORT (zéro appelant, public → invisible à analyze). La manipulation des
+//           pièces est inchangée.
+// Historique: 2026-09-08 03:38 — confinement de l'ancre au plateau (_clampAnchorToBoard) : sans
 //           aimantation, une grande pièce (N°8) débordait au ras d'un bord → dépôt refusé. L'ancre
 //           est bornée pour que la pièce tienne entièrement sur le plateau ; suivi du doigt inchangé
 //           à l'intérieur, chevauchements toujours rouges (pas un retour à l'aimantation).
@@ -297,27 +300,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
   // 📊 NOTE / SCORE
   // ==========================================================================
-
-  /// Calcule la note de "non-triche" (0-20)
-  /// - 0 hints → 20/20
-  /// - ≥ nbPieces - 1 hints → 0/20
-  /// - Entre les deux → linéaire
-  int calculateNote() {
-    final nbPieces = state.puzzle?.size.numPieces ?? 1;
-    final nbHints = state.hintCount;
-    
-    // Si 0 hint → 20/20
-    if (nbHints == 0) return 20;
-    
-    // Si ≥ nbPieces - 1 hints → 0/20
-    final maxHints = nbPieces - 1;
-    if (nbHints >= maxHints) return 0;
-    
-    // Linéaire entre les deux
-    // note = 20 - (nbHints * 20 / maxHints)
-    final note = 20 - (nbHints * 20 ~/ maxHints);
-    return note.clamp(0, 20);
-  }
 
   // ==========================================================================
   // 💡 HINT SYSTEM - Vérifier et appliquer un indice

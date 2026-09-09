@@ -1,4 +1,7 @@
-// Modified: 2026-09-06 04:50 — i18n : titre, légende (acuité/fautes/temps), état vide, médaille
+// Modified: 2026-09-09 05:29 — centralisation score : acuityPercent, agrégation « meilleure acuité »
+//           et hasPerfectVision délèguent à score_rules (formule plafonnée, comparaison et prédicat
+//           uniques). Le % devient plafonné — sans effet visible (records = parties propres, ratio ≤ 1).
+// Historique: 2026-09-06 04:50 — i18n : titre, légende (acuité/fautes/temps), état vide, médaille
 //           « vision parfaite » et compte de pièces via AppLocalizations.
 // Historique: 2026-09-05 17:24 — trois maillots (A) : acuité / FAUTES / temps (coups et Help supprimés,
 //           bestFaults remplace bestMoves+bestHelp).
@@ -17,6 +20,7 @@ import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
+import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// Les trois maillots d'une taille, agrégés. Bests nullables : `null` = aucune partie propre.
 class _SizeRecord {
@@ -34,16 +38,18 @@ class _SizeRecord {
     this.timeSeconds,
   });
 
-  /// Acuité en % (§4.2), ou null si pas de best.
+  /// Acuité en % (§4.2), ou null si pas de best. Règle unique (plafonnée) dans score_rules.
   int? get acuityPercent {
     final mi = acuityMinIso, iso = acuityIsoCount;
     if (mi == null || iso == null) return null;
-    return ((mi + 1) / (iso + 1) * 100).round();
+    return rules.acuityPercent(mi, iso);
   }
 
-  /// Médaille « vision parfaite » (§4.6) : un best d'acuité à 100 % (isoCount == minIso).
+  /// Médaille « vision parfaite » (§4.6) : un best d'acuité à 100 % — prédicat unique dans score_rules.
   bool get hasPerfectVision =>
-      acuityMinIso != null && acuityMinIso == acuityIsoCount;
+      acuityMinIso != null &&
+      acuityIsoCount != null &&
+      rules.isPerfectVision(acuityMinIso!, acuityIsoCount!);
 }
 
 /// Agrège les solutions découvertes d'un rectangle : meilleure acuité (ratio le plus grand),
@@ -52,9 +58,8 @@ _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
   int? bestMi, bestIso, bestFaults, bestTime;
   for (final r in rows) {
     if (r.bestAcuityMinIso != null && r.bestAcuityIsoCount != null) {
-      if (bestMi == null ||
-          (r.bestAcuityMinIso! + 1) * (bestIso! + 1) >
-              (bestMi + 1) * (r.bestAcuityIsoCount! + 1)) {
+      if (rules.isBetterAcuity(
+          bestMi, bestIso, r.bestAcuityMinIso!, r.bestAcuityIsoCount!)) {
         bestMi = r.bestAcuityMinIso;
         bestIso = r.bestAcuityIsoCount;
       }
