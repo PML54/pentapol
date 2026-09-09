@@ -1,4 +1,6 @@
-// Modified: 2026-09-09 07:01 — sensibilité du drag : bornes du réglage 100/500 → 50/200 (retour de Paul,
+// Modified: 2026-09-09 09:08 — nouveau réglage « compteurs » (isométries + fautes dans la barre du jeu),
+//           SwitchListTile → setShowCounters (retour de Paul).
+// Historique: 2026-09-09 07:01 — sensibilité du drag : bornes du réglage 100/500 → 50/200 (retour de Paul,
 //           défaut 100 ms). Plage effective 50-100-150-200 ms (pas de 50).
 // Historique: 2026-09-08 09:05 — ergonomie : le nom affiché au classement (userName) est exposé DANS la
 //           section « Classement en ligne » (tuile « Nom affiché » → dialogue → setUserName), là où on
@@ -145,6 +147,15 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(l10n.hapticsSub),
             value: settings.game.enableHaptics,
             onChanged: (value) => notifier.setEnableHaptics(value),
+          ),
+
+          // Compteurs isométries + fautes dans la barre du jeu
+          SwitchListTile(
+            secondary: const Icon(Icons.tag),
+            title: Text(l10n.showCounters),
+            subtitle: Text(l10n.showCountersSub),
+            value: settings.game.showCounters,
+            onChanged: (value) => notifier.setShowCounters(value),
           ),
 
           // Durée du long press

@@ -31,6 +31,8 @@
   "solutionCounterSub": "Afficher le nombre de solutions possibles",
   "haptics": "Retour haptique",
   "hapticsSub": "Vibrations lors des actions",
+  "showCounters": "Afficher les compteurs (isométries, fautes)",
+  "showCountersSub": "Affiche le nombre d'isométries et de fautes dans la barre du jeu.",
   "dragSensitivity": "Sensibilité du drag",
   "dragMs": "{ms}ms",
   "duelSettings": "Paramètres Duel",

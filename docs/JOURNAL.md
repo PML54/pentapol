@@ -103,12 +103,31 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 `isProgression`, pause chrono, records perso), puis — au choix — la **médaille §4.6** (raffinement
 des records) ou le début du **défi hebdo Phase 1** (hors V1).
 
+### Entraînement Option A + réglage « compteurs » + accueil hub (2026-09-09, choix de Paul — NON testé device)
+
+Trois changements de la journée, `analyze` **0/0**, **67/67 tests**, commités ensemble (voir `git log`
+du jour). **Aucun n'est encore validé sur device par Paul.**
+
+- **Mode entraînement — Option A** : l'exercice n'a plus d'écran propre. `training_screen.dart` et
+  `training_provider.dart` **supprimés** ; l'état entraînement vit dans **`pentoscope_provider`
+  (`startTraining()`)** et l'affichage réutilise **`PentoscopeGameScreen`** (même UI que le jeu).
+  Plateau d'entraînement porté **5×5 → 5×7** (`kTrainBoardHeight`, remplit l'écran en portrait).
+- **Réglage « compteurs »** : `AppSettings.showCounters` (défaut **false**, JSON, pas de migration,
+  invariant #6), `setShowCounters` (settings_provider), case dans les Réglages, **overlay
+  isométries 🔄 · fautes ⚫** en haut-gauche de la barre de jeu quand activé.
+- **Accueil = hub d'icônes** (`home_screen.dart`) : titre « PENTAPOL » retiré ; les 3 gros boutons du
+  bas supprimés. En-tête = **Jouer (person) VERT, gros (46), au centre géométrique** (Stack) ;
+  Multijoueur (people) + Entraînement (psychology) à gauche ; défi/records/réglages à droite (toutes
+  à 32). Tooltips i18n existants, aucune chaîne nouvelle.
+
 ### Mode entraînement — niveau 1 livré (2026-09-08, `PLAN_MODE_ENTRAINEMENT`)
 
 Premier pas contre le **bloquant produit n°8** (« aucun onboarding ») : un exercice interactif de
 **rotation mentale**, hors progression et hors records. **Niveau 1 (une pièce)** appliqué et vérifié
 statiquement ; **niveau 2 (deux pièces) NON fait** — le plan le gate sur un **test device du niveau 1
 par Paul** (à sa demande). Le plan **reste** (supprimé seulement après application ET test, MODUS §5).
+⚠️ **Le détail ci-dessous décrit l'état livré en `3c90d00` (écrans séparés) ; il est SUPERSÉDÉ par
+l'Option A du 2026-09-09 ci-dessus** — conservé pour la logique pure (`training_mode.dart`), inchangée.
 
 - **Logique pure** `lib/pentoscope/training/training_mode.dart` (Flutter-free, testée) : plateau
   `size5x5` (PLAN §4 — plus petit où les 63 orientations tiennent), tirage reproductible via
@@ -853,7 +872,18 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-09 (3) — CLI (ergonomie du drag : ancre à la bonne échelle + marge + sensibilité + orientation). NON commité.**
+**2026-09-09 (4) — CLI (entraînement Option A + réglage « compteurs » + accueil hub). Commité ce jour.**
+Trois demandes de Paul en une session, commitées ensemble. (a) **Mode entraînement Option A** :
+`training_screen`/`training_provider` supprimés, l'état passe dans `pentoscope_provider.startTraining()`
+et l'affichage réutilise `PentoscopeGameScreen` ; plateau 5×5 → **5×7**. (b) **Réglage « compteurs »**
+(`AppSettings.showCounters`, défaut off, JSON sans migration) : overlay isométries/fautes en haut-gauche
+de la barre de jeu. (c) **Accueil = hub d'icônes** : titre « PENTAPOL » et les 3 gros boutons du bas
+retirés ; en-tête avec **Jouer (person) vert, gros, centré** (Stack), Multijoueur/Entraînement à gauche,
+défi/records/réglages à droite. `analyze` 0/0, **67/67 tests**. Plan `docs/PLAN_MODE_ENTRAINEMENT.md`
+committé avec le code. **Reste : test device de tout ça par Paul** — puis le niveau 2 de l'entraînement.
+Détail en §ÉTAT « Entraînement Option A + réglage compteurs + accueil hub ».
+
+**2026-09-09 (3) — CLI (ergonomie du drag : ancre à la bonne échelle + marge + sensibilité + orientation). Commité `c0f3255`, testé OK par Paul.**
 Suite du retour de Paul sur la pose de la ligne du bas, qui restait **aléatoire** sur grand plateau
 malgré (2). **CAUSE RACINE trouvée** (piste de Paul « ça vient des mouvements du doigt ») : le feedback
 de drag est à l'échelle du RACK, `details.offset = doigt − localGrab` (px rack), et `onMove` mappait ce
@@ -871,17 +901,6 @@ Retour de Paul : « toujours des problèmes de pose dans la ligne du bas » (cap
 une pièce du rack → dépôt perdu. Correctif câblage des drop-targets : `onLeave` ne fait plus `clearPreview` ;
 le rack pose une pièce du rack à l'aperçu valide. **A aidé mais pas suffi** (cf. (3), la vraie cause était
 l'échelle de l'ancre). `analyze` 0/0, 67/67.
-
-**2026-09-09 — CLI (centralisation des règles de score). Commité `21b1327`, poussé (`ea82aef`).**
-Sur demande de Paul, après analyse préalable approuvée. Constat : le socle métrique était déjà
-central, mais la **règle d'acuité** était recopiée en 4 endroits (`completion_metrics`,
-`records_screen`, `settings_database._isBetterAcuity`, `challenge_api`). Livré : module pur
-`lib/pentoscope/score_rules.dart` (`acuityRatio`/`acuityPercent`/`isBetterAcuity`/`isPerfectVision`),
-les 5 consommateurs routés dessus, **plafond appliqué partout** (records % désormais plafonné —
-aucun effet visible, parties propres), suppression du mort `calculateNote()`, tests d'équivalence
-`test/score_rules_test.dart`. `analyze` 0/0, **67/67 tests**. Manipulation des pièces inchangée.
-Détail en §ÉTAT « Centralisation des règles de score ». Le mode entraînement niveau 1 (commit
-`3c90d00`, poussé) attend toujours le **test device** de Paul avant le niveau 2.
 
 *(Les passations du 2026-09-08 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

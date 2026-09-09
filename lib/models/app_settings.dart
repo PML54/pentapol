@@ -1,4 +1,6 @@
-// Modified: 2026-09-09 07:01 — sensibilité du drag : défaut longPressDuration 200 → 100 ms (retour de
+// Modified: 2026-09-09 09:08 — réglage showCounters (défaut false) : afficher les compteurs isométries
+//           et fautes dans la barre du jeu (retour de Paul). JSON, pas de migration.
+// Historique: 2026-09-09 07:01 — sensibilité du drag : défaut longPressDuration 200 → 100 ms (retour de
 //           Paul ; plage 50-200 côté réglages). JSON, pas de migration.
 // Historique: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : champ trainingExercisesDone
 //           (null = jamais joué). Retour d'exercice, PAS un record — aucune écriture dans PuzzleStats
@@ -258,21 +260,28 @@ class GameSettings {
   final bool enableHaptics;         // Activer le retour haptique
   final int longPressDuration;      // Durée du long press en ms
 
+  /// Afficher les compteurs **isométries** et **fautes** dans la barre du jeu (retour de Paul,
+  /// 2026-09-09). Défaut `false`. Indépendant du bandeau debug (`kShowLiveCounters`).
+  final bool showCounters;
+
   const GameSettings({
     this.showSolutionCounter = true,
     this.enableHaptics = true,
     this.longPressDuration = 100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
+    this.showCounters = false,
   });
 
   GameSettings copyWith({
     bool? showSolutionCounter,
     bool? enableHaptics,
     int? longPressDuration,
+    bool? showCounters,
   }) {
     return GameSettings(
       showSolutionCounter: showSolutionCounter ?? this.showSolutionCounter,
       enableHaptics: enableHaptics ?? this.enableHaptics,
       longPressDuration: longPressDuration ?? this.longPressDuration,
+      showCounters: showCounters ?? this.showCounters,
     );
   }
 
@@ -281,6 +290,7 @@ class GameSettings {
       'showSolutionCounter': showSolutionCounter,
       'enableHaptics': enableHaptics,
       'longPressDuration': longPressDuration,
+      'showCounters': showCounters,
     };
   }
 
@@ -289,6 +299,7 @@ class GameSettings {
       showSolutionCounter: json['showSolutionCounter'] ?? true,
       enableHaptics: json['enableHaptics'] ?? true,
       longPressDuration: json['longPressDuration'] ?? 100,
+      showCounters: json['showCounters'] ?? false,
     );
   }
 }

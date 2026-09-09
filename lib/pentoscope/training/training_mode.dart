@@ -1,4 +1,6 @@
-// Modified: 2026-09-08 22:37 — Mode entraînement niveau 1 (PLAN_MODE_ENTRAINEMENT §2) : logique pure,
+// Modified: 2026-09-09 09:08 — plateau d'entraînement 5×7 (kTrainBoardHeight 5 → 7, choix de Paul) :
+//           remplit l'écran en portrait ; la cible se tire dans tout le 5×7.
+// Historique: 2026-09-08 22:37 — Mode entraînement niveau 1 (PLAN_MODE_ENTRAINEMENT §2) : logique pure,
 //           sans Flutter — tirage reproductible (PentapolRng), validation par ÉGALITÉ DES ENSEMBLES
 //           de cases occupées (jamais par index d'orientation), minimum d'appuis via
 //           Pento.minIsometriesToReach (orpheline réutilisée). Terminaison garantie X compris.
@@ -10,11 +12,11 @@ import 'package:pentapol/common/pentapol_rng.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/point.dart';
 
-/// Plateau du mode entraînement : `size5x5` (PLAN §4). C'est le plus petit plateau où les
-/// 63 orientations tiennent — la boîte englobante d'un pentomino ne dépasse jamais 5, et seul
-/// le I atteint 5. Un plateau plus grand ne ferait que rapetisser les cases sur téléphone.
+/// Plateau du mode entraînement : **5×7** (`size7x5`, choix de Paul 2026-09-09 — révise le size5x5
+/// du PLAN §4). Les 63 orientations tiennent (boîte englobante ≤ 5), et le format haut **remplit
+/// l'écran en portrait** (le 5×5, quasi carré, laissait une bande vide au-dessus).
 const int kTrainBoardWidth = 5;
-const int kTrainBoardHeight = 5;
+const int kTrainBoardHeight = 7;
 
 /// Cellules (col, ligne) d'une orientation [pos] de [piece], normalisées sur sa boîte englobante :
 /// le coin haut-gauche de la forme est en (0, 0). Repère : x = colonne, y = ligne, y vers le bas.

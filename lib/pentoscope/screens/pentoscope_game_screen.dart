@@ -1,4 +1,11 @@
-// Modified: 2026-09-09 07:01 — marge latérale du plateau (kBoardSideMargin, 26 pt/côté) appliquée en
+// Modified: 2026-09-09 09:20 — réglage « compteurs » : récap 🔄 isométries · ⚫ fautes en OVERLAY haut-gauche
+//           (sous l'AppBar, _statsOverlay) si settings.game.showCounters — pas dans la barre. S'exclut du
+//           bandeau debug (même coin). Retour de Paul.
+// Historique: 2026-09-09 08:15 — mode entraînement (Option A) : le game screen gère isTraining — carte de
+//           bilan d'exercice (_buildTrainingCard : appuis/min/temps + « Suivante »=startTraining) sur
+//           _trainingSolved (pièce sur le fantôme), enregistrement de l'exercice, « + » = exercice
+//           suivant, indice masqué. Même UI que le jeu (barre isométrie en haut, tiroir en bas).
+// Historique: 2026-09-09 07:01 — marge latérale du plateau (kBoardSideMargin, 26 pt/côté) appliquée en
 //           portrait au plateau ET à _barMetrics (§3) : un grand plateau prenait toute la largeur →
 //           le doigt butait sur le bord écran en positionnant (suivi 1:1). N'affecte que les plateaux
 //           limités par la largeur. Défaut sensibilité 50-200 (voir app_settings).
@@ -226,6 +233,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // Remis à zéro au démarrage d'une nouvelle partie (comme _bilanFerme).
   Offset _bilanOffset = Offset.zero;
 
+  // 🎓 Temps figé à la réussite d'un exercice d'entraînement (getElapsedSeconds continue de croître
+  // après stopTimer). null tant que l'exercice n'est pas résolu ; remis à null à « Suivante ».
+  int? _trainingElapsed;
+
   /// Gère l'affichage des messages et vibrations selon le résultat de transformation
   void _handleTransformationResult(BuildContext context, TransformationResult result) {
     switch (result) {
@@ -321,6 +332,18 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     ref.listen<PentoscopeState>(pentoscopeProvider, (prev, next) {
       final justCompleted = !(prev?.isComplete ?? false) && next.isComplete;
       if (justCompleted) _onPuzzleCompleted(context, next);
+
+      // 🎓 Entraînement : la pièce vient de recouvrir le fantôme → figer le temps, enregistrer
+      // l'exercice (retour, pas un record), retour haptique. La carte de bilan s'affiche via l'état.
+      if (next.isTraining) {
+        final wasSolved = prev != null && _trainingSolved(prev);
+        if (!wasSolved && _trainingSolved(next)) {
+          notifier.stopTimer();
+          setState(() => _trainingElapsed = notifier.getElapsedSeconds());
+          ref.read(settingsProvider.notifier).recordTrainingExercise();
+          if (settings.game.enableHaptics) HapticFeedback.mediumImpact();
+        }
+      }
     });
 
     // Bilan non modal : piloté par state.isComplete. _bilanFerme se remet à false dès que le
@@ -343,7 +366,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final isLandscape =
         MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      // Sortie d'entraînement par geste système (swipe-back) : restaurer la partie du jeu figée à
+      // l'entrée, comme le fait le bouton 🏠 (sinon « Jouer » repartirait fraîche et effacerait la
+      // sauvegarde). No-op hors entraînement.
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop && state.isTraining) notifier.endTraining();
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: isLandscape
           ? null
@@ -400,9 +431,14 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             },
           ),
           
+          // 🔄⚫ Récap utilisateur (réglage showCounters) : isométries + fautes, haut-gauche.
+          if (settings.game.showCounters) _statsOverlay(state),
+
           // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
           // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
-          if (kShowLiveCounters) _debugIndicatorsOverlay(state),
+          // Masqué si le récap utilisateur est actif (même coin) — les deux s'excluent.
+          if (kShowLiveCounters && !settings.game.showCounters)
+            _debugIndicatorsOverlay(state),
 
           // 👁️ Mini-plateau adversaire (overlay)
           if (_showOpponentOverlay)
@@ -424,8 +460,64 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
           if (state.isComplete && !_bilanFerme)
             _buildBilanCard(context, state, notifier),
+
+          // 🎓 Entraînement : carte de fin d'exercice (appuis / minimum / temps) + « Suivante ».
+          if (state.isTraining && _trainingSolved(state))
+            Center(child: _buildTrainingCard(context, state, notifier)),
         ],
       ),
+      ),
+    ),
+    );
+  }
+
+  /// Vrai si l'unique pièce d'un exercice d'entraînement recouvre EXACTEMENT le fantôme.
+  bool _trainingSolved(PentoscopeState st) {
+    if (!st.isTraining) return false;
+    final ghost = st.currentSolution;
+    if (ghost == null || ghost.isEmpty || st.placedPieces.length != 1) return false;
+    final placed = st.placedPieces.first.absoluteCells.map((c) => (c.x, c.y)).toSet();
+    final target = ghost.first.absoluteCells.map((c) => (c.x, c.y)).toSet();
+    return placed.length == target.length && placed.containsAll(target);
+  }
+
+  /// Carte de bilan d'un exercice d'entraînement : informatif (appuis effectués, minimum, temps),
+  /// non comparatif, puis « Suivante » → nouvel exercice.
+  Widget _buildTrainingCard(
+      BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
+    final l10n = AppLocalizations.of(context);
+    final ex = notifier.trainingExercise;
+    final min = ex?.minPresses ?? 0;
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.congrats,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            Text(
+              '${l10n.trainingPresses(state.isometryCount)} · ${l10n.trainingSeconds(_trainingElapsed ?? 0)}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.trainingEnough(min),
+              style: TextStyle(fontSize: 14, color: Colors.black.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                setState(() => _trainingElapsed = null);
+                notifier.startTraining();
+              },
+              child: Text(l10n.next),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1053,6 +1145,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         color: Colors.blueGrey,
         onPressed: () {
           HapticFeedback.selectionClick();
+          // Sortie d'entraînement : restaurer la partie du jeu figée à l'entrée avant de revenir.
+          if (state.isTraining) notifier.endTraining();
           Navigator.popUntil(context, (r) => r.isFirst); // retour au menu d'entrée
         },
         tooltip: l10n.homeTooltip,
@@ -1061,12 +1155,17 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         icon: const Icon(Icons.add_circle_outline),
         iconSize: iconSize,
         color: Colors.blue,
-        onPressed: () => _showNewGameDialog(context, ref),
-        tooltip: l10n.newGame,
+        // En entraînement, « + » tire un nouvel exercice (pas le dialogue de nouvelle partie, qui
+        // sortirait du mode). En jeu, dialogue de nouvelle partie.
+        onPressed: state.isTraining
+            ? () => notifier.startTraining()
+            : () => _showNewGameDialog(context, ref),
+        tooltip: state.isTraining ? l10n.next : l10n.newGame,
       ),
       // Icône « person » (reset « recommencer ») retirée le 2026-09-07 (choix de Paul) : la remise à
       // zéro reste accessible par « Nouvelle partie » (add_circle) et par la carte de bilan.
-      if (!state.isComplete && state.availablePieces.isNotEmpty)
+      // Indice masqué en entraînement (aucune table de solutions : il ne ferait rien).
+      if (!state.isComplete && !state.isTraining && state.availablePieces.isNotEmpty)
         IconButton(
           icon: Icon(Icons.lightbulb,
               color: state.hasPossibleSolution ? Colors.amber : Colors.red),
@@ -1123,6 +1222,33 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         fontSize: _uiLabelSize(context) * _kChronoFactor,
         fontWeight: FontWeight.bold,
         color: Colors.black,
+      ),
+    );
+  }
+
+  /// Récap **isométries + fautes** en haut-gauche, sous l'AppBar (retour de Paul, réglage
+  /// `showCounters`). Petit bandeau propre, à ne pas confondre avec le bandeau **debug**
+  /// (`kShowLiveCounters`, 3 lignes) : les deux s'excluent (voir le Stack du build).
+  Widget _statsOverlay(PentoscopeState state) {
+    const base = TextStyle(
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      fontFeatures: [FontFeature.tabularFigures()],
+    );
+    return Positioned(
+      left: 8,
+      top: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text('🔄 ${state.isometryCount}   ⚫ ${state.faultCount}',
+              style: base),
+        ),
       ),
     );
   }

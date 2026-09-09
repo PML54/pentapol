@@ -1,4 +1,6 @@
-// Modified: 2026-09-09 07:01 — sensibilité du drag : setLongPressDuration borne la valeur à [50, 200] ms
+// Modified: 2026-09-09 09:08 — setShowCounters(bool) : affiche/masque les compteurs isométries + fautes
+//           dans la barre du jeu (retour de Paul).
+// Historique: 2026-09-09 07:01 — sensibilité du drag : setLongPressDuration borne la valeur à [50, 200] ms
 //           (retour de Paul, défaut 100).
 // Historique: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §6) : recordTrainingExercise()
 //           incrémente trainingExercisesDone (retour d'exercice, PAS un record — aucune écriture dans
@@ -319,6 +321,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(
       game: state.game.copyWith(longPressDuration: duration.clamp(50, 200)),
     );
+    await _saveSettings();
+  }
+
+  /// Afficher/masquer les compteurs isométries + fautes dans la barre du jeu (retour de Paul).
+  Future<void> setShowCounters(bool value) async {
+    state = state.copyWith(game: state.game.copyWith(showCounters: value));
     await _saveSettings();
   }
 

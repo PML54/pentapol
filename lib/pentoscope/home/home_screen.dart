@@ -1,4 +1,16 @@
-// Modified: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §2) : bouton « Mode entraînement »
+// Modified: 2026-09-09 14:45 — accueil (choix de Paul) : icônes d'en-tête agrandies (28→32) ;
+//           « Jouer » (person) VERT, plus gros (46) et au CENTRE géométrique via un Stack ;
+//           Multijoueur/Entraînement à gauche, défi/records/réglages à droite.
+// Historique: 2026-09-09 14:40 — accueil = hub tout en icônes (choix de Paul) : les trois actions
+//           passent dans l'en-tête à GAUCHE (Jouer=person, Multijoueur=people, Entraînement=
+//           psychology) ; défi/records/réglages restent à droite. Titre « PENTAPOL » et les trois
+//           gros boutons du bas (_buildPlayButton) supprimés ; l'animation-démo prend la place.
+// Historique: 2026-09-09 14:33 — accueil (choix de Paul) : titre « PENTAPOL » retiré de l'en-tête ;
+//           icônes des boutons — Jouer = person (solo), Multijoueur = people (duel),
+//           Entraînement = psychology (rotation mentale). Jouer passe en FilledButton.icon.
+// Historique: 2026-09-09 08:15 — Mode entraînement (Option A) : le bouton « Mode entraînement » lance
+//           startTraining() sur le provider partagé puis ouvre PentoscopeGameScreen (même UI que le jeu).
+// Historique: 2026-09-08 22:37 — Mode entraînement (PLAN_MODE_ENTRAINEMENT §2) : bouton « Mode entraînement »
 //           sous « Multijoueur » (→ TrainingScreen). Onboarding rotation mentale, hors progression/records.
 // Historique: 2026-09-07 10:07 — vignette : ratio mini-pièce découplé du k de gameplay (_kHomePieceRatio,
 //           0.20) — la hausse de k (0.22→0.26) faisait se toucher les pièces du rack de la démo.
@@ -41,7 +53,6 @@ import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
-import 'package:pentapol/pentoscope/training/training_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
@@ -211,13 +222,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, settings.currentLevel),
             Expanded(
               child: Align(
                 // Plateau ancré haut, près de l'en-tête ; le rab passe sous la scène.
                 alignment: Alignment.topCenter,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                   child: LayoutBuilder(
                     builder: (context, constraints) =>
                         _buildScene(constraints, colorOf),
@@ -225,60 +236,96 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
             ),
-            _buildPlayButton(context, settings.currentLevel),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, int level) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 8, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+      // Titre « PENTAPOL » retiré (choix de Paul). En-tête = hub. « Jouer » (person) est l'action
+      // principale : VERT et plus gros, au CENTRE géométrique (Stack) ; les autres icônes (32) sont
+      // réparties aux bords — Multijoueur/Entraînement à gauche, défi/records/réglages à droite.
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const Text(
-            'PENTAPOL',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 2,
-              color: Colors.black87,
-            ),
-          ),
           Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: const Icon(Icons.flag_outlined, color: Colors.black54),
-                iconSize: 28,
-                tooltip: l10n.homeChallenge,
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChallengeScreen()),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.people, color: Colors.black87),
+                    iconSize: 32,
+                    tooltip: l10n.multiplayer,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const PentoscopeMPLobbyScreen()),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.psychology, color: Colors.black87),
+                    iconSize: 32,
+                    tooltip: l10n.trainingMode,
+                    onPressed: () {
+                      // Entraînement = même UI que le jeu (Option A) : démarrer un exercice sur le
+                      // provider partagé, puis ouvrir l'écran de jeu (il gère l'affichage entraînement).
+                      ref.read(pentoscopeProvider.notifier).startTraining();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PentoscopeGameScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.emoji_events_outlined, color: Colors.black54),
-                iconSize: 28,
-                tooltip: l10n.homeRecords,
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RecordsScreen()),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings, color: Colors.black54),
-                iconSize: 28,
-                tooltip: l10n.homeSettings,
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.flag_outlined, color: Colors.black54),
+                    iconSize: 32,
+                    tooltip: l10n.homeChallenge,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ChallengeScreen()),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.emoji_events_outlined,
+                        color: Colors.black54),
+                    iconSize: 32,
+                    tooltip: l10n.homeRecords,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RecordsScreen()),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.black54),
+                    iconSize: 32,
+                    tooltip: l10n.homeSettings,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
+                  ),
+                ],
               ),
             ],
+          ),
+          // Action principale « Jouer », au centre, vert et plus gros.
+          IconButton(
+            icon: Icon(Icons.person, color: Colors.green.shade600),
+            iconSize: 46,
+            tooltip: l10n.play,
+            onPressed: () => _play(context, level),
           ),
         ],
       ),
@@ -583,85 +630,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPlayButton(BuildContext context, int level) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.levelLabel(level),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black.withValues(alpha: 0.55),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: FilledButton(
-              onPressed: () => _play(context, level),
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                l10n.play,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PentoscopeMPLobbyScreen()),
-              ),
-              icon: const Icon(Icons.people_outline),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              label: Text(
-                l10n.multiplayer,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TrainingScreen()),
-              ),
-              icon: const Icon(Icons.school_outlined),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              label: Text(
-                l10n.trainingMode,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

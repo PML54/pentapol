@@ -254,6 +254,18 @@ abstract class AppLocalizations {
   /// **'Vibrate on actions'**
   String get hapticsSub;
 
+  /// No description provided for @showCounters.
+  ///
+  /// In en, this message translates to:
+  /// **'Show counters (isometries, faults)'**
+  String get showCounters;
+
+  /// No description provided for @showCountersSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Displays the isometry and fault counts in the game bar.'**
+  String get showCountersSub;
+
   /// No description provided for @dragSensitivity.
   ///
   /// In en, this message translates to:

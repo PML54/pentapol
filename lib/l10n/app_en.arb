@@ -31,6 +31,8 @@
   "solutionCounterSub": "Show the number of possible solutions",
   "haptics": "Haptic feedback",
   "hapticsSub": "Vibrate on actions",
+  "showCounters": "Show counters (isometries, faults)",
+  "showCountersSub": "Displays the isometry and fault counts in the game bar.",
   "dragSensitivity": "Drag sensitivity",
   "dragMs": "{ms}ms",
   "@dragMs": { "placeholders": { "ms": { "type": "int" } } },

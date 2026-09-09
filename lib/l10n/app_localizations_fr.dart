@@ -88,6 +88,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hapticsSub => 'Vibrations lors des actions';
 
   @override
+  String get showCounters => 'Afficher les compteurs (isométries, fautes)';
+
+  @override
+  String get showCountersSub =>
+      'Affiche le nombre d\'isométries et de fautes dans la barre du jeu.';
+
+  @override
   String get dragSensitivity => 'Sensibilité du drag';
 
   @override
