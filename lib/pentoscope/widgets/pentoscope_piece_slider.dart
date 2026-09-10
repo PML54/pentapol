@@ -1,4 +1,5 @@
-// Modified: 2026-09-10 06:00 — ergonomie (bloc 3, C6) : fondu de bord du rack SENSIBLE au défilement.
+// Modified: 2026-09-10 10:13 — pièce visible dès la prise du rack, contour rouge tant que le dépôt est interdit.
+// Historique: 2026-09-10 06:00 — ergonomie (bloc 3, C6) : fondu de bord du rack SENSIBLE au défilement.
 //           Fondu de tête seulement si on a défilé (offset > 0) → la 1re pièce n'est jamais rognée
 //           (C6) ; fondu de queue tant qu'il reste des pièces après → suggère au nouveau joueur (3×5)
 //           que le rack défile, sans rétrécir les pièces (respecte l'invariant #3). ShaderMask dstIn.
@@ -23,6 +24,7 @@
 //             2512100457 — FIX _getDisplayPositionIndex() rotation paysage stable.
 
 import 'package:flutter/material.dart';
+import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
@@ -279,6 +281,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             // plateau), pour que le placement colle au doigt (fix : viser une case dispo depuis
             // le tiroir).
             onGrab: (localGrab, box) {
+              ref.read(dragOverBoardProvider.notifier).update(false);
               if (settings.game.enableHaptics) {
                 HapticFeedback.selectionClick();
               }
@@ -305,17 +308,11 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                 cellSize: widget.pieceCellSize,
                 getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
               );
-              // Feedback sous le doigt (glissement) : image RÉELLE si posable, TRANSPARENT si
-              // chevauchement. Le Consumer se reconstruit à chaque updatePreview → bascule en direct.
+              // Visible dès la prise, rouge hors plateau ou si le placement est interdit.
               if (isDragging) {
-                return Consumer(
-                  builder: (context, ref, _) {
-                    final valid = ref.watch(
-                        pentoscopeProvider.select((s) => s.isPreviewValid));
-                    return Opacity(
-                        opacity: valid ? 1.0 : 0.0, child: renderer);
-                  },
-                );
+                return PieceDragFeedback(piece: piece, positionIndex: displayPositionIndex,
+                  cellSize: widget.pieceCellSize,
+                  getPieceColor: (id) => settings.ui.getPieceColor(id));
               }
               // Halo au repos seulement (pièce sélectionnée, immobile).
               if (!isSelected) return renderer;

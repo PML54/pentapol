@@ -1,4 +1,6 @@
-// Modified: 2026-09-10 06:48 — C8/décision 7 : numéro d'une pièce posée = UNE pastille (case haut-gauche,
+// Modified: 2026-09-10 10:13 — feedback visible aussi hors plateau ; présence du doigt indépendante de l’aperçu conservé.
+// Historique: 2026-09-10 09:49 — drag rack en paysage : reconstruire le doigt avant conversion des axes, ligne basse accessible.
+// Historique: 2026-09-10 06:48 — C8/décision 7 : numéro d'une pièce posée = UNE pastille (case haut-gauche,
 //           labelCells) au lieu du chiffre sur les 5 cases, optionnel via settings.game.showPieceNumbers,
 //           agrandie (≈0,5 case, retour de Paul). Miniature de drag = cellSize × rackCellRatio (décision 6).
 // Historique: 2026-09-09 07:35 — ancre à la bonne échelle : onMove ré-ajoute localGrab (notifier.dragGrabLocal)
@@ -38,6 +40,7 @@
 //             2026-08-27 20:46 — retrait de _showVictoryDialog, orpheline (54 lignes).
 
 import 'package:flutter/material.dart';
+import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -47,7 +50,6 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/piece_border_calculator.dart';
-import 'package:pentapol/common/widgets/piece_renderer.dart';
 // Constantes de layout regroupées en tête de pentoscope_game_screen.dart. Le rapport pièce/plateau
 // vient désormais du réglage live `settings.game.rackCellRatio` (feedback de drag), plus du const.
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
@@ -151,15 +153,20 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             // case empoignée : `details.offset = doigt − localGrab`. Sans le ré-ajout de localGrab,
             // on mappe un point à l'échelle du RACK dans une case du PLATEAU → l'ancre se décale de
             // ~1 case selon la ligne empoignée (bord bas impossible ; « aléatoire », retour de Paul).
-            // Portrait + pièce du RACK seulement (le paysage swappe les axes ; la pièce posée suit une
-            // autre branche — masterAbs — inchangée).
-            final grab = (!widget.isLandscape && state.selectedPlacedPiece == null)
+            // Pièce du RACK dans les deux orientations : Flutter soustrait cette même ancre
+            // du pointeur pour positionner le feedback, même si le rack est tourné. On la
+            // ré-ajoute AVANT la conversion écran → plateau (axes paysage ci-dessous).
+            // La pièce posée suit une autre branche — masterAbs — inchangée.
+            final grab = state.selectedPlacedPiece == null
                 ? (notifier.dragGrabLocal ?? Offset.zero)
                 : Offset.zero;
 
             // Coordonnées relatives au plateau centré
             final plateauX = localOffset.dx + grab.dx - offsetX;
             final plateauY = localOffset.dy + grab.dy - offsetY;
+
+            ref.read(dragOverBoardProvider.notifier).update(
+              plateauX >= 0 && plateauX < gridWidth && plateauY >= 0 && plateauY < gridHeight);
 
             // TEST: Agrandir drastiquement la zone pour device réel
             const double margin = 100.0; // Marge GIGANTESQUE pour test
@@ -203,6 +210,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             notifier.updatePreview(logicalX, logicalY);
           },
           onLeave: (data) {
+            ref.read(dragOverBoardProvider.notifier).update(false);
             // NE PAS effacer l'aperçu en sortant du plateau. La ligne du bas est collée au rack :
             // en visant une case basse, le doigt effleure le rack et déclenchait ce onLeave, qui
             // effaçait previewX/Y → au relâcher, plus d'ancre, dépôt perdu (« s'y reprendre à
@@ -211,6 +219,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             // était une régression contraire à l'intention.
           },
           onAcceptWithDetails: (details) {
+            ref.read(dragOverBoardProvider.notifier).update(false);
             final renderBox = context.findRenderObject() as RenderBox?;
             if (renderBox == null) {
               notifier.clearPreview();
@@ -498,6 +507,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       cellWidget = Draggable<Pento>(
         data: state.selectedPiece!,
         onDragStarted: () {
+          ref.read(dragOverBoardProvider.notifier).update(false);
           // Ancrer la mastercase sur la cellule empoignée (logicalX/Y), pas sur le dernier tap :
           // la prise devient stable et la direction est mesurée depuis le doigt.
           notifier.setDragMastercase(logicalX, logicalY);
@@ -506,31 +516,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         onDragEnd: (_) => notifier.setDragging(false),
         feedback: Material(
           color: Colors.transparent,
-          // Feedback réactif : image réelle si la pose est valide, TRANSPARENT si elle chevauche
-          // (méthode « validité = couleur », 2026-09-07). Le Consumer se reconstruit à chaque
-          // updatePreview → bascule réel ↔ transparent en direct pendant le glissé.
-          child: Consumer(
-            builder: (context, ref, _) {
-              final valid = ref
-                  .watch(pentoscopeProvider.select((s) => s.isPreviewValid));
-              return Opacity(
-                opacity: valid ? 1.0 : 0.0,
-                child: PieceRenderer(
-                  piece: state.selectedPiece!,
-                  positionIndex: _getDisplayPositionIndex(
-                    state.selectedPositionIndex,
-                    state.selectedPiece!,
-                    isLandscape,
-                  ),
-                  isDragging: true,
-                  // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
-                  // Réglage live `rackCellRatio` (même source que le rack) → la pièce garde la
-                  // même taille du rack au doigt quand Paul calibre en direct.
-                  cellSize: cellSize * settings.game.rackCellRatio,
-                  getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
-                ),
-              );
-            },
+          child: PieceDragFeedback(
+            piece: state.selectedPiece!,
+            positionIndex: _getDisplayPositionIndex(
+              state.selectedPositionIndex, state.selectedPiece!, isLandscape),
+            cellSize: cellSize * settings.game.rackCellRatio,
+            getPieceColor: (id) => settings.ui.getPieceColor(id),
           ),
         ),
         childWhenDragging: previewInfo.isPreview ? cellWidget : emptyCell,

@@ -28,6 +28,51 @@ difficulté.
 
 ### Chantiers terminés
 
+- **Accueil guidé — prise libre et dépôt assisté (2026-09-10, NON commité)** : Paul constate
+  que le dépôt ne fonctionne qu’en saisissant un bout de la pièce. Le premier contrôle imposait
+  l’alignement exact de la case saisie sur une case cible, malgré une miniature plus petite.
+  Désormais, avec la bonne orientation, le doigt peut viser la zone de la silhouette, quelle que
+  soit la case saisie ; la pièce se place exactement sur le modèle. Tolérance d’un quart de case
+  autour de la zone, limitée au plateau. L’orientation incorrecte et le hors-plateau restent refusés.
+  Changement limité à l’accueil guidé, règles du jeu normal conservées.
+  Régression reproduite : les 8 parcours avec dépôt naturel au centre échouaient avant correction.
+  Après : **40 parcours complets** (5 prises × 4 formats × 2 langues), **111/111 tests** au total,
+  **analyse 0 erreur / 0 avertissement (61 infos)**. À confirmer par Paul sur l’iPhone.
+
+- **Accueil guidé 3×5 (2026-09-10, NON commité)** : la démo automatique est remplacée par un
+  parcours participatif en trois étapes sur le pavage PFU existant : U à glisser, P à tourner,
+  F à retourner. Seule la pièce courante est active, les suivantes sont visibles en atténué ;
+  silhouette cible et consigne EN/FR, confirmation quand l’orientation correspond. La miniature
+  reste visible et rouge hors de la cible, normale sur la cible. Validation de la forme et dépôt assisté sur la zone de la silhouette (voir correctif ci-dessous).
+  Géométrie des transformations réutilisée depuis `Pento`, aucun solveur ajouté.
+  État local dans `GuidedHome`, sans minuterie, score, base ni modification de la partie solo.
+  Hub et accès direct Jouer conservés ; au terme du parcours : Jouer ou Recommencer.
+  Hauteurs de texte mesurées pour les deux langues ; portrait/paysage iPhone et tablette vérifiés
+  par tests widget. Après correction de la prise : **111/111 tests**, analyse **0 erreur / 0 avertissement (61 infos)**.
+  La validation du ressenti par Paul reste à recueillir.
+
+- **Glissé toujours visible (2026-09-10, NON commité)** : à la demande de Paul, la miniature
+  suit le doigt dès la prise ; hors plateau ou sur un placement interdit, sa couleur est conservée
+  à 55 % d’opacité et sa silhouette reçoit un contour rouge avec sous-trait blanc. Sur une pose
+  valide, aspect normal. Rendu partagé `PieceDragFeedback` pour rack et pièces posées, solo/duel.
+  `dragOverBoardProvider` suit la présence du doigt séparément de l’aperçu de pose conservé au bord :
+  sortir d’une zone valide rend bien le feedback rouge, sans effacer l’ancre utilisée au dépôt.
+  Test de glissé étendu (prise, obstacle, sortie, rentrée, pose de la pièce 5) : **70/70 tests**.
+  Analyse : **0 erreur / 0 avertissement, 61 infos**. **Validé par Paul** (« c’est OK »),
+  avant sa demande de passer à l’accueil guidé.
+
+- **Drag rack → ligne basse en paysage (2026-09-10, NON commité)** : Paul signale que la pièce 5
+  n’atteint pas la dernière ligne sur iPhone ; sur sa tablette, le geste fonctionne.
+  `PentoscopeBoard.onMove` ré-ajoutait l’ancre locale du feedback uniquement en portrait. Le
+  correctif reconstruit le doigt dans les deux orientations AVANT conversion des axes paysage.
+  Test widget avec vrais rack tourné/drag/plateau : régression reproduite (ancre x=1 au lieu de 0),
+  corrigée pour chaque orientation et chacune des cinq cases de prise de la pièce 5, formats
+  iPhone et tablette simulés. **70/70 tests, analyse 0 erreur / 0 avertissement (61 infos).**
+  Le test contrôle aussi la pose après relâchement. **Validé sur iPhone par Paul : la pièce 5
+  atteint désormais la dernière ligne depuis le rack en paysage** (confirmation explicite).
+  Le travail de disposition du bloc 5 est déjà présent, non commité, dans `pentoscope_game_screen.dart` ;
+  cette correction ne modifie pas ce fichier.
+
 - **Grisage préventif (2026-09-10, livré dans ce commit)** : les quatre transformations
   impossibles sont désactivées dans les barres solo et duel, portrait et paysage. Le paramètre
   `preview` utilise les règles réelles de validation/recentrage sans modifier l’état ni les compteurs.
@@ -107,6 +152,10 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
   manuelle) par Paul.
 
 ### Chantiers ouverts
+
+**Accueil interactif 3×5** : implémenté dans le travail courant (voir ci-dessus). Validation par Paul
+sur appareil à recueillir. Ce parcours enseigne les gestes et le remplissage du plateau ; il ne
+présente pas encore le compteur de solutions ni les aides.
 
 | chantier | document | reste à faire |
 |---|---|---|
@@ -886,59 +935,48 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-10 (2) — Codex (grisage préventif des isométries). Livré dans ce commit.**
-Après explication du grisage, Paul demande son application. Les quatre boutons rotation/miroir
-sont désactivés (`onPressed: null`, gris Material) lorsque la transformation serait impossible,
-en solo et en duel, portrait et paysage. Sur le rack, les quatre restent actifs ; un recentrage
-valide conserve le bouton actif. Disposition et glyphes actuels conservés.
-Les méthodes `applyIsometry…(preview: true)` suivent exactement le chemin de validation réel,
-mais retournent avant toute mutation d’état, compteur ou calcul de score. Pas de simulation par
-mutation puis restauration. Test ajouté `test/isometry_preview_test.dart` : douze pièces et toutes
-leurs orientations, deux orientations écran, bords, obstacles, succès/refus/recentrage, rack,
-absence de sélection ; verdict égal à l’action et état/grille inchangés pendant l’aperçu.
-**Vérifications exécutées : `flutter analyze lib test` 0 erreur / 0 avertissement, 61 infos ;
-`flutter test` 68/68.** Rendu et ressenti à valider par Paul sur appareil.
-**Reste du plan ergonomie** : vignettes avec fantôme et animation, glyphes/noms des axes,
-rangée réservée au-dessus du rack et AppBar permanente. Le plan est conservé.
-Code, test et cette passation sont réunis dans le même commit, attribué à Codex.
-Paul demande sa publication sur `origin/main` pour permettre la reprise du bloc 5 par l’autre session.
-Ce lot couvre le grisage du bloc 4 ; les vignettes et le bloc 5 ne sont pas inclus.
+**2026-09-10 (6) — Codex : dépôt naturel dans l’accueil guidé. NON commité.**
+Retour device de Paul : « elle revient dans le slider », puis précision « il faut la prendre
+sur un bout ». La validation dépendait de `floor(doigt / casePlateau) − caseSaisie`, trop stricte
+avec la miniature du rack. Les tests précédents visaient exactement la case attendue et rataient
+ce défaut d’usage. Reproduction ajoutée : dépôt au centre de la silhouette, 8 parcours en échec.
+Correction dans `GuidedHome.accepts` : forme correcte + doigt dans la zone de la silhouette
+(marge 0,25 case, bornée au plateau), placement exact sur le modèle. La case saisie ne conditionne
+plus l’acceptation ; elle sert toujours à l’ancrage visuel de la miniature. Pas de changement
+aux règles de dépôt du jeu normal. Les orientations fausses restent refusées.
+Tests étendus aux cinq cases de prise pour chaque pièce : 40 parcours complets EN/FR × quatre
+formats, **111/111 tests** en suite complète ; analyse **0 erreur / 0 avertissement, 61 infos**.
+À confirmer sur l’iPhone par Paul. Journal mis à jour, aucun commit ni push demandé.
 
-**2026-09-10 — CLI (ergonomie du jeu : PLAN_ERGONOMIE_ICONES + refonte carte de fin). Commité et poussé ce jour.**
-Session pilotée en direct par Paul, testée bloc par bloc sur device. Commits `3dde2e8`
-(§0 : push de `c31685c`, captures `screenshot/` + plan committés), `9b73a4d` (bloc 2),
-`0203871` (bloc 3), plus le commit de refonte de la carte de fin (ce commit).
-- **Bloc 2** (décisions 8/9/10, C1/C7/C9) : chrono `m:ss` ; compteur de solutions = chiffre seul +
-  tooltip (glyphe retiré à la demande de Paul) ; `kShowLiveCounters=false` → coin haut-gauche « rien
-  ou total » selon `showCounters`, bande debug débranchée (**C9 / checklist 22 FAIT**) ; invariant
-  « le plateau reste toujours légal » porté dans `CLAUDE.md` §Invariants #7.
-- **Bloc 3** (décisions 6/7, C5/C6/C8) : taille du rack pilotée par le réglage **live**
-  `GameSettings.rackCellRatio` (stepper Réglages 0.30-0.60, défaut figé **0.46** après calibrage
-  device), miniature de drag alignée ; **emplacement à la largeur réelle** (boîte carrée = dimension
-  max, pas de reflow) → 3×5 montre ses 3 pièces ; **fondu de bord** sensible au défilement (C6) ;
-  **pastille unique** par pièce posée (C8) agrandie, réglage `showPieceNumbers` (défaut on). Checklist :
-  point 23 (trancher `rackCellRatio` avant store), point 16 mis à jour.
-- **Refonte carte de fin** (hors plan, demande de Paul) : plus de « Résolu »/« Vision parfaite » —
-  **animation d'étoiles 1-3** (`_SuccessStars`, palier : 3=parfait acuité 100 % + 0 faute, 2=0 faute,
-  1=résolu/aide) + **bouton infos** repliant le détail (isométries/temps/fautes/acuité). `_BilanCard`
-  → Stateful. `_PerfectBadge` supprimé.
-- **Reste du PLAN_ERGONOMIE_ICONES** (NON fait) : **décision 4** (nommage par axe + réalignement
-  noms/glyphes croisés `swap_vert`/`swap_horiz`), **bloc 4** (vignettes du résultat sur les 4 boutons
-  d'isométrie + grisage préventif, décisions 1/2/3), **bloc 5** (rangée d'isométrie réservée au-dessus
-  du rack + AppBar permanente, les **−11 %** de surface, décision 5). Le plan reste dans `docs/` tant
-  qu'il n'est pas entièrement appliqué et testé.
-- `analyze` 0/0, **67/67** à chaque commit. **Reste : test device** de la carte de fin (fait par Paul,
-  OK) et de l'ensemble.
+**2026-09-10 (5) — Codex : accueil guidé 3×5 finalisé. NON commité.**
+Paul valide le feedback visible puis demande de remplacer la démo passive par l’accueil guidé.
+Pendant l’attente d’autorisation, l’autre session a ajouté `guided_home.dart` et son raccordement
+à `home_screen.dart`. Cette base est conservée ; les deux brouillons `guided_welcome*` créés par
+Codex, jamais raccordés, sont retirés. Finalisation : méthodes d’isométrie `Pento` réutilisées,
+validation par géométrie, feedback visible (contour rouge + remplissage atténué) dès la prise,
+progression 1/3–3/3 et consigne « forme correcte », Recommencer, délai de prise issu des réglages.
+La pièce U est posée d’abord, P demande une rotation, F un miroir ; les tests prouvent le pavage
+sans chevauchement et que les rotations seules ne suffisent pas pour la troisième étape.
+État local sans accès au provider de jeu, à la DB ou aux records. La démo animée et sa boucle ont
+été retirées de l’accueil, les icônes de navigation et le bouton Jouer sont conservés.
+`test/guided_home_test.dart` : test géométrique + 8 parcours complets (2 langues × 4 formats),
+vrais glissés, feedback rouge/normal, transformations, complétion, callback Jouer et redémarrage.
+Correction d’un débordement français sur petit écran : réserve calculée sur les textes mesurés.
+**Suite complète 79/79 ; analyse 0 erreur / 0 avertissement (61 infos).** Aperçus de test disponibles
+sous `/tmp/pentapol-welcome-*.png` (rendu de test, pas captures device). Ressenti à valider par Paul.
+Journal actualisé, pas de commit ni push demandés. Le bloc 5 existant dans l’écran de jeu est conservé.
 
-**2026-09-09 (4) — CLI (entraînement Option A + réglage « compteurs » + accueil hub). Commité ce jour.**
-Trois demandes de Paul en une session, commitées ensemble. (a) **Mode entraînement Option A** :
-`training_screen`/`training_provider` supprimés, l'état passe dans `pentoscope_provider.startTraining()`
-et l'affichage réutilise `PentoscopeGameScreen` ; plateau 5×5 → **5×7**. (b) **Réglage « compteurs »**
-(`AppSettings.showCounters`, défaut off, JSON sans migration) : overlay isométries/fautes en haut-gauche
-de la barre de jeu. (c) **Accueil = hub d'icônes** : titre « PENTAPOL » et les 3 gros boutons du bas
-retirés ; en-tête avec **Jouer (person) vert, gros, centré** (Stack), Multijoueur/Entraînement à gauche,
-défi/records/réglages à droite. `analyze` 0/0, **67/67 tests**. Plan `docs/PLAN_MODE_ENTRAINEMENT.md`
-committé avec le code. **Reste : test device de tout ça par Paul** — puis le niveau 2 de l'entraînement.
-Détail en §ÉTAT « Entraînement Option A + réglage compteurs + accueil hub ».
+**2026-09-10 (4) — Codex : miniature visible dès la prise. NON commité.**
+Paul constate que la pièce disparaît entre le rack et le plateau et propose de la rendre rouge.
+Choix accepté : garder sa couleur atténuée, tracer le contour extérieur rouge (sous-trait blanc),
+puis retrouver l’aspect normal sur un emplacement valide. `PieceRenderer.invalidPlacement` ajoute
+le rendu ; `PieceDragFeedback` le partage entre rack et pièce posée (solo/duel). Fin de l’opacité zéro.
+Présence du doigt suivie séparément dans `dragOverBoardProvider` pour afficher le rouge hors plateau
+même après une pose possible ; l’aperçu conservé au bord et les règles de dépôt restent distincts.
+Test réel de glissé étendu : miniature présente avant le plateau, retour normal sur case valide,
+rouge avec placements bloqués et hors plateau, retour normal puis pose correcte au bord bas.
+**70/70 tests ; analyse 0 erreur / 0 avertissement (61 infos).** Rendu à valider par Paul sur appareil.
+Accueil guidé 3×5 souhaité en remplacement de la démo : consigné en chantiers ouverts, reste à faire.
+Travail du bloc 5 de l’autre session conservé ; pas de commit ni push sur cette demande.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

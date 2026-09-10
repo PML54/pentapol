@@ -615,4 +615,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get consentLater => 'Not now';
+
+  @override
+  String get guidedPlace =>
+      'Hold the highlighted piece, then drag it onto its outline.';
+
+  @override
+  String get guidedRotate => 'Turn the piece, then drag it onto its outline.';
+
+  @override
+  String get guidedMirror => 'Flip the piece, then drag it onto its outline.';
+
+  @override
+  String get guidedDone => 'You are ready to play!';
+
+  @override
+  String get guidedRotateAction => 'Turn the piece';
+
+  @override
+  String get guidedMirrorAction => 'Flip the piece';
+
+  @override
+  String guidedStep(int step) {
+    return 'Step $step/3';
+  }
+
+  @override
+  String get guidedReady => 'The shape matches! Drag it onto its outline.';
+
+  @override
+  String get guidedAgain => 'Try again';
 }

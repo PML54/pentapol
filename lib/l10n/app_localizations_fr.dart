@@ -619,4 +619,36 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get consentLater => 'Plus tard';
+
+  @override
+  String get guidedPlace =>
+      'Maintiens la pièce encadrée, puis glisse-la sur sa silhouette.';
+
+  @override
+  String get guidedRotate =>
+      'Tourne la pièce, puis glisse-la sur sa silhouette.';
+
+  @override
+  String get guidedMirror =>
+      'Retourne la pièce, puis glisse-la sur sa silhouette.';
+
+  @override
+  String get guidedDone => 'Tu es prêt à jouer !';
+
+  @override
+  String get guidedRotateAction => 'Tourner la pièce';
+
+  @override
+  String get guidedMirrorAction => 'Retourner la pièce';
+
+  @override
+  String guidedStep(int step) {
+    return 'Étape $step/3';
+  }
+
+  @override
+  String get guidedReady => 'La forme est bonne ! Glisse-la sur sa silhouette.';
+
+  @override
+  String get guidedAgain => 'Recommencer';
 }

@@ -209,5 +209,21 @@
   "consentTitle": "Take part in the online ranking?",
   "consentBody": "To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.",
   "consentEnable": "Take part",
-  "consentLater": "Not now"
+  "consentLater": "Not now",
+  "guidedPlace": "Hold the highlighted piece, then drag it onto its outline.",
+  "guidedRotate": "Turn the piece, then drag it onto its outline.",
+  "guidedMirror": "Flip the piece, then drag it onto its outline.",
+  "guidedDone": "You are ready to play!",
+  "guidedRotateAction": "Turn the piece",
+  "guidedMirrorAction": "Flip the piece",
+  "guidedStep": "Step {step}/3",
+  "guidedReady": "The shape matches! Drag it onto its outline.",
+  "guidedAgain": "Try again",
+  "@guidedStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  }
 }

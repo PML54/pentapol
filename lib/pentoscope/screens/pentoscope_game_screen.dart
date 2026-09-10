@@ -1,4 +1,9 @@
-// Modified: 2026-09-10 07:15 — boutons de transformation grisés et désactivés si placement impossible, portrait et paysage.
+// Modified: 2026-09-10 07:45 — ergonomie (bloc 5, §4) : rangée d'isométrie RÉSERVÉE (permanente, grisée
+//           au repos) au-dessus du rack (portrait) / en bas (paysage) ; AppBar et colonne d'actions
+//           redeviennent PERMANENTES (compteur/commandes toujours visibles, C1/C2). Hauteur réservée
+//           retranchée dans _barMetrics (ancre de drag préservée, invariant #3). Coût : -11 % de
+//           surface (à juger sur device). _buildFullHeightIsometryBar retiré (paysage → rangée du bas).
+// Historique: 2026-09-10 07:15 — boutons de transformation grisés et désactivés si placement impossible, portrait et paysage.
 // Historique: 2026-09-10 07:06 — carte de fin refondue (retour de Paul, hors plan) : plus de « Résolu »/
 //           « Vision parfaite » — animation d'étoiles 1-3 (_SuccessStars, palier fautes+acuité) +
 //           bouton infos (iconSize 34) repliant le détail (isométries/temps/fautes/acuité).
@@ -415,13 +420,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           centerTitle: false,
           // §9 : une seule barre d'actions, répartie. `actions:` tasserait les boutons à droite
           // et ne couvre pas le paysage — la barre vit dans le `title`, via _buildBarItems, qui
-          // sert aussi le paysage. Mode transformation : la barre d'isométrie prend la place.
-          title: (isPlacedPieceSelected || isSliderPieceSelected)
-              ? _buildFullWidthIsometryBar(state, notifier)
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _buildBarItems(context, state, notifier),
-                ),
+          // sert aussi le paysage. Bloc 5 (§4) : l'AppBar est désormais **permanente** — la barre
+          // d'isométrie ne la remplace plus (elle a sa rangée réservée au-dessus du rack), donc
+          // maison/chrono/ampoule/compteur restent visibles pendant la manipulation (C1/C2).
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _buildBarItems(context, state, notifier),
+          ),
         ),
       ),
       // §iOS : sans SafeArea le corps passe sous l'îlot dynamique (paysage, appBar null) et sous
@@ -859,86 +864,48 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  /// 🔑 Barre d'isométries pleine hauteur (mode paysage) avec icônes grandes et réparties
-  Widget _buildFullHeightIsometryBar(
-      PentoscopeState state,
-      PentoscopeNotifier notifier,
-      double columnWidth,
-      ) {
-    // Icônes de la barre de transformation (paysage) : même taille dédiée qu'en portrait
-    // (isometryIconSize), sinon elles « rétrécissent » en tournant en paysage (retour de Paul).
-    final iconSize = isometryIconSize(context);
-    final l10n = AppLocalizations.of(context);
-    final hasDeleteButton = state.selectedPlacedPiece != null;
+  /// Hauteur RÉSERVÉE de la rangée d'isométrie (bloc 5) : compacte, ancrée sur la taille d'icône
+  /// d'isométrie. Réservée en permanence dans les deux orientations → le plateau ne se décale
+  /// jamais entre « rien sélectionné » et « pièce sélectionnée ».
+  double _isometryRowHeight(BuildContext context) => isometryIconSize(context) + 14;
 
-    return Column(
+  /// Rangée d'isométrie **réservée** (bloc 5, §4 du PLAN_ERGONOMIE_ICONES) : hauteur fixe, juste
+  /// au-dessus du rack (portrait) ou en bas (paysage), **permanente**. Active (boutons réels, avec
+  /// grisage préventif §2) quand une pièce est sélectionnée ; **grisée et inerte** sinon. L'AppBar
+  /// (portrait) / la colonne d'actions (paysage) n'est donc plus escamotée : compteur et commandes
+  /// restent visibles (C1/C2).
+  Widget _buildReservedIsometryRow(
+      PentoscopeState state, PentoscopeNotifier notifier) {
+    final active =
+        state.selectedPiece != null || state.selectedPlacedPiece != null;
+    return Container(
+      width: double.infinity,
+      height: _isometryRowHeight(context),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F5F5),
+        border: Border(top: BorderSide(color: Colors.black12)),
+      ),
+      child: active
+          ? _buildFullWidthIsometryBar(state, notifier)
+          : IgnorePointer(child: Opacity(opacity: 0.30, child: _idleIsometryRow())),
+    );
+  }
+
+  /// Les 4 glyphes d'isométrie grisés, ordre identique à la barre active (mémoire du geste, §3.3),
+  /// affichés au repos (aucune pièce sélectionnée). Pas de bouton supprimer au repos.
+  Widget _idleIsometryRow() {
+    final iconSize = isometryIconSize(context);
+    final glyphs = [
+      GameIcons.isometryRotationTW,
+      GameIcons.isometryRotationCW,
+      GameIcons.isometrySymmetryH,
+      GameIcons.isometrySymmetryV,
+    ];
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // Rotation anti-horaire
-        IconButton(
-          icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          onPressed: notifier.applyIsometryRotationTW(preview: true) == TransformationResult.impossible
-              ? null : () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometryRotationTW();
-          },
-          tooltip: l10n.isoRotateTW,
-          color: GameIcons.isometryRotationTW.color,
-        ),
-        // Rotation horaire
-        IconButton(
-          icon: Icon(GameIcons.isometryRotationCW.icon, size: iconSize),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          onPressed: notifier.applyIsometryRotationCW(preview: true) == TransformationResult.impossible
-              ? null : () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometryRotationCW();
-          },
-          tooltip: l10n.isoRotateCW,
-          color: GameIcons.isometryRotationCW.color,
-        ),
-        // Symétrie horizontale
-        IconButton(
-          icon: Icon(GameIcons.isometrySymmetryH.icon, size: iconSize),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          onPressed: notifier.applyIsometrySymmetryH(preview: true) == TransformationResult.impossible
-              ? null : () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometrySymmetryH();
-          },
-          tooltip: l10n.isoSymH,
-          color: GameIcons.isometrySymmetryH.color,
-        ),
-        // Symétrie verticale
-        IconButton(
-          icon: Icon(GameIcons.isometrySymmetryV.icon, size: iconSize),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          onPressed: notifier.applyIsometrySymmetryV(preview: true) == TransformationResult.impossible
-              ? null : () {
-            HapticFeedback.selectionClick();
-            notifier.applyIsometrySymmetryV();
-          },
-          tooltip: l10n.isoSymV,
-          color: GameIcons.isometrySymmetryV.color,
-        ),
-        // Supprimer (si pièce placée)
-        if (hasDeleteButton)
-          IconButton(
-            icon: Icon(GameIcons.removePiece.icon, size: iconSize),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () {
-              HapticFeedback.selectionClick();
-              notifier.removePlacedPiece(state.selectedPlacedPiece!);
-            },
-            tooltip: l10n.isoRemove,
-            color: GameIcons.removePiece.color,
-          ),
+        for (final g in glyphs)
+          Icon(g.icon, size: iconSize, color: Colors.grey),
       ],
     );
   }
@@ -1319,22 +1286,26 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// (la colonne d'actions, en paysage). Garde-fou : jamais sous 8 pt.
   ({double cell, double extent}) _barMetrics(
       Size body, PentoscopeSize size, bool isLandscape, double reserve,
-      double maxCell, double pieceRatio) {
+      double maxCell, double pieceRatio, {double reservedExtra = 0}) {
     final cols = isLandscape ? size.height : size.width;
     final rows = isLandscape ? size.width : size.height;
     // Rapport pièce/plateau : réglage live (`settings.game.rackCellRatio`), défaut
     // kPieceToBoardCellRatio. Gouverne la taille des pièces du rack ET l'épaisseur de la barre.
     final k = pieceRatio;
+    // [reservedExtra] : hauteur prise en PLUS par la rangée d'isométrie réservée (bloc 5), à
+    // retrancher de la hauteur disponible AVANT le calcul, sinon la case du rack serait ancrée
+    // sur un plateau plus grand que le réel → l'ancre de drag se décalerait (invariant #3).
+    final availH = body.height - reservedExtra;
     double boardCell;
     if (isLandscape) {
       boardCell = math.min(
         (body.width - reserve - _kSliderPad) / (cols + 5 * k),
-        body.height / rows,
+        availH / rows,
       );
     } else {
       boardCell = math.min(
         (body.width - 2 * kBoardSideMargin) / cols,
-        (body.height - _kSliderPad) / (rows + 5 * k),
+        (availH - _kSliderPad) / (rows + 5 * k),
       );
     }
     // Même plafond que le plateau (maxBoardCellSize) → la barre reste ancrée sur la case réelle (§3).
@@ -1354,13 +1325,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Taille des pièces de la barre, ancrée sur le plateau ; hauteur de barre dérivée.
+        // Bloc 5 (§4) : rangée d'isométrie réservée au-dessus du rack. Sa hauteur est retranchée
+        // du calcul de la barre pour que la case du rack reste ancrée sur la case RÉELLE du
+        // plateau réduit (invariant #3).
+        final isoRowH = _isometryRowHeight(context);
         final m = _barMetrics(constraints.biggest, state.puzzle!.size, false, 0,
-            maxBoardCellSize(context), ref.read(settingsProvider).game.rackCellRatio);
+            maxBoardCellSize(context), ref.read(settingsProvider).game.rackCellRatio,
+            reservedExtra: isoRowH);
         return Column(
           children: [
             // Plateau de jeu
             const Expanded(flex: 3, child: PentoscopeBoard(isLandscape: false)),
+
+            // Rangée d'isométrie réservée (permanente, grisée au repos) — juste au-dessus du rack.
+            _buildReservedIsometryRow(state, notifier),
 
             // Slider de pièces horizontal
             _buildSliderWithDragTarget(
@@ -1388,8 +1366,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  /// Layout paysage : colonne d'actions à gauche, plateau au milieu, barre à droite —
-  /// même ordre qu'en portrait (haut→bas), un seul Row de trois enfants (§7).
+  /// Layout paysage. Bloc 5 (§4) : la colonne d'actions gauche redevient **permanente**
+  /// (maison/chrono/ampoule/compteur, jamais escamotée), et la rangée d'isométrie **réservée**
+  /// passe **en bas**, pleine largeur (grisée au repos). Prix : elle coûte de la hauteur, la
+  /// dimension rare en paysage — à juger sur device (le confort des pièces décide). Sa hauteur
+  /// est retranchée dans `_barMetrics` (invariant #3).
   Widget _buildLandscapeLayout(
       BuildContext context,
       WidgetRef ref,
@@ -1401,65 +1382,67 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Largeur de la colonne d'actions : assez pour la barre d'isométrie (icônes dédiées, la
-        // plus grosse chose qui s'y trouve) + son padding, sinon rognage (§9). L'ancienne formule
-        // (0.08 × hauteur) plafonnait.
+        // Largeur de la colonne d'actions : assez pour les icônes de la barre d'état + padding.
         final actionColumnWidth = isometryIconSize(context) + 24;
-        // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
+        final isoRowH = _isometryRowHeight(context);
+        // Barre (rack) ancrée sur le plateau ; la rangée d'isométrie du bas retranchée (invariant #3).
         final m = _barMetrics(constraints.biggest, state.puzzle!.size, true,
             actionColumnWidth, maxBoardCellSize(context),
-            ref.read(settingsProvider).game.rackCellRatio);
+            ref.read(settingsProvider).game.rackCellRatio, reservedExtra: isoRowH);
         final sliderWidth = m.extent;
 
-        // §7 : ordre identique au portrait — colonne d'actions, plateau, barre, aplati en
-        // un seul Row de trois enfants (plus de Row imbriqué « actions + slider »).
-        return Row(
+        return Column(
           children: [
-                // 🎯 Colonne d'actions (contextuelles) — à gauche
-                Container(
-                  width: actionColumnWidth,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 2,
-                        // Ombre portée vers le plateau (à droite) : la colonne est à gauche.
-                        offset: const Offset(1, 0),
-                      ),
-                    ],
-                  ),
-                  child: (isPlacedPieceSelected || isSliderPieceSelected)
-                      // 🔑 Mode transformation: icônes pleine hauteur, réparties uniformément
-                      ? _buildFullHeightIsometryBar(state, notifier, actionColumnWidth)
-                      // Mode normal : la MÊME liste qu'en portrait, en colonne, répartie (§9).
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: _buildBarItems(context, state, notifier),
+            // Haut : colonne d'actions (permanente), plateau, rack — même ordre qu'avant.
+            Expanded(
+              child: Row(
+                children: [
+                  // 🎯 Colonne d'actions PERMANENTE — à gauche (plus escamotée par l'isométrie).
+                  Container(
+                    width: actionColumnWidth,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(1, 0),
                         ),
-                ),
-
-                // Plateau de jeu — au milieu
-                const Expanded(child: PentoscopeBoard(isLandscape: true)),
-
-                // Slider de pièces vertical — à droite
-                _buildSliderWithDragTarget(
-                  ref: ref,
-                  isLandscape: true,
-                  width: sliderWidth,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(-2, 0),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: _buildBarItems(context, state, notifier),
+                    ),
                   ),
-                  sliderChild:
-                      PentoscopePieceSlider(isLandscape: true, pieceCellSize: m.cell),
-                ),
+
+                  // Plateau de jeu — au milieu
+                  const Expanded(child: PentoscopeBoard(isLandscape: true)),
+
+                  // Slider de pièces vertical — à droite
+                  _buildSliderWithDragTarget(
+                    ref: ref,
+                    isLandscape: true,
+                    width: sliderWidth,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(-2, 0),
+                        ),
+                      ],
+                    ),
+                    sliderChild: PentoscopePieceSlider(
+                        isLandscape: true, pieceCellSize: m.cell),
+                  ),
+                ],
+              ),
+            ),
+
+            // Bas : rangée d'isométrie réservée, pleine largeur (permanente, grisée au repos).
+            _buildReservedIsometryRow(state, notifier),
           ],
         );
       },

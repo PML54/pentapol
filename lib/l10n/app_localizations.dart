@@ -1105,6 +1105,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not now'**
   String get consentLater;
+
+  /// No description provided for @guidedPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the highlighted piece, then drag it onto its outline.'**
+  String get guidedPlace;
+
+  /// No description provided for @guidedRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the piece, then drag it onto its outline.'**
+  String get guidedRotate;
+
+  /// No description provided for @guidedMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Flip the piece, then drag it onto its outline.'**
+  String get guidedMirror;
+
+  /// No description provided for @guidedDone.
+  ///
+  /// In en, this message translates to:
+  /// **'You are ready to play!'**
+  String get guidedDone;
+
+  /// No description provided for @guidedRotateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the piece'**
+  String get guidedRotateAction;
+
+  /// No description provided for @guidedMirrorAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Flip the piece'**
+  String get guidedMirrorAction;
+
+  /// No description provided for @guidedStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step}/3'**
+  String guidedStep(int step);
+
+  /// No description provided for @guidedReady.
+  ///
+  /// In en, this message translates to:
+  /// **'The shape matches! Drag it onto its outline.'**
+  String get guidedReady;
+
+  /// No description provided for @guidedAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get guidedAgain;
 }
 
 class _AppLocalizationsDelegate
