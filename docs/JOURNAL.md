@@ -28,7 +28,14 @@ difficulté.
 
 ### Chantiers terminés
 
-- **Accueil guidé — prise libre et dépôt assisté (2026-09-10, NON commité)** : Paul constate
+> **Livraison du 2026-09-10** (à la demande « commit et push » de Paul) : les quatre chantiers
+> ci-dessous, jusque-là « NON commité », sont désormais dans `72a16bf feat(accueil)` (avec l10n
+> EN/FR, `guided_home_test.dart`, `rack_drag_landscape_test.dart` et `build_info` build
+> `202609101839`). `AGENTS.md` — miroir Codex des règles — est commité à part dans `e3dbe61`.
+> §PASSATIONS à jour dans `68ecece`. Arbre poussé sur `origin/main`, `git status -s docs/` vide.
+> **Reste, pour l’accueil guidé et le dépôt assisté : validation device par Paul.**
+
+- **Accueil guidé — prise libre et dépôt assisté (2026-09-10, `72a16bf`)** : Paul constate
   que le dépôt ne fonctionne qu’en saisissant un bout de la pièce. Le premier contrôle imposait
   l’alignement exact de la case saisie sur une case cible, malgré une miniature plus petite.
   Désormais, avec la bonne orientation, le doigt peut viser la zone de la silhouette, quelle que
@@ -39,7 +46,7 @@ difficulté.
   Après : **40 parcours complets** (5 prises × 4 formats × 2 langues), **111/111 tests** au total,
   **analyse 0 erreur / 0 avertissement (61 infos)**. À confirmer par Paul sur l’iPhone.
 
-- **Accueil guidé 3×5 (2026-09-10, NON commité)** : la démo automatique est remplacée par un
+- **Accueil guidé 3×5 (2026-09-10, `72a16bf`)** : la démo automatique est remplacée par un
   parcours participatif en trois étapes sur le pavage PFU existant : U à glisser, P à tourner,
   F à retourner. Seule la pièce courante est active, les suivantes sont visibles en atténué ;
   silhouette cible et consigne EN/FR, confirmation quand l’orientation correspond. La miniature
@@ -51,7 +58,7 @@ difficulté.
   par tests widget. Après correction de la prise : **111/111 tests**, analyse **0 erreur / 0 avertissement (61 infos)**.
   La validation du ressenti par Paul reste à recueillir.
 
-- **Glissé toujours visible (2026-09-10, NON commité)** : à la demande de Paul, la miniature
+- **Glissé toujours visible (2026-09-10, `72a16bf`)** : à la demande de Paul, la miniature
   suit le doigt dès la prise ; hors plateau ou sur un placement interdit, sa couleur est conservée
   à 55 % d’opacité et sa silhouette reçoit un contour rouge avec sous-trait blanc. Sur une pose
   valide, aspect normal. Rendu partagé `PieceDragFeedback` pour rack et pièces posées, solo/duel.
@@ -61,7 +68,7 @@ difficulté.
   Analyse : **0 erreur / 0 avertissement, 61 infos**. **Validé par Paul** (« c’est OK »),
   avant sa demande de passer à l’accueil guidé.
 
-- **Drag rack → ligne basse en paysage (2026-09-10, NON commité)** : Paul signale que la pièce 5
+- **Drag rack → ligne basse en paysage (2026-09-10, `72a16bf`)** : Paul signale que la pièce 5
   n’atteint pas la dernière ligne sur iPhone ; sur sa tablette, le geste fonctionne.
   `PentoscopeBoard.onMove` ré-ajoutait l’ancre locale du feedback uniquement en portrait. Le
   correctif reconstruit le doigt dans les deux orientations AVANT conversion des axes paysage.
@@ -70,8 +77,8 @@ difficulté.
   iPhone et tablette simulés. **70/70 tests, analyse 0 erreur / 0 avertissement (61 infos).**
   Le test contrôle aussi la pose après relâchement. **Validé sur iPhone par Paul : la pièce 5
   atteint désormais la dernière ligne depuis le rack en paysage** (confirmation explicite).
-  Le travail de disposition du bloc 5 est déjà présent, non commité, dans `pentoscope_game_screen.dart` ;
-  cette correction ne modifie pas ce fichier.
+  Le travail de disposition du bloc 5, présent dans `pentoscope_game_screen.dart`, est désormais
+  commité lui aussi (dans `72a16bf`) ; cette correction ne modifiait pas ce fichier.
 
 - **Grisage préventif (2026-09-10, livré dans ce commit)** : les quatre transformations
   impossibles sont désactivées dans les barres solo et duel, portrait et paysage. Le paramètre
@@ -153,7 +160,7 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
 
 ### Chantiers ouverts
 
-**Accueil interactif 3×5** : implémenté dans le travail courant (voir ci-dessus). Validation par Paul
+**Accueil interactif 3×5** : implémenté et commité (`72a16bf`, voir ci-dessus). Validation par Paul
 sur appareil à recueillir. Ce parcours enseigne les gestes et le remplissage du plateau ; il ne
 présente pas encore le compteur de solutions ni les aides.
 
