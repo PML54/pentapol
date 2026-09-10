@@ -95,6 +95,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'Affiche le nombre d\'isométries et de fautes dans la barre du jeu.';
 
   @override
+  String get rackSize => 'Taille des pièces du rack';
+
+  @override
+  String get showPieceNumbers => 'Numéro des pièces';
+
+  @override
+  String get showPieceNumbersSub =>
+      'Une pastille par pièce sur le plateau (couleur seule si désactivé).';
+
+  @override
   String get dragSensitivity => 'Sensibilité du drag';
 
   @override

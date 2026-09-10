@@ -1,4 +1,7 @@
-// Modified: 2026-09-09 09:08 — nouveau réglage « compteurs » (isométries + fautes dans la barre du jeu),
+// Modified: 2026-09-10 06:38 — réglage « Numéro des pièces » (SwitchListTile → setShowPieceNumbers, C8) :
+//           pastille des pièces posées. Plus « Taille des pièces du rack » (stepper 0.30-0.60) →
+//           setRackCellRatio : calibrage live du rack sur device (retour de Paul, décision 6).
+// Historique: 2026-09-09 09:08 — nouveau réglage « compteurs » (isométries + fautes dans la barre du jeu),
 //           SwitchListTile → setShowCounters (retour de Paul).
 // Historique: 2026-09-09 07:01 — sensibilité du drag : bornes du réglage 100/500 → 50/200 (retour de Paul,
 //           défaut 100 ms). Plage effective 50-100-150-200 ms (pas de 50).
@@ -140,6 +143,15 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (value) => notifier.setShowSolutionCounter(value),
           ),
 
+          // Numéro des pièces posées (C8, décision 7) : une pastille par pièce, optionnel.
+          SwitchListTile(
+            secondary: const Icon(Icons.tag_faces_outlined),
+            title: Text(l10n.showPieceNumbers),
+            subtitle: Text(l10n.showPieceNumbersSub),
+            value: settings.game.showPieceNumbers,
+            onChanged: (value) => notifier.setShowPieceNumbers(value),
+          ),
+
           // Retour haptique
           SwitchListTile(
             secondary: const Icon(Icons.vibration),
@@ -176,6 +188,31 @@ class SettingsScreen extends ConsumerWidget {
                   icon: const Icon(Icons.add),
                   onPressed: settings.game.longPressDuration < 200
                       ? () => notifier.setLongPressDuration(settings.game.longPressDuration + 50)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+
+          // Taille des pièces du rack (rapport à la case du plateau, décision 6). Réglage de
+          // calibrage — à revoir avant l'App Store (CHECKLIST_APPSTORE).
+          ListTile(
+            leading: const Icon(Icons.grid_view),
+            title: Text(l10n.rackSize),
+            subtitle: Text(settings.game.rackCellRatio.toStringAsFixed(2)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: settings.game.rackCellRatio > 0.30
+                      ? () => notifier.setRackCellRatio(settings.game.rackCellRatio - 0.02)
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: settings.game.rackCellRatio < 0.60
+                      ? () => notifier.setRackCellRatio(settings.game.rackCellRatio + 0.02)
                       : null,
                 ),
               ],

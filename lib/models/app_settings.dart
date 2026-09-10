@@ -1,4 +1,7 @@
-// Modified: 2026-09-09 09:08 — réglage showCounters (défaut false) : afficher les compteurs isométries
+// Modified: 2026-09-10 06:36 — réglage showPieceNumbers (bool, défaut true, C8/décision 7) : numéro des
+//           pièces posées = une pastille par pièce (plateau), optionnel. Plus rackCellRatio (double,
+//           défaut 0.46 figé) : taille des pièces du rack, réglable en live. JSON, pas de migration.
+// Historique: 2026-09-09 09:08 — réglage showCounters (défaut false) : afficher les compteurs isométries
 //           et fautes dans la barre du jeu (retour de Paul). JSON, pas de migration.
 // Historique: 2026-09-09 07:01 — sensibilité du drag : défaut longPressDuration 200 → 100 ms (retour de
 //           Paul ; plage 50-200 côté réglages). JSON, pas de migration.
@@ -264,11 +267,27 @@ class GameSettings {
   /// 2026-09-09). Défaut `false`. Indépendant du bandeau debug (`kShowLiveCounters`).
   final bool showCounters;
 
+  /// Rapport taille de case du rack / taille de case du plateau (`pieceCellSize = boardCell ×
+  /// rackCellRatio`, PLAN_ERGONOMIE_ICONES décision 6). Réglable **en live** pour calibrer à
+  /// l'œil sur device (retour de Paul, 2026-09-10). Défaut 0.46 (figé après calibrage), plage
+  /// utile 0,30-0,60. Plus
+  /// grand = rack plus gros mais plateau plus petit. **À revoir avant l'App Store** (garder comme
+  /// réglage d'accessibilité ou geler la valeur — cf. CHECKLIST_APPSTORE).
+  final double rackCellRatio;
+
+  /// Afficher le numéro des pièces **posées** sur le plateau (C8, décision 7). Défaut `true`.
+  /// Quand actif : **une seule pastille** par pièce (sur sa case haut-gauche), plus le chiffre
+  /// répété sur les 5 cases. Off : la couleur seule identifie les pièces. N'affecte ni le rack
+  /// (badge d'identification, toujours visible) ni la vue solution.
+  final bool showPieceNumbers;
+
   const GameSettings({
     this.showSolutionCounter = true,
     this.enableHaptics = true,
     this.longPressDuration = 100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
     this.showCounters = false,
+    this.rackCellRatio = 0.46, // figé par Paul le 2026-09-10 après calibrage device
+    this.showPieceNumbers = true,
   });
 
   GameSettings copyWith({
@@ -276,12 +295,16 @@ class GameSettings {
     bool? enableHaptics,
     int? longPressDuration,
     bool? showCounters,
+    double? rackCellRatio,
+    bool? showPieceNumbers,
   }) {
     return GameSettings(
       showSolutionCounter: showSolutionCounter ?? this.showSolutionCounter,
       enableHaptics: enableHaptics ?? this.enableHaptics,
       longPressDuration: longPressDuration ?? this.longPressDuration,
       showCounters: showCounters ?? this.showCounters,
+      rackCellRatio: rackCellRatio ?? this.rackCellRatio,
+      showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
     );
   }
 
@@ -291,6 +314,8 @@ class GameSettings {
       'enableHaptics': enableHaptics,
       'longPressDuration': longPressDuration,
       'showCounters': showCounters,
+      'rackCellRatio': rackCellRatio,
+      'showPieceNumbers': showPieceNumbers,
     };
   }
 
@@ -300,6 +325,8 @@ class GameSettings {
       enableHaptics: json['enableHaptics'] ?? true,
       longPressDuration: json['longPressDuration'] ?? 100,
       showCounters: json['showCounters'] ?? false,
+      rackCellRatio: (json['rackCellRatio'] as num?)?.toDouble() ?? 0.46,
+      showPieceNumbers: json['showPieceNumbers'] ?? true,
     );
   }
 }

@@ -1,4 +1,8 @@
-// Modified: 2026-09-09 07:35 — drag rack, ancre à la bonne échelle : onGrab passe aussi grabLocal
+// Modified: 2026-09-10 06:00 — ergonomie (bloc 3, C6) : fondu de bord du rack SENSIBLE au défilement.
+//           Fondu de tête seulement si on a défilé (offset > 0) → la 1re pièce n'est jamais rognée
+//           (C6) ; fondu de queue tant qu'il reste des pièces après → suggère au nouveau joueur (3×5)
+//           que le rack défile, sans rétrécir les pièces (respecte l'invariant #3). ShaderMask dstIn.
+// Historique: 2026-09-09 07:35 — drag rack, ancre à la bonne échelle : onGrab passe aussi grabLocal
 //           (offset px du toucher) à selectPiece — le plateau reconstruit le doigt réel dans onMove.
 // Historique: 2026-09-07 16:30 — glissé « suivi exact » : le feedback tiroir (image sous le doigt)
 //           devient réactif — image RÉELLE si posable, TRANSPARENT si chevauchement (isPreviewValid).
@@ -56,6 +60,28 @@ class PentoscopePieceSlider extends ConsumerStatefulWidget {
 class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   final ScrollController _scrollController = ScrollController();
 
+  /// Fondu de bord (C6) : `_showLeadingFade` = du contenu défilé avant le bord de tête ;
+  /// `_showTrailingFade` = du contenu reste après le bord de queue. Recalculés au défilement
+  /// et après chaque layout (le débordement dépend du nombre de pièces et de leur taille).
+  bool _showLeadingFade = false;
+  bool _showTrailingFade = false;
+
+  /// Fraction de la longueur du rack occupée par chaque fondu.
+  static const double _kFadeFraction = 0.08;
+
+  void _updateFades() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final leading = pos.pixels > 1.0;
+    final trailing = pos.pixels < pos.maxScrollExtent - 1.0;
+    if (leading != _showLeadingFade || trailing != _showTrailingFade) {
+      setState(() {
+        _showLeadingFade = leading;
+        _showTrailingFade = trailing;
+      });
+    }
+  }
+
   void selectPiece(int pieceIndex) {
     final state = ref.read(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
@@ -85,7 +111,10 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
         ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8)
         : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
-    return ListView.builder(
+    // Recalcul du débordement après ce layout (le nombre de pièces vient de changer, etc.).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFades());
+
+    final listView = ListView.builder(
       controller: _scrollController,
       scrollDirection: scrollDirection,
       padding: padding,
@@ -96,11 +125,69 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
         return _buildDraggablePiece(piece, notifier, state, settings, widget.isLandscape);
       },
     );
+
+    // Fondu de bord (C6) : n'apparaît que du côté où il reste du contenu à défiler. Au repos
+    // (offset 0) → pas de fondu de tête, la 1re pièce est nette ; un fondu de queue suggère qu'il
+    // y en a plus. ShaderMask/dstIn : l'alpha du dégradé masque le contenu (blanc = opaque,
+    // transparent = effacé). Le feedback de drag est rendu dans un Overlay, hors de ce sous-arbre :
+    // la pièce glissée n'est pas affectée par le fondu.
+    return NotificationListener<ScrollNotification>(
+      onNotification: (_) {
+        _updateFades();
+        return false;
+      },
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (rect) {
+          final begin = widget.isLandscape
+              ? Alignment.topCenter
+              : Alignment.centerLeft;
+          final end = widget.isLandscape
+              ? Alignment.bottomCenter
+              : Alignment.centerRight;
+          return LinearGradient(
+            begin: begin,
+            end: end,
+            colors: [
+              _showLeadingFade ? Colors.transparent : Colors.white,
+              Colors.white,
+              Colors.white,
+              _showTrailingFade ? Colors.transparent : Colors.white,
+            ],
+            stops: const [0.0, _kFadeFraction, 1 - _kFadeFraction, 1.0],
+          ).createShader(rect);
+        },
+        child: listView,
+      ),
+    );
   }
 
   /// Convertit positionIndex interne en displayPositionIndex pour l'affichage
   int _getDisplayPositionIndex(int positionIndex, Pento piece, bool isLandscape) {
     return positionIndex; // ✅ plus de -1 / modulo
+  }
+
+  /// Dimension max de la pièce (en cases) sur **toutes** ses orientations : côté d'une boîte
+  /// carrée qui contient n'importe quelle orientation. Constante par pièce → la boîte ne change
+  /// pas quand on tourne la pièce (pas de reflow du rack). I = 5, L/N/Y = 4, les autres = 3.
+  int _pieceMaxDim(Pento piece) {
+    int maxDim = 1;
+    for (int i = 0; i < piece.numOrientations; i++) {
+      int minX = 5, minY = 5, maxX = 0, maxY = 0;
+      for (final n in piece.orientations[i]) {
+        final x = (n - 1) % 5;
+        final y = (n - 1) ~/ 5;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+      final w = maxX - minX + 1;
+      final h = maxY - minY + 1;
+      if (w > maxDim) maxDim = w;
+      if (h > maxDim) maxDim = h;
+    }
+    return maxDim;
   }
 
   /// Cellule (normalisée) de la pièce sous le doigt au départ du drag. [localGrab] est l'offset
@@ -147,8 +234,17 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       settings,
       bool isLandscape,
       ) {
-    // Boîte carrée d'une pièce : 5 cases + 8 de marge (PieceRenderer). Suit pieceCellSize.
-    final double fixedSize = widget.pieceCellSize * 5 + 8;
+    // Emplacement serré (C6, retour de Paul sur le 3×5) : au lieu d'une boîte carrée de 5 cases
+    // pour tout le monde, la boîte fait la **dimension max de la pièce sur toutes ses orientations**
+    // (3 à 5 cases). Carrée → n'importe quelle orientation y tient, donc **aucun reflow à la
+    // rotation** ; côté = maxDim → les pièces se serrent (la plupart des 3×5 montrent leurs 3
+    // pièces) sans jamais rétrécir la case (invariant #3). L'axe croisé garde la pleine épaisseur
+    // de barre (5 cases) pour un centrage vertical stable.
+    final double cell = widget.pieceCellSize;
+    final double thickness = cell * 5 + 8;
+    final double pieceBox = _pieceMaxDim(piece) * cell + 8;
+    final double slotW = isLandscape ? thickness : pieceBox;
+    final double slotH = isLandscape ? pieceBox : thickness;
     int positionIndex = state.selectedPiece?.id == piece.id
         ? state.selectedPositionIndex
         : state.getPiecePositionIndex(piece.id);
@@ -159,8 +255,8 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     final isSelected = state.selectedPiece?.id == piece.id;
 
     return SizedBox(
-      width: fixedSize,
-      height: fixedSize,
+      width: slotW,
+      height: slotH,
       child: Center(
         child: Transform.rotate(
           angle: isLandscape ? -math.pi / 2 : 0.0,
@@ -171,7 +267,8 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             selectedPositionIndex: isSelected ? displayPositionIndex : state.selectedPositionIndex,
             longPressDuration: Duration(milliseconds: settings.game.longPressDuration),
             // Toute la boîte de la case répond au doigt : le « I » (1 case) s'attrape comme le reste.
-            hitBoxSize: fixedSize,
+            // Carrée (côté = maxDim) → _grabbedCell centre correctement.
+            hitBoxSize: pieceBox,
             onSelect: () {
               if (settings.game.enableHaptics) {
                 HapticFeedback.selectionClick();

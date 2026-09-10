@@ -1,4 +1,6 @@
-// Modified: 2026-09-09 09:08 — setShowCounters(bool) : affiche/masque les compteurs isométries + fautes
+// Modified: 2026-09-10 06:37 — setShowPieceNumbers(bool) : pastille des pièces posées (C8, retour de Paul).
+//           Plus setRackCellRatio(double) : taille des pièces du rack, réglable en live, bornée [0.30, 0.60].
+// Historique: 2026-09-09 09:08 — setShowCounters(bool) : affiche/masque les compteurs isométries + fautes
 //           dans la barre du jeu (retour de Paul).
 // Historique: 2026-09-09 07:01 — sensibilité du drag : setLongPressDuration borne la valeur à [50, 200] ms
 //           (retour de Paul, défaut 100).
@@ -327,6 +329,22 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// Afficher/masquer les compteurs isométries + fautes dans la barre du jeu (retour de Paul).
   Future<void> setShowCounters(bool value) async {
     state = state.copyWith(game: state.game.copyWith(showCounters: value));
+    await _saveSettings();
+  }
+
+  /// Taille des pièces du rack (rapport à la case du plateau, décision 6). Réglable en live pour
+  /// calibrer sur device (retour de Paul, 2026-09-10). Bornée à la plage utile 0,30-0,60.
+  Future<void> setRackCellRatio(double ratio) async {
+    state = state.copyWith(
+      game: state.game.copyWith(rackCellRatio: ratio.clamp(0.30, 0.60)),
+    );
+    await _saveSettings();
+  }
+
+  /// Afficher/masquer le numéro (pastille unique) des pièces posées sur le plateau (C8, retour
+  /// de Paul, 2026-09-10).
+  Future<void> setShowPieceNumbers(bool value) async {
+    state = state.copyWith(game: state.game.copyWith(showPieceNumbers: value));
     await _saveSettings();
   }
 

@@ -1,4 +1,7 @@
-// Modified: 2026-09-10 05:42 — ergonomie (bloc 2) : chrono en `m:ss` (C7) au lieu des secondes brutes ;
+// Modified: 2026-09-10 06:30 — ergonomie (bloc 3, décision 6) : taille du rack pilotée par le réglage
+//           live `settings.game.rackCellRatio` (_barMetrics prend pieceRatio) — rack ~1:4 trop petit
+//           (C5) ; défaut figé à 0.46 après calibrage device de Paul (const = défaut seulement).
+// Historique: 2026-09-10 05:42 — ergonomie (bloc 2) : chrono en `m:ss` (C7) au lieu des secondes brutes ;
 //           compteur de solutions = chiffre SEUL + tooltip `compatibleSolutionsTooltip` (C1, retour
 //           de Paul : le glyphe mangeait de la place) ; kShowLiveCounters=false → overlay haut-gauche
 //           « rien ou total » selon showCounters, bande debug débranchée (C9). Décisions 8, 9.
@@ -154,10 +157,15 @@ import 'package:pentapol/pentoscope/widgets/pentoscope_piece_slider.dart';
 // feedback de drag. Les autres sont privés au fichier.
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 
-/// Rapport pièce/plateau : `pieceCellSize = boardCellSize × k`. Gouverne la taille des pièces
-/// de la barre **et** du feedback de drag ; l'épaisseur de la barre en dérive.
-/// **À régler à l'œil sur device.** (0.22 → 0.26 le 2026-09-07 : pièces de barre plus grosses.)
-const double kPieceToBoardCellRatio = 0.26;
+/// Rapport pièce/plateau **par défaut** : `pieceCellSize = boardCellSize × k`. Gouverne la taille
+/// des pièces de la barre **et** du feedback de drag ; l'épaisseur de la barre en dérive.
+/// Depuis le 2026-09-10 la valeur *runtime* vient du réglage live `settings.game.rackCellRatio`
+/// (calibrage device, retour de Paul) — cette constante n'est plus que le **défaut**, tenue à
+/// l'identique de `GameSettings.rackCellRatio` (0.46). Historique : 0.22 → 0.26 (2026-09-07) →
+/// 0.42 → 0.46 (2026-09-10, décision 6 : le rack était ~1:4 du plateau, C5 ; 0.46 figé par Paul
+/// après calibrage device). Coût : la barre étant comptée comme ~5k rangées dans `_barMetrics`,
+/// un rack plus gros rétrécit le plateau.
+const double kPieceToBoardCellRatio = 0.46;
 
 /// Borne HAUTE de la taille d'une case du plateau, **proportionnelle à l'écran** :
 /// `maxCell = shortestSide × kMaxBoardCellFactor`. Sans plafond, `cellSize = min(W/w, H/h)` fait des
@@ -1298,10 +1306,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// (la colonne d'actions, en paysage). Garde-fou : jamais sous 8 pt.
   ({double cell, double extent}) _barMetrics(
       Size body, PentoscopeSize size, bool isLandscape, double reserve,
-      double maxCell) {
+      double maxCell, double pieceRatio) {
     final cols = isLandscape ? size.height : size.width;
     final rows = isLandscape ? size.width : size.height;
-    const k = kPieceToBoardCellRatio;
+    // Rapport pièce/plateau : réglage live (`settings.game.rackCellRatio`), défaut
+    // kPieceToBoardCellRatio. Gouverne la taille des pièces du rack ET l'épaisseur de la barre.
+    final k = pieceRatio;
     double boardCell;
     if (isLandscape) {
       boardCell = math.min(
@@ -1333,7 +1343,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       builder: (context, constraints) {
         // Taille des pièces de la barre, ancrée sur le plateau ; hauteur de barre dérivée.
         final m = _barMetrics(constraints.biggest, state.puzzle!.size, false, 0,
-            maxBoardCellSize(context));
+            maxBoardCellSize(context), ref.read(settingsProvider).game.rackCellRatio);
         return Column(
           children: [
             // Plateau de jeu
@@ -1384,7 +1394,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         final actionColumnWidth = isometryIconSize(context) + 24;
         // Barre ancrée sur le plateau ; sa largeur (pièces verticales) dérive de pieceCellSize.
         final m = _barMetrics(constraints.biggest, state.puzzle!.size, true,
-            actionColumnWidth, maxBoardCellSize(context));
+            actionColumnWidth, maxBoardCellSize(context),
+            ref.read(settingsProvider).game.rackCellRatio);
         final sliderWidth = m.extent;
 
         // §7 : ordre identique au portrait — colonne d'actions, plateau, barre, aplati en

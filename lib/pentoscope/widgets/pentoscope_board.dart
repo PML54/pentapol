@@ -1,4 +1,7 @@
-// Modified: 2026-09-09 07:35 — ancre à la bonne échelle : onMove ré-ajoute localGrab (notifier.dragGrabLocal)
+// Modified: 2026-09-10 06:48 — C8/décision 7 : numéro d'une pièce posée = UNE pastille (case haut-gauche,
+//           labelCells) au lieu du chiffre sur les 5 cases, optionnel via settings.game.showPieceNumbers,
+//           agrandie (≈0,5 case, retour de Paul). Miniature de drag = cellSize × rackCellRatio (décision 6).
+// Historique: 2026-09-09 07:35 — ancre à la bonne échelle : onMove ré-ajoute localGrab (notifier.dragGrabLocal)
 //           à details.offset pour reconstruire le doigt réel — sinon un offset à l'échelle du rack était
 //           mappé en case plateau → ancre décalée ~1 case selon la prise (bord bas). Portrait + rack.
 // Historique: 2026-09-09 07:01 — marge latérale en portrait (kBoardSideMargin) : availableWidth réserve
@@ -39,15 +42,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/point.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/piece_border_calculator.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
-// Le rapport pièce/plateau (feedback de drag) est regroupé avec les autres réglages visuels
-// en tête de pentoscope_game_screen.dart. Import ciblé pour ne prendre que cette constante.
+// Constantes de layout regroupées en tête de pentoscope_game_screen.dart. Le rapport pièce/plateau
+// vient désormais du réglage live `settings.game.rackCellRatio` (feedback de drag), plus du const.
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
-    show kPieceToBoardCellRatio, kMaxBoardCellFactor, kBoardSideMargin;
+    show kMaxBoardCellFactor, kBoardSideMargin;
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
@@ -85,6 +89,20 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
     final boardWidth = puzzle.size.width;
     final boardHeight = puzzle.size.height;
+
+    // Case « étiquette » de chaque pièce posée : la plus haute puis la plus à gauche (C8). Le
+    // numéro (pastille unique) n'y est peint que là — plus le chiffre répété sur les 5 cases.
+    // Balayage y externe / x interne → premier rencontré = coin haut-gauche.
+    final Set<Point> labelCells = {};
+    {
+      final seen = <int>{};
+      for (int y = 0; y < boardHeight; y++) {
+        for (int x = 0; x < boardWidth; x++) {
+          final v = state.plateau.getCell(x, y);
+          if (v > 0 && seen.add(v)) labelCells.add(Point(x, y));
+        }
+      }
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -289,6 +307,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                         logicalY,
                         widget.isLandscape,
                         cellSize,
+                        labelCells,
                       );
                     },
                   ),
@@ -319,6 +338,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       int logicalY,
       bool isLandscape,
       double cellSize,
+      Set<Point> labelCells,
       ) {
     // 1️⃣ RÉCUPÉRER LES DONNÉES DE BASE
     var cellValue = state.plateau.getCell(logicalX, logicalY);
@@ -399,7 +419,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     }
 
     // 5️⃣ DÉTERMINER LE TEXTE
-    String cellText = _getCellText(cellValue, isSolutionCell, solutionPieceId);
+    // C8 : pour une pièce posée, le numéro n'apparaît que sur sa case étiquette (pastille unique)
+    // et seulement si le réglage `showPieceNumbers` est actif.
+    final bool isPieceLabelCell = labelCells.contains(Point(logicalX, logicalY));
+    String cellText = _getCellText(cellValue, isSolutionCell, solutionPieceId,
+        isPieceLabelCell, settings.game.showPieceNumbers);
 
     if (isSelected && selectedInfo.selectedText != null) {
       cellText = selectedInfo.selectedText!;
@@ -447,7 +471,19 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               previewInfo.isSnappedPreview,
             ),
             fontWeight: _getTextWeight(previewInfo.isPreview, isSelected),
-            fontSize: _getTextSize(isSelected, previewInfo.isPreview, cellSize),
+            // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
+            // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
+            // leur petite taille pour ne pas se chevaucher.
+            fontSize: _getTextSize(
+              isSelected,
+              previewInfo.isPreview,
+              cellSize,
+              isSinglePastille: cellValue > 0 &&
+                  !isSolutionCell &&
+                  !isSelected &&
+                  !previewInfo.isPreview &&
+                  isPieceLabelCell,
+            ),
           ),
         ),
       ),
@@ -488,7 +524,9 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                   ),
                   isDragging: true,
                   // 🔎 La miniature sous le doigt suit l'échelle du plateau (§4a), au lieu de 22.
-                  cellSize: cellSize * kPieceToBoardCellRatio,
+                  // Réglage live `rackCellRatio` (même source que le rack) → la pièce garde la
+                  // même taille du rack au doigt quand Paul calibre en direct.
+                  cellSize: cellSize * settings.game.rackCellRatio,
                   getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
                 ),
               );
@@ -719,14 +757,17 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   }
 
   /// Texte à afficher dans la cellule
-  String _getCellText(int cellValue, bool isSolution, int? solutionPieceId) {
-    // Solution: afficher numéro de pièce
+  String _getCellText(int cellValue, bool isSolution, int? solutionPieceId,
+      bool isPieceLabelCell, bool showPieceNumbers) {
+    // Solution: afficher numéro de pièce (vue réponse, hors périmètre C8 — inchangée).
     if (isSolution && solutionPieceId != null) {
       return solutionPieceId.toString();
     }
 
-    // Pièce occupée: afficher son numéro
-    if (cellValue > 0) return cellValue.toString();
+    // Pièce posée (C8) : une seule pastille, sur la case étiquette, si le réglage l'autorise.
+    if (cellValue > 0) {
+      return (showPieceNumbers && isPieceLabelCell) ? cellValue.toString() : '';
+    }
 
     // Vide: rien
     return '';
@@ -811,7 +852,10 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   /// Taille du numéro sur une case, proportionnelle à la case (§4e) au lieu de 14/16 fixes :
   /// sur iPad la case est 2× plus grande, le texte doit suivre. Ratios calés pour reproduire
   /// ≈ 14/16 sur iPhone (case ≈ 76) et grandir ensuite ; plancher pour rester lisible.
-  double _getTextSize(bool isSelected, bool isPreview, double cellSize) {
+  double _getTextSize(bool isSelected, bool isPreview, double cellSize,
+      {bool isSinglePastille = false}) {
+    // Pastille unique d'une pièce posée (C8) : seule sur la pièce → grosse (≈ 0,5 case).
+    if (isSinglePastille) return (cellSize * 0.5).clamp(16.0, 60.0);
     final ratio = (isSelected || isPreview) ? 0.21 : 0.18;
     return (cellSize * ratio).clamp(11.0, 48.0);
   }

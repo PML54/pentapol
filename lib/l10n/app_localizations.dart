@@ -266,6 +266,24 @@ abstract class AppLocalizations {
   /// **'Displays the isometry and fault counts in the game bar.'**
   String get showCountersSub;
 
+  /// No description provided for @rackSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Rack piece size'**
+  String get rackSize;
+
+  /// No description provided for @showPieceNumbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece numbers'**
+  String get showPieceNumbers;
+
+  /// No description provided for @showPieceNumbersSub.
+  ///
+  /// In en, this message translates to:
+  /// **'One badge per piece on the board (color only when off).'**
+  String get showPieceNumbersSub;
+
   /// No description provided for @dragSensitivity.
   ///
   /// In en, this message translates to:

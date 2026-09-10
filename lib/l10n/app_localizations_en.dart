@@ -94,6 +94,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Displays the isometry and fault counts in the game bar.';
 
   @override
+  String get rackSize => 'Rack piece size';
+
+  @override
+  String get showPieceNumbers => 'Piece numbers';
+
+  @override
+  String get showPieceNumbersSub =>
+      'One badge per piece on the board (color only when off).';
+
+  @override
   String get dragSensitivity => 'Drag sensitivity';
 
   @override
