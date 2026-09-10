@@ -1,4 +1,5 @@
-// Modified: 2026-09-06 04:50 — i18n : tooltips « Quitter », libellé « Moi » et dialogue d'abandon
+// Modified: 2026-09-10 07:15 — boutons de transformation grisés et désactivés si placement impossible, portrait et paysage.
+// Historique: 2026-09-06 04:50 — i18n : tooltips « Quitter », libellé « Moi » et dialogue d'abandon
 //           via AppLocalizations.
 // Historique: 2026-09-02 15:27 — tailles d'icônes du duel (portrait) calées au test de Paul (mode à
 //           2) : barre d'isométrie 36 en dur (la taille partagée ~47 était trop grosse pour la
@@ -758,7 +759,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometryRotationTW(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotationTW();
           },
@@ -768,7 +770,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometryRotationCW.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometryRotationCW(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotationCW();
           },
@@ -778,7 +781,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometrySymmetryH.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometrySymmetryH(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometrySymmetryH();
           },
@@ -788,7 +792,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometrySymmetryV.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometrySymmetryV(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometrySymmetryV();
           },
@@ -824,7 +829,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometryRotationTW(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotationTW();
           },
@@ -834,7 +840,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometryRotationCW.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometryRotationCW(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometryRotationCW();
           },
@@ -844,7 +851,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometrySymmetryH.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometrySymmetryH(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometrySymmetryH();
           },
@@ -854,7 +862,8 @@ class _PentoscopeMPGameScreenState extends ConsumerState<PentoscopeMPGameScreen>
           icon: Icon(GameIcons.isometrySymmetryV.icon, size: iconSize),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          onPressed: () {
+          onPressed: notifier.applyIsometrySymmetryV(preview: true) == TransformationResult.impossible
+              ? null : () {
             HapticFeedback.selectionClick();
             notifier.applyIsometrySymmetryV();
           },

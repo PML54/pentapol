@@ -28,12 +28,19 @@ difficulté.
 
 ### Chantiers terminés
 
+- **Grisage préventif (2026-09-10, livré dans ce commit)** : les quatre transformations
+  impossibles sont désactivées dans les barres solo et duel, portrait et paysage. Le paramètre
+  `preview` utilise les règles réelles de validation/recentrage sans modifier l’état ni les compteurs.
+  Test d’équivalence sur les douze pièces et leurs orientations, bords et obstacles, avec et sans
+  recentrage ; absence de mutation contrôlée. **Analyse : 0 erreur / 0 avertissement (61 infos),
+  68/68 tests réussis.** Les vignettes et la rangée réservée restent à faire.
+
 - **Ergonomie du jeu (2026-09-10, PLAN_ERGONOMIE_ICONES blocs 2-3 + carte de fin)** — chrono `m:ss`,
   compteur de solutions désambiguïsé, bande debug débranchée (C9), invariant « plateau toujours légal »
   (CLAUDE.md §Inv. #7) ; rack agrandi (`rackCellRatio` live, défaut 0.46) à emplacement serré + fondu de
   bord, pastille unique par pièce posée (`showPieceNumbers`) ; carte de fin refondue (étoiles 1-3 +
   bouton infos, plus de « Résolu »/« Vision parfaite »). **Reste du plan** : décision 4 (noms/glyphes
-  d'axe), bloc 4 (vignettes + grisage préventif), bloc 5 (rangée d'isométrie réservée, −11 %). Détail
+  d'axe), bloc 4 (vignettes ; grisage livré), bloc 5 (rangée d'isométrie réservée, −11 %). Détail
   en §PASSATIONS 2026-09-10.
 - **Suppression du mode classique** — −3197 lignes, module, widgets, écran d'accueil.
 - **Le 6×10 dans Pentoscope** — temps 1 et 2, `SolutionSource`, compteur de solutions.
@@ -879,6 +886,24 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-10 (2) — Codex (grisage préventif des isométries). Livré dans ce commit.**
+Après explication du grisage, Paul demande son application. Les quatre boutons rotation/miroir
+sont désactivés (`onPressed: null`, gris Material) lorsque la transformation serait impossible,
+en solo et en duel, portrait et paysage. Sur le rack, les quatre restent actifs ; un recentrage
+valide conserve le bouton actif. Disposition et glyphes actuels conservés.
+Les méthodes `applyIsometry…(preview: true)` suivent exactement le chemin de validation réel,
+mais retournent avant toute mutation d’état, compteur ou calcul de score. Pas de simulation par
+mutation puis restauration. Test ajouté `test/isometry_preview_test.dart` : douze pièces et toutes
+leurs orientations, deux orientations écran, bords, obstacles, succès/refus/recentrage, rack,
+absence de sélection ; verdict égal à l’action et état/grille inchangés pendant l’aperçu.
+**Vérifications exécutées : `flutter analyze lib test` 0 erreur / 0 avertissement, 61 infos ;
+`flutter test` 68/68.** Rendu et ressenti à valider par Paul sur appareil.
+**Reste du plan ergonomie** : vignettes avec fantôme et animation, glyphes/noms des axes,
+rangée réservée au-dessus du rack et AppBar permanente. Le plan est conservé.
+Code, test et cette passation sont réunis dans le même commit, attribué à Codex.
+Paul demande sa publication sur `origin/main` pour permettre la reprise du bloc 5 par l’autre session.
+Ce lot couvre le grisage du bloc 4 ; les vignettes et le bloc 5 ne sont pas inclus.
+
 **2026-09-10 — CLI (ergonomie du jeu : PLAN_ERGONOMIE_ICONES + refonte carte de fin). Commité et poussé ce jour.**
 Session pilotée en direct par Paul, testée bloc par bloc sur device. Commits `3dde2e8`
 (§0 : push de `c31685c`, captures `screenshot/` + plan committés), `9b73a4d` (bloc 2),
@@ -916,17 +941,4 @@ défi/records/réglages à droite. `analyze` 0/0, **67/67 tests**. Plan `docs/PL
 committé avec le code. **Reste : test device de tout ça par Paul** — puis le niveau 2 de l'entraînement.
 Détail en §ÉTAT « Entraînement Option A + réglage compteurs + accueil hub ».
 
-**2026-09-09 (3) — CLI (ergonomie du drag : ancre à la bonne échelle + marge + sensibilité + orientation). Commité `c0f3255`, testé OK par Paul.**
-Suite du retour de Paul sur la pose de la ligne du bas, qui restait **aléatoire** sur grand plateau
-malgré (2). **CAUSE RACINE trouvée** (piste de Paul « ça vient des mouvements du doigt ») : le feedback
-de drag est à l'échelle du RACK, `details.offset = doigt − localGrab` (px rack), et `onMove` mappait ce
-point en case **plateau** sans ré-ajouter `localGrab` → ancre décalée ~0-1 case selon la prise, fatale
-au bord bas. **Correctif d'échelle** : `selectPiece(grabLocal:)` → `dragGrabLocal` ; `onMove` reconstruit
-le doigt réel `details.offset + localGrab` (portrait + rack seulement). **Testé OK par Paul.** Plus, même
-session, trois retours : **marge latérale** `kBoardSideMargin` (26 pt/côté, grand plateau ne prend plus
-toute la largeur), **sensibilité** `longPressDuration` défaut 100 ms / plage 50-200, **orientation du
-rack conservée** au drag annulé (`cancelSelection` commit). `analyze` 0/0, **67/67**. Détail en §ÉTAT
-« Ligne du bas — CAUSE RACINE ». Build `202609090737`.
-
-*(Les passations du 2026-09-09 (2), 2026-09-08 et antérieures sont sorties de la liste au fil des ajouts ; elles
-restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*
+*(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

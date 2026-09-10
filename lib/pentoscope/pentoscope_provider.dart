@@ -1,4 +1,5 @@
-// Modified: 2026-09-09 08:15 — mode entraînement dans le provider (Option A, choix de Paul) : état
+// Modified: 2026-09-10 07:15 — validation sans mutation pour griser les isométries impossibles avant appui.
+// Historique: 2026-09-09 08:15 — mode entraînement dans le provider (Option A, choix de Paul) : état
 //           isTraining, startTraining() (puzzle 1 pièce sur size5x5, cible en fantôme via currentSolution),
 //           trainingSolved (pièce sur le fantôme). isTraining court-circuite _saveCurrentGame/_clearCurrentGame/
 //           _saveCompletionRecord/_solutionStatus → JAMAIS d'écriture DB. Réutilise toute la manipulation.
@@ -219,39 +220,44 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return state.canPlacePiece(piece, positionIndex, gridX, gridY);
   }
 
-  TransformationResult applyIsometryRotationCW() {
-    return _applyIsoUsingLookup((p, idx) => p.rotationCW(idx));
+  /// preview vérifie la légalité et le recentrage sans modifier le jeu.
+  TransformationResult applyIsometryRotationCW({bool preview = false}) {
+    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
+    return _applyIsoUsingLookup((p, idx) => p.rotationCW(idx), preview: preview);
   }
 
-  TransformationResult applyIsometryRotationTW() {
-    return _applyIsoUsingLookup((p, idx) => p.rotationTW(idx));
+  TransformationResult applyIsometryRotationTW({bool preview = false}) {
+    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
+    return _applyIsoUsingLookup((p, idx) => p.rotationTW(idx), preview: preview);
   }
 
-  TransformationResult applyIsometrySymmetryH() {
+  TransformationResult applyIsometrySymmetryH({bool preview = false}) {
+    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
     if (state.viewOrientation == ViewOrientation.landscape) {
       if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
-        return _applySymmetryAbs(SymmetryType.vertical);
+        return _applySymmetryAbs(SymmetryType.vertical, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryV(idx));
+      return _applyIsoUsingLookup((p, idx) => p.symmetryV(idx), preview: preview);
     } else {
       if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
-        return _applySymmetryAbs(SymmetryType.horizontal);
+        return _applySymmetryAbs(SymmetryType.horizontal, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryH(idx));
+      return _applyIsoUsingLookup((p, idx) => p.symmetryH(idx), preview: preview);
     }
   }
 
-  TransformationResult applyIsometrySymmetryV() {
+  TransformationResult applyIsometrySymmetryV({bool preview = false}) {
+    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
     if (state.viewOrientation == ViewOrientation.landscape) {
       if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
-        return _applySymmetryAbs(SymmetryType.horizontal);
+        return _applySymmetryAbs(SymmetryType.horizontal, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryH(idx));
+      return _applyIsoUsingLookup((p, idx) => p.symmetryH(idx), preview: preview);
     } else {
       if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
-        return _applySymmetryAbs(SymmetryType.vertical);
+        return _applySymmetryAbs(SymmetryType.vertical, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryV(idx));
+      return _applyIsoUsingLookup((p, idx) => p.symmetryV(idx), preview: preview);
     }
   }
 
@@ -1490,7 +1496,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // VALIDATION ISOMÉTRIES - NOUVELLE MÉTHODE
   // ============================================================================
 
-  TransformationResult _applyIsoUsingLookup(int Function(Pento p, int idx) f) {
+  TransformationResult _applyIsoUsingLookup(int Function(Pento p, int idx) f, {bool preview = false}) {
     final piece = state.selectedPiece;
     if (piece == null) return TransformationResult.success;
 
@@ -1505,6 +1511,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // ========================================================================
     final sp = state.selectedPlacedPiece;
     if (sp == null) {
+      if (preview) return TransformationResult.success;
       state = state.copyWith(
         selectedPositionIndex: newIdx,
         selectedCellInPiece: _remapSelectedCell(
@@ -1699,6 +1706,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
 
     // ✨ SAUVEGARDER la pièce avec la nouvelle position
+    // Même verdict que l’action, avant toute écriture ou calcul de score.
+    if (preview) {
+      return neededRecentering
+          ? TransformationResult.recentered : TransformationResult.success;
+    }
+
     final updatedPlacedPieces = state.placedPieces.map((p) {
       if (p.piece.id == sp.piece.id) {
         return finalPiece;  // ← Utiliser finalPiece ajustée!
@@ -1816,7 +1829,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return neededRecentering ? TransformationResult.recentered : TransformationResult.success;
   }
 
-  TransformationResult _applySymmetryAbs(SymmetryType type) {
+  TransformationResult _applySymmetryAbs(SymmetryType type, {bool preview = false}) {
     final piece = state.selectedPiece;
     final sp = state.selectedPlacedPiece;
     if (piece == null || sp == null) return TransformationResult.success;
@@ -1954,6 +1967,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (!_canPlacePieceWithoutChecker(finalPiece)) {
       debugPrint('❌ Symétrie impossible - position finale invalide');
       return TransformationResult.impossible;
+    }
+
+    // Même verdict que l’action, avant toute écriture ou calcul de score.
+    if (preview) {
+      return neededRecentering
+          ? TransformationResult.recentered : TransformationResult.success;
     }
 
     final updatedPlacedPieces = state.placedPieces.map((p) {
