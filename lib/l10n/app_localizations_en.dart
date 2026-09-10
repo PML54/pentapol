@@ -97,6 +97,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rackSize => 'Rack piece size';
 
   @override
+  String get details => 'Details';
+
+  @override
   String get showPieceNumbers => 'Piece numbers';
 
   @override

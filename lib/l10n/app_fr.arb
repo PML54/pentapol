@@ -34,6 +34,7 @@
   "showCounters": "Afficher les compteurs (isométries, fautes)",
   "showCountersSub": "Affiche le nombre d'isométries et de fautes dans la barre du jeu.",
   "rackSize": "Taille des pièces du rack",
+  "details": "Détails",
   "showPieceNumbers": "Numéro des pièces",
   "showPieceNumbersSub": "Une pastille par pièce sur le plateau (couleur seule si désactivé).",
   "dragSensitivity": "Sensibilité du drag",

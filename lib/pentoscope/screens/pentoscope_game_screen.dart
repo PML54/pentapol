@@ -1,4 +1,8 @@
-// Modified: 2026-09-10 06:30 — ergonomie (bloc 3, décision 6) : taille du rack pilotée par le réglage
+// Modified: 2026-09-10 07:06 — carte de fin refondue (retour de Paul, hors plan) : plus de « Résolu »/
+//           « Vision parfaite » — animation d'étoiles 1-3 (_SuccessStars, palier fautes+acuité) +
+//           bouton infos (iconSize 34) repliant le détail (isométries/temps/fautes/acuité).
+//           _BilanCard → Stateful.
+// Historique: 2026-09-10 06:30 — ergonomie (bloc 3, décision 6) : taille du rack pilotée par le réglage
 //           live `settings.game.rackCellRatio` (_barMetrics prend pieceRatio) — rack ~1:4 trop petit
 //           (C5) ; défaut figé à 0.46 après calibrage device de Paul (const = défaut seulement).
 // Historique: 2026-09-10 05:42 — ergonomie (bloc 2) : chrono en `m:ss` (C7) au lieu des secondes brutes ;
@@ -1566,7 +1570,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 /// derrière). Regroupe tout le bilan lisiblement : titre, médaille éventuelle, les trois maillots
 /// en lignes libellées (acuité / coups / temps), puis « Fermer » et l'action primaire. « Fermer »
 /// escamote la carte pour admirer la solution ; les zones hors carte laissent passer les taps.
-class _BilanCard extends StatelessWidget {
+/// Carte de fin de partie, refondue le 2026-09-10 (retour de Paul) : plus de titre « Résolu ! » ni
+/// de badge « Vision parfaite » — une **animation d'étoiles** (1 à 3 selon fautes + acuité) porte
+/// la réussite, et un **bouton infos** déplie le détail (isométries, temps, fautes, acuité). Carte
+/// compacte : repliée, elle ne masque plus le plateau.
+class _BilanCard extends StatefulWidget {
   /// Les trois maillots (CDC §4.5). null si aucun puzzle (ne devrait pas arriver à la complétion).
   final CompletionMetrics? metrics;
 
@@ -1591,30 +1599,92 @@ class _BilanCard extends StatelessWidget {
     this.onNextLevel,
   });
 
+  @override
+  State<_BilanCard> createState() => _BilanCardState();
+}
+
+class _BilanCardState extends State<_BilanCard> {
+  bool _showInfo = false;
+
   static String _mmss(int seconds) {
     final mm = (seconds ~/ 60).toString().padLeft(2, '0');
     final ss = (seconds % 60).toString().padLeft(2, '0');
     return '$mm:$ss';
   }
 
+  /// Palier de réussite (nombre d'étoiles) selon fautes + acuité (retour de Paul, 2026-09-10) :
+  /// 3 = parfait (acuité 100 % ET 0 faute, sans aide), 2 = propre (0 faute), 1 = résolu / avec aide.
+  int _tier() {
+    final m = widget.metrics;
+    if (m == null || widget.hintCount > 0) return 1;
+    if (m.faults == 0 && m.perfectVision) return 3;
+    if (m.faults == 0) return 2;
+    return 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final m = metrics;
-    final assisted = hintCount > 0; // partie avec aide → pas de score de performance affiché
-    final perfect = m != null && m.perfectVision && !assisted;
+    final m = widget.metrics;
+    final assisted = widget.hintCount > 0; // partie avec aide → pas de score de performance
 
-    final primaryButton = onNextLevel == null
+    final primaryButton = widget.onNextLevel == null
         ? FilledButton.icon(
-            onPressed: onNewGame,
+            onPressed: widget.onNewGame,
             icon: const Icon(Icons.refresh, size: 18),
             label: Text(l10n.newGame),
           )
         : FilledButton.icon(
-            onPressed: onNextLevel,
+            onPressed: widget.onNextLevel,
             icon: const Icon(Icons.arrow_forward, size: 18),
             label: Text(l10n.nextLevel),
           );
+
+    // Détail replié par défaut, montré par le bouton infos.
+    final List<Widget> detail = [];
+    if (m != null && !assisted) {
+      detail.addAll([
+        _MaillotLine(
+          color: const Color(0xFFF2B705),
+          label: l10n.legendAcuity,
+          value: '${m.acuityPercent} %',
+          detail: l10n.isometryDetail(m.isometryCount, m.minIso),
+        ),
+        _MaillotLine(
+          color: const Color(0xFFD64545),
+          label: l10n.legendFaults,
+          value: '${m.faults}',
+          detail: m.faults == 0 ? l10n.faultsNone : l10n.faultsSome,
+        ),
+        _MaillotLine(
+          color: const Color(0xFF2E9E5B),
+          label: l10n.legendTime,
+          value: _mmss(m.timeSeconds),
+        ),
+      ]);
+    } else if (m != null) {
+      // Partie AVEC aide : pas de score de performance (§4.8). Message + temps seulement.
+      detail.addAll([
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lightbulb, size: 18, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text(
+              l10n.solvedWithHelp(widget.hintCount),
+              style: const TextStyle(
+                  color: Colors.orange, fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _MaillotLine(
+          color: const Color(0xFF2E9E5B),
+          label: l10n.legendTime,
+          value: _mmss(m.timeSeconds),
+        ),
+      ]);
+    }
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -1633,96 +1703,128 @@ class _BilanCard extends StatelessWidget {
                 Container(
                   width: 36,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: 10),
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: Colors.black26,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.emoji_events, color: Colors.amber, size: 30),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.solved,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  if (perfect) ...[
-                    const SizedBox(height: 10),
-                    const _PerfectBadge(),
-                  ],
-                  const SizedBox(height: 18),
-                  if (m != null && !assisted) ...[
-                    // Partie SANS aide : les trois maillots (acuité plafonnée / fautes / temps).
-                    _MaillotLine(
-                      color: const Color(0xFFF2B705),
-                      label: l10n.legendAcuity,
-                      value: '${m.acuityPercent} %',
-                      detail: l10n.isometryDetail(m.isometryCount, m.minIso),
+                // Animation de réussite : 1 à 3 étoiles selon le palier.
+                _SuccessStars(tier: _tier()),
+                // Détail repliable (bouton infos). Largeur pleine même replié → la carte ne
+                // change pas de largeur en ouvrant le détail.
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  child: _showInfo && detail.isNotEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min, children: detail),
+                        )
+                      : const SizedBox(width: double.infinity),
+                ),
+                if (_showInfo && widget.onLeaderboard != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      onPressed: widget.onLeaderboard,
+                      icon: const Icon(Icons.leaderboard_outlined, size: 18),
+                      label: Text(l10n.viewRanking),
                     ),
-                    _MaillotLine(
-                      color: const Color(0xFFD64545),
-                      label: l10n.legendFaults,
-                      value: '${m.faults}',
-                      detail: m.faults == 0 ? l10n.faultsNone : l10n.faultsSome,
-                    ),
-                    _MaillotLine(
-                      color: const Color(0xFF2E9E5B),
-                      label: l10n.legendTime,
-                      value: _mmss(m.timeSeconds),
-                    ),
-                  ] else if (m != null) ...[
-                    // Partie AVEC aide : pas de score de performance (§4.8). Temps seulement.
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.lightbulb, size: 18, color: Colors.orange),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.solvedWithHelp(hintCount),
-                          style: const TextStyle(
-                              color: Colors.orange, fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _MaillotLine(
-                      color: const Color(0xFF2E9E5B),
-                      label: l10n.legendTime,
-                      value: _mmss(m.timeSeconds),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  if (onLeaderboard != null) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.tonalIcon(
-                        onPressed: onLeaderboard,
-                        icon: const Icon(Icons.leaderboard_outlined, size: 18),
-                        label: Text(l10n.viewRanking),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(onPressed: onClose, child: Text(l10n.close)),
-                      const SizedBox(width: 8),
-                      primaryButton,
-                    ],
                   ),
                 ],
-              ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    // Bouton infos : déplie le détail (isométries, temps, fautes, acuité).
+                    IconButton(
+                      onPressed: detail.isEmpty
+                          ? null
+                          : () => setState(() => _showInfo = !_showInfo),
+                      icon: Icon(_showInfo ? Icons.info : Icons.info_outline),
+                      iconSize: 34,
+                      tooltip: l10n.details,
+                      color: _showInfo
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    const Spacer(),
+                    TextButton(onPressed: widget.onClose, child: Text(l10n.close)),
+                    const SizedBox(width: 8),
+                    primaryButton,
+                  ],
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Animation de réussite : 1 à 3 étoiles pleines (selon le palier), pop décalé à l'ouverture de la
+/// carte de fin (retour de Paul, 2026-09-10). Les étoiles manquantes restent en contour discret.
+class _SuccessStars extends StatefulWidget {
+  final int tier; // 1..3
+  const _SuccessStars({required this.tier});
+
+  @override
+  State<_SuccessStars> createState() => _SuccessStarsState();
+}
+
+class _SuccessStarsState extends State<_SuccessStars>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const filled = Color(0xFFF2B705);
+    final empty = Colors.grey.shade400;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) {
+        final isFilled = i < widget.tier;
+        final star = Icon(
+          isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+          color: isFilled ? filled : empty,
+          size: 54,
+        );
+        if (!isFilled) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: star,
+          );
+        }
+        // Pop décalé (elasticOut) : chaque étoile pleine apparaît à son tour.
+        final start = (i * 0.22).clamp(0.0, 0.5);
+        final anim = CurvedAnimation(
+          parent: _c,
+          curve: Interval(start, (start + 0.5).clamp(0.0, 1.0),
+              curve: Curves.elasticOut),
+        );
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: ScaleTransition(scale: anim, child: star),
+        );
+      }),
     );
   }
 }
@@ -1777,28 +1879,3 @@ class _MaillotLine extends StatelessWidget {
   }
 }
 
-/// Badge « Vision parfaite » (§4.6) affiché en tête de carte quand l'acuité est à 100 %.
-class _PerfectBadge extends StatelessWidget {
-  const _PerfectBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2B705).withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.military_tech, color: Color(0xFFF2B705), size: 18),
-          const SizedBox(width: 6),
-          Text(AppLocalizations.of(context).perfectVision,
-              style: const TextStyle(
-                  color: Color(0xFF9A7400), fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-}

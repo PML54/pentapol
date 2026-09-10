@@ -98,6 +98,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rackSize => 'Taille des pièces du rack';
 
   @override
+  String get details => 'Détails';
+
+  @override
   String get showPieceNumbers => 'Numéro des pièces';
 
   @override

@@ -272,6 +272,12 @@ abstract class AppLocalizations {
   /// **'Rack piece size'**
   String get rackSize;
 
+  /// No description provided for @details.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get details;
+
   /// No description provided for @showPieceNumbers.
   ///
   /// In en, this message translates to:

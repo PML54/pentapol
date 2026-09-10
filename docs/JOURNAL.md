@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-08
+## §ÉTAT — au 2026-09-10
 
 ### L'application
 
@@ -28,6 +28,13 @@ difficulté.
 
 ### Chantiers terminés
 
+- **Ergonomie du jeu (2026-09-10, PLAN_ERGONOMIE_ICONES blocs 2-3 + carte de fin)** — chrono `m:ss`,
+  compteur de solutions désambiguïsé, bande debug débranchée (C9), invariant « plateau toujours légal »
+  (CLAUDE.md §Inv. #7) ; rack agrandi (`rackCellRatio` live, défaut 0.46) à emplacement serré + fondu de
+  bord, pastille unique par pièce posée (`showPieceNumbers`) ; carte de fin refondue (étoiles 1-3 +
+  bouton infos, plus de « Résolu »/« Vision parfaite »). **Reste du plan** : décision 4 (noms/glyphes
+  d'axe), bloc 4 (vignettes + grisage préventif), bloc 5 (rangée d'isométrie réservée, −11 %). Détail
+  en §PASSATIONS 2026-09-10.
 - **Suppression du mode classique** — −3197 lignes, module, widgets, écran d'accueil.
 - **Le 6×10 dans Pentoscope** — temps 1 et 2, `SolutionSource`, compteur de solutions.
 - **Bilan de fin de partie** — bandeau non modal, score retiré, chronomètre corrigé.
@@ -872,6 +879,32 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-10 — CLI (ergonomie du jeu : PLAN_ERGONOMIE_ICONES + refonte carte de fin). Commité et poussé ce jour.**
+Session pilotée en direct par Paul, testée bloc par bloc sur device. Commits `3dde2e8`
+(§0 : push de `c31685c`, captures `screenshot/` + plan committés), `9b73a4d` (bloc 2),
+`0203871` (bloc 3), plus le commit de refonte de la carte de fin (ce commit).
+- **Bloc 2** (décisions 8/9/10, C1/C7/C9) : chrono `m:ss` ; compteur de solutions = chiffre seul +
+  tooltip (glyphe retiré à la demande de Paul) ; `kShowLiveCounters=false` → coin haut-gauche « rien
+  ou total » selon `showCounters`, bande debug débranchée (**C9 / checklist 22 FAIT**) ; invariant
+  « le plateau reste toujours légal » porté dans `CLAUDE.md` §Invariants #7.
+- **Bloc 3** (décisions 6/7, C5/C6/C8) : taille du rack pilotée par le réglage **live**
+  `GameSettings.rackCellRatio` (stepper Réglages 0.30-0.60, défaut figé **0.46** après calibrage
+  device), miniature de drag alignée ; **emplacement à la largeur réelle** (boîte carrée = dimension
+  max, pas de reflow) → 3×5 montre ses 3 pièces ; **fondu de bord** sensible au défilement (C6) ;
+  **pastille unique** par pièce posée (C8) agrandie, réglage `showPieceNumbers` (défaut on). Checklist :
+  point 23 (trancher `rackCellRatio` avant store), point 16 mis à jour.
+- **Refonte carte de fin** (hors plan, demande de Paul) : plus de « Résolu »/« Vision parfaite » —
+  **animation d'étoiles 1-3** (`_SuccessStars`, palier : 3=parfait acuité 100 % + 0 faute, 2=0 faute,
+  1=résolu/aide) + **bouton infos** repliant le détail (isométries/temps/fautes/acuité). `_BilanCard`
+  → Stateful. `_PerfectBadge` supprimé.
+- **Reste du PLAN_ERGONOMIE_ICONES** (NON fait) : **décision 4** (nommage par axe + réalignement
+  noms/glyphes croisés `swap_vert`/`swap_horiz`), **bloc 4** (vignettes du résultat sur les 4 boutons
+  d'isométrie + grisage préventif, décisions 1/2/3), **bloc 5** (rangée d'isométrie réservée au-dessus
+  du rack + AppBar permanente, les **−11 %** de surface, décision 5). Le plan reste dans `docs/` tant
+  qu'il n'est pas entièrement appliqué et testé.
+- `analyze` 0/0, **67/67** à chaque commit. **Reste : test device** de la carte de fin (fait par Paul,
+  OK) et de l'ensemble.
+
 **2026-09-09 (4) — CLI (entraînement Option A + réglage « compteurs » + accueil hub). Commité ce jour.**
 Trois demandes de Paul en une session, commitées ensemble. (a) **Mode entraînement Option A** :
 `training_screen`/`training_provider` supprimés, l'état passe dans `pentoscope_provider.startTraining()`
@@ -895,12 +928,5 @@ toute la largeur), **sensibilité** `longPressDuration` défaut 100 ms / plage 5
 rack conservée** au drag annulé (`cancelSelection` commit). `analyze` 0/0, **67/67**. Détail en §ÉTAT
 « Ligne du bas — CAUSE RACINE ». Build `202609090737`.
 
-**2026-09-09 (2) — CLI (correctif pose ligne du bas, 1er jet). Commité `0887c60`, poussé.**
-Retour de Paul : « toujours des problèmes de pose dans la ligne du bas » (capture `screenshot/piece9.png`).
-1er diagnostic : plateau ancré en bas (#6) collé au rack ; `onLeave` effaçait l'aperçu et le rack refusait
-une pièce du rack → dépôt perdu. Correctif câblage des drop-targets : `onLeave` ne fait plus `clearPreview` ;
-le rack pose une pièce du rack à l'aperçu valide. **A aidé mais pas suffi** (cf. (3), la vraie cause était
-l'échelle de l'ancre). `analyze` 0/0, 67/67.
-
-*(Les passations du 2026-09-08 et antérieures sont sorties de la liste au fil des ajouts ; elles
+*(Les passations du 2026-09-09 (2), 2026-09-08 et antérieures sont sorties de la liste au fil des ajouts ; elles
 restent dans `git log` et leurs décisions vivent dans `CAHIER_DES_CHARGES_V1.md` et le §ÉTAT.)*

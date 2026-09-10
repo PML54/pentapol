@@ -34,6 +34,7 @@
   "showCounters": "Show counters (isometries, faults)",
   "showCountersSub": "Displays the isometry and fault counts in the game bar.",
   "rackSize": "Rack piece size",
+  "details": "Details",
   "showPieceNumbers": "Piece numbers",
   "showPieceNumbersSub": "One badge per piece on the board (color only when off).",
   "dragSensitivity": "Drag sensitivity",
