@@ -935,6 +935,21 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-10 (7) — Claude Code (CLI) : accueil guidé + glissé visible COMMITÉS et POUSSÉS.**
+Paul demande « fais moi commit et push ». Le travail des passations (4), (5) et (6) — jusqu’ici
+« NON commité » — est vérifié puis livré : headers `.dart` à jour (tous 2026-09-10), analyse
+**0 erreur / 0 avertissement (61 infos)**, **111/111 tests**. Version bumpée avant push
+(`scripts/update_version.sh 1.0.0`, build `202609101839`, date/heure only). **Deux commits**,
+`AGENTS.md` isolé du code (règle « doc sans code derrière commité seul ») :
+`e3dbe61 docs(agents)` — `AGENTS.md`, miroir Codex des règles projet à la racine ;
+`72a16bf feat(accueil)` — parcours guidé 3×5 (`guided_home.dart`), glissé toujours visible
+(`piece_drag_feedback.dart`), dépôt assisté (zone silhouette, tolérance ¼ case), fix drag
+rack → dernière ligne en paysage, + l10n EN/FR, `guided_home_test.dart`,
+`rack_drag_landscape_test.dart`, JOURNAL et `build_info.dart`.
+Poussés sur `origin/main` (`f1a8ad7..72a16bf`) ; `git status -s docs/` vide, arbre propre.
+**Reste : validation device par Paul** de l’accueil guidé et du dépôt assisté (seuls points
+encore « à confirmer par Paul »).
+
 **2026-09-10 (6) — Codex : dépôt naturel dans l’accueil guidé. NON commité.**
 Retour device de Paul : « elle revient dans le slider », puis précision « il faut la prendre
 sur un bout ». La validation dépendait de `floor(doigt / casePlateau) − caseSaisie`, trop stricte
@@ -965,18 +980,5 @@ Correction d’un débordement français sur petit écran : réserve calculée s
 **Suite complète 79/79 ; analyse 0 erreur / 0 avertissement (61 infos).** Aperçus de test disponibles
 sous `/tmp/pentapol-welcome-*.png` (rendu de test, pas captures device). Ressenti à valider par Paul.
 Journal actualisé, pas de commit ni push demandés. Le bloc 5 existant dans l’écran de jeu est conservé.
-
-**2026-09-10 (4) — Codex : miniature visible dès la prise. NON commité.**
-Paul constate que la pièce disparaît entre le rack et le plateau et propose de la rendre rouge.
-Choix accepté : garder sa couleur atténuée, tracer le contour extérieur rouge (sous-trait blanc),
-puis retrouver l’aspect normal sur un emplacement valide. `PieceRenderer.invalidPlacement` ajoute
-le rendu ; `PieceDragFeedback` le partage entre rack et pièce posée (solo/duel). Fin de l’opacité zéro.
-Présence du doigt suivie séparément dans `dragOverBoardProvider` pour afficher le rouge hors plateau
-même après une pose possible ; l’aperçu conservé au bord et les règles de dépôt restent distincts.
-Test réel de glissé étendu : miniature présente avant le plateau, retour normal sur case valide,
-rouge avec placements bloqués et hors plateau, retour normal puis pose correcte au bord bas.
-**70/70 tests ; analyse 0 erreur / 0 avertissement (61 infos).** Rendu à valider par Paul sur appareil.
-Accueil guidé 3×5 souhaité en remplacement de la démo : consigné en chantiers ouverts, reste à faire.
-Travail du bloc 5 de l’autre session conservé ; pas de commit ni push sur cette demande.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*
