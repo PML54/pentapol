@@ -172,6 +172,14 @@ Ces points ont coûté du temps une fois. Ils remplacent la §DÉCISIONS du jour
    implémentation qu'ils sont censés contraindre.
 6. **`AppSettings` est sérialisé en JSON** dans une ligne de la table `Settings` : un champ
    ajouté ou retiré ne demande **aucune migration**.
+7. **Le plateau reste toujours légal.** Les isométries s'appliquent librement sur une pièce **du
+   rack** ; sur une pièce **posée**, elles ne s'appliquent que si le résultat est valide (aucun
+   chevauchement, même transitoire). Ce n'est pas un choix d'interface mais un **invariant
+   structurel** : le **compteur de solutions** apparie contre un corpus de placements **légaux**,
+   et le **classifieur de fautes** (`fault_analysis`) mesure des transitions soluble→insoluble —
+   une superposition illégale n'est pas « insoluble », elle est **hors modèle**. Un plateau qui
+   accueillerait un chevauchement fausserait les deux **en silence**. Le refus se manifeste par
+   **grisage préventif** des boutons dont l'opération échouerait (pas de message, choix de Paul).
 
 ## Protocole entre agents — OBLIGATOIRE
 

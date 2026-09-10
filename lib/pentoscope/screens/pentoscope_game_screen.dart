@@ -1,4 +1,8 @@
-// Modified: 2026-09-09 09:20 — réglage « compteurs » : récap 🔄 isométries · ⚫ fautes en OVERLAY haut-gauche
+// Modified: 2026-09-10 05:42 — ergonomie (bloc 2) : chrono en `m:ss` (C7) au lieu des secondes brutes ;
+//           compteur de solutions = chiffre SEUL + tooltip `compatibleSolutionsTooltip` (C1, retour
+//           de Paul : le glyphe mangeait de la place) ; kShowLiveCounters=false → overlay haut-gauche
+//           « rien ou total » selon showCounters, bande debug débranchée (C9). Décisions 8, 9.
+// Historique: 2026-09-09 09:20 — réglage « compteurs » : récap 🔄 isométries · ⚫ fautes en OVERLAY haut-gauche
 //           (sous l'AppBar, _statsOverlay) si settings.game.showCounters — pas dans la barre. S'exclut du
 //           bandeau debug (même coin). Retour de Paul.
 // Historique: 2026-09-09 08:15 — mode entraînement (Option A) : le game screen gère isTraining — carte de
@@ -181,7 +185,13 @@ double maxBoardCellSize(BuildContext context) =>
 /// s'incrémentent en direct. **NON destiné à la production** — à repasser `false` avant toute
 /// soumission App Store (suivi dans `docs/CHECKLIST_APPSTORE.md`). Pas `kDebugMode` : le test se
 /// fait en `--release`, où il vaut faux.
-const bool kShowLiveCounters = true;
+///
+/// Repassé à **false** le 2026-09-10 (retour de Paul) : quand il valait `true`, le coin
+/// haut-gauche n'avait jamais d'état « rien » — réglage `showCounters` OFF → bande debug
+/// (verbeuse), ON → récap propre. Désormais OFF → **rien**, ON → **récap** (isométries · fautes) :
+/// le réglage donne bien « rien ou total ». Traite aussi le C9 (bande debug sur le plateau,
+/// checklist point 22). Repasser `true` pour l'observation en dev.
+const bool kShowLiveCounters = false;
 
 /// Icônes (AppBar + colonne d'actions) : `shortestSide × facteur`, borné. **À régler à l'œil.**
 /// (0.075→0.11, min 30→40 le 2026-09-07 : « trop petites dans l'AppBar » — retour de Paul.)
@@ -205,10 +215,14 @@ const double _kChronoFactor = 1.4;
 /// Marge de la barre de pièces autour de la boîte (épaisseur de barre = `5 × cell + marge`).
 const double _kSliderPad = 20.0;
 
-/// ⏱️ Formate le temps en secondes (max 999s) - format compact
+/// ⏱️ Formate le temps en `m:ss` (C7, décision 8 du PLAN_ERGONOMIE_ICONES) : les
+/// secondes brutes (`106s`, `203s`) ne se lisent pas comme une durée. Chaîne
+/// purement numérique — pas d'i18n (comme les libellés numériques de durée du duel).
 String _formatTime(int seconds) {
-  final clamped = seconds.clamp(0, 999);
-  return '${clamped}s';
+  final total = seconds < 0 ? 0 : seconds;
+  final m = total ~/ 60;
+  final s = total % 60;
+  return '$m:${s.toString().padLeft(2, '0')}';
 }
 
 class PentoscopeGameScreen extends ConsumerStatefulWidget {
@@ -1255,20 +1269,25 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   /// Compteur de solutions (nombre restant) — reste dans la barre (§9.4). Rouge à 0, cohérent
   /// avec le bouton d'indice.
+  ///
+  /// C1 / décision 9 du PLAN_ERGONOMIE_ICONES : le chiffre restait collé à l'ampoule et se lisait
+  /// « 1 indice ». Chiffre **seul** (le glyphe mangeait de la place — retour de Paul) + tooltip
+  /// libellé (`compatibleSolutionsTooltip`) au survol/maintien pour lever l'ambiguïté sans coût
+  /// de place. Affichage optionnel via `GameSettings.showSolutionCounter` (Réglages).
   Widget _buildSolutionCounter(BuildContext context, PentoscopeState state) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '${state.solutionsCount}',
-          style: TextStyle(
-            fontSize: _uiLabelSize(context),
-            fontWeight: FontWeight.bold,
-            color:
-                state.hasPossibleSolution ? Colors.black87 : Colors.red.shade700,
-          ),
+    final l10n = AppLocalizations.of(context);
+    final color =
+        state.hasPossibleSolution ? Colors.black87 : Colors.red.shade700;
+    return Tooltip(
+      message: l10n.compatibleSolutionsTooltip,
+      child: Text(
+        '${state.solutionsCount}',
+        style: TextStyle(
+          fontSize: _uiLabelSize(context),
+          fontWeight: FontWeight.bold,
+          color: color,
         ),
-      ],
+      ),
     );
   }
 
