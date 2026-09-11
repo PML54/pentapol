@@ -621,34 +621,43 @@ class AppLocalizationsFr extends AppLocalizations {
   String get consentLater => 'Plus tard';
 
   @override
-  String get guidedPlace =>
-      'Maintiens la pièce encadrée, puis glisse-la sur sa silhouette.';
-
-  @override
   String get guidedRotate =>
-      'Tourne la pièce, puis glisse-la sur sa silhouette.';
+      'Bien ! Utilise les flèches pour tourner la pièce comme la silhouette.';
 
   @override
   String get guidedMirror =>
-      'Retourne la pièce, puis glisse-la sur sa silhouette.';
+      'Bien ! Essaie les flèches de miroir pour retourner la pièce comme la silhouette.';
 
   @override
-  String get guidedDone => 'Tu es prêt à jouer !';
+  String get guidedDone => 'Bravo, tu as rempli le plateau ! À toi de jouer.';
 
   @override
-  String get guidedRotateAction => 'Tourner la pièce';
+  String get guidedReady =>
+      'Parfait ! Maintiens la pièce, puis glisse-la sur sa silhouette sur le plateau.';
 
   @override
-  String get guidedMirrorAction => 'Retourner la pièce';
+  String get guidedAnother => 'Un autre entraînement';
 
   @override
-  String guidedStep(int step) {
-    return 'Étape $step/3';
+  String get guidedBrowse =>
+      'Fais défiler le rack en faisant glisser les pièces.';
+
+  @override
+  String guidedChoose(int number) {
+    return 'Bien ! Touche la pièce n°$number pour la sélectionner.';
   }
 
   @override
-  String get guidedReady => 'La forme est bonne ! Glisse-la sur sa silhouette.';
+  String guidedNext(int number) {
+    return 'Bien joué ! Cherche maintenant la pièce n°$number dans le rack et touche-la.';
+  }
 
   @override
-  String get guidedAgain => 'Recommencer';
+  String guidedPiece(int number) {
+    return 'Pièce n°$number';
+  }
+
+  @override
+  String get guidedRetry =>
+      'Tu y es presque ! Ajuste la forme avec les flèches, puis vise la silhouette.';
 }

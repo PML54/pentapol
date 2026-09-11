@@ -1106,59 +1106,65 @@ abstract class AppLocalizations {
   /// **'Not now'**
   String get consentLater;
 
-  /// No description provided for @guidedPlace.
-  ///
-  /// In en, this message translates to:
-  /// **'Hold the highlighted piece, then drag it onto its outline.'**
-  String get guidedPlace;
-
   /// No description provided for @guidedRotate.
   ///
   /// In en, this message translates to:
-  /// **'Turn the piece, then drag it onto its outline.'**
+  /// **'Good! Use the arrows to turn the piece to match the outline.'**
   String get guidedRotate;
 
   /// No description provided for @guidedMirror.
   ///
   /// In en, this message translates to:
-  /// **'Flip the piece, then drag it onto its outline.'**
+  /// **'Good! Try the mirror arrows to flip the piece to match the outline.'**
   String get guidedMirror;
 
   /// No description provided for @guidedDone.
   ///
   /// In en, this message translates to:
-  /// **'You are ready to play!'**
+  /// **'Well done, you filled the board! You are ready to play.'**
   String get guidedDone;
-
-  /// No description provided for @guidedRotateAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Turn the piece'**
-  String get guidedRotateAction;
-
-  /// No description provided for @guidedMirrorAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Flip the piece'**
-  String get guidedMirrorAction;
-
-  /// No description provided for @guidedStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Step {step}/3'**
-  String guidedStep(int step);
 
   /// No description provided for @guidedReady.
   ///
   /// In en, this message translates to:
-  /// **'The shape matches! Drag it onto its outline.'**
+  /// **'Perfect! Hold the piece, then drag it onto its outline on the board.'**
   String get guidedReady;
 
-  /// No description provided for @guidedAgain.
+  /// No description provided for @guidedAnother.
   ///
   /// In en, this message translates to:
-  /// **'Try again'**
-  String get guidedAgain;
+  /// **'Another practice'**
+  String get guidedAnother;
+
+  /// No description provided for @guidedBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe through the rack to explore the pieces.'**
+  String get guidedBrowse;
+
+  /// No description provided for @guidedChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Nice! Tap piece #{number} to select it.'**
+  String guidedChoose(int number);
+
+  /// No description provided for @guidedNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Well done! Find piece #{number} in the rack and tap it.'**
+  String guidedNext(int number);
+
+  /// No description provided for @guidedPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece #{number}'**
+  String guidedPiece(int number);
+
+  /// No description provided for @guidedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearly there! Adjust the shape with the arrows, then aim for the outline.'**
+  String get guidedRetry;
 }
 
 class _AppLocalizationsDelegate

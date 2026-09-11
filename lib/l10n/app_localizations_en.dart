@@ -617,32 +617,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consentLater => 'Not now';
 
   @override
-  String get guidedPlace =>
-      'Hold the highlighted piece, then drag it onto its outline.';
+  String get guidedRotate =>
+      'Good! Use the arrows to turn the piece to match the outline.';
 
   @override
-  String get guidedRotate => 'Turn the piece, then drag it onto its outline.';
+  String get guidedMirror =>
+      'Good! Try the mirror arrows to flip the piece to match the outline.';
 
   @override
-  String get guidedMirror => 'Flip the piece, then drag it onto its outline.';
+  String get guidedDone =>
+      'Well done, you filled the board! You are ready to play.';
 
   @override
-  String get guidedDone => 'You are ready to play!';
+  String get guidedReady =>
+      'Perfect! Hold the piece, then drag it onto its outline on the board.';
 
   @override
-  String get guidedRotateAction => 'Turn the piece';
+  String get guidedAnother => 'Another practice';
 
   @override
-  String get guidedMirrorAction => 'Flip the piece';
+  String get guidedBrowse => 'Swipe through the rack to explore the pieces.';
 
   @override
-  String guidedStep(int step) {
-    return 'Step $step/3';
+  String guidedChoose(int number) {
+    return 'Nice! Tap piece #$number to select it.';
   }
 
   @override
-  String get guidedReady => 'The shape matches! Drag it onto its outline.';
+  String guidedNext(int number) {
+    return 'Well done! Find piece #$number in the rack and tap it.';
+  }
 
   @override
-  String get guidedAgain => 'Try again';
+  String guidedPiece(int number) {
+    return 'Piece #$number';
+  }
+
+  @override
+  String get guidedRetry =>
+      'Nearly there! Adjust the shape with the arrows, then aim for the outline.';
 }

@@ -1,9 +1,13 @@
-// Modified: 2026-09-10 15:08 — accueil : déposer la bonne forme sur la silhouette sans viser la case saisie.
+// Modified: 2026-09-11 07:57 — sept accueils 3×5 et orientations initiales toujours différentes de la cible.
+// Historique: 2026-09-11 07:33 — accueil : rack défilant, sélection numérotée, quatre isométries du jeu et encouragements.
+// Historique: 2026-09-10 15:08 — accueil : déposer la bonne forme sur la silhouette sans viser la case saisie.
 // Historique: 2026-09-10 14:53 — finaliser accueil guidé : feedback visible, validation géométrique, reprise et progression EN/FR.
 // Historique: 2026-09-10 10:24 — trois gestes guidés sur un pavage réel, état local sans score ni persistance.
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/pentapol_rng.dart';
+import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
@@ -25,7 +29,17 @@ int transformedOrientation(Pento piece, int index, {bool mirror = false}) {
   return mirror ? piece.symmetryV(index) : piece.rotationCW(index);
 }
 
-/// U : pose ; P : rotation ; F : miroir (sa chiralité impose un retournement).
+/// Vrai si les seules rotations ne permettent pas d'atteindre l'orientation cible.
+bool needsGuidedMirror(Pento piece, int from, int target) {
+  var current = from;
+  for (var i = 0; i < 4; i++) {
+    if (current == target) return false;
+    current = piece.rotationCW(current);
+  }
+  return true;
+}
+
+/// Une pièce du parcours : rotation d'abord, miroir nécessaire en dernier.
 class GuidedStep {
   final HomePiece target;
   final Pento piece;
@@ -39,10 +53,9 @@ class GuidedStep {
   );
 }
 
-List<GuidedStep> guidedSteps() {
-  final solution = kHomeTirages.first;
-  return [7, 2, 4].asMap().entries.map((entry) {
-    final target = solution.pieces.firstWhere((p) => p.id == entry.value);
+List<GuidedStep> guidedSteps({int tirageIndex = 0}) {
+  final solution = kHomeTirages[tirageIndex];
+  final targets = solution.pieces.map((target) {
     final piece = pentominos.firstWhere((p) => p.id == target.id);
     final key = shapeKey(target.cells.map((c) => math.Point(c[0], c[1])));
     final orientation = piece.orientations.indexWhere(
@@ -50,16 +63,43 @@ List<GuidedStep> guidedSteps() {
           shapeKey(o.map((n) => math.Point((n - 1) % 5, (n - 1) ~/ 5))) == key,
     );
     if (orientation < 0) throw StateError('Missing guided orientation');
-    var start = orientation;
-    if (entry.key == 1) {
-      for (var i = 0; i < 3; i++) {
-        start = transformedOrientation(piece, start);
-      }
-    } else if (entry.key == 2) {
-      start = transformedOrientation(piece, start, mirror: true);
-    }
-    return GuidedStep(target, piece, orientation, start);
+    return GuidedStep(
+      target,
+      piece,
+      orientation,
+      piece.rotationTW(orientation),
+    );
   }).toList();
+  // Les sept tirages contiennent une pièce chirale : la garder pour apprendre le miroir.
+  final mirror = targets.lastWhere(
+    (s) => needsGuidedMirror(
+      s.piece,
+      s.piece.symmetryV(s.targetOrientation),
+      s.targetOrientation,
+    ),
+  );
+  targets.remove(mirror);
+  targets.sort((a, b) {
+    final order = a.piece.numOrientations.compareTo(b.piece.numOrientations);
+    return order == 0 ? a.piece.id.compareTo(b.piece.id) : order;
+  });
+  targets.add(
+    GuidedStep(
+      mirror.target,
+      mirror.piece,
+      mirror.targetOrientation,
+      mirror.piece.symmetryV(mirror.targetOrientation),
+    ),
+  );
+  // Comparer les formes, y compris pour les pièces ayant des symétries propres.
+  if (targets.any(
+    (s) =>
+        shapeKey(orientationCells(s.piece, s.initialOrientation)) ==
+        shapeKey(orientationCells(s.piece, s.targetOrientation)),
+  )) {
+    throw StateError('A guided piece already matches its target');
+  }
+  return targets;
 }
 
 class GuidedHome extends StatefulWidget {
@@ -67,24 +107,47 @@ class GuidedHome extends StatefulWidget {
   final double ratio;
   final VoidCallback onPlay;
   final Duration longPressDuration;
+
+  /// Départ reproductible pour prévisualisations/tests ; sinon tirage choisi au montage.
+  final int? initialTirageIndex;
   const GuidedHome({
     super.key,
     required this.colorOf,
     required this.ratio,
     required this.onPlay,
     this.longPressDuration = const Duration(milliseconds: 100),
+    this.initialTirageIndex,
   });
   @override
   State<GuidedHome> createState() => _GuidedHomeState();
 }
 
 class _GuidedHomeState extends State<GuidedHome> {
-  final steps = guidedSteps();
+  late int tirageIndex =
+      widget.initialTirageIndex ??
+      PentapolRng(
+        DateTime.now().microsecondsSinceEpoch,
+      ).nextInt(kHomeTirages.length);
+  late List<GuidedStep> steps = guidedSteps(tirageIndex: tirageIndex);
   final boardKey = GlobalKey();
+  final rackController = ScrollController();
   final dragVisual = ValueNotifier<(bool, Offset)>((false, Offset.zero));
+  late List<int> orientations = steps.map((s) => s.initialOrientation).toList();
+  int step = 0;
+  int? selected;
+  bool browsed = false;
+  bool validHover = false;
+  bool retry = false;
+  bool get complete => step == steps.length;
+  bool get shapeReady =>
+      !complete &&
+      selected == step &&
+      shapeKey(orientationCells(steps[step].piece, orientations[step])) ==
+          shapeKey(steps[step].target.cells.map((c) => math.Point(c[0], c[1])));
 
   @override
   void dispose() {
+    rackController.dispose();
     dragVisual.dispose();
     super.dispose();
   }
@@ -94,63 +157,87 @@ class _GuidedHomeState extends State<GuidedHome> {
     if (valid != validHover) setState(() => validHover = valid);
   }
 
-  void restart() {
+  void select(int index) {
     updateHover(false);
     setState(() {
-      step = 0;
-      orientation = steps.first.initialOrientation;
+      browsed = true;
+      selected = index;
+      retry = false;
     });
   }
 
-  bool get shapeReady =>
-      !complete &&
-      shapeKey(orientationCells(steps[step].piece, orientation)) ==
-          shapeKey(steps[step].target.cells.map((c) => math.Point(c[0], c[1])));
+  void transform(int Function(Pento, int) operation) {
+    if (selected == null) return;
+    updateHover(false);
+    setState(() {
+      final i = selected!;
+      orientations[i] = operation(steps[i].piece, orientations[i]);
+      retry = false;
+    });
+  }
 
-  int step = 0;
-  late int orientation = steps.first.initialOrientation;
-  math.Point<int> grab = const math.Point(0, 0);
-  bool validHover = false;
-  bool get complete => step == steps.length;
+  void nextTraining() {
+    updateHover(false);
+    setState(() {
+      step = 0;
+      selected = null;
+      browsed = false;
+      retry = false;
+      // Parcourir les sept configurations sans répétition avant le tour suivant.
+      tirageIndex = (tirageIndex + 1) % kHomeTirages.length;
+      steps = guidedSteps(tirageIndex: tirageIndex);
+      orientations = steps.map((s) => s.initialOrientation).toList();
+    });
+    if (rackController.hasClients) rackController.jumpTo(0);
+  }
 
   bool accepts(Offset position, double cell) {
     if (!shapeReady) return false;
     final box = boardKey.currentContext!.findRenderObject() as RenderBox;
     final local = box.globalToLocal(position);
     final target = steps[step].target.cells;
-    final minX = target.map((p) => p[0]).reduce(math.min);
-    final minY = target.map((p) => p[1]).reduce(math.min);
-    final maxX = target.map((p) => p[0]).reduce(math.max);
-    final maxY = target.map((p) => p[1]).reduce(math.max);
-    // Accueil guidé : le geste vise la silhouette entière, pas la case saisie dans
-    // la miniature. Une petite tolérance au bord aide sans autoriser un dépôt hors plateau.
     final targetArea = Rect.fromLTRB(
-      minX * cell,
-      minY * cell,
-      (maxX + 1) * cell,
-      (maxY + 1) * cell,
+      target.map((p) => p[0]).reduce(math.min) * cell,
+      target.map((p) => p[1]).reduce(math.min) * cell,
+      (target.map((p) => p[0]).reduce(math.max) + 1) * cell,
+      (target.map((p) => p[1]).reduce(math.max) + 1) * cell,
     ).inflate(cell * .25);
     return (Offset.zero & box.size).contains(local) &&
         targetArea.contains(local);
   }
 
+  String message(AppLocalizations l10n) {
+    if (complete) return l10n.guidedDone;
+    if (!browsed) return l10n.guidedBrowse;
+    final id = steps[step].piece.id;
+    if (selected != null && selected != step) return l10n.guidedChoose(id);
+    if (selected == null) {
+      return step == 0 ? l10n.guidedChoose(id) : l10n.guidedNext(id);
+    }
+    if (retry) return l10n.guidedRetry;
+    if (shapeReady) return l10n.guidedReady;
+    return needsGuidedMirror(
+          steps[step].piece,
+          orientations[step],
+          steps[step].targetOrientation,
+        )
+        ? l10n.guidedMirror
+        : l10n.guidedRotate;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final message = complete
-        ? l10n.guidedDone
-        : step > 0 && shapeReady
-        ? l10n.guidedReady
-        : [l10n.guidedPlace, l10n.guidedRotate, l10n.guidedMirror][step];
     return LayoutBuilder(
       builder: (context, bounds) {
         final landscape = bounds.maxWidth > bounds.maxHeight;
         final contentWidth = bounds.maxWidth - 24;
         final contentHeight = bounds.maxHeight - 24;
         final controlsWidth = landscape ? bounds.maxWidth * .48 : contentWidth;
-        double textHeight(String text, TextStyle style) {
+        final textStyle = Theme.of(context).textTheme.titleMedium!;
+        double textHeight(String text) {
           final painter = TextPainter(
-            text: TextSpan(text: text, style: style),
+            text: TextSpan(text: text, style: textStyle),
             textDirection: Directionality.of(context),
             textScaler: MediaQuery.textScalerOf(context),
           )..layout(maxWidth: controlsWidth);
@@ -159,29 +246,23 @@ class _GuidedHomeState extends State<GuidedHome> {
           return height;
         }
 
-        final messageHeight =
-            [
-                  l10n.guidedPlace,
-                  l10n.guidedRotate,
-                  l10n.guidedMirror,
-                  l10n.guidedReady,
-                  l10n.guidedDone,
-                ]
-                .map(
-                  (text) => textHeight(
-                    text,
-                    Theme.of(context).textTheme.titleMedium!,
-                  ),
-                )
-                .reduce(math.max);
-        final stepHeight = textHeight(
-          l10n.guidedStep(3),
-          DefaultTextStyle.of(
-            context,
-          ).style.copyWith(fontWeight: FontWeight.bold),
-        );
-        // Texte + commandes + marges du rack réservés ; aucune étape ne déplace le plateau.
-        final fixedHeight = stepHeight + messageHeight + 4 + 8 + 48 + 16;
+        // Réserve identique pour toutes les consignes : le plateau ne saute pas.
+        final messageHeight = [
+          l10n.guidedBrowse,
+          l10n.guidedRotate,
+          l10n.guidedMirror,
+          l10n.guidedReady,
+          l10n.guidedRetry,
+          l10n.guidedDone,
+          for (final s in steps) ...[
+            l10n.guidedChoose(s.piece.id),
+            l10n.guidedNext(s.piece.id),
+          ],
+        ].map(textHeight).reduce(math.max);
+        // Même taille et mêmes configurations d'icônes que le jeu.
+        final iconSize = isometryIconSize(context);
+        final actionsHeight = iconSize + 14;
+        final fixedHeight = messageHeight + 8 + actionsHeight + 16;
         final cell = math.max(
           1.0,
           math.min(
@@ -197,21 +278,23 @@ class _GuidedHomeState extends State<GuidedHome> {
           ),
         );
         final rackCell = cell * widget.ratio;
+        final rackHeight = rackCell * 4 + 16;
         final board = SizedBox(
           key: boardKey,
           width: 3 * cell,
           height: 5 * cell,
           child: DragTarget<int>(
             onWillAcceptWithDetails: (d) => !complete && d.data == step,
-            onMove: (d) => updateHover(accepts(d.offset, cell)),
+            onMove: (d) =>
+                updateHover(d.data == step && accepts(d.offset, cell)),
             onLeave: (_) => updateHover(false),
             onAcceptWithDetails: (d) {
-              if (!accepts(d.offset, cell)) return;
+              if (d.data != step || !accepts(d.offset, cell)) return;
               updateHover(false);
               setState(() {
                 step++;
-                validHover = false;
-                if (!complete) orientation = steps[step].initialOrientation;
+                selected = null;
+                retry = false;
               });
             },
             builder: (context, candidates, rejected) => Stack(
@@ -234,7 +317,7 @@ class _GuidedHomeState extends State<GuidedHome> {
                       ),
                     ),
                 for (var i = 0; i < steps.length; i++)
-                  if (i <= step)
+                  if (i < step || (i == step && selected == step))
                     for (final c in steps[i].target.cells)
                       Positioned(
                         left: c[0] * cell,
@@ -265,40 +348,60 @@ class _GuidedHomeState extends State<GuidedHome> {
             ),
           ),
         );
+        final configs = [
+          GameIcons.isometryRotationTW,
+          GameIcons.isometryRotationCW,
+          GameIcons.isometrySymmetryH,
+          GameIcons.isometrySymmetryV,
+        ];
+        final tooltips = [
+          l10n.isoRotateTW,
+          l10n.isoRotateCW,
+          l10n.isoSymH,
+          l10n.isoSymV,
+        ];
+        final operations = <int Function(Pento, int)>[
+          (p, o) => p.rotationTW(o),
+          (p, o) => p.rotationCW(o),
+          (p, o) => p.symmetryH(o),
+          (p, o) => p.symmetryV(o),
+        ];
+        final actionKeys = [
+          'guided-rotate-left',
+          'guided-rotate',
+          'guided-mirror-horizontal',
+          'guided-mirror',
+        ];
         final controls = Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              height: stepHeight,
-              child: complete
-                  ? null
-                  : Text(
-                      l10n.guidedStep(step + 1),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-            ),
-            const SizedBox(height: 4),
             SizedBox(
               height: messageHeight,
               child: Semantics(
                 liveRegion: true,
                 child: Text(
-                  message,
+                  message(l10n),
+                  key: const ValueKey('guided-message'),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: textStyle,
                 ),
               ),
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 48,
+              height: actionsHeight,
               child: complete
                   ? Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        TextButton(
-                          onPressed: restart,
-                          child: Text(l10n.guidedAgain),
+                        Flexible(
+                          child: TextButton(
+                            onPressed: nextTraining,
+                            child: Text(
+                              l10n.guidedAnother,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         FilledButton(
@@ -308,109 +411,61 @@ class _GuidedHomeState extends State<GuidedHome> {
                       ],
                     )
                   : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        IconButton(
-                          key: const ValueKey('guided-rotate'),
-                          iconSize: 34,
-                          tooltip: l10n.guidedRotateAction,
-                          icon: const Icon(Icons.rotate_right),
-                          onPressed: step == 1
-                              ? () => setState(() {
-                                  orientation = transformedOrientation(
-                                    steps[step].piece,
-                                    orientation,
-                                  );
-                                })
-                              : null,
-                        ),
-                        IconButton(
-                          key: const ValueKey('guided-mirror'),
-                          iconSize: 34,
-                          tooltip: l10n.guidedMirrorAction,
-                          icon: const Icon(Icons.flip),
-                          onPressed: step == 2
-                              ? () => setState(() {
-                                  orientation = transformedOrientation(
-                                    steps[step].piece,
-                                    orientation,
-                                    mirror: true,
-                                  );
-                                })
-                              : null,
-                        ),
+                        for (var i = 0; i < configs.length; i++)
+                          IconButton(
+                            key: ValueKey(actionKeys[i]),
+                            iconSize: iconSize,
+                            padding: EdgeInsets.zero,
+                            tooltip: tooltips[i],
+                            color: configs[i].color,
+                            icon: Icon(configs[i].icon),
+                            onPressed: selected == null
+                                ? null
+                                : () => transform(operations[i]),
+                          ),
                       ],
                     ),
             ),
             SizedBox(
-              height: rackCell * 4 + 16,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(steps.length, (i) {
-                  final current = steps[i];
-                  final index = i == step
-                      ? orientation
-                      : current.initialOrientation;
-                  final renderer = PieceRenderer(
-                    piece: current.piece,
-                    positionIndex: index,
-                    cellSize: rackCell,
-                    getPieceColor: widget.colorOf,
-                  );
-                  if (i < step) {
-                    return Icon(
-                      Icons.check_circle,
-                      color: widget.colorOf(current.piece.id),
-                      size: rackCell * 2,
-                    );
-                  }
-                  if (i != step) return Opacity(opacity: .4, child: renderer);
-                  return LongPressDraggable<int>(
-                    key: ValueKey('guided-piece-$i'),
-                    data: i,
-                    delay: widget.longPressDuration,
-                    dragAnchorStrategy: (drag, ctx, pos) {
-                      final box = ctx.findRenderObject() as RenderBox;
-                      final local = box.globalToLocal(pos);
-                      grab = math.Point(
-                        ((local.dx - 4) / rackCell).floor(),
-                        ((local.dy - 4) / rackCell).floor(),
-                      );
-                      dragVisual.value = (
-                        false,
-                        Offset(-grab.x * rackCell - 4, -grab.y * rackCell - 4),
-                      );
-                      return Offset.zero;
-                    },
-                    onDragEnd: (_) => updateHover(false),
-                    feedback: Material(
-                      color: Colors.transparent,
-                      child: ValueListenableBuilder<(bool, Offset)>(
-                        valueListenable: dragVisual,
-                        builder: (context, visual, _) => Transform.translate(
-                          offset: visual.$2,
-                          child: PieceRenderer(
-                            piece: current.piece,
-                            positionIndex: index,
-                            cellSize: rackCell,
-                            getPieceColor: widget.colorOf,
-                            isDragging: true,
-                            invalidPlacement: !visual.$1,
-                          ),
+              height: rackHeight,
+              child: complete
+                  ? null
+                  : NotificationListener<ScrollUpdateNotification>(
+                      onNotification: (n) {
+                        // Une vraie exploration du rack précède le choix ; pas un défilement programmatique.
+                        if (!browsed &&
+                            n.dragDetails != null &&
+                            n.metrics.pixels.abs() > 12) {
+                          setState(() => browsed = true);
+                        }
+                        return false;
+                      },
+                      child: Scrollbar(
+                        controller: rackController,
+                        thumbVisibility: true,
+                        child: ListView(
+                          key: const ValueKey('guided-rack'),
+                          controller: rackController,
+                          scrollDirection: landscape
+                              ? Axis.vertical
+                              : Axis.horizontal,
+                          itemExtent: landscape
+                              ? rackHeight
+                              : math.max(rackHeight, controlsWidth * .62),
+                          children: [
+                            // La première pièce demandée est au bout : on apprend réellement à défiler.
+                            for (final i in [1, 2, 0])
+                              if (i >= step)
+                                Center(
+                                  key: ValueKey('guided-slot-$i'),
+                                  child: rackPiece(i, rackCell, l10n),
+                                ),
+                          ],
                         ),
                       ),
                     ),
-                    childWhenDragging: Opacity(opacity: .25, child: renderer),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.amber, width: 2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: renderer,
-                    ),
-                  );
-                }),
-              ),
             ),
           ],
         );
@@ -421,7 +476,7 @@ class _GuidedHomeState extends State<GuidedHome> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     board,
-                    SizedBox(width: bounds.maxWidth * .48, child: controls),
+                    SizedBox(width: controlsWidth, child: controls),
                   ],
                 )
               : Column(
@@ -430,6 +485,73 @@ class _GuidedHomeState extends State<GuidedHome> {
                 ),
         );
       },
+    );
+  }
+
+  Widget rackPiece(int i, double rackCell, AppLocalizations l10n) {
+    final current = steps[i];
+    final index = orientations[i];
+    final renderer = PieceRenderer(
+      piece: current.piece,
+      positionIndex: index,
+      cellSize: rackCell,
+      getPieceColor: widget.colorOf,
+    );
+    return Semantics(
+      label: l10n.guidedPiece(current.piece.id),
+      selected: selected == i,
+      button: true,
+      child: GestureDetector(
+        key: ValueKey('guided-select-$i'),
+        onTap: () => select(i),
+        child: LongPressDraggable<int>(
+          key: ValueKey('guided-piece-$i'),
+          data: i,
+          delay: widget.longPressDuration,
+          maxSimultaneousDrags: 1,
+          onDragStarted: () => select(i),
+          dragAnchorStrategy: (drag, ctx, pos) {
+            final box = ctx.findRenderObject() as RenderBox;
+            final local = box.globalToLocal(pos);
+            // Même taille de feedback que la miniature : conserver exactement le point de prise.
+            dragVisual.value = (false, -local);
+            return Offset.zero;
+          },
+          onDragEnd: (_) {
+            updateHover(false);
+            // Le DragTarget accepte aussi les survols mal orientés : seul step change à la pose réelle.
+            if (mounted && step <= i) setState(() => retry = selected == step);
+          },
+          feedback: Material(
+            color: Colors.transparent,
+            child: ValueListenableBuilder<(bool, Offset)>(
+              valueListenable: dragVisual,
+              builder: (context, visual, _) => Transform.translate(
+                offset: visual.$2,
+                child: PieceRenderer(
+                  piece: current.piece,
+                  positionIndex: index,
+                  cellSize: rackCell,
+                  getPieceColor: widget.colorOf,
+                  isDragging: true,
+                  invalidPlacement: !visual.$1,
+                ),
+              ),
+            ),
+          ),
+          childWhenDragging: Opacity(opacity: .25, child: renderer),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: selected == i ? Colors.amber : Colors.transparent,
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: renderer,
+          ),
+        ),
+      ),
     );
   }
 }

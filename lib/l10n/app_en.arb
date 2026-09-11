@@ -210,18 +210,33 @@
   "consentBody": "To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.",
   "consentEnable": "Take part",
   "consentLater": "Not now",
-  "guidedPlace": "Hold the highlighted piece, then drag it onto its outline.",
-  "guidedRotate": "Turn the piece, then drag it onto its outline.",
-  "guidedMirror": "Flip the piece, then drag it onto its outline.",
-  "guidedDone": "You are ready to play!",
-  "guidedRotateAction": "Turn the piece",
-  "guidedMirrorAction": "Flip the piece",
-  "guidedStep": "Step {step}/3",
-  "guidedReady": "The shape matches! Drag it onto its outline.",
-  "guidedAgain": "Try again",
-  "@guidedStep": {
+  "guidedRotate": "Good! Use the arrows to turn the piece to match the outline.",
+  "guidedMirror": "Good! Try the mirror arrows to flip the piece to match the outline.",
+  "guidedDone": "Well done, you filled the board! You are ready to play.",
+  "guidedReady": "Perfect! Hold the piece, then drag it onto its outline on the board.",
+  "guidedAnother": "Another practice",
+  "guidedBrowse": "Swipe through the rack to explore the pieces.",
+  "guidedChoose": "Nice! Tap piece #{number} to select it.",
+  "guidedNext": "Well done! Find piece #{number} in the rack and tap it.",
+  "guidedPiece": "Piece #{number}",
+  "guidedRetry": "Nearly there! Adjust the shape with the arrows, then aim for the outline.",
+  "@guidedChoose": {
     "placeholders": {
-      "step": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@guidedNext": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@guidedPiece": {
+    "placeholders": {
+      "number": {
         "type": "int"
       }
     }

@@ -188,13 +188,14 @@
   "consentBody": "Pour afficher le classement, Pentapol envoie ton pseudo et un identifiant anonyme à son serveur à la fin d'un défi. Rien n'est envoyé autrement. Tu peux le désactiver et supprimer tes données à tout moment dans les Réglages.",
   "consentEnable": "Participer",
   "consentLater": "Plus tard",
-  "guidedPlace": "Maintiens la pièce encadrée, puis glisse-la sur sa silhouette.",
-  "guidedRotate": "Tourne la pièce, puis glisse-la sur sa silhouette.",
-  "guidedMirror": "Retourne la pièce, puis glisse-la sur sa silhouette.",
-  "guidedDone": "Tu es prêt à jouer !",
-  "guidedRotateAction": "Tourner la pièce",
-  "guidedMirrorAction": "Retourner la pièce",
-  "guidedStep": "Étape {step}/3",
-  "guidedReady": "La forme est bonne ! Glisse-la sur sa silhouette.",
-  "guidedAgain": "Recommencer"
+  "guidedRotate": "Bien ! Utilise les flèches pour tourner la pièce comme la silhouette.",
+  "guidedMirror": "Bien ! Essaie les flèches de miroir pour retourner la pièce comme la silhouette.",
+  "guidedDone": "Bravo, tu as rempli le plateau ! À toi de jouer.",
+  "guidedReady": "Parfait ! Maintiens la pièce, puis glisse-la sur sa silhouette sur le plateau.",
+  "guidedAnother": "Un autre entraînement",
+  "guidedBrowse": "Fais défiler le rack en faisant glisser les pièces.",
+  "guidedChoose": "Bien ! Touche la pièce n°{number} pour la sélectionner.",
+  "guidedNext": "Bien joué ! Cherche maintenant la pièce n°{number} dans le rack et touche-la.",
+  "guidedPiece": "Pièce n°{number}",
+  "guidedRetry": "Tu y es presque ! Ajuste la forme avec les flèches, puis vise la silhouette."
 }

@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-10
+## §ÉTAT — au 2026-09-11
 
 ### L'application
 
@@ -26,14 +26,40 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
+### Accueil — sept entraînements 3×5, 2026-09-11, modifications locales
+
+Paul apprécie le nouveau rack (« c’est bien »), puis demande des pièces non déjà orientées
+et plusieurs entraînements à l’entrée. Les sept tirages existants de `home_tirages_data.dart`
+sont maintenant jouables : PFU, PUN, PVL, PVU, PYU, TYL, VLN. Un tirage est choisi au montage
+de l’accueil ; « Un autre entraînement » passe au suivant, sans répétition avant les sept.
+L’ordre pédagogique privilégie deux rotations puis une pièce nécessitant un miroir. Chaque
+orientation initiale est géométriquement différente de sa cible, y compris les pièces symétriques.
+L’indication rotation/miroir s’adapte à l’orientation courante, pas au numéro d’étape.
+
+Rack défilant horizontal/vertical, choix par numéro, quatre icônes `GameIcons` et opérations
+`Pento`, encouragements EN/FR, pièces posées retirées du rack et dépôt assisté conservés.
+Pas d’étapes affichées. Une sélection par tap ou maintien reste possible directement.
+Emplacements dimensionnés pour les pièces longues dans toutes leurs orientations ; hauteur
+réservée des consignes et bouton de fin adaptable aux petits écrans. État local, sans DB/records.
+Le mode entraînement à une pièce 5×7 reste distinct.
+
+**Vérifications** : **166/166 tests**, analyse complète **0 erreur / 0 avertissement /
+106 informations** (incluant `tools/`). Sept contrôles géométriques + 88 parcours widget
+(40 prises PFU et 48 autres parcours : six tirages × quatre formats × deux langues), contrôle
+des refus et des quatre opérations, vérification du passage au tirage suivant, retour VLN→PFU.
+**Paul valide cette version (« c’est OK ») le 2026-09-11**, après invitation à l’essayer sur iPhone. Aucun commit/push demandé ;
+les modifications documentaires antérieures sont préservées.
+
 ### Chantiers terminés
 
 > **Livraison du 2026-09-10** (à la demande « commit et push » de Paul) : les quatre chantiers
 > ci-dessous, jusque-là « NON commité », sont désormais dans `72a16bf feat(accueil)` (avec l10n
 > EN/FR, `guided_home_test.dart`, `rack_drag_landscape_test.dart` et `build_info` build
 > `202609101839`). `AGENTS.md` — miroir Codex des règles — est commité à part dans `e3dbe61`.
-> §PASSATIONS à jour dans `68ecece`. Arbre poussé sur `origin/main`, `git status -s docs/` vide.
-> **Reste, pour l’accueil guidé et le dépôt assisté : validation device par Paul.**
+> Suivi de livraison dans `68ecece` et `a3f2cd3`, base poussée sur `origin/main`.
+> **Paul confirme « test OK » le 2026-09-10 sur iPhone : accueil guidé et dépôt assisté validés.**
+> La passe documentaire du 2026-09-10 et les changements d’accueil du 2026-09-11 restent locaux.
+> Référence fonctionnelle : [Accueil guidé](ACCUEIL_GUIDE.md).
 
 - **Accueil guidé — prise libre et dépôt assisté (2026-09-10, `72a16bf`)** : Paul constate
   que le dépôt ne fonctionne qu’en saisissant un bout de la pièce. Le premier contrôle imposait
@@ -44,19 +70,19 @@ difficulté.
   Changement limité à l’accueil guidé, règles du jeu normal conservées.
   Régression reproduite : les 8 parcours avec dépôt naturel au centre échouaient avant correction.
   Après : **40 parcours complets** (5 prises × 4 formats × 2 langues), **111/111 tests** au total,
-  **analyse 0 erreur / 0 avertissement (61 infos)**. À confirmer par Paul sur l’iPhone.
+  **analyse 0 erreur / 0 avertissement (61 infos)**. **Validé sur iPhone par Paul (« test OK »).**
 
 - **Accueil guidé 3×5 (2026-09-10, `72a16bf`)** : la démo automatique est remplacée par un
   parcours participatif en trois étapes sur le pavage PFU existant : U à glisser, P à tourner,
   F à retourner. Seule la pièce courante est active, les suivantes sont visibles en atténué ;
   silhouette cible et consigne EN/FR, confirmation quand l’orientation correspond. La miniature
-  reste visible et rouge hors de la cible, normale sur la cible. Validation de la forme et dépôt assisté sur la zone de la silhouette (voir correctif ci-dessous).
+  reste visible et rouge hors de la cible, normale sur la cible. Validation de la forme et dépôt assisté sur la zone de la silhouette (voir correctif ci-dessus).
   Géométrie des transformations réutilisée depuis `Pento`, aucun solveur ajouté.
   État local dans `GuidedHome`, sans minuterie, score, base ni modification de la partie solo.
   Hub et accès direct Jouer conservés ; au terme du parcours : Jouer ou Recommencer.
   Hauteurs de texte mesurées pour les deux langues ; portrait/paysage iPhone et tablette vérifiés
   par tests widget. Après correction de la prise : **111/111 tests**, analyse **0 erreur / 0 avertissement (61 infos)**.
-  La validation du ressenti par Paul reste à recueillir.
+  **Ressenti et dépôt validés par Paul sur iPhone le 2026-09-10 (« test OK »).**
 
 - **Glissé toujours visible (2026-09-10, `72a16bf`)** : à la demande de Paul, la miniature
   suit le doigt dès la prise ; hors plateau ou sur un placement interdit, sa couleur est conservée
@@ -80,19 +106,25 @@ difficulté.
   Le travail de disposition du bloc 5, présent dans `pentoscope_game_screen.dart`, est désormais
   commité lui aussi (dans `72a16bf`) ; cette correction ne modifiait pas ce fichier.
 
-- **Grisage préventif (2026-09-10, livré dans ce commit)** : les quatre transformations
+- **Grisage préventif (2026-09-10, `f1a8ad7`)** : les quatre transformations
   impossibles sont désactivées dans les barres solo et duel, portrait et paysage. Le paramètre
   `preview` utilise les règles réelles de validation/recentrage sans modifier l’état ni les compteurs.
   Test d’équivalence sur les douze pièces et leurs orientations, bords et obstacles, avec et sans
   recentrage ; absence de mutation contrôlée. **Analyse : 0 erreur / 0 avertissement (61 infos),
-  68/68 tests réussis.** Les vignettes et la rangée réservée restent à faire.
+  68/68 tests réussis.** Les vignettes restent à faire ; la rangée réservée est livrée (voir ci-dessous).
+
+- **Rangée permanente d’isométrie — bloc 5 (`72a16bf`)** : dans l’écran de jeu partagé
+  solo/entraînement, rangée de hauteur réservée au-dessus du rack en portrait et en bas
+  en paysage. Actions générales permanentes dans l’AppBar portrait et la colonne gauche
+  paysage. Ne pas étendre ce constat à l’écran de duel sans vérification de sa disposition.
 
 - **Ergonomie du jeu (2026-09-10, PLAN_ERGONOMIE_ICONES blocs 2-3 + carte de fin)** — chrono `m:ss`,
   compteur de solutions désambiguïsé, bande debug débranchée (C9), invariant « plateau toujours légal »
   (CLAUDE.md §Inv. #7) ; rack agrandi (`rackCellRatio` live, défaut 0.46) à emplacement serré + fondu de
   bord, pastille unique par pièce posée (`showPieceNumbers`) ; carte de fin refondue (étoiles 1-3 +
   bouton infos, plus de « Résolu »/« Vision parfaite »). **Reste du plan** : décision 4 (noms/glyphes
-  d'axe), bloc 4 (vignettes ; grisage livré), bloc 5 (rangée d'isométrie réservée, −11 %). Détail
+  d'axe), bloc 4 (vignettes ; grisage livré). Bloc 5 livré ; les −11 % étaient une estimation
+  du côté des cases sur une capture précise, pas une mesure universelle. Détail
   en §PASSATIONS 2026-09-10.
 - **Suppression du mode classique** — −3197 lignes, module, widgets, écran d'accueil.
 - **Le 6×10 dans Pentoscope** — temps 1 et 2, `SolutionSource`, compteur de solutions.
@@ -109,8 +141,8 @@ difficulté.
   `restoreGame` au lancement. `SharedPreferences`/Supabase retirés. **Le §ÉTAT précédent la disait à
   tort « reste à faire » — l'état « complète » (`30e4fae`) avait été perdu dans les réécritures du
   journal pendant la saga du revert.** Correctif `isProgression` du 2026-09-04 ci-dessous. **Reste :
-  test device de la reprise** (jamais confirmé), et il n'y a **pas encore d'écran pour lire les
-  records** (hors périmètre du plan, cf. `PLAN_PERSISTANCE` §6).
+  confirmation device de la reprise** à recueillir séparément. L'écran de lecture des
+  records est désormais livré (voir ci-dessous).
 - **Records perso (CDC §4, V1)** — les **trois maillots** (acuité **plafonnée** / **fautes** /
   temps, refonte « A » du 2026-09-05 — voir plus bas). Calcul (`completion_metrics.dart`, testé),
   rack initial capturé/persisté, bilan de fin, schéma à trois bests indépendants (partie avec aide
@@ -154,29 +186,32 @@ Leurs plans ont été **supprimés** une fois appliqués et testés (`MODUS_VIVE
   Multiplayer` (nom), `Go`/`DNF`/`GO!` (abréviations), le SnackBar de debug « test DB » du lobby, et les
   libellés `DuelDuration` (« 1 min »… numériques ; « Perso » n'apparaît jamais à l'écran). `analyze lib
   test` **0 error/0 warning** (61 infos, toutes préexistantes), **49/49 tests**. **Fichiers générés
-  `lib/l10n/app_localizations*.dart` non encore suivis par git** — à committer avec le reste pour que
-  l'arbre soit autonome (imports résolus sur clone neuf). **Reste : test device** (langue système + bascule
+  `lib/l10n/app_localizations*.dart` désormais versionnés**, notamment avec le parcours guidé EN/FR. **Reste : test device** (langue système + bascule
   manuelle) par Paul.
 
 ### Chantiers ouverts
 
-**Accueil interactif 3×5** : implémenté et commité (`72a16bf`, voir ci-dessus). Validation par Paul
-sur appareil à recueillir. Ce parcours enseigne les gestes et le remplissage du plateau ; il ne
-présente pas encore le compteur de solutions ni les aides.
+**Accueil interactif 3×5** : première version livrée dans `72a16bf` et validée par Paul ;
+révision du 2026-09-11 (rack, sélection, commandes du jeu et sept variantes) validée par Paul (« c’est OK »).
+L’explication du compteur de solutions et des aides reste un sujet distinct (checklist n°8).
+**Ergonomie restante** : vignettes de résultat et clarification des axes des miroirs,
+voir `PLAN_ERGONOMIE_ICONES.md`.
 
 | chantier | document | reste à faire |
 |---|---|---|
 | **Défi de la semaine + classement en ligne** | `CAHIER_DES_CHARGES_V1.md` §7 | ⚠️ **EN V1 (décision de Paul du 2026-09-07, révise le « hors V1 » du 2026-09-03)** — rendu conforme : envoi de score **désactivé par défaut** (opt-in explicite), consultation du classement conditionnée à l'opt-in (§4.5), **suppression des données** (RGPD §7.4). Détail en §ÉTAT « Conformité défi V1 ». **Phases 0-3 faites** : PRNG (0), dérivation `challenge.dart` (1), mode défi jouable local (2), **identité 128 bits** `AppSettings.playerId` + `generatePlayerId`/`ensurePlayerId` (3). **Phase 4 DÉPLOYÉE** (worker en ligne `https://pentapol-defi.pentapml.workers.dev`, D1 + `SEED_TOKEN` posés, round-trip validé au curl : POST 201, essai unique 409, leaderboard trié). **Client** : `challenge_api.dart` (POST score / GET tableau, échec silencieux §7.8) + **soumission auto à la complétion d'un défi** (`_submitChallengeScore`, `_activeChallenge`). **Phases 0-5 + extras faites** : `LeaderboardScreen` (**3 onglets** depuis la refonte « A »), accès **par l'icône classement d'une taille (ChallengeScreen)** ET **par un bouton « Voir le classement » au bilan d'un défi**. Fetch `GET /challenge` (composition à la main côté client, repli dérivation), et **semeur** `tools/seed_challenges.dart` (dérive + POST avec `SEED_TOKEN`, auto-contrôle du digest gelé). **Le défi est complet de bout en bout.** **Refonte « A » (2026-09-05) : le serveur `scores` porte `faults` au lieu de `moves`/`help` — worker REDÉPLOYÉ (`Version ID a459eb84…`) et D1 RÉINITIALISÉE le 2026-09-05 (DROP `scores` puis `schema.sql` ; `challenges` intacte ; round-trip revalidé au curl : POST 201, doublon 409, leaderboard renvoie `faults`).** Reste : composer/semer les vraies semaines (geste de Paul) |
 | **Mise sur l'App Store** | `CHECKLIST_APPSTORE.md` | bloquants technique/produit/conformité — s'allonge au fil du travail. **Bloquant 21 (bundle id) réglé côté code le 2026-09-08** : `com.example.pentapol` → **`com.pml.pentapol`** sur iOS ET Android ; reste l'enregistrement de l'App ID dans les consoles (hors dépôt). Migration iOS **SPM + min iOS 15** committée le même jour. |
 
-**Priorité recommandée** : test device de tout ce qui a été livré le 2026-09-04 (reprise
-`isProgression`, pause chrono, records perso), puis — au choix — la **médaille §4.6** (raffinement
-des records) ou le début du **défi hebdo Phase 1** (hors V1).
+**Suite proposée** : terminer les vignettes et les axes du plan d’ergonomie, puis reprendre
+les points ouverts de la checklist de publication. La reprise après fermeture, le cycle de vie
+et le mode entraînement 5×7 ont leurs validations propres : le « test OK » de l’accueil ne
+les solde pas. Médaille et défi sont déjà implémentés ; le défi est dans la V1.
 
-### Entraînement Option A + réglage « compteurs » + accueil hub (2026-09-09, choix de Paul — NON testé device)
+### Entraînement Option A + réglage « compteurs » + accueil hub (2026-09-09, choix de Paul — état de livraison daté)
 
 Trois changements de la journée, `analyze` **0/0**, **67/67 tests**, commités ensemble (voir `git log`
-du jour). **Aucun n'est encore validé sur device par Paul.**
+du jour). **Les confirmations appareil doivent être rattachées au comportement concerné ;
+le retour du 2026-09-10 valide l’accueil guidé 3×5 et son dépôt.**
 
 - **Mode entraînement — Option A** : l'exercice n'a plus d'écran propre. `training_screen.dart` et
   `training_provider.dart` **supprimés** ; l'état entraînement vit dans **`pentoscope_provider`
@@ -630,42 +665,11 @@ lobby duel) ; l'en-tête garde **Défi 🚩 / Records 🏆 / Réglages ⚙️**.
 multijoueur (people) et des **Réglages** (déplacés sur l'accueil). Le joueur part toujours du menu,
 choisit solo/multi, et revient au menu depuis le solo. `analyze` 0/0, 50/50.
 
-### Vignette d'accueil (2026-09-05) — « une pièce, deux isométries, une pose »
+### Anciennes démos d'accueil — remplacées le 2026-09-10
 
-L'animation-démo a été **remplacée** (choix de Paul, après avis), **disposition du vrai jeu** :
-**barre d'isométrie EN HAUT** (vraies icônes `GameIcons`, surlignées pendant chaque isométrie),
-**plateau au milieu** (vide, avec une **case-cible fantôme**), **rack EN BAS** contenant **toutes les
-pièces** du tirage en minis. Une pièce (la démo) est **sélectionnée** (halo) → **rotation** (iso 1) →
-**miroir** (iso 2) → **montée** du rack jusqu'à sa case. Boucle **~10 s** (ralentie, avec pauses) en
-changeant de tirage/pièce. **Pièces symétriques** (ex. le U) : la 2e isométrie devient une **2e
-rotation** (`_mirrorChanges` : le miroir ne serait pas visible) → jamais d'isométrie sans effet ;
-l'icône surlignée suit (rotation vs miroir). But : onboarding **et** mise
-en avant de la barre d'isométrie (découvrabilité, `REFERENCE_ISOMETRIES §4` : 42,9 % des 1res parties
-insolubles sans le miroir). Constantes de réglage : `_kLoopMs`, `_kSelectEnd`, `_kIso1End`, `_kIso2End`,
-`_kRiseEnd` dans `home_screen.dart`. `analyze` 0/0, 50/50. **À valider sur device** (timing, tailles,
-lisibilité du flip).
-
-### Écran d'accueil (2026-09-02) — implémenté (PLAN_ECRAN_ACCUEIL)
-
-L'écran d'accueil du plan est implémenté et vérifié au **simulateur** (pas encore device). `main.dart`
-démarre sur `HomeScreen` au lieu de `PentoscopeGameScreen` direct. En-tête `PENTAPOL` + engrenage,
-scène avec l'animation-démo (pièces en miniature → rotation par quarts → montée/pose, boucle sur les
-7 tirages du 3×5), bouton `Jouer`. `Reprendre` viendra avec la persistance (§5). **Écart au plan
-assumé (choix de Paul)** : le plateau de démo est **vertical 3×5** (le plan §2 disait 5×3).
-
-- **Données** : `tools/generate_home_tirages.dart` (nouveau, Flutter-free, contrôles d'acceptation
-  intégrés — 7 tirages PFU/PUN/PVL/PVU/PYU/TYL/VLN, 4 solutions chacun, ids §10) →
-  `lib/pentoscope/home/home_tirages_data.dart` (constante `kHomeTirages`, plateau **3×5 vertical**). Le
-  corpus n'est pas chargé au lancement (§3).
-- **Widget** : `lib/pentoscope/home/home_screen.dart`. Réutilise `PieceRenderer` + un param **additif**
-  `showLabel` (défaut true ; l'accueil = false → **pièces nues**, §1). Respecte `disableAnimations`
-  (plateau complet immobile) et suspend l'animation en arrière-plan. Plateau **ancré haut** (retour de Paul).
-- **Réversibilité** (§6) : tag `avant-ecran-accueil` posé avant le **commit unique** ; un `git revert`
-  unique défait tout.
-
-**À suivre** : test device (ressenti, timing, taille des miniatures `kPieceToBoardCellRatio`). Le plan
-`PLAN_ECRAN_ACCUEIL.md` **reste** (supprimé seulement une fois appliqué ET testé, MODUS_VIVENDI §5). La
-priorité de fond est inchangée : la **persistance étape 4** reste devant (l'accueil se livre avec `Jouer` seul).
+Les animations livrées les 2 et 5 septembre ont été remplacées par le parcours interactif
+3×5. Leurs temporisations et constantes ne décrivent plus l'écran actuel. Le plan de la démo
+passive est supprimé ; les données de pavage sont conservées. Voir `ACCUEIL_GUIDE.md`.
 
 ### Progression solo (niveaux) + nom du joueur (2026-09-02)
 
@@ -942,50 +946,31 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-10 (7) — Claude Code (CLI) : accueil guidé + glissé visible COMMITÉS et POUSSÉS.**
-Paul demande « fais moi commit et push ». Le travail des passations (4), (5) et (6) — jusqu’ici
-« NON commité » — est vérifié puis livré : headers `.dart` à jour (tous 2026-09-10), analyse
-**0 erreur / 0 avertissement (61 infos)**, **111/111 tests**. Version bumpée avant push
-(`scripts/update_version.sh 1.0.0`, build `202609101839`, date/heure only). **Deux commits**,
-`AGENTS.md` isolé du code (règle « doc sans code derrière commité seul ») :
-`e3dbe61 docs(agents)` — `AGENTS.md`, miroir Codex des règles projet à la racine ;
-`72a16bf feat(accueil)` — parcours guidé 3×5 (`guided_home.dart`), glissé toujours visible
-(`piece_drag_feedback.dart`), dépôt assisté (zone silhouette, tolérance ¼ case), fix drag
-rack → dernière ligne en paysage, + l10n EN/FR, `guided_home_test.dart`,
-`rack_drag_landscape_test.dart`, JOURNAL et `build_info.dart`.
-Poussés sur `origin/main` (`f1a8ad7..72a16bf`) ; `git status -s docs/` vide, arbre propre.
-**Reste : validation device par Paul** de l’accueil guidé et du dépôt assisté (seuls points
-encore « à confirmer par Paul »).
+**2026-09-11 (3) — Codex : validation de l’accueil à sept variantes.**
+Paul confirme « c’est OK » après la livraison locale des sept parcours et des orientations
+initiales à corriger. Validation enregistrée dans §ÉTAT, la référence accueil, l’index,
+le fonctionnement et la checklist. Derniers contrôles conservés : 166/166 tests, analyse
+0 erreur / 0 avertissement / 106 infos. Aucun code modifié ni contrôle Flutter relancé.
+Le travail reste local : cette validation n’est pas une demande de commit ou de push.
 
-**2026-09-10 (6) — Codex : dépôt naturel dans l’accueil guidé. NON commité.**
-Retour device de Paul : « elle revient dans le slider », puis précision « il faut la prendre
-sur un bout ». La validation dépendait de `floor(doigt / casePlateau) − caseSaisie`, trop stricte
-avec la miniature du rack. Les tests précédents visaient exactement la case attendue et rataient
-ce défaut d’usage. Reproduction ajoutée : dépôt au centre de la silhouette, 8 parcours en échec.
-Correction dans `GuidedHome.accepts` : forme correcte + doigt dans la zone de la silhouette
-(marge 0,25 case, bornée au plateau), placement exact sur le modèle. La case saisie ne conditionne
-plus l’acceptation ; elle sert toujours à l’ancrage visuel de la miniature. Pas de changement
-aux règles de dépôt du jeu normal. Les orientations fausses restent refusées.
-Tests étendus aux cinq cases de prise pour chaque pièce : 40 parcours complets EN/FR × quatre
-formats, **111/111 tests** en suite complète ; analyse **0 erreur / 0 avertissement, 61 infos**.
-À confirmer sur l’iPhone par Paul. Journal mis à jour, aucun commit ni push demandé.
 
-**2026-09-10 (5) — Codex : accueil guidé 3×5 finalisé. NON commité.**
-Paul valide le feedback visible puis demande de remplacer la démo passive par l’accueil guidé.
-Pendant l’attente d’autorisation, l’autre session a ajouté `guided_home.dart` et son raccordement
-à `home_screen.dart`. Cette base est conservée ; les deux brouillons `guided_welcome*` créés par
-Codex, jamais raccordés, sont retirés. Finalisation : méthodes d’isométrie `Pento` réutilisées,
-validation par géométrie, feedback visible (contour rouge + remplissage atténué) dès la prise,
-progression 1/3–3/3 et consigne « forme correcte », Recommencer, délai de prise issu des réglages.
-La pièce U est posée d’abord, P demande une rotation, F un miroir ; les tests prouvent le pavage
-sans chevauchement et que les rotations seules ne suffisent pas pour la troisième étape.
-État local sans accès au provider de jeu, à la DB ou aux records. La démo animée et sa boucle ont
-été retirées de l’accueil, les icônes de navigation et le bouton Jouer sont conservés.
-`test/guided_home_test.dart` : test géométrique + 8 parcours complets (2 langues × 4 formats),
-vrais glissés, feedback rouge/normal, transformations, complétion, callback Jouer et redémarrage.
-Correction d’un débordement français sur petit écran : réserve calculée sur les textes mesurés.
-**Suite complète 79/79 ; analyse 0 erreur / 0 avertissement (61 infos).** Aperçus de test disponibles
-sous `/tmp/pentapol-welcome-*.png` (rendu de test, pas captures device). Ressenti à valider par Paul.
-Journal actualisé, pas de commit ni push demandés. Le bloc 5 existant dans l’écran de jeu est conservé.
+**2026-09-11 (2) — Codex : sept accueils guidés, aucune pièce déjà prête.**
+Après retour positif de Paul sur le rack, activation des sept pavages existants et départ
+hors orientation cible pour chaque pièce. Choix initial au montage, puis bouton « Un autre
+entraînement » parcourant les sept sans répétition. Miroir nécessaire en dernier ; consigne
+adaptée à la forme courante. Rendu du rack adapté aux pièces longues et bouton de fin flexible.
+**166/166 tests** ; analyse complète **0 erreur / 0 avertissement / 106 infos**. Documentation
+mise à jour, changements locaux sans commit/push. Depuis : Paul confirme « c’est OK », voir passation (3).
+
+
+**2026-09-11 — Codex : accueil proche du jeu, sans affichage des étapes.**
+Paul demande les mêmes icônes d’isométrie, exploration du rack, choix par numéro, sélection
+puis pose avec encouragements. `GuidedHome` dispose d’un rack défilant et des quatre commandes
+`GameIcons`/`Pento`, de consignes EN/FR, d’une sélection explicite et du retrait des pièces
+posées. Dépôt assisté conservé. Test négatif ajouté ; 40 parcours adaptés au défilement réel.
+**112/112 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos** (incluant outils).
+Journal, référence accueil, checklist, fonctionnement et index actualisés. Changements
+locaux, pas de commit/push demandé. Depuis : parcours étendu à sept variantes et validé par Paul, voir passation (3).
+
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*
