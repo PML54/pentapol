@@ -6,6 +6,12 @@
 > Tous les nombres de ce document sortent d'un calcul rejouable
 > (`tools/verif_isometries.py` + BFS sur les mêmes quatre générateurs) ; aucun n'est une estimation.
 
+> **État au 2026-09-10** : niveau 1 livré, désormais intégré au provider et à l’écran de jeu
+> (Option A du 2026-09-09), plateau **5×7** ; les propositions d’écran séparé et de plateau
+> 5×5 ci-dessous sont dépassées. Niveau 2 encore à réaliser, après retour propre au niveau 1.
+> L’accueil guidé **3×5**, livré et validé par Paul, est un parcours distinct :
+> voir [Accueil guidé](ACCUEIL_GUIDE.md). Son « test OK » ne vaut pas validation de ce niveau 1.
+
 ---
 
 ## 1. Intention

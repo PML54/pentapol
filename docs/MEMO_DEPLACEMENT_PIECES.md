@@ -1,5 +1,27 @@
 # Mémo : Gestion des déplacements de pièces dans Pentoscope
 
+## Comportement actuel — 2026-09-10
+
+Dans le jeu, le doigt détermine l’ancre à partir de la case saisie. Cette ancre est confinée
+aux limites du plateau pour y faire tenir la pièce ; ce confinement ne cherche pas une autre
+position libre et n’autorise aucun chevauchement. Le snapping magnétique décrit plus bas
+appartient à l’ancienne implémentation.
+
+Depuis le correctif paysage, `PentoscopeBoard.onMove` reconstitue la position du doigt avec
+`dragGrabLocal` pour les pièces du rack en portrait **et** en paysage, avant conversion des axes.
+Paul a confirmé que la pièce 5 atteint la dernière ligne sur iPhone depuis le rack.
+Le feedback partagé reste visible dès la prise, avec contour rouge hors plateau/sur pose invalide.
+
+L’accueil guidé possède un dépôt distinct : bonne forme + doigt dans la boîte cible élargie
+(d’un quart de case, limitée au plateau), puis placement exact sur le modèle. Toute case de
+prise convient. Voir [Accueil guidé](ACCUEIL_GUIDE.md), validé par Paul sur iPhone.
+
+## Ancienne description — conservée pour comprendre l’historique
+
+Les algorithmes et noms de méthodes ci-dessous sont datés ; vérifier le code actuel avant
+réutilisation. Références actuelles : `PentoscopeBoard`, `_calculateDesiredAnchorFromDrag`,
+`_clampAnchorToBoard`, `PieceDragFeedback`, et `GuidedHome` pour l’accueil seulement.
+
 > Mis à jour le 2026-08-27 : `PentoscopePlacedPiece` a été fusionné dans
 > `common/PlacedPiece`.
 >

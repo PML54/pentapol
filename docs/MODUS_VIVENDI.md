@@ -103,7 +103,9 @@ même pas suivi par git.
 ### CLI → cowork
 
 Le CLI met à jour `docs/JOURNAL.md` : §ÉTAT réécrite, une ligne en §PASSATIONS, et une
-ligne en §DÉCISIONS pour **toute décision non prévue au plan**. Puis il commite.
+mention en §ÉTAT/§PASSATIONS pour **toute décision non prévue au plan**. Les règles
+durables rejoignent les invariants ; §DÉCISIONS a été supprimée le 2026-08-31.
+Le commit suit l’autorisation de Paul, conformément aux règles du dépôt.
 
 Tu reviens vers cowork en disant simplement ce que tu veux ; cowork lit le journal et
 l'état de git.
@@ -179,7 +181,7 @@ la charge de les commiter. → règles §2 et §5.
 **Une décision de jeu prise sans être annoncée.** Le CLI a introduit
 `validateSelection()` (commit `74e56b7`), qui change ce que fait un clic sur une case
 vide. Documentée dans le message de commit et l'en-tête du fichier, nulle part ailleurs.
-Cowork ne l'a découverte qu'en inspectant `git log`. → §DÉCISIONS du journal.
+Cowork ne l'a découverte qu'en inspectant `git log`. → §ÉTAT/§PASSATIONS du journal (anciennement §DÉCISIONS).
 
 **Un copier-coller inutile.** Une analyse de cowork a été collée dans le CLI alors
 qu'elle était déjà dans `docs/`. → « lis `docs/X` ».

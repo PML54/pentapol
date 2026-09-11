@@ -239,4 +239,5 @@ visible.
 
 Le script réénumère les pavages de chaque configuration du 3×5 sans lire aucune table : les
 7 configurations ont **exactement 4 solutions chacune**, ce qui confirme indépendamment le
-contrôle d'acceptation du `PLAN_ECRAN_ACCUEIL` §3 et la ligne n = 3 de `REFERENCE_TIRAGES.md` §2.
+contrôle d'acceptation de `tools/generate_home_tirages.dart` et la ligne n = 3 de
+`REFERENCE_TIRAGES.md` §2. Les données servent désormais au parcours décrit dans `ACCUEIL_GUIDE.md`.

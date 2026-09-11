@@ -26,22 +26,23 @@ lib/
                            Plateau, PieceRenderer, GameTimerMixin…)
   config/                  constantes UI (tailles, icônes, layout)
   data/                    documentation backend (pas de code Dart)
-  database/                drift — persistance des réglages
-  debug/                   database_debug_screen (orphelin, voué à disparaître — §9)
+  database/                drift — réglages, partie en cours, solutions et statistiques
   l10n/                    localisation EN/FR — ARB (app_en/app_fr) + AppLocalizations généré
                            (câblé depuis 2026-09-06 ; voir docs/I18N.md)
   models/                  app_settings
   pentoscope/              LE module de jeu : provider, plateau, barre, écrans,
-                           générateur, solveur, sources de solutions
+                           générateur de tirages, sources de solutions, accueil guidé, entraînement
   pentoscope_multiplayer/  mode duel — WebSocket, Cloudflare Durable Objects
   providers/               providers Riverpod transverses (réglages)
   screens/                 settings_screen, custom_colors_screen
-  services/                solveur hors-ligne, matcher de solutions, chargeur .bin
+  services/                matcher de solutions, chargeur .bin
   utils/                   géométrie, helpers, export
 ```
 
-L'application démarre **directement sur `PentoscopeGameScreen`** (`main.dart`) : il n'y
-a plus d'écran d'accueil ni de route nommée.
+L'application démarre sur **`HomeScreen`** (`main.dart`) : accueil guidé interactif **3×5**,
+puis accès au jeu, à l'entraînement, au duel, aux défis, aux records et aux réglages.
+Le parcours guidé utilise un état local ; l'entraînement à une pièce **5×7** utilise
+`PentoscopeGameScreen` et le provider de jeu. Voir `docs/ACCUEIL_GUIDE.md`.
 
 ## Modules actifs
 
@@ -147,16 +148,14 @@ done
 Ces points ont coûté du temps une fois. Ils remplacent la §DÉCISIONS du journal, supprimée le
 2026-08-31 ; le reste de son contenu est dans `git log`.
 
-1. **Les tables de solutions ne répondent que sur un rectangle complet.** « Compte > 0 ⟺ les
-   pièces restantes peuvent remplir le plateau » n'est vrai que parce que **chaque solution
-   de la table emploie les 12 pièces**. Sur une taille à pièces tirées, la table ne dit rien.
-   Deux invariants sans lesquels elle répond faux **en silence** : aucune case masquée (`-1`),
-   et les 12 pièces toutes présentes.
-2. **`PentominoSolver.maxSeconds` vaut 30 et n'est pas paramétrable**, et `findAllSolutions`
-   fait un simple `return` à l'expiration : l'appelant reçoit une liste **indistinguable**
-   d'une liste complète. C'est ce qui a produit un fichier de 8175 solutions sur 9356 sans
-   que rien ne le signale. **À corriger — signature et paramètre — avant toute génération de
-   table.**
+1. **Chaque source de solutions a son périmètre.** `TableSolutionSource` utilise les tables
+   6×10 : rectangle complet, aucune case masquée (`-1`), les 12 pièces présentes.
+   `CorpusSolutionSource` utilise le corpus 5×n correspondant au masque des pièces tirées.
+   Ne jamais interroger la table 6×10 pour conclure sur un tirage partiel.
+2. **Une génération interrompue n'est pas une table complète.** L'ancien solveur, supprimé
+   de l'app, s'arrêtait silencieusement après 30 secondes : il avait produit 8175 solutions
+   au lieu de 9356. Pour toute nouvelle génération, contrôler la complétude par exécution
+   et signaler explicitement les interruptions. Aucun solveur backtracking dans l'app livrée.
 3. **Les tailles d'affichage s'ancrent sur le plateau, pas sur l'appareil.** Une pièce dans la
    barre et la même pièce sur le plateau sont la même chose : `pieceCellSize =
    boardCellSize × k`. Aucun seuil, aucune détection de tablette — tout écran est traité, y
@@ -189,9 +188,9 @@ compile, teste et fait tout le git ; et **Claude cowork**, qui analyse, document
 Mémo complet : `docs/MODUS_VIVENDI.md`.
 
 1. **Au démarrage** : lire `docs/JOURNAL.md` §ÉTAT, puis le plan qu'il cite.
-2. **Toute décision non prévue au plan** s'écrit dans `docs/JOURNAL.md` §DÉCISIONS
-   **avant** le commit qui l'applique. Un message de commit n'est pas un canal :
-   cowork ne le lit pas.
+2. **Toute décision non prévue au plan** s'écrit dans `docs/JOURNAL.md` §ÉTAT et
+   se signale en §PASSATIONS **avant** le commit qui l'applique. Les règles durables
+   rejoignent les invariants du projet. Ne pas recréer §DÉCISIONS, supprimée le 2026-08-31.
 3. **En fin de travail** : réécrire §ÉTAT, ajouter une ligne en §PASSATIONS.
 4. **Ne jamais ranger un fait de projet dans la mémoire `~/.claude/`** — elle est
    locale à cette machine et invisible pour cowork. Ce qui doit survivre va dans
@@ -229,12 +228,12 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - `docs/JOURNAL.md` — **à lire en premier** : état courant et passations (§DÉCISIONS
   supprimée le 2026-08-31 ; les règles vivantes sont ci-dessus, l'histoire est dans `git log`)
 - `docs/PLAN_6X10_DANS_PENTOSCOPE.md` — le 6×10 et les tables de solutions
-  pré-calculées ; §5 (tables 5×12 et 4×15) reste à appliquer
+  pré-calculées ; §5 (tables 5×12 et 4×15) abandonné par Paul le 2026-09-08
 - `docs/CHECKLIST_APPSTORE.md` — **ce qui doit être fait ou défait avant la première
   soumission**. S'allonge au fil du travail : toute décision qui crée une dette de
   production s'y inscrit avec sa raison
-- `docs/PLAN_PERSISTANCE.md` — ce que l'app garde sur l'appareil : quatre tables drift,
-  la partie en cours, les records
+- `docs/BASE_LOCALE.md` — persistance : quatre tables drift, partie en cours et records
+- `docs/ACCUEIL_GUIDE.md` — parcours 3×5, dépôt assisté, validation et distinction avec l'entraînement
 - `docs/I18N.md` — bilinguisme EN/FR : mécanisme (ARB, `gen-l10n`, `localeCode`), procédure
   pour ajouter une chaîne, pièges (`const`/helpers/dialogues) et littéraux gardés
 > Les plans **appliqués et testés sont supprimés**, pas archivés — `git log` les conserve.

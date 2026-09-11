@@ -1,5 +1,45 @@
 # Pentapol — Documentation fonctionnelle
 
+## Lecture actuelle — 2026-09-11
+
+L’application démarre sur **HomeScreen** et son **accueil guidé 3×5** : sept tirages,
+avec trois pièces à orienter puis déposer. Aucune ne démarre dans son orientation cible.
+À la fin : Jouer ou « Un autre entraînement » pour passer au prochain tirage. Depuis le
+2026-09-11, il invite à défiler dans le rack, choisir une pièce par numéro, la sélectionner
+et la poser avec les quatre icônes du jeu. Les étapes numérotées sont remplacées par des
+consignes et encouragements EN/FR. La prise peut se
+faire sur toute case ; le dépôt est assisté dans la zone cible. Paul a validé le dépôt de la version du 2026-09-10
+sur iPhone ; il valide aussi la version à sept variantes le 2026-09-11 (« c’est OK »). Voir [Accueil guidé](ACCUEIL_GUIDE.md) pour les règles et les vérifications.
+
+L’en-tête donne accès au jeu solo, à l’entraînement à une pièce sur 5×7, au duel, aux défis,
+aux records et aux réglages. Le titre PENTAPOL a été retiré ; Jouer est la grande personne verte
+au centre. Le parcours d’accueil ne modifie pas la partie sauvegardée.
+
+Le jeu s’appuie sur Pentoscope et des tables précalculées : `CorpusSolutionSource` pour les
+tirages 5×n, `TableSolutionSource` pour le 6×10 complet. Le compteur fonctionne sur toutes les
+tailles ; aucun solveur backtracking n’est livré. Le plateau reste légal : les isométries
+impossibles d’une pièce posée sont grisées. Le feedback suit le doigt dès la prise et reçoit
+un contour rouge quand le placement est invalide ou hors plateau.
+
+L’écran solo/entraînement réserve une rangée d’isométrie permanente : au-dessus du rack en
+portrait, en bas en paysage. Les actions générales restent dans l’AppBar portrait ou la colonne
+gauche paysage. Le dépôt normal suit le doigt avec confinement aux bords ; l’assistance de
+l’accueil ne change pas ces règles. Voir [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md).
+
+La partie solo et les records sont persistés (quatre tables drift). Les trois maillots mesurent
+l’acuité, les fautes et le temps ; les parties aidées ne créent pas de record. Le défi et son
+classement sont dans la V1 ; l’envoi est soumis au consentement, désactivé par défaut.
+Références : [Base locale](BASE_LOCALE.md), [Maillots et défis](MANUEL_DEFIS_ET_MAILLOTS.md).
+L’interface est disponible en français et en anglais via [la localisation](I18N.md).
+
+## Référence historique du 2026-08-31 — à ne pas utiliser comme état courant
+
+Le contenu ci-dessous conserve des explications anciennes de géométrie et d’architecture.
+Ses mentions de démarrage direct, d’absence d’accueil, de solveur, de snapping magnétique,
+d’écrans inactifs ou de travaux restant à faire ne décrivent plus la version actuelle.
+Pour toute intervention, partir du [Journal](JOURNAL.md), des références ci-dessus et du code.
+Une révision complète de cette ancienne référence reste distincte de la présente mise à jour.
+
 > **`docs/PENTOSCOPE.md` a été fusionné ici le 2026-08-31.** Il n'y a plus qu'un module de
 > jeu : deux documents pour le décrire, c'était deux versions du même tableau — dont une
 > fausse (les tailles de plateau y étaient incomplètes, et l'état y portait encore un `score`

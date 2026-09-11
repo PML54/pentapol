@@ -8,6 +8,22 @@
 > `CHECKLIST_APPSTORE.md` (« cowork n'a jamais vu l'app tourner ») devient partiellement caduc.
 > À supprimer une fois appliqué et testé (`MODUS_VIVENDI` §5).
 
+## Avancement au 2026-09-10
+
+| Élément | État |
+|---|---|
+| Sauvegarde/push préalable | Fait ; code du jour livré sur `origin/main` |
+| Grisage préventif | Livré dans `f1a8ad7`, solo/duel, portrait/paysage |
+| Rangée réservée et actions générales permanentes | Livré dans `72a16bf`, écran solo/entraînement ; AppBar portrait, colonne gauche paysage |
+| Rack agrandi, chrono, compteur, pastille unique et bilan | Livrés, voir `JOURNAL.md` |
+| Vignettes montrant le résultat de chaque transformation | À réaliser |
+| Clarification des noms/glyphes des axes des miroirs | À réaliser |
+
+Le bug de dernière ligne en paysage sur iPhone et le feedback invisible ont également été
+corrigés et validés par Paul. L’accueil participatif est décrit dans `ACCUEIL_GUIDE.md`.
+Le plan reste ouvert pour les vignettes et les axes ; la validation de l’accueil ne vaut pas
+validation de ces éléments futurs. Les sections suivantes conservent le cahier initial.
+
 ---
 
 ## 0. Préalable — pousser l'état actuel AVANT toute modification
@@ -129,14 +145,16 @@ d'autre d'un axe pointillé — le glyphe de tous les éditeurs d'image), tel qu
 
 - Zone du pouce (tiers bas), sur la ligne droite du geste rack → plateau.
 - Hauteur **réservée en permanence** (grisée quand rien n'est sélectionné) : le plateau ne doit
-  jamais bouger sous le doigt. Une rangée qui apparaît décale le plateau et déplace la pièce en
-  cours de manipulation — la classe de bug corrigée les 7, 8 et 9 septembre.
+  jamais bouger sous le doigt. Il s’agit d’un invariant à conserver : le remplacement du contenu
+  de l’ancienne AppBar, de hauteur fixe, ne prouve pas à lui seul un déplacement du plateau.
 - Effet de bord bénéfique : l'AppBar cessant d'être escamotée, le **compteur de solutions redevient
   visible en permanence** (C1, C2).
 
 **Prix, mesuré sur `piece5` (5×7, capture 1206×2622).** Le plateau est contraint par la **hauteur** :
 1624 px pour 7 lignes = 232 px par case, contre 236 px disponibles en largeur. La rangée occupe
-172 px ; il reste 1452 px, soit **207 px par case — −11 %**.
+172 px ; il reste 1452 px, soit **207 px par case — environ −11 % sur le côté**
+(et environ −20 % sur la surface d’une case). C’est une estimation de cette disposition sur
+cette capture, pas une mesure universelle du rendu livré ni un coût irréversible.
 
 **Option écartée : la rangée prend la place du rack pendant la manipulation.** Elle ne coûtait rien
 en hauteur, mais elle est **incompatible avec la règle du §2** : puisque les isométries s'appliquent
