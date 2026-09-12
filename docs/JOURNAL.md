@@ -50,7 +50,7 @@ Référence complète : [Barème Géométrie](BAREME_GEOMETRIE.md).
 **205/205 tests**, analyse **0 erreur / 0 avertissement / 106 infos**. Reprise sur vrai corpus,
 reset SQLite, fenêtre et bilan FR/EN avec grands caractères en portrait/paysage vérifiés.
 Deux tests passent aussi avec le drapeau public false. Réglage des coefficients par Paul
-sur appareil ; documentation mise à jour, aucun commit/push.
+sur appareil ; documentation mise à jour. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
 ### Accueil — vocabulaire des icônes et retours physiques (2026-09-12, local)
 
@@ -65,7 +65,7 @@ intégralement coupée lorsque le réglage est désactivé.
 **188/188 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**. Deux tests de
 gestes interceptent le canal système et contrôlent les événements en mode actif/inactif,
 y compris refus et mouvement dans la cible. Ressenti à apprécier par Paul sur iPhone.
-Documentation actualisée ; aucun commit/push effectué.
+Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
 ### Accueil — consignes agrandies et défilantes (2026-09-12, local)
 
@@ -83,7 +83,7 @@ pas de position pendant les messages. Le bandeau ne capture pas les gestes. Aucu
 aux traductions, contenu EN/FR existant conservé. **186/186 tests** ; analyse complète **0 erreur /
 0 avertissement / 106 infos**. Quatre tests du mouvement et des modes accessibles, parcours de
 l’accueil et accès direct au jeu vérifiés avec les grands caractères. Documentation actualisée.
-Ressenti du défilement à apprécier par Paul sur iPhone. Aucun commit/push effectué.
+Ressenti du défilement à apprécier par Paul sur iPhone. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
 ### Accueil — Jouer permanent en tête et bouton Training (2026-09-11, local)
 
@@ -98,7 +98,7 @@ le chevauchement sur petit écran. La partie de progression en cours est réutil
 **Vérifications : 182/182 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**.
 Les 88 parcours contrôlent Training et le tirage suivant. Quatre tests d’accueil contrôlent
 l’accès immédiat, la conservation de la partie/du chrono et les boutons sans chevauchement,
-en FR/EN sur 320×568 et 874×402. Documentation actualisée. Aucun commit/push effectué.
+en FR/EN sur 320×568 et 874×402. Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
 ### Paysage — isométries à gauche, actions générales en bas (2026-09-11, local)
 
@@ -116,7 +116,7 @@ retranche la nouvelle hauteur basse pour maintenir le rapport de taille rack/pla
 Douze cas de disposition : formats 667×375, 874×402, 1366×1024 et portrait 390×844, chacun sur
 3×5, 8×5 et 6×10, avec marges système simulées. Contrôle des emplacements, de l’absence de
 débordement et du plateau fixe au repos, sur sélection rack et sur sélection plateau/corbeille.
-Ressenti à comparer par Paul sur iPhone. Documentation actualisée ; aucun commit/push effectué.
+Ressenti à comparer par Paul sur iPhone. Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
 ### Suppression du mode entraînement séparé — 2026-09-11, modifications locales
 
@@ -136,7 +136,7 @@ isolent les écritures dans une base SQLite en mémoire, hors de l’horloge sim
 **Vérifications : 166/166 tests**, dont les parcours de l’accueil, les célébrations et les
 prises paysage sur iPhone/tablette simulés. Analyse complète **0 erreur / 0 avertissement /
 106 informations**. Recherche des symboles de l’ancien mode : aucune référence active dans
-`lib/` et `test/` (anciens headers historiques exceptés). Aucun commit/push effectué.
+`lib/` et `test/` (anciens headers historiques exceptés). Commité et poussé le 2026-09-12 dans `00a13ef` (voir §PASSATIONS 5).
 
 ### Accueil — contour et célébrations, 2026-09-11, modifications locales
 
@@ -151,7 +151,7 @@ Le réglage système de réduction des animations désactive l’effet, les enco
 du déclenchement et de la fin de l’effet, plus les gestes pendant la célébration et la réduction
 des animations. Analyse complète : **0 erreur / 0 avertissement / 106 informations**.
 Le ressenti de cette nouvelle célébration reste à apprécier par Paul sur iPhone.
-Code, tests et documentation locaux, sans commit/push demandé pour cette modification.
+Code, tests et documentation commités et poussés le 2026-09-12 (voir §PASSATIONS 5).
 
 ### Accueil — sept entraînements 3×5, 2026-09-11, `5f910e9`
 
