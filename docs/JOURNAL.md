@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-11
+## §ÉTAT — au 2026-09-12
 
 ### L'application
 
@@ -26,7 +26,134 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
-### Accueil — sept entraînements 3×5, 2026-09-11, modifications locales
+### Géométrie — barème paramétrable (2026-09-12, local)
+
+Réglages → Réglage du barème : quatre paramètres, aperçu immédiat des pénalités,
+sauvegarde et restauration des valeurs initiales. Formule `c × remplissage^p + supplément`
+si une zone vide a une aire non multiple de 5 ; défauts 100 / 10 / 2 / 5. Nouveau solo :
+Géométrie remplace Acuité au bilan ; Fautes devient Impasses ; Triche compte les appuis
+acceptés sur la lampe jaune. Affichage conservé avec aide, sans double pénalité.
+Les étoiles solo suivent Géométrie (3 sans impasse/aide ; 2 si ≥80 % sans aide ; 1 sinon).
+
+Barème figé à chaque nouvelle partie, pénalités cumulées sans arrondi, snapshot persisté.
+**Décision de Paul en cours de chantier : repartir de zéro à la mise à jour, sans conserver
+ni convertir les anciennes données.** Schéma SQLite **11**, destructif. Correctif trouvé
+au test : insertion explicite `id=0` dans CurrentGame ; DEFAULT 0 seul laissait SQLite
+attribuer 1, invisible à la lecture. Le démarrage attend la suppression de l'ancienne ligne.
+
+Toutes les parties solo de calibrage sont expérimentales et exclues des records. Les défis
+et duels conservent leur contrat ; alignement des classements avec la Géométrie à décider
+avant publication. Drapeau de compilation pour masquer la fenêtre et ignorer les paramètres
+expérimentaux sur les nouvelles parties publiques. Aucune migration de données anciennes.
+Référence complète : [Barème Géométrie](BAREME_GEOMETRIE.md).
+
+**205/205 tests**, analyse **0 erreur / 0 avertissement / 106 infos**. Reprise sur vrai corpus,
+reset SQLite, fenêtre et bilan FR/EN avec grands caractères en portrait/paysage vérifiés.
+Deux tests passent aussi avec le drapeau public false. Réglage des coefficients par Paul
+sur appareil ; documentation mise à jour, aucun commit/push.
+
+### Accueil — vocabulaire des icônes et retours physiques (2026-09-12, local)
+
+Paul demande de parler d’icônes plutôt que de flèches et de sentir physiquement les déplacements.
+Trois consignes corrigées en FR/EN (rotation, miroir, nouvelle tentative), localisations régénérées.
+`GuidedHome.enableHaptics` reçoit le réglage du jeu depuis `HomeScreen` : sélection/transformation
+avec clic discret, prise avec impact léger, entrée dans la cible valide avec clic, pose acceptée
+avec impact moyen. Aucun clic à chaque mouvement dans une même cible ; pas de confirmation
+sur un dépôt refusé. `hapticFeedbackOnStart` désactivé : une seule source de vibration,
+intégralement coupée lorsque le réglage est désactivé.
+
+**188/188 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**. Deux tests de
+gestes interceptent le canal système et contrôlent les événements en mode actif/inactif,
+y compris refus et mouvement dans la cible. Ressenti à apprécier par Paul sur iPhone.
+Documentation actualisée ; aucun commit/push effectué.
+
+### Accueil — consignes agrandies et défilantes (2026-09-12, local)
+
+Paul demande un message qui défile et une police plus grande dans l’entraînement d’entrée.
+Consignes en gras, 22–28 pixels logiques selon la largeur, avec agrandissement système conservé.
+Après le premier retour, Paul demande une vitesse accrue et un défilement continu.
+`GuidedScrollingMessage` défile désormais à 72 pixels logiques/s (vitesse doublée), sans pause
+et sans arrêt après un passage. Deux copies assurent un raccord continu, même pour une consigne
+courte. Une nouvelle consigne remplace immédiatement la précédente et redémarre le mouvement.
+Le texte reste fixe si le système réduit les animations ou active la navigation accessible ;
+sémantique unique malgré les deux copies visuelles.
+
+La hauteur maximale des consignes est réservée avec la nouvelle police ; le plateau ne change
+pas de position pendant les messages. Le bandeau ne capture pas les gestes. Aucun texte ajouté
+aux traductions, contenu EN/FR existant conservé. **186/186 tests** ; analyse complète **0 erreur /
+0 avertissement / 106 infos**. Quatre tests du mouvement et des modes accessibles, parcours de
+l’accueil et accès direct au jeu vérifiés avec les grands caractères. Documentation actualisée.
+Ressenti du défilement à apprécier par Paul sur iPhone. Aucun commit/push effectué.
+
+### Accueil — Jouer permanent en tête et bouton Training (2026-09-11, local)
+
+À la demande de Paul, le bouton plein Jouer remplace l’icône personne au centre de l’en-tête :
+accès direct au jeu dès l’ouverture, sans terminer le parcours. Training remplace « Un autre
+entraînement » en fin de parcours, avec le même style `FilledButton`, et conserve le passage
+au tirage suivant. Le doublon Jouer sous le plateau et le callback `GuidedHome.onPlay` sont retirés.
+Le libellé Training est identique en EN/FR, via les ARB régénérés. Multijoueur/Défi à gauche,
+Records/Réglages à droite ; le bouton central dispose d’une largeur réservée pour éviter
+le chevauchement sur petit écran. La partie de progression en cours est réutilisée par Jouer.
+
+**Vérifications : 182/182 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**.
+Les 88 parcours contrôlent Training et le tirage suivant. Quatre tests d’accueil contrôlent
+l’accès immédiat, la conservation de la partie/du chrono et les boutons sans chevauchement,
+en FR/EN sur 320×568 et 874×402. Documentation actualisée. Aucun commit/push effectué.
+
+### Paysage — isométries à gauche, actions générales en bas (2026-09-11, local)
+
+Paul propose puis autorise l’échange des deux barres dans l’écran de jeu. Rotations et miroirs
+occupent désormais la colonne gauche ; accueil, chrono, nouvelle partie, ampoule et compteur
+occupent la rangée basse. Plateau au centre et rack à droite. Portrait et accueil guidé conservés.
+Les commandes partagent leurs callbacks, leurs icônes et le grisage préventif avec le portrait.
+
+La colonne réserve cinq emplacements : quatre transformations stables et une corbeille visible
+sur sélection d’une pièce posée. Sa largeur et la hauteur des actions du bas restent fixes,
+indépendamment de la sélection. Les icônes s’adaptent à la hauteur disponible. `_barMetrics`
+retranche la nouvelle hauteur basse pour maintenir le rapport de taille rack/plateau.
+
+**Vérifications : 178/178 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**.
+Douze cas de disposition : formats 667×375, 874×402, 1366×1024 et portrait 390×844, chacun sur
+3×5, 8×5 et 6×10, avec marges système simulées. Contrôle des emplacements, de l’absence de
+débordement et du plateau fixe au repos, sur sélection rack et sur sélection plateau/corbeille.
+Ressenti à comparer par Paul sur iPhone. Documentation actualisée ; aucun commit/push effectué.
+
+### Suppression du mode entraînement séparé — 2026-09-11, modifications locales
+
+Paul demande de retirer l’icône et le code du mode à une pièce sur 5×7 : les sept parcours
+3×5 de l’accueil lui suffisent. Icône, générateur d’exercices, état `isTraining`, démarrage/
+retour, bilan spécifique et branches de persistance retirés du provider et de l’écran de jeu.
+Compteur `trainingExercisesDone` et son enregistrement supprimés : ancienne clé JSON ignorée,
+aucune migration ni modification des tables. Six clés de traduction retirées en EN/FR,
+localisations régénérées. Plan du mode et références documentaires devenues obsolètes retirés.
+
+Les sept accueils, leur contour et leurs célébrations sont conservés. Les primitives communes
+d’isométrie restent utilisées par le jeu et les scores. Le test combinatoire des distances
+est conservé dans `test/isometry_distance_test.dart` ; seuls les trois tests propres au mode
+supprimé disparaissent. Les tests de glissé paysage démarrent désormais une vraie partie et
+isolent les écritures dans une base SQLite en mémoire, hors de l’horloge simulée des gestes.
+
+**Vérifications : 166/166 tests**, dont les parcours de l’accueil, les célébrations et les
+prises paysage sur iPhone/tablette simulés. Analyse complète **0 erreur / 0 avertissement /
+106 informations**. Recherche des symboles de l’ancien mode : aucune référence active dans
+`lib/` et `test/` (anciens headers historiques exceptés). Aucun commit/push effectué.
+
+### Accueil — contour et célébrations, 2026-09-11, modifications locales
+
+À la demande de Paul, contour du plateau aligné sur le jeu : gris foncé, largeur 3,
+coins arrondis (16) et ombre. Le contour est superposé aux cases pour conserver exactement
+les coordonnées de dépôt et la taille du plateau. Chaque pose acceptée déclenche une coche
+rebondissante et des confettis pendant 850 ms ; plateau rempli : célébration de 1 400 ms.
+L’effet ignore les gestes et ne déplace aucun élément ; les refus ne déclenchent rien.
+Le réglage système de réduction des animations désactive l’effet, les encouragements restent.
+
+**Vérifications : 169/169 tests**, dont les 88 parcours complets avec contrôle du contour,
+du déclenchement et de la fin de l’effet, plus les gestes pendant la célébration et la réduction
+des animations. Analyse complète : **0 erreur / 0 avertissement / 106 informations**.
+Le ressenti de cette nouvelle célébration reste à apprécier par Paul sur iPhone.
+Code, tests et documentation locaux, sans commit/push demandé pour cette modification.
+
+### Accueil — sept entraînements 3×5, 2026-09-11, `5f910e9`
 
 Paul apprécie le nouveau rack (« c’est bien »), puis demande des pièces non déjà orientées
 et plusieurs entraînements à l’entrée. Les sept tirages existants de `home_tirages_data.dart`
@@ -41,14 +168,14 @@ Rack défilant horizontal/vertical, choix par numéro, quatre icônes `GameIcons
 Pas d’étapes affichées. Une sélection par tap ou maintien reste possible directement.
 Emplacements dimensionnés pour les pièces longues dans toutes leurs orientations ; hauteur
 réservée des consignes et bouton de fin adaptable aux petits écrans. État local, sans DB/records.
-Le mode entraînement à une pièce 5×7 reste distinct.
+Le mode entraînement à une pièce 5×7 est supprimé ensuite, à la demande de Paul (voir ci-dessus).
 
 **Vérifications** : **166/166 tests**, analyse complète **0 erreur / 0 avertissement /
 106 informations** (incluant `tools/`). Sept contrôles géométriques + 88 parcours widget
 (40 prises PFU et 48 autres parcours : six tirages × quatre formats × deux langues), contrôle
 des refus et des quatre opérations, vérification du passage au tirage suivant, retour VLN→PFU.
-**Paul valide cette version (« c’est OK ») le 2026-09-11**, après invitation à l’essayer sur iPhone. Aucun commit/push demandé ;
-les modifications documentaires antérieures sont préservées.
+**Paul valide cette version (« c’est OK ») le 2026-09-11**, après invitation à l’essayer sur iPhone.
+Version enregistrée dans `5f910e9`, documentation dans `4b86ef5`.
 
 ### Chantiers terminés
 
@@ -58,7 +185,7 @@ les modifications documentaires antérieures sont préservées.
 > `202609101839`). `AGENTS.md` — miroir Codex des règles — est commité à part dans `e3dbe61`.
 > Suivi de livraison dans `68ecece` et `a3f2cd3`, base poussée sur `origin/main`.
 > **Paul confirme « test OK » le 2026-09-10 sur iPhone : accueil guidé et dépôt assisté validés.**
-> La passe documentaire du 2026-09-10 et les changements d’accueil du 2026-09-11 restent locaux.
+> Les sept variantes et leur documentation sont maintenant dans `5f910e9` et `4b86ef5`.
 > Référence fonctionnelle : [Accueil guidé](ACCUEIL_GUIDE.md).
 
 - **Accueil guidé — prise libre et dépôt assisté (2026-09-10, `72a16bf`)** : Paul constate
@@ -114,9 +241,10 @@ les modifications documentaires antérieures sont préservées.
   68/68 tests réussis.** Les vignettes restent à faire ; la rangée réservée est livrée (voir ci-dessous).
 
 - **Rangée permanente d’isométrie — bloc 5 (`72a16bf`)** : dans l’écran de jeu partagé
-  solo/entraînement, rangée de hauteur réservée au-dessus du rack en portrait et en bas
-  en paysage. Actions générales permanentes dans l’AppBar portrait et la colonne gauche
-  paysage. Ne pas étendre ce constat à l’écran de duel sans vérification de sa disposition.
+  solo, rangée de hauteur réservée au-dessus du rack en portrait et en bas
+  en paysage dans la version du 2026-09-10. Révisé le 2026-09-11 : isométries à gauche et actions
+  générales en bas en paysage (voir en tête). Ne pas étendre ce constat à l’écran de duel
+  sans vérification de sa disposition.
 
 - **Ergonomie du jeu (2026-09-10, PLAN_ERGONOMIE_ICONES blocs 2-3 + carte de fin)** — chrono `m:ss`,
   compteur de solutions désambiguïsé, bande debug débranchée (C9), invariant « plateau toujours légal »
@@ -204,66 +332,16 @@ voir `PLAN_ERGONOMIE_ICONES.md`.
 
 **Suite proposée** : terminer les vignettes et les axes du plan d’ergonomie, puis reprendre
 les points ouverts de la checklist de publication. La reprise après fermeture, le cycle de vie
-et le mode entraînement 5×7 ont leurs validations propres : le « test OK » de l’accueil ne
-les solde pas. Médaille et défi sont déjà implémentés ; le défi est dans la V1.
+ont leurs validations propres : le « test OK » de l’accueil ne les solde pas. Médaille et défi sont déjà implémentés ; le défi est dans la V1.
 
-### Entraînement Option A + réglage « compteurs » + accueil hub (2026-09-09, choix de Paul — état de livraison daté)
+### Réglage « compteurs » et accueil hub (2026-09-09)
 
-Trois changements de la journée, `analyze` **0/0**, **67/67 tests**, commités ensemble (voir `git log`
-du jour). **Les confirmations appareil doivent être rattachées au comportement concerné ;
-le retour du 2026-09-10 valide l’accueil guidé 3×5 et son dépôt.**
+- Réglage « compteurs » : isométries et fautes affichables en overlay dans le jeu.
+- Accueil : bouton plein Jouer au centre, Multijoueur/Défi à gauche et Records/Réglages à droite.
+  Il remplace l’icône personne depuis le 2026-09-11 ; l’icône Entraînement séparée a été retirée.
+- Ancien mode à une pièce supprimé le 2026-09-11 ; son historique et son plan restent dans git.
 
-- **Mode entraînement — Option A** : l'exercice n'a plus d'écran propre. `training_screen.dart` et
-  `training_provider.dart` **supprimés** ; l'état entraînement vit dans **`pentoscope_provider`
-  (`startTraining()`)** et l'affichage réutilise **`PentoscopeGameScreen`** (même UI que le jeu).
-  Plateau d'entraînement porté **5×5 → 5×7** (`kTrainBoardHeight`, remplit l'écran en portrait).
-- **Réglage « compteurs »** : `AppSettings.showCounters` (défaut **false**, JSON, pas de migration,
-  invariant #6), `setShowCounters` (settings_provider), case dans les Réglages, **overlay
-  isométries 🔄 · fautes ⚫** en haut-gauche de la barre de jeu quand activé.
-- **Accueil = hub d'icônes** (`home_screen.dart`) : titre « PENTAPOL » retiré ; les 3 gros boutons du
-  bas supprimés. En-tête = **Jouer (person) VERT, gros (46), au centre géométrique** (Stack) ;
-  Multijoueur (people) + Entraînement (psychology) à gauche ; défi/records/réglages à droite (toutes
-  à 32). Tooltips i18n existants, aucune chaîne nouvelle.
-
-### Mode entraînement — niveau 1 livré (2026-09-08, `PLAN_MODE_ENTRAINEMENT`)
-
-Premier pas contre le **bloquant produit n°8** (« aucun onboarding ») : un exercice interactif de
-**rotation mentale**, hors progression et hors records. **Niveau 1 (une pièce)** appliqué et vérifié
-statiquement ; **niveau 2 (deux pièces) NON fait** — le plan le gate sur un **test device du niveau 1
-par Paul** (à sa demande). Le plan **reste** (supprimé seulement après application ET test, MODUS §5).
-⚠️ **Le détail ci-dessous décrit l'état livré en `3c90d00` (écrans séparés) ; il est SUPERSÉDÉ par
-l'Option A du 2026-09-09 ci-dessus** — conservé pour la logique pure (`training_mode.dart`), inchangée.
-
-- **Logique pure** `lib/pentoscope/training/training_mode.dart` (Flutter-free, testée) : plateau
-  `size5x5` (PLAN §4 — plus petit où les 63 orientations tiennent), tirage reproductible via
-  `PentapolRng`, **validation par égalité des ensembles de cases occupées** (jamais par index),
-  minimum d'appuis via **`Pento.minIsometriesToReach`** (l'orpheline, réutilisée telle quelle).
-  **Terminaison garantie X compris** (le X ne boucle pas : pose seule, `minPresses` 0 ; les autres
-  tirent une orientation de départ de **forme** différente de la cible).
-- **Provider** `training_provider.dart` : état **PUR, aucune écriture DB** (prouvé au grep §9). Les
-  quatre boutons d'isométrie comptent en **appuis** ; le doigt **déplace** (translation, non comptée).
-- **Écran** `training_screen.dart` : plateau 5×5, fantôme (forme cible en surbrillance), pièce
-  déplaçable au doigt (`onPanStart/Update` — grab sur une case occupée, suit le doigt, confiné au
-  plateau par `clampAnchor`), barre des quatre isométries (icônes/tooltips réutilisés), carte de
-  bilan « N appuis · Ns » + « M suffisai(en)t » (informatif, non comparatif), « Suivante ».
-- **Persistance** : `AppSettings.trainingExercisesDone` (`int?`, `null` = jamais joué), setter
-  `recordTrainingExercise` → **retour d'exercice, PAS un record** (aucune écriture PuzzleStats/
-  SolvedSolutions, pas de bump de `schemaVersion`, invariant #6). JSON.
-- **Entrée** : bouton « Mode entraînement » (school_outlined) sous « Multijoueur » sur l'accueil.
-- **i18n** : clés `trainingMode/Instruction/InstructionPose/Presses/Enough/Seconds` en EN **et** FR ;
-  réutilise `isoRotateTW/CW`, `isoSymH/V`, `congrats`, `next`. `gen-l10n` régénéré (générés versionnés).
-- **Tests** `test/training_mode_test.dart` (§9) : terminaison sur les 12 pièces, validation par
-  ensembles (I symétrique), et **catalogue §5 confirmé par exécution** — 342 couples distincts,
-  210 à un appui, 132 à deux, **diamètre 2** (aucun repli `minIsometriesToReach` non trouvé). Les
-  nombres du plan sont donc **vérifiés**, pas supposés (règle n°7).
-
-`flutter analyze lib test` **0 error / 0 warning** (62 infos préexistantes), **59/59 tests**.
-**Reste : test device par Paul** (ressenti du glissé, lisibilité du fantôme, tailles/timing) — puis,
-seulement alors, le **niveau 2** (§3 du plan : accepter TOUT pavage valide de la région). ⚠️ Ce que
-le mode **n'enseigne pas** (PLAN §7) : ni le compteur décroissant, ni la lampe rouge, ni le but du
-jeu — le n°8 ne se refermera qu'avec un écran de vraie partie 3×5 commentée, à planifier à part.
-
-### Corrections documentaires (2026-09-08, `PLAN_MODE_ENTRAINEMENT` §8)
+### Corrections documentaires (2026-09-08, ancien plan d’entraînement §8)
 
 Cinq des six corrections du §8 appliquées ; la sixième **rejetée car son postulat était faux**
 (règle n°7, vérifié au `ls`/`grep`) :
@@ -946,31 +1024,25 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-11 (3) — Codex : validation de l’accueil à sept variantes.**
-Paul confirme « c’est OK » après la livraison locale des sept parcours et des orientations
-initiales à corriger. Validation enregistrée dans §ÉTAT, la référence accueil, l’index,
-le fonctionnement et la checklist. Derniers contrôles conservés : 166/166 tests, analyse
-0 erreur / 0 avertissement / 106 infos. Aucun code modifié ni contrôle Flutter relancé.
-Le travail reste local : cette validation n’est pas une demande de commit ou de push.
+**2026-09-12 (4) — Codex : barème Géométrie paramétrable et reprise fiable.**
+Fenêtre avec aperçu, barème figé et persisté, Impasses/Triche au bilan. Schéma 11 destructif
+sur demande explicite de Paul ; id=0 rendu explicite pour retrouver la sauvegarde.
+205 tests verts, 0 erreur/avertissement (106 infos), drapeau public vérifié. Les parties
+expérimentales restent hors records ; voir BAREME_GEOMETRIE.md et CHECKLIST_APPSTORE.md.
+Aucun commit/push.
+
+**2026-09-12 (3) — Codex : icônes dans les consignes, retours haptiques dans l’accueil.**
+FR/EN corrigés et régénérés ; retours de sélection, transformation, prise, cible et pose acceptée.
+Réglage des vibrations respecté, pas de doublon automatique de Flutter ni de clic à chaque pixel.
+**188/188 tests**, analyse **0 erreur / 0 avertissement / 106 infos**. Documentation à jour,
+ressenti à apprécier sur appareil, aucun commit/push.
 
 
-**2026-09-11 (2) — Codex : sept accueils guidés, aucune pièce déjà prête.**
-Après retour positif de Paul sur le rack, activation des sept pavages existants et départ
-hors orientation cible pour chaque pièce. Choix initial au montage, puis bouton « Un autre
-entraînement » parcourant les sept sans répétition. Miroir nécessaire en dernier ; consigne
-adaptée à la forme courante. Rendu du rack adapté aux pièces longues et bouton de fin flexible.
-**166/166 tests** ; analyse complète **0 erreur / 0 avertissement / 106 infos**. Documentation
-mise à jour, changements locaux sans commit/push. Depuis : Paul confirme « c’est OK », voir passation (3).
-
-
-**2026-09-11 — Codex : accueil proche du jeu, sans affichage des étapes.**
-Paul demande les mêmes icônes d’isométrie, exploration du rack, choix par numéro, sélection
-puis pose avec encouragements. `GuidedHome` dispose d’un rack défilant et des quatre commandes
-`GameIcons`/`Pento`, de consignes EN/FR, d’une sélection explicite et du retrait des pièces
-posées. Dépôt assisté conservé. Test négatif ajouté ; 40 parcours adaptés au défilement réel.
-**112/112 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos** (incluant outils).
-Journal, référence accueil, checklist, fonctionnement et index actualisés. Changements
-locaux, pas de commit/push demandé. Depuis : parcours étendu à sept variantes et validé par Paul, voir passation (3).
+**2026-09-12 (2) — Codex : défilement continu et accéléré.**
+Sur demande de Paul, vitesse doublée (36 → 72 pixels logiques/s), boucle sans pause et raccord
+par répétition du texte. Changement de consigne immédiat ; modes accessibles toujours fixes.
+Tests : vitesse, plusieurs tours, remplacement et arrêt accessible. **186/186 tests**,
+analyse **0 erreur / 0 avertissement / 106 infos**. Documentation actualisée, aucun commit/push.
 
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

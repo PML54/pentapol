@@ -20,6 +20,7 @@
 
 | # | Point | Pourquoi | Où |
 |---|---|---|---|
+| 24 | **Figer Géométrie et retirer son calibrage** | Fenêtre active même en release pour Paul. Arrêter les coefficients, désactiver `PENTAPOL_SCORE_TUNING` par défaut, vérifier que les valeurs expérimentales sont ignorées et décider du contrat de records Géométrie (les classements utilisent encore l’acuité). Parties de calibrage exclues des records. Schéma 11 destructif autorisé en développement ; retirer cette stratégie avant publication. | `docs/BAREME_GEOMETRIE.md`, `lib/pentoscope/geometry_score.dart` |
 | 3 | **Retirer la réécriture destructive de la base** | `MigrationStrategy` destructive + `schemaVersion` : légitime tant que rien n'est publié, **mine** après. Elle effacerait les records des joueurs, et seulement le jour où le schéma bougera — des mois plus tard | `lib/database/settings_database.dart`, plan `PLAN_PERSISTANCE.md` §5 |
 | 4 | **Ajouter un rapport de crash** | Sans ça, publication à l'aveugle : ceux qui plantent désinstallent sans rien dire. Aucun outil aujourd'hui — ni Crashlytics, ni Sentry | `pubspec.yaml`, `main.dart` |
 | 5 | **Sauvegarde livrée — confirmer la reprise sur appareil** | Partie en cours enregistrée aux poses/retraits et au passage en arrière-plan, restaurée au lancement. Ne plus annoncer cette fonction absente. La confirmation de reprise après fermeture reste distincte du test OK de l’accueil | `main.dart`, `pentoscope_provider.dart`, `BASE_LOCALE.md` |
@@ -51,7 +52,7 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 
 | # | Point | Pourquoi |
 |---|---|---|
-| 8 | **Accueil gestuel livré ; explication du compteur et des aides à compléter** | Accueil participatif 3×5 : placement, rotation, miroir, dépôt depuis toute case de la pièce. Livré dans `72a16bf`, validé sur iPhone par Paul le 2026-09-10 (« test OK »). Révision locale du 2026-09-11 : rack défilant, sélection par numéro, quatre icônes du jeu, encouragements, suppression des étapes affichées, sept tirages avec orientations à corriger et bouton « Un autre entraînement » ; version validée par Paul le 2026-09-11 (« c’est OK »). Il ne présente pas encore le compteur de solutions ni les aides. Voir `ACCUEIL_GUIDE.md` |
+| 8 | **Accueil gestuel livré ; explication du compteur et des aides à compléter** | Accueil participatif 3×5 : placement, rotation, miroir, dépôt depuis toute case de la pièce. Livré dans `72a16bf`, validé sur iPhone par Paul le 2026-09-10 (« test OK »). Révision locale du 2026-09-11 : rack défilant, sélection par numéro, quatre icônes du jeu, encouragements, suppression des étapes affichées, sept tirages avec orientations à corriger et bouton « Un autre entraînement » ; version validée par Paul le 2026-09-11 (« c’est OK »). Depuis : bouton Training plein en fin de parcours et Jouer permanent dans l’en-tête pour accès direct au jeu. Il ne présente pas encore le compteur de solutions ni les aides. Voir `ACCUEIL_GUIDE.md` |
 | 9 | **Variété des tirages livrée** | Le 6×10 garde un seul ensemble de 12 pièces. La variété vient des tirages solubles 5×n et des défis, déjà implémentés. Les rectangles 5×12 et 4×15 restent abandonnés (Paul, 2026-09-08) |
 | 10 | **Compteur disponible sur toutes les tailles — résolu** | `CorpusSolutionSource` et le corpus précalculé apportent le compteur décroissant aux tirages 5×n ; `TableSolutionSource` couvre le 6×10. Aucun nouveau solveur ni `ListSolutionSource` à écrire. Ne pas confondre disponibilité des données et exposition du navigateur de solutions dans l’interface |
 | 11 | **Records et progression livrés** | Progression solo persistée, trois records indépendants (acuité, fautes, temps), bilan, écran Records et médaille. Voir `MANUEL_DEFIS_ET_MAILLOTS.md` et `BASE_LOCALE.md`. Leur validation de persistance est distincte du test de l’accueil |
@@ -77,8 +78,7 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 - Orphelin restant : **`ui_layout_provider.dart`** (et ses 9 providers). Sans effet à l'exécution,
   mais alourdit la relecture. Il est **entrelacé** avec `ui_layout_manager` → `ui_dimensions`
   (import chaîné) : son retrait est un **chantier de code**, pas une correction documentaire, à
-  décider avec Paul. *Note : `PLAN_MODE_ENTRAINEMENT.md` §8 disait les trois « déjà supprimés » —
-  c'était faux ; deux le sont désormais réellement, le troisième reste.*
+  décider avec Paul.
 - ~~`pentomino_solver.dart`~~ **résolu le 2026-08-31 (étape B, chantier 2)** : `pentomino_solver.dart`,
   `tools/generate_6x10_solutions.dart` et `solution_collector.dart` **supprimés**. Retrait par
   **substitution** : l'énumération du 6×10 est reprise par `tools/generate_solutions_corpus.dart`

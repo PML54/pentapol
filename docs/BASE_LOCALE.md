@@ -16,7 +16,7 @@ côté.
 | Fichier | `pentapol_settings.db` |
 | Emplacement | dossier *Documents* de l'app (`getApplicationDocumentsDirectory`) |
 | Techno | `drift` (SQLite natif) |
-| `schemaVersion` | **9** |
+| `schemaVersion` | **11** |
 | Migration | `destructiveFallback` — **efface et recrée** à tout changement de version |
 
 > ⚠️ **Réécriture destructive.** Tant que l'app n'est pas publiée, un changement de `schemaVersion`
@@ -54,6 +54,7 @@ Permet de **reprendre** une partie interrompue. Ne stocke **ni le plateau** (rec
 | `pieceIds` | le tirage (`'1,2,3,…'`) |
 | `solutionCount` | nombre de solutions du tirage |
 | `placedPieces` | JSON `[{id,pos,x,y}, …]` — les pièces posées |
+| `geometryState` | JSON versionné : barème figé, pénalités cumulées et marqueur expérimental |
 | `positionIndices` | JSON `{pieceId: orientation}` — orientations courantes |
 | `initialOrientations` | JSON — le **rack distribué** (figé), pour l'acuité (🟡) |
 | `elapsedSeconds` | temps écoulé |
@@ -63,6 +64,14 @@ Permet de **reprendre** une partie interrompue. Ne stocke **ni le plateau** (rec
 
 **Écrite** après chaque pose/retrait et au passage en arrière-plan. **Effacée** à la complétion et au
 démarrage d'une partie neuve. **Non écrite** en multijoueur ni en **défi** (éphémère).
+
+Le réglage du barème suivant est dans `AppSettings.game.geometryRules`. Le barème de la
+partie courante est indépendant : modifier le réglage ne modifie pas son snapshot.
+À l'insertion, `id: Value(0)` est explicite (un INTEGER PRIMARY KEY omis reçoit 1 malgré
+DEFAULT 0). Le test de reprise vérifie qu'il reste exactement une ligne d'identifiant 0.
+
+Pendant le calibrage Géométrie, les parties solo expérimentales n'écrivent pas les tables
+ci-dessous, même avec les valeurs initiales. Voir [Barème Géométrie](BAREME_GEOMETRIE.md).
 
 ### `SolvedSolutions` — records des rectangles complets (une ligne par solution découverte)
 Clé `(board, solutionNumber)`. Pour le 6×10 (et, à terme, 5×12/4×15).

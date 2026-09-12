@@ -1,19 +1,25 @@
 # Pentapol — Documentation fonctionnelle
 
-## Lecture actuelle — 2026-09-11
+## Lecture actuelle — 2026-09-12
 
 L’application démarre sur **HomeScreen** et son **accueil guidé 3×5** : sept tirages,
 avec trois pièces à orienter puis déposer. Aucune ne démarre dans son orientation cible.
-À la fin : Jouer ou « Un autre entraînement » pour passer au prochain tirage. Depuis le
+À la fin : bouton plein « Training » pour passer au prochain tirage. Depuis le
 2026-09-11, il invite à défiler dans le rack, choisir une pièce par numéro, la sélectionner
 et la poser avec les quatre icônes du jeu. Les étapes numérotées sont remplacées par des
-consignes et encouragements EN/FR. La prise peut se
+consignes et encouragements EN/FR. Depuis le 2026-09-12, ces consignes sont plus grandes,
+en gras, et défilent en continu à 72 pixels logiques/s, sans pause entre les tours. Le plateau reste fixe ;
+les modes accessibles présentent directement le texte immobile. Les consignes parlent d’icônes.
+Des retours vibratoires ponctuent la prise, l’entrée dans la cible et la pose acceptée,
+selon le réglage des vibrations de l’application. La prise peut se
 faire sur toute case ; le dépôt est assisté dans la zone cible. Paul a validé le dépôt de la version du 2026-09-10
 sur iPhone ; il valide aussi la version à sept variantes le 2026-09-11 (« c’est OK »). Voir [Accueil guidé](ACCUEIL_GUIDE.md) pour les règles et les vérifications.
 
-L’en-tête donne accès au jeu solo, à l’entraînement à une pièce sur 5×7, au duel, aux défis,
-aux records et aux réglages. Le titre PENTAPOL a été retiré ; Jouer est la grande personne verte
-au centre. Le parcours d’accueil ne modifie pas la partie sauvegardée.
+L’en-tête donne accès au jeu solo, au duel, aux défis,
+aux records et aux réglages. Le titre PENTAPOL a été retiré ; le bouton plein Jouer remplace
+l’icône personne au centre et permet de passer directement au jeu, à tout moment. Le parcours d’accueil ne modifie pas la partie sauvegardée.
+Le mode séparé à une pièce sur 5×7 et son icône sont supprimés depuis le 2026-09-11,
+à la demande de Paul ; l’entraînement se fait dans les sept parcours de l’accueil.
 
 Le jeu s’appuie sur Pentoscope et des tables précalculées : `CorpusSolutionSource` pour les
 tirages 5×n, `TableSolutionSource` pour le 6×10 complet. Le compteur fonctionne sur toutes les
@@ -21,14 +27,20 @@ tailles ; aucun solveur backtracking n’est livré. Le plateau reste légal : l
 impossibles d’une pièce posée sont grisées. Le feedback suit le doigt dès la prise et reçoit
 un contour rouge quand le placement est invalide ou hors plateau.
 
-L’écran solo/entraînement réserve une rangée d’isométrie permanente : au-dessus du rack en
-portrait, en bas en paysage. Les actions générales restent dans l’AppBar portrait ou la colonne
-gauche paysage. Le dépôt normal suit le doigt avec confinement aux bords ; l’assistance de
+L’écran solo réserve les commandes d’isométrie au-dessus du rack en portrait et dans une
+colonne à gauche en paysage. Les actions générales restent dans l’AppBar portrait et passent
+en bas en paysage (choix de Paul, 2026-09-11). Les quatre transformations gardent leurs
+emplacements ; une cinquième place est réservée à la corbeille dans la colonne paysage.
+La sélection ne change ni les réserves de place ni la position du plateau. Le dépôt normal suit le doigt avec confinement aux bords ; l’assistance de
 l’accueil ne change pas ces règles. Voir [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md).
 
-La partie solo et les records sont persistés (quatre tables drift). Les trois maillots mesurent
-l’acuité, les fautes et le temps ; les parties aidées ne créent pas de record. Le défi et son
-classement sont dans la V1 ; l’envoi est soumis au consentement, désactivé par défaut.
+La partie solo est persistée (quatre tables drift). Depuis le 2026-09-12, son bilan affiche
+Géométrie, Impasses, Triche et le temps. Réglages → Réglage du barème permet de calibrer la
+note avant publication ; le tableau prévisualise les pénalités. Le barème est figé et
+sauvegardé avec chaque partie. Ces parties expérimentales restent hors records ; les défis
+et leurs classements conservent leur contrat actuel (acuité, impasses, temps). L’envoi est
+soumis au consentement, désactivé par défaut. Le schéma 11 remet les données locales à zéro
+sur demande de Paul. Voir [Barème Géométrie](BAREME_GEOMETRIE.md).
 Références : [Base locale](BASE_LOCALE.md), [Maillots et défis](MANUEL_DEFIS_ET_MAILLOTS.md).
 L’interface est disponible en français et en anglais via [la localisation](I18N.md).
 

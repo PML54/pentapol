@@ -1,5 +1,11 @@
 # Manuel — les défis (perso & réseau) et le calcul des maillots
 
+> **État au 2026-09-12 :** le solo expérimente la note Géométrie paramétrable, avec
+> snapshot dans `CurrentGame.geometryState` (schéma 11 destructif, demandé par Paul).
+> Ces parties sont exclues des records ; les défis gardent leur contrat d'acuité.
+> Cette évolution et ses règles de persistance sont dans [BAREME_GEOMETRIE.md](BAREME_GEOMETRIE.md).
+
+
 > Référence du système de performance de Pentapol. Décrit **ce que le joueur voit**, **comment
 > chaque maillot est calculé** (formules exactes), et la différence entre les **records perso**
 > (locaux) et le **défi de la semaine** (classement en ligne).

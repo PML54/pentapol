@@ -1,6 +1,6 @@
 # Index de la documentation
 
-> Actualisé le 2026-09-11 : accueil à sept variantes validé par Paul (« c’est OK »).
+> Actualisé le 2026-09-12 : ajout du barème Géométrie paramétrable.
 > L’état courant et les passations sont dans [JOURNAL.md](JOURNAL.md).
 > Cet index oriente la lecture ; il ne certifie pas un nouvel audit complet de chaque document.
 
@@ -19,9 +19,9 @@
 | Document | Usage / état |
 |---|---|
 | [Accueil guidé](ACCUEIL_GUIDE.md) | Référence du 3×5 participatif ; révision locale du 2026-09-11 avec rack défilant, commandes du jeu et sept tirages à orienter, validée par Paul (« c’est OK ») |
+| [Barème Géométrie](BAREME_GEOMETRIE.md) | Réglage, formule, Triche, reprise et préparation de la publication |
 | [Fonctionnement](FONCTIONNEMENT.md) | Synthèse actuelle en tête ; ancienne description détaillée explicitement historique |
 | [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md) | Rangée permanente et grisage livrés ; vignettes et axes des miroirs encore ouverts |
-| [Plan d’entraînement](PLAN_MODE_ENTRAINEMENT.md) | Niveau 1 livré dans l’écran de jeu sur 5×7 ; niveau 2 ouvert. Distinct de l’accueil 3×5 |
 | [Cahier des charges V1](CAHIER_DES_CHARGES_V1.md) | Périmètre produit et décisions ; défi et multijoueur inclus |
 | [Maillots et défis](MANUEL_DEFIS_ET_MAILLOTS.md) | Règles d’acuité, fautes, temps, records et classement |
 | [Fiche App Store](FICHE_APP_STORE.md) | Textes destinés à la fiche de publication |

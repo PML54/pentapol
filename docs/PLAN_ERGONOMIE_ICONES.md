@@ -8,13 +8,13 @@
 > `CHECKLIST_APPSTORE.md` (« cowork n'a jamais vu l'app tourner ») devient partiellement caduc.
 > À supprimer une fois appliqué et testé (`MODUS_VIVENDI` §5).
 
-## Avancement au 2026-09-10
+## Avancement au 2026-09-11
 
 | Élément | État |
 |---|---|
 | Sauvegarde/push préalable | Fait ; code du jour livré sur `origin/main` |
 | Grisage préventif | Livré dans `f1a8ad7`, solo/duel, portrait/paysage |
-| Rangée réservée et actions générales permanentes | Livré dans `72a16bf`, écran solo/entraînement ; AppBar portrait, colonne gauche paysage |
+| Rangée réservée et actions générales permanentes | Base livrée dans `72a16bf`. Révision locale du 2026-09-11 : isométries à gauche et actions générales en bas en paysage ; portrait conservé |
 | Rack agrandi, chrono, compteur, pastille unique et bilan | Livrés, voir `JOURNAL.md` |
 | Vignettes montrant le résultat de chaque transformation | À réaliser |
 | Clarification des noms/glyphes des axes des miroirs | À réaliser |
@@ -23,6 +23,13 @@ Le bug de dernière ligne en paysage sur iPhone et le feedback invisible ont ég
 corrigés et validés par Paul. L’accueil participatif est décrit dans `ACCUEIL_GUIDE.md`.
 Le plan reste ouvert pour les vignettes et les axes ; la validation de l’accueil ne vaut pas
 validation de ces éléments futurs. Les sections suivantes conservent le cahier initial.
+
+**Révision autorisée par Paul le 2026-09-11** : échanger les deux barres en paysage.
+Colonne d’isométrie permanente, cinq emplacements fixes (quatre transformations et corbeille
+conditionnelle), icônes adaptées à la hauteur disponible. Actions générales en rangée basse,
+hauteur fixe. Calcul du rack mis en cohérence avec la hauteur réservée. Douze tests de
+disposition passent sur trois tailles de puzzle et quatre formats ; suite complète 178/178,
+analyse sans erreur ni avertissement (106 infos). Ressenti à comparer par Paul sur iPhone.
 
 ---
 
@@ -134,7 +141,7 @@ d'autre d'un axe pointillé — le glyphe de tous les éditeurs d'image), tel qu
 - Le code couleur (rotations bleues / symétries vertes) est conservé — pastille ou liseré si les
   vignettes prennent la place des glyphes.
 - **Ne pas** remplacer les 4 opérations par 8 vignettes d'orientation directe : cela supprimerait la
-  rotation mentale que le mode entraînement vient d'être écrit pour enseigner, mettrait huit cibles
+  rotation mentale enseignée par l’accueil guidé 3×5, mettrait huit cibles
   sur un téléphone, et écraserait la métrique d'acuité (tout deviendrait atteignable en un appui).
 
 ---

@@ -1,5 +1,11 @@
 # Plan — ce que Pentapol garde sur l'appareil
 
+> **État au 2026-09-12 :** le solo expérimente la note Géométrie paramétrable, avec
+> snapshot dans `CurrentGame.geometryState` (schéma 11 destructif, demandé par Paul).
+> Ces parties sont exclues des records ; les défis gardent leur contrat d'acuité.
+> Cette évolution et ses règles de persistance sont dans [BAREME_GEOMETRIE.md](BAREME_GEOMETRIE.md).
+
+
 > Établi le 2026-08-30 par cowork, en préparation d'une mise sur l'App Store.
 > **Étape 1 faite** (`ea23af7`) : Supabase, `bootstrap.dart` et `DatabaseDebugScreen` retirés.
 > Restent les étapes 2 à 4. L'abandon pur et simple de l'historique, un temps envisagé, a été
