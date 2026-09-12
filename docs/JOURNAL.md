@@ -26,7 +26,7 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
-### Géométrie — barème paramétrable (2026-09-12, local)
+### Géométrie — barème paramétrable (2026-09-12)
 
 Réglages → Réglage du barème : quatre paramètres, aperçu immédiat des pénalités,
 sauvegarde et restauration des valeurs initiales. Formule `c × remplissage^p + supplément`
@@ -52,7 +52,7 @@ reset SQLite, fenêtre et bilan FR/EN avec grands caractères en portrait/paysag
 Deux tests passent aussi avec le drapeau public false. Réglage des coefficients par Paul
 sur appareil ; documentation mise à jour. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
-### Accueil — vocabulaire des icônes et retours physiques (2026-09-12, local)
+### Accueil — vocabulaire des icônes et retours physiques (2026-09-12)
 
 Paul demande de parler d’icônes plutôt que de flèches et de sentir physiquement les déplacements.
 Trois consignes corrigées en FR/EN (rotation, miroir, nouvelle tentative), localisations régénérées.
@@ -67,7 +67,7 @@ gestes interceptent le canal système et contrôlent les événements en mode ac
 y compris refus et mouvement dans la cible. Ressenti à apprécier par Paul sur iPhone.
 Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
-### Accueil — consignes agrandies et défilantes (2026-09-12, local)
+### Accueil — consignes agrandies et défilantes (2026-09-12)
 
 Paul demande un message qui défile et une police plus grande dans l’entraînement d’entrée.
 Consignes en gras, 22–28 pixels logiques selon la largeur, avec agrandissement système conservé.
@@ -85,7 +85,7 @@ aux traductions, contenu EN/FR existant conservé. **186/186 tests** ; analyse c
 l’accueil et accès direct au jeu vérifiés avec les grands caractères. Documentation actualisée.
 Ressenti du défilement à apprécier par Paul sur iPhone. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
-### Accueil — Jouer permanent en tête et bouton Training (2026-09-11, local)
+### Accueil — Jouer permanent en tête et bouton Training (2026-09-11)
 
 À la demande de Paul, le bouton plein Jouer remplace l’icône personne au centre de l’en-tête :
 accès direct au jeu dès l’ouverture, sans terminer le parcours. Training remplace « Un autre
@@ -100,7 +100,7 @@ Les 88 parcours contrôlent Training et le tirage suivant. Quatre tests d’accu
 l’accès immédiat, la conservation de la partie/du chrono et les boutons sans chevauchement,
 en FR/EN sur 320×568 et 874×402. Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
-### Paysage — isométries à gauche, actions générales en bas (2026-09-11, local)
+### Paysage — isométries à gauche, actions générales en bas (2026-09-11)
 
 Paul propose puis autorise l’échange des deux barres dans l’écran de jeu. Rotations et miroirs
 occupent désormais la colonne gauche ; accueil, chrono, nouvelle partie, ampoule et compteur
@@ -118,7 +118,7 @@ Douze cas de disposition : formats 667×375, 874×402, 1366×1024 et portrait 39
 débordement et du plateau fixe au repos, sur sélection rack et sur sélection plateau/corbeille.
 Ressenti à comparer par Paul sur iPhone. Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
 
-### Suppression du mode entraînement séparé — 2026-09-11, modifications locales
+### Suppression du mode entraînement séparé — 2026-09-11
 
 Paul demande de retirer l’icône et le code du mode à une pièce sur 5×7 : les sept parcours
 3×5 de l’accueil lui suffisent. Icône, générateur d’exercices, état `isTraining`, démarrage/
@@ -138,7 +138,7 @@ prises paysage sur iPhone/tablette simulés. Analyse complète **0 erreur / 0 av
 106 informations**. Recherche des symboles de l’ancien mode : aucune référence active dans
 `lib/` et `test/` (anciens headers historiques exceptés). Commité et poussé le 2026-09-12 dans `00a13ef` (voir §PASSATIONS 5).
 
-### Accueil — contour et célébrations, 2026-09-11, modifications locales
+### Accueil — contour et célébrations, 2026-09-11
 
 À la demande de Paul, contour du plateau aligné sur le jeu : gris foncé, largeur 3,
 coins arrondis (16) et ombre. Le contour est superposé aux cases pour conserver exactement
