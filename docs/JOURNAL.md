@@ -1024,6 +1024,15 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-12 (5) — CLI : lot des 11-12/09 commité et poussé sur `origin/main`.**
+Quatre commits : `cd17918` feat(géométrie+accueil) — barème paramétrable, haptique et
+consignes défilantes, l10n EN/FR, `build_info` estampillé `202609121549` ; `ad61576`
+test — barème, accueil guidé, dispositions paysage ; `00a13ef` refactor(entrainement) —
+suppression du mode autonome (les trois fichiers supprimés) ; `4887baf` docs — §ÉTAT,
+`BAREME_GEOMETRIE.md`, accueil, checklist. Avant commit : `flutter analyze` **0 erreur /
+0 avertissement** (61 infos), **205/205 tests** verts. Ressentis device restent à apprécier
+par Paul (haptique, défilement, calage des coefficients du barème).
+
 **2026-09-12 (4) — Codex : barème Géométrie paramétrable et reprise fiable.**
 Fenêtre avec aperçu, barème figé et persisté, Impasses/Triche au bilan. Schéma 11 destructif
 sur demande explicite de Paul ; id=0 rendu explicite pour retrouver la sauvegarde.
@@ -1036,13 +1045,6 @@ FR/EN corrigés et régénérés ; retours de sélection, transformation, prise,
 Réglage des vibrations respecté, pas de doublon automatique de Flutter ni de clic à chaque pixel.
 **188/188 tests**, analyse **0 erreur / 0 avertissement / 106 infos**. Documentation à jour,
 ressenti à apprécier sur appareil, aucun commit/push.
-
-
-**2026-09-12 (2) — Codex : défilement continu et accéléré.**
-Sur demande de Paul, vitesse doublée (36 → 72 pixels logiques/s), boucle sans pause et raccord
-par répétition du texte. Changement de consigne immédiat ; modes accessibles toujours fixes.
-Tests : vitesse, plusieurs tours, remplacement et arrêt accessible. **186/186 tests**,
-analyse **0 erreur / 0 avertissement / 106 infos**. Documentation actualisée, aucun commit/push.
 
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*
