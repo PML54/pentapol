@@ -1,4 +1,8 @@
-// Modified: 2026-09-10 06:37 — setShowPieceNumbers(bool) : pastille des pièces posées (C8, retour de Paul).
+// Modified: 2026-09-12 10:58 — sauvegarde fiable du barème pour les prochaines parties.
+// Historique: 2026-09-12 07:25 — enregistrement du barème pour les prochaines parties solo.
+// Historique: 2026-09-11 15:10 — retrait de l’enregistrement des exercices du mode supprimé.
+// lib/providers/settings_provider.dart
+// Historique: 2026-09-10 06:37 — setShowPieceNumbers(bool) : pastille des pièces posées (C8, retour de Paul).
 //           Plus setRackCellRatio(double) : taille des pièces du rack, réglable en live, bornée [0.30, 0.60].
 // Historique: 2026-09-09 09:08 — setShowCounters(bool) : affiche/masque les compteurs isométries + fautes
 //           dans la barre du jeu (retour de Paul).
@@ -25,6 +29,8 @@
 //           setShowPieceNumbers). Les setters Duel et les vivants restent.
 // lib/providers/settings_provider.dart
 // Historique: 2604221200 — Fix print() → debugPrint() dans les catch.
+
+import 'package:pentapol/pentoscope/geometry_score.dart';
 
 import 'dart:convert';
 import 'dart:math';
@@ -71,17 +77,16 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// main.dart) — sinon on lirait les défauts tant que _loadSettings n'a pas fini.
   Future<void> ensureLoaded() => _loadFuture ?? Future.value();
 
+  Future<void> setGeometryRules(GeometryRules rules) async {
+    await ensureLoaded();
+    final next = state.copyWith(game: state.game.copyWith(geometryRules: rules));
+    await _db.setSetting(_storageKey, jsonEncode(next.toJson()));
+    state = state.copyWith(game: state.game.copyWith(geometryRules: rules));
+  }
+
   /// Progression solo : nom du joueur (saisi au 1er puzzle réussi).
   Future<void> setUserName(String? name) async {
     state = state.copyWith(userName: name, clearUserName: name == null);
-    await _saveSettings();
-  }
-
-  /// Mode entraînement : un exercice réussi de plus (PLAN §6). `null` (jamais joué) → 1.
-  /// **Retour d'exercice, pas un record** — n'écrit **jamais** dans PuzzleStats/SolvedSolutions.
-  Future<void> recordTrainingExercise() async {
-    final done = (state.trainingExercisesDone ?? 0) + 1;
-    state = state.copyWith(trainingExercisesDone: done);
     await _saveSettings();
   }
 

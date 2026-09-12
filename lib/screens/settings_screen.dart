@@ -1,4 +1,5 @@
-// Modified: 2026-09-10 06:38 — réglage « Numéro des pièces » (SwitchListTile → setShowPieceNumbers, C8) :
+// Modified: 2026-09-12 10:58 — accès au réglage du barème avant déploiement.
+// Historique: 2026-09-10 06:38 — réglage « Numéro des pièces » (SwitchListTile → setShowPieceNumbers, C8) :
 //           pastille des pièces posées. Plus « Taille des pièces du rack » (stepper 0.30-0.60) →
 //           setRackCellRatio : calibrage live du rack sur device (retour de Paul, décision 6).
 // Historique: 2026-09-09 09:08 — nouveau réglage « compteurs » (isométries + fautes dans la barre du jeu),
@@ -26,6 +27,8 @@
 // Historique: 2025-11-30 — Ajout section Duel et version.
 
 import 'package:flutter/material.dart';
+import 'package:pentapol/pentoscope/geometry_score.dart';
+import 'package:pentapol/screens/geometry_settings_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
@@ -133,6 +136,17 @@ class SettingsScreen extends ConsumerWidget {
 
           // === SECTION JEU ===
           _buildSectionHeader(l10n.sectionGame),
+
+          if (kGeometryTuningEnabled)
+            ListTile(
+              key: const ValueKey('geometry-settings'),
+              leading: const Icon(Icons.tune),
+              title: Text(l10n.geometryTitle),
+              subtitle: Text(l10n.geometrySettingsSub),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (_) => const GeometrySettingsScreen())),
+            ),
 
           // Compteur de solutions
           SwitchListTile(

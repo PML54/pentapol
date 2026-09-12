@@ -1,4 +1,5 @@
-// Modified: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique  vers
+// Modified: 2026-09-11 10:34 — correction du délimiteur de commentaire accidentellement altéré.
+// Historique: 2026-08-29 13:43 — déménagé de l’ancien dossier du mode classique  vers
 //           lib/common/widgets/ (suppression du mode classique §4) : partagé par Pentoscope
 //           et le multijoueur, sorti avant la suppression du dossier classique.
 // lib/common/widgets/piece_border_calculator.dart

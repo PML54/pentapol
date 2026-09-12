@@ -1,4 +1,5 @@
-// Modified: 2026-09-09 05:29 — centralisation des règles de score : acuity/acuityPercent/perfectVision
+// Modified: 2026-09-12 10:58 — transmettre la Géométrie au bilan sans convertir les anciens scores.
+// Historique: 2026-09-09 05:29 — centralisation des règles de score : acuity/acuityPercent/perfectVision
 //           délèguent à score_rules.dart (formule plafonnée et prédicat uniques, testés) — plus de
 //           formule d'acuité recopiée ici.
 // Historique: 2026-09-05 17:24 — trois maillots (A) : acuité (PLAFONNÉE à 100 %), FAUTES (remplace les
@@ -8,11 +9,14 @@
 // Historique: 2026-09-04 05:20 — création : mesures d'une partie terminée (calcul pur, testable).
 
 import 'package:pentapol/common/placed_piece.dart';
+import 'package:pentapol/pentoscope/geometry_score.dart';
 import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// Les mesures d'une partie terminée (CDC §4), en valeurs **brutes**. Trois maillots : acuité
 /// (jaune), fautes (à pois), temps (vert). L'acuité se dérive ; on ne stocke que le brut.
 class CompletionMetrics {
+  final GeometryScore? geometry;
+
   /// Σ des isométries **minimales** rack → placement posé, sur toutes les pièces. Maillot jaune.
   final int minIso;
 
@@ -28,6 +32,7 @@ class CompletionMetrics {
   final int timeSeconds;
 
   const CompletionMetrics({
+    this.geometry,
     required this.minIso,
     required this.isometryCount,
     required this.faults,
@@ -56,6 +61,7 @@ CompletionMetrics computeMetrics({
   required int isometryCount,
   required int timeSeconds,
   int faults = 0,
+  GeometryScore? geometry,
 }) {
   var minIso = 0;
   for (final pp in placedPieces) {
@@ -64,6 +70,7 @@ CompletionMetrics computeMetrics({
     minIso += pp.piece.minIsometriesToReach(rack, pp.positionIndex);
   }
   return CompletionMetrics(
+    geometry: geometry,
     minIso: minIso,
     isometryCount: isometryCount,
     faults: faults,

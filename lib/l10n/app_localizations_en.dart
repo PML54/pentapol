@@ -87,11 +87,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hapticsSub => 'Vibrate on actions';
 
   @override
-  String get showCounters => 'Show counters (isometries, faults)';
+  String get showCounters => 'Show counters';
 
   @override
   String get showCountersSub =>
-      'Displays the isometry and fault counts in the game bar.';
+      'Geometry, dead ends and cheating during the game.';
 
   @override
   String get rackSize => 'Rack piece size';
@@ -179,7 +179,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legendAcuity => 'Accuracy';
 
   @override
-  String get legendFaults => 'Faults';
+  String get legendFaults => 'Dead ends';
 
   @override
   String get legendTime => 'Time';
@@ -305,7 +305,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get faultsNone => 'no dead ends';
 
   @override
-  String get faultsSome => 'dead ends';
+  String get faultsSome => 'dead ends entered';
 
   @override
   String solvedWithHelp(int count) {
@@ -424,45 +424,6 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '$count solution',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get trainingMode => 'Training mode';
-
-  @override
-  String get trainingInstruction =>
-      'Rotate the piece and drop it onto the highlighted shape.';
-
-  @override
-  String get trainingInstructionPose =>
-      'Drop the piece onto the highlighted shape.';
-
-  @override
-  String trainingPresses(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count presses',
-      one: '$count press',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String trainingEnough(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count presses would have been enough',
-      one: '$count press was enough',
-      zero: 'no rotation needed',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String trainingSeconds(int count) {
-    return '${count}s';
   }
 
   @override
@@ -618,11 +579,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guidedRotate =>
-      'Good! Use the arrows to turn the piece to match the outline.';
+      'Good! Use the icons to turn the piece to match the outline.';
 
   @override
   String get guidedMirror =>
-      'Good! Try the mirror arrows to flip the piece to match the outline.';
+      'Good! Try the mirror icons to flip the piece to match the outline.';
 
   @override
   String get guidedDone =>
@@ -633,7 +594,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Perfect! Hold the piece, then drag it onto its outline on the board.';
 
   @override
-  String get guidedAnother => 'Another practice';
+  String get guidedAnother => 'Training';
 
   @override
   String get guidedBrowse => 'Swipe through the rack to explore the pieces.';
@@ -655,5 +616,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guidedRetry =>
-      'Nearly there! Adjust the shape with the arrows, then aim for the outline.';
+      'Nearly there! Adjust the shape with the icons, then aim for the outline.';
+
+  @override
+  String get geometryTitle => 'Score tuning';
+
+  @override
+  String get geometrySettingsSub => 'Fine-tune the Geometry score';
+
+  @override
+  String get geometryNextGame =>
+      'Saved settings apply to the next solo game. A started game keeps its rules, even after resuming. Challenges and duels keep their own rules.';
+
+  @override
+  String get geometryExperimental => 'Experimental scoring · no records';
+
+  @override
+  String get geometryInitial => 'Starting score';
+
+  @override
+  String get geometryCoefficient => 'Fill penalty';
+
+  @override
+  String get geometryExponent => 'Progression exponent';
+
+  @override
+  String get geometryExponentHelp =>
+      '1: steady · 2: stronger near the end · 3–4: more forgiving early on';
+
+  @override
+  String get geometryAreaBonus => 'Extra penalty: region not a multiple of 5';
+
+  @override
+  String get geometryPreview => 'Points deducted for each new dead end';
+
+  @override
+  String get geometryPreviewFill => 'Filled';
+
+  @override
+  String get geometryPreviewOrdinary => 'Dead end';
+
+  @override
+  String get geometryPreviewArea => 'Impossible region';
+
+  @override
+  String get geometryDefaults => 'Restore defaults';
+
+  @override
+  String get geometrySaveError => 'Could not save settings. Try again.';
+
+  @override
+  String get legendGeometry => 'Geometry';
+
+  @override
+  String get legendCheating => 'Cheating';
+
+  @override
+  String get geometryAssisted => 'Assisted game';
+
+  @override
+  String get geometryLegacy => 'Challenge scoring';
 }

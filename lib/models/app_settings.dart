@@ -1,4 +1,7 @@
-// Modified: 2026-09-10 06:36 — réglage showPieceNumbers (bool, défaut true, C8/décision 7) : numéro des
+// Modified: 2026-09-12 10:58 — sauvegarde JSON du barème Géométrie dans les réglages.
+// Historique: 2026-09-11 15:10 — retrait du compteur JSON de l’ancien entraînement ; réglages existants compatibles.
+// lib/models/app_settings.dart
+// Historique: 2026-09-10 06:36 — réglage showPieceNumbers (bool, défaut true, C8/décision 7) : numéro des
 //           pièces posées = une pastille par pièce (plateau), optionnel. Plus rackCellRatio (double,
 //           défaut 0.46 figé) : taille des pièces du rack, réglable en live. JSON, pas de migration.
 // Historique: 2026-09-09 09:08 — réglage showCounters (défaut false) : afficher les compteurs isométries
@@ -27,6 +30,7 @@
 // lib/models/app_settings.dart
 // Historique: 2026-08-27 20:46 — retrait de _getDuelColor, orpheline (26 lignes).
 
+import 'package:pentapol/pentoscope/geometry_score.dart';
 import 'package:flutter/material.dart';
 
 /// Schéma de couleurs pour les pièces
@@ -259,6 +263,7 @@ class UISettings {
 /// difficulté (elle se choisit dans le dialogue « Nouvelle partie »), l'activation des indices
 /// et celle du chrono (l'un et l'autre s'affichent toujours). JSON → aucune migration.
 class GameSettings {
+  final GeometryRules geometryRules;
   final bool showSolutionCounter;   // Afficher le compteur de solutions
   final bool enableHaptics;         // Activer le retour haptique
   final int longPressDuration;      // Durée du long press en ms
@@ -282,6 +287,7 @@ class GameSettings {
   final bool showPieceNumbers;
 
   const GameSettings({
+    this.geometryRules = const GeometryRules(),
     this.showSolutionCounter = true,
     this.enableHaptics = true,
     this.longPressDuration = 100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
@@ -291,6 +297,7 @@ class GameSettings {
   });
 
   GameSettings copyWith({
+    GeometryRules? geometryRules,
     bool? showSolutionCounter,
     bool? enableHaptics,
     int? longPressDuration,
@@ -299,6 +306,7 @@ class GameSettings {
     bool? showPieceNumbers,
   }) {
     return GameSettings(
+      geometryRules: geometryRules ?? this.geometryRules,
       showSolutionCounter: showSolutionCounter ?? this.showSolutionCounter,
       enableHaptics: enableHaptics ?? this.enableHaptics,
       longPressDuration: longPressDuration ?? this.longPressDuration,
@@ -310,6 +318,7 @@ class GameSettings {
 
   Map<String, dynamic> toJson() {
     return {
+      'geometryRules': geometryRules.toJson(),
       'showSolutionCounter': showSolutionCounter,
       'enableHaptics': enableHaptics,
       'longPressDuration': longPressDuration,
@@ -321,6 +330,7 @@ class GameSettings {
 
   factory GameSettings.fromJson(Map<String, dynamic> json) {
     return GameSettings(
+      geometryRules: GeometryRules.fromJson(json['geometryRules'] is Map<String, dynamic> ? json['geometryRules'] : {}),
       showSolutionCounter: json['showSolutionCounter'] ?? true,
       enableHaptics: json['enableHaptics'] ?? true,
       longPressDuration: json['longPressDuration'] ?? 100,
@@ -541,11 +551,6 @@ class AppSettings {
   /// activer plus tard via les Réglages ou en ouvrant le classement (geste explicite).
   final bool challengeConsentAsked;
 
-  /// Nombre d'exercices d'entraînement réussis, cumulé. **`null` = jamais joué** (PLAN §6).
-  /// C'est un **retour d'exercice**, pas un record : le mode entraînement n'écrit **jamais** dans
-  /// `PuzzleStats` ni `SolvedSolutions` (records gelés, invariant #6). JSON → aucune migration.
-  final int? trainingExercisesDone;
-
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
@@ -556,7 +561,6 @@ class AppSettings {
     this.localeCode,
     this.shareScoresOptIn = false,
     this.challengeConsentAsked = false,
-    this.trainingExercisesDone,
   });
 
   AppSettings copyWith({
@@ -572,7 +576,6 @@ class AppSettings {
     bool clearLocaleCode = false,
     bool? shareScoresOptIn,
     bool? challengeConsentAsked,
-    int? trainingExercisesDone,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -584,7 +587,6 @@ class AppSettings {
       localeCode: clearLocaleCode ? null : (localeCode ?? this.localeCode),
       shareScoresOptIn: shareScoresOptIn ?? this.shareScoresOptIn,
       challengeConsentAsked: challengeConsentAsked ?? this.challengeConsentAsked,
-      trainingExercisesDone: trainingExercisesDone ?? this.trainingExercisesDone,
     );
   }
 
@@ -599,7 +601,6 @@ class AppSettings {
       'localeCode': localeCode,
       'shareScoresOptIn': shareScoresOptIn,
       'challengeConsentAsked': challengeConsentAsked,
-      'trainingExercisesDone': trainingExercisesDone,
     };
   }
 
@@ -616,7 +617,6 @@ class AppSettings {
       localeCode: json['localeCode'] as String?,
       shareScoresOptIn: json['shareScoresOptIn'] as bool? ?? false,
       challengeConsentAsked: json['challengeConsentAsked'] as bool? ?? false,
-      trainingExercisesDone: json['trainingExercisesDone'] as int?,
     );
   }
 }

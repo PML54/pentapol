@@ -88,11 +88,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hapticsSub => 'Vibrations lors des actions';
 
   @override
-  String get showCounters => 'Afficher les compteurs (isométries, fautes)';
+  String get showCounters => 'Afficher les compteurs';
 
   @override
   String get showCountersSub =>
-      'Affiche le nombre d\'isométries et de fautes dans la barre du jeu.';
+      'Géométrie, impasses et triche pendant la partie.';
 
   @override
   String get rackSize => 'Taille des pièces du rack';
@@ -180,7 +180,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get legendAcuity => 'Acuité';
 
   @override
-  String get legendFaults => 'Fautes';
+  String get legendFaults => 'Impasses';
 
   @override
   String get legendTime => 'Temps';
@@ -305,10 +305,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get solved => 'Résolu !';
 
   @override
-  String get faultsNone => 'aucun cul-de-sac';
+  String get faultsNone => 'aucune impasse';
 
   @override
-  String get faultsSome => 'culs-de-sac';
+  String get faultsSome => 'entrées en impasse';
 
   @override
   String solvedWithHelp(int count) {
@@ -427,45 +427,6 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '$count solution',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get trainingMode => 'Mode entraînement';
-
-  @override
-  String get trainingInstruction =>
-      'Tourne la pièce et pose-la sur la forme en surbrillance.';
-
-  @override
-  String get trainingInstructionPose =>
-      'Pose la pièce sur la forme en surbrillance.';
-
-  @override
-  String trainingPresses(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count appuis',
-      one: '$count appui',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String trainingEnough(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count appuis suffisaient',
-      one: '$count appui suffisait',
-      zero: 'aucune rotation nécessaire',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String trainingSeconds(int count) {
-    return '$count s';
   }
 
   @override
@@ -622,11 +583,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get guidedRotate =>
-      'Bien ! Utilise les flèches pour tourner la pièce comme la silhouette.';
+      'Bien ! Utilise les icônes pour tourner la pièce comme la silhouette.';
 
   @override
   String get guidedMirror =>
-      'Bien ! Essaie les flèches de miroir pour retourner la pièce comme la silhouette.';
+      'Bien ! Essaie les icônes de miroir pour retourner la pièce comme la silhouette.';
 
   @override
   String get guidedDone => 'Bravo, tu as rempli le plateau ! À toi de jouer.';
@@ -636,7 +597,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Parfait ! Maintiens la pièce, puis glisse-la sur sa silhouette sur le plateau.';
 
   @override
-  String get guidedAnother => 'Un autre entraînement';
+  String get guidedAnother => 'Training';
 
   @override
   String get guidedBrowse =>
@@ -659,5 +620,65 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get guidedRetry =>
-      'Tu y es presque ! Ajuste la forme avec les flèches, puis vise la silhouette.';
+      'Tu y es presque ! Ajuste la forme avec les icônes, puis vise la silhouette.';
+
+  @override
+  String get geometryTitle => 'Réglage du barème';
+
+  @override
+  String get geometrySettingsSub => 'Mettre au point la note Géométrie';
+
+  @override
+  String get geometryNextGame =>
+      'Les réglages sauvegardés s’appliquent à la prochaine partie solo. Une partie commencée conserve son barème, même après une reprise. Les défis et duels gardent leurs règles.';
+
+  @override
+  String get geometryExperimental => 'Barème expérimental · hors records';
+
+  @override
+  String get geometryInitial => 'Note de départ';
+
+  @override
+  String get geometryCoefficient => 'Pénalité liée au remplissage';
+
+  @override
+  String get geometryExponent => 'Progressivité';
+
+  @override
+  String get geometryExponentHelp =>
+      '1 : régulière · 2 : accentuée en fin de partie · 3–4 : début plus indulgent';
+
+  @override
+  String get geometryAreaBonus => 'Supplément : zone non multiple de 5';
+
+  @override
+  String get geometryPreview => 'Points retirés par nouvelle impasse';
+
+  @override
+  String get geometryPreviewFill => 'Rempli';
+
+  @override
+  String get geometryPreviewOrdinary => 'Impasse';
+
+  @override
+  String get geometryPreviewArea => 'Zone impossible';
+
+  @override
+  String get geometryDefaults => 'Rétablir les valeurs initiales';
+
+  @override
+  String get geometrySaveError =>
+      'Impossible de sauvegarder les réglages. Réessaie.';
+
+  @override
+  String get legendGeometry => 'Géométrie';
+
+  @override
+  String get legendCheating => 'Triche';
+
+  @override
+  String get geometryAssisted => 'Partie aidée';
+
+  @override
+  String get geometryLegacy => 'Barème du défi';
 }

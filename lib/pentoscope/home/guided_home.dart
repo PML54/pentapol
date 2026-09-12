@@ -1,16 +1,22 @@
-// Modified: 2026-09-11 07:57 — sept accueils 3×5 et orientations initiales toujours différentes de la cible.
+// Modified: 2026-09-12 06:30 — retours haptiques de sélection, prise, transformation, cible et pose, réglables.
+// Historique: 2026-09-12 03:40 — consignes agrandies et défilantes, réserve fixe pour préserver le plateau.
+// Historique: 2026-09-11 16:11 — bouton Training plein pour le prochain parcours ; Jouer déplacé dans l’en-tête.
+// Historique: 2026-09-11 07:57 — sept accueils 3×5 et orientations initiales toujours différentes de la cible.
 // Historique: 2026-09-11 07:33 — accueil : rack défilant, sélection numérotée, quatre isométries du jeu et encouragements.
 // Historique: 2026-09-10 15:08 — accueil : déposer la bonne forme sur la silhouette sans viser la case saisie.
 // Historique: 2026-09-10 14:53 — finaliser accueil guidé : feedback visible, validation géométrique, reprise et progression EN/FR.
 // Historique: 2026-09-10 10:24 — trois gestes guidés sur un pavage réel, état local sans score ni persistance.
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/pentapol_rng.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
+import 'package:pentapol/pentoscope/home/guided_success_celebration.dart';
+import 'package:pentapol/pentoscope/home/guided_scrolling_message.dart';
 
 String shapeKey(Iterable<math.Point<int>> cells) {
   final points = cells.toList();
@@ -105,8 +111,8 @@ List<GuidedStep> guidedSteps({int tirageIndex = 0}) {
 class GuidedHome extends StatefulWidget {
   final Color Function(int) colorOf;
   final double ratio;
-  final VoidCallback onPlay;
   final Duration longPressDuration;
+  final bool enableHaptics;
 
   /// Départ reproductible pour prévisualisations/tests ; sinon tirage choisi au montage.
   final int? initialTirageIndex;
@@ -114,7 +120,7 @@ class GuidedHome extends StatefulWidget {
     super.key,
     required this.colorOf,
     required this.ratio,
-    required this.onPlay,
+    this.enableHaptics = true,
     this.longPressDuration = const Duration(milliseconds: 100),
     this.initialTirageIndex,
   });
@@ -153,6 +159,9 @@ class _GuidedHomeState extends State<GuidedHome> {
   }
 
   void updateHover(bool valid) {
+    if (valid && !validHover && widget.enableHaptics) {
+      HapticFeedback.selectionClick();
+    }
     dragVisual.value = (valid, dragVisual.value.$2);
     if (valid != validHover) setState(() => validHover = valid);
   }
@@ -168,6 +177,7 @@ class _GuidedHomeState extends State<GuidedHome> {
 
   void transform(int Function(Pento, int) operation) {
     if (selected == null) return;
+    if (widget.enableHaptics) HapticFeedback.selectionClick();
     updateHover(false);
     setState(() {
       final i = selected!;
@@ -234,7 +244,11 @@ class _GuidedHomeState extends State<GuidedHome> {
         final contentWidth = bounds.maxWidth - 24;
         final contentHeight = bounds.maxHeight - 24;
         final controlsWidth = landscape ? bounds.maxWidth * .48 : contentWidth;
-        final textStyle = Theme.of(context).textTheme.titleMedium!;
+        final textStyle = Theme.of(context).textTheme.titleMedium!.copyWith(
+          fontSize: (controlsWidth * .06).clamp(22.0, 28.0),
+          fontWeight: FontWeight.w700,
+          height: 1.3,
+        );
         double textHeight(String text) {
           final painter = TextPainter(
             text: TextSpan(text: text, style: textStyle),
@@ -283,68 +297,124 @@ class _GuidedHomeState extends State<GuidedHome> {
           key: boardKey,
           width: 3 * cell,
           height: 5 * cell,
-          child: DragTarget<int>(
-            onWillAcceptWithDetails: (d) => !complete && d.data == step,
-            onMove: (d) =>
-                updateHover(d.data == step && accepts(d.offset, cell)),
-            onLeave: (_) => updateHover(false),
-            onAcceptWithDetails: (d) {
-              if (d.data != step || !accepts(d.offset, cell)) return;
-              updateHover(false);
-              setState(() {
-                step++;
-                selected = null;
-                retry = false;
-              });
-            },
-            builder: (context, candidates, rejected) => Stack(
-              children: [
-                for (var y = 0; y < 5; y++)
-                  for (var x = 0; x < 3; x++)
-                    Positioned(
-                      left: x * cell,
-                      top: y * cell,
-                      width: cell,
-                      height: cell,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DragTarget<int>(
+                    onWillAcceptWithDetails: (d) => !complete && d.data == step,
+                    onMove: (d) =>
+                        updateHover(d.data == step && accepts(d.offset, cell)),
+                    onLeave: (_) => updateHover(false),
+                    onAcceptWithDetails: (d) {
+                      if (d.data != step || !accepts(d.offset, cell)) return;
+                      if (widget.enableHaptics) HapticFeedback.mediumImpact();
+                      updateHover(false);
+                      setState(() {
+                        step++;
+                        selected = null;
+                        retry = false;
+                      });
+                    },
+                    builder: (context, candidates, rejected) => Stack(
+                      children: [
+                        for (var y = 0; y < 5; y++)
+                          for (var x = 0; x < 3; x++)
+                            Positioned(
+                              left: x * cell,
+                              top: y * cell,
+                              width: cell,
+                              height: cell,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  border: Border.all(
+                                    color: Colors.grey.shade400,
+                                    width: .5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        for (var i = 0; i < steps.length; i++)
+                          if (i < step || (i == step && selected == step))
+                            for (final c in steps[i].target.cells)
+                              Positioned(
+                                left: c[0] * cell,
+                                top: c[1] * cell,
+                                width: cell,
+                                height: cell,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: widget
+                                        .colorOf(steps[i].piece.id)
+                                        .withValues(
+                                          alpha: i < step
+                                              ? 1
+                                              : validHover
+                                              ? .65
+                                              : .2,
+                                        ),
+                                    border: Border.all(
+                                      color: i < step
+                                          ? Colors.white54
+                                          : widget.colorOf(steps[i].piece.id),
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+                  // Peindre le contour au-dessus des cases, sans padding ni changement de repère.
+                  Positioned.fill(
+                    child: IgnorePointer(
                       child: DecoratedBox(
+                        key: const ValueKey('guided-board-frame'),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
                           border: Border.all(
-                            color: Colors.grey.shade400,
-                            width: .5,
+                            color: Colors.grey.shade700,
+                            width: 3,
                           ),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                     ),
-                for (var i = 0; i < steps.length; i++)
-                  if (i < step || (i == step && selected == step))
-                    for (final c in steps[i].target.cells)
-                      Positioned(
-                        left: c[0] * cell,
-                        top: c[1] * cell,
-                        width: cell,
-                        height: cell,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: widget
-                                .colorOf(steps[i].piece.id)
-                                .withValues(
-                                  alpha: i < step
-                                      ? 1
-                                      : validHover
-                                      ? .65
-                                      : .2,
-                                ),
-                            border: Border.all(
-                              color: i < step
-                                  ? Colors.white54
-                                  : widget.colorOf(steps[i].piece.id),
-                              width: 1,
-                            ),
-                          ),
-                        ),
+                  ),
+                  if (step > 0)
+                    Positioned.fill(
+                      child: GuidedSuccessCelebration(
+                        key: ValueKey('guided-success-$tirageIndex-$step'),
+                        complete: complete,
+                        origin: complete
+                            ? const Offset(.5, .5)
+                            : Offset(
+                                steps[step - 1].target.cells
+                                        .map((c) => c[0] + .5)
+                                        .reduce((a, b) => a + b) /
+                                    15,
+                                steps[step - 1].target.cells
+                                        .map((c) => c[1] + .5)
+                                        .reduce((a, b) => a + b) /
+                                    25,
+                              ),
                       ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -377,38 +447,21 @@ class _GuidedHomeState extends State<GuidedHome> {
           children: [
             SizedBox(
               height: messageHeight,
-              child: Semantics(
-                liveRegion: true,
-                child: Text(
-                  message(l10n),
-                  key: const ValueKey('guided-message'),
-                  textAlign: TextAlign.center,
-                  style: textStyle,
-                ),
+              child: GuidedScrollingMessage(
+                message: message(l10n),
+                style: textStyle,
+                width: controlsWidth,
               ),
             ),
             const SizedBox(height: 8),
             SizedBox(
               height: actionsHeight,
               child: complete
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: TextButton(
-                            onPressed: nextTraining,
-                            child: Text(
-                              l10n.guidedAnother,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton(
-                          onPressed: widget.onPlay,
-                          child: Text(l10n.play),
-                        ),
-                      ],
+                  ? Center(
+                      child: FilledButton(
+                        onPressed: nextTraining,
+                        child: Text(l10n.guidedAnother),
+                      ),
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -503,13 +556,20 @@ class _GuidedHomeState extends State<GuidedHome> {
       button: true,
       child: GestureDetector(
         key: ValueKey('guided-select-$i'),
-        onTap: () => select(i),
+        onTap: () {
+          if (widget.enableHaptics) HapticFeedback.selectionClick();
+          select(i);
+        },
         child: LongPressDraggable<int>(
           key: ValueKey('guided-piece-$i'),
           data: i,
           delay: widget.longPressDuration,
           maxSimultaneousDrags: 1,
-          onDragStarted: () => select(i),
+          hapticFeedbackOnStart: false,
+          onDragStarted: () {
+            select(i);
+            if (widget.enableHaptics) HapticFeedback.lightImpact();
+          },
           dragAnchorStrategy: (drag, ctx, pos) {
             final box = ctx.findRenderObject() as RenderBox;
             final local = box.globalToLocal(pos);

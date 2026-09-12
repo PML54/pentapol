@@ -257,13 +257,13 @@ abstract class AppLocalizations {
   /// No description provided for @showCounters.
   ///
   /// In en, this message translates to:
-  /// **'Show counters (isometries, faults)'**
+  /// **'Show counters'**
   String get showCounters;
 
   /// No description provided for @showCountersSub.
   ///
   /// In en, this message translates to:
-  /// **'Displays the isometry and fault counts in the game bar.'**
+  /// **'Geometry, dead ends and cheating during the game.'**
   String get showCountersSub;
 
   /// No description provided for @rackSize.
@@ -425,7 +425,7 @@ abstract class AppLocalizations {
   /// No description provided for @legendFaults.
   ///
   /// In en, this message translates to:
-  /// **'Faults'**
+  /// **'Dead ends'**
   String get legendFaults;
 
   /// No description provided for @legendTime.
@@ -629,7 +629,7 @@ abstract class AppLocalizations {
   /// No description provided for @faultsSome.
   ///
   /// In en, this message translates to:
-  /// **'dead ends'**
+  /// **'dead ends entered'**
   String get faultsSome;
 
   /// No description provided for @solvedWithHelp.
@@ -823,42 +823,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{{count} solution} other{{count} solutions}}'**
   String drawSolutionsCount(int count);
-
-  /// No description provided for @trainingMode.
-  ///
-  /// In en, this message translates to:
-  /// **'Training mode'**
-  String get trainingMode;
-
-  /// No description provided for @trainingInstruction.
-  ///
-  /// In en, this message translates to:
-  /// **'Rotate the piece and drop it onto the highlighted shape.'**
-  String get trainingInstruction;
-
-  /// No description provided for @trainingInstructionPose.
-  ///
-  /// In en, this message translates to:
-  /// **'Drop the piece onto the highlighted shape.'**
-  String get trainingInstructionPose;
-
-  /// No description provided for @trainingPresses.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one{{count} press} other{{count} presses}}'**
-  String trainingPresses(int count);
-
-  /// No description provided for @trainingEnough.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{no rotation needed} one{{count} press was enough} other{{count} presses would have been enough}}'**
-  String trainingEnough(int count);
-
-  /// No description provided for @trainingSeconds.
-  ///
-  /// In en, this message translates to:
-  /// **'{count}s'**
-  String trainingSeconds(int count);
 
   /// No description provided for @sectionDuel.
   ///
@@ -1109,13 +1073,13 @@ abstract class AppLocalizations {
   /// No description provided for @guidedRotate.
   ///
   /// In en, this message translates to:
-  /// **'Good! Use the arrows to turn the piece to match the outline.'**
+  /// **'Good! Use the icons to turn the piece to match the outline.'**
   String get guidedRotate;
 
   /// No description provided for @guidedMirror.
   ///
   /// In en, this message translates to:
-  /// **'Good! Try the mirror arrows to flip the piece to match the outline.'**
+  /// **'Good! Try the mirror icons to flip the piece to match the outline.'**
   String get guidedMirror;
 
   /// No description provided for @guidedDone.
@@ -1133,7 +1097,7 @@ abstract class AppLocalizations {
   /// No description provided for @guidedAnother.
   ///
   /// In en, this message translates to:
-  /// **'Another practice'**
+  /// **'Training'**
   String get guidedAnother;
 
   /// No description provided for @guidedBrowse.
@@ -1163,8 +1127,122 @@ abstract class AppLocalizations {
   /// No description provided for @guidedRetry.
   ///
   /// In en, this message translates to:
-  /// **'Nearly there! Adjust the shape with the arrows, then aim for the outline.'**
+  /// **'Nearly there! Adjust the shape with the icons, then aim for the outline.'**
   String get guidedRetry;
+
+  /// No description provided for @geometryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Score tuning'**
+  String get geometryTitle;
+
+  /// No description provided for @geometrySettingsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine-tune the Geometry score'**
+  String get geometrySettingsSub;
+
+  /// No description provided for @geometryNextGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved settings apply to the next solo game. A started game keeps its rules, even after resuming. Challenges and duels keep their own rules.'**
+  String get geometryNextGame;
+
+  /// No description provided for @geometryExperimental.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental scoring · no records'**
+  String get geometryExperimental;
+
+  /// No description provided for @geometryInitial.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting score'**
+  String get geometryInitial;
+
+  /// No description provided for @geometryCoefficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill penalty'**
+  String get geometryCoefficient;
+
+  /// No description provided for @geometryExponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Progression exponent'**
+  String get geometryExponent;
+
+  /// No description provided for @geometryExponentHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'1: steady · 2: stronger near the end · 3–4: more forgiving early on'**
+  String get geometryExponentHelp;
+
+  /// No description provided for @geometryAreaBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra penalty: region not a multiple of 5'**
+  String get geometryAreaBonus;
+
+  /// No description provided for @geometryPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Points deducted for each new dead end'**
+  String get geometryPreview;
+
+  /// No description provided for @geometryPreviewFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled'**
+  String get geometryPreviewFill;
+
+  /// No description provided for @geometryPreviewOrdinary.
+  ///
+  /// In en, this message translates to:
+  /// **'Dead end'**
+  String get geometryPreviewOrdinary;
+
+  /// No description provided for @geometryPreviewArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Impossible region'**
+  String get geometryPreviewArea;
+
+  /// No description provided for @geometryDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get geometryDefaults;
+
+  /// No description provided for @geometrySaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save settings. Try again.'**
+  String get geometrySaveError;
+
+  /// No description provided for @legendGeometry.
+  ///
+  /// In en, this message translates to:
+  /// **'Geometry'**
+  String get legendGeometry;
+
+  /// No description provided for @legendCheating.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheating'**
+  String get legendCheating;
+
+  /// No description provided for @geometryAssisted.
+  ///
+  /// In en, this message translates to:
+  /// **'Assisted game'**
+  String get geometryAssisted;
+
+  /// No description provided for @geometryLegacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge scoring'**
+  String get geometryLegacy;
 }
 
 class _AppLocalizationsDelegate

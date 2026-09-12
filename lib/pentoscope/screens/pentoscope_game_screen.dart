@@ -1,4 +1,7 @@
-// Modified: 2026-09-10 07:45 — ergonomie (bloc 5, §4) : rangée d'isométrie RÉSERVÉE (permanente, grisée
+// Modified: 2026-09-12 10:58 — bilan et compteurs Géométrie, Impasses, Triche ; ancien score identifié.
+// Historique: 2026-09-11 15:58 — paysage : isométries à gauche, commandes générales en bas, zones fixes.
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-09-10 07:45 — ergonomie (bloc 5, §4) : rangée d'isométrie RÉSERVÉE (permanente, grisée
 //           au repos) au-dessus du rack (portrait) / en bas (paysage) ; AppBar et colonne d'actions
 //           redeviennent PERMANENTES (compteur/commandes toujours visibles, C1/C2). Hauteur réservée
 //           retranchée dans _barMetrics (ancre de drag préservée, invariant #3). Coût : -11 % de
@@ -136,11 +139,12 @@
 // Historique: 2026-08-28 20:30 — suppression démo : retrait de l'import demo_screen.dart et
 //             des deux IconButton « Démo automatique ».
 //             2026-08-27 19:57 — PentoscopePlacedPiece → PlacedPiece.
-// Modified: 2604221500
+// Historique: 2604221500
 // Dialogue bilan : déplacements, suppressions
 // CHANGEMENTS: (1) dialogue de bilan, (2) rangées déplacements et suppressions ajoutées
 
 import 'dart:math' as math;
+import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -265,10 +269,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   // Remis à zéro au démarrage d'une nouvelle partie (comme _bilanFerme).
   Offset _bilanOffset = Offset.zero;
 
-  // 🎓 Temps figé à la réussite d'un exercice d'entraînement (getElapsedSeconds continue de croître
-  // après stopTimer). null tant que l'exercice n'est pas résolu ; remis à null à « Suivante ».
-  int? _trainingElapsed;
-
   /// Gère l'affichage des messages et vibrations selon le résultat de transformation
   void _handleTransformationResult(BuildContext context, TransformationResult result) {
     switch (result) {
@@ -364,18 +364,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     ref.listen<PentoscopeState>(pentoscopeProvider, (prev, next) {
       final justCompleted = !(prev?.isComplete ?? false) && next.isComplete;
       if (justCompleted) _onPuzzleCompleted(context, next);
-
-      // 🎓 Entraînement : la pièce vient de recouvrir le fantôme → figer le temps, enregistrer
-      // l'exercice (retour, pas un record), retour haptique. La carte de bilan s'affiche via l'état.
-      if (next.isTraining) {
-        final wasSolved = prev != null && _trainingSolved(prev);
-        if (!wasSolved && _trainingSolved(next)) {
-          notifier.stopTimer();
-          setState(() => _trainingElapsed = notifier.getElapsedSeconds());
-          ref.read(settingsProvider.notifier).recordTrainingExercise();
-          if (settings.game.enableHaptics) HapticFeedback.mediumImpact();
-        }
-      }
     });
 
     // Bilan non modal : piloté par state.isComplete. _bilanFerme se remet à false dès que le
@@ -398,15 +386,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final isLandscape =
         MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
-    return PopScope(
-      canPop: true,
-      // Sortie d'entraînement par geste système (swipe-back) : restaurer la partie du jeu figée à
-      // l'entrée, comme le fait le bouton 🏠 (sinon « Jouer » repartirait fraîche et effacerait la
-      // sauvegarde). No-op hors entraînement.
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop && state.isTraining) notifier.endTraining();
-      },
-      child: Scaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
       appBar: isLandscape
           ? null
@@ -492,64 +472,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
           if (state.isComplete && !_bilanFerme)
             _buildBilanCard(context, state, notifier),
-
-          // 🎓 Entraînement : carte de fin d'exercice (appuis / minimum / temps) + « Suivante ».
-          if (state.isTraining && _trainingSolved(state))
-            Center(child: _buildTrainingCard(context, state, notifier)),
         ],
       ),
-      ),
-    ),
-    );
-  }
-
-  /// Vrai si l'unique pièce d'un exercice d'entraînement recouvre EXACTEMENT le fantôme.
-  bool _trainingSolved(PentoscopeState st) {
-    if (!st.isTraining) return false;
-    final ghost = st.currentSolution;
-    if (ghost == null || ghost.isEmpty || st.placedPieces.length != 1) return false;
-    final placed = st.placedPieces.first.absoluteCells.map((c) => (c.x, c.y)).toSet();
-    final target = ghost.first.absoluteCells.map((c) => (c.x, c.y)).toSet();
-    return placed.length == target.length && placed.containsAll(target);
-  }
-
-  /// Carte de bilan d'un exercice d'entraînement : informatif (appuis effectués, minimum, temps),
-  /// non comparatif, puis « Suivante » → nouvel exercice.
-  Widget _buildTrainingCard(
-      BuildContext context, PentoscopeState state, PentoscopeNotifier notifier) {
-    final l10n = AppLocalizations.of(context);
-    final ex = notifier.trainingExercise;
-    final min = ex?.minPresses ?? 0;
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.congrats,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            Text(
-              '${l10n.trainingPresses(state.isometryCount)} · ${l10n.trainingSeconds(_trainingElapsed ?? 0)}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.trainingEnough(min),
-              style: TextStyle(fontSize: 14, color: Colors.black.withValues(alpha: 0.6)),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () {
-                setState(() => _trainingElapsed = null);
-                notifier.startTraining();
-              },
-              child: Text(l10n.next),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -776,21 +700,21 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     return null;
   }
 
-  /// 🔑 Barre d'isométries pleine largeur avec icônes grandes et réparties uniformément
-  Widget _buildFullWidthIsometryBar(
+  /// Commandes communes au portrait et au paysage ; cinq emplacements fixes en colonne.
+  Widget _buildIsometryBar(
       PentoscopeState state,
-      PentoscopeNotifier notifier,
-      ) {
+      PentoscopeNotifier notifier, {
+      Axis axis = Axis.horizontal,
+      double? iconExtent,
+      }) {
     // Icônes de la barre de transformation : taille dédiée partagée (solo + duel), plus grosse
     // que la barre d'état (cibles d'action ; retour de Paul « trop petites sur iPhone »).
-    final double iconSize = isometryIconSize(context);
+    final double iconSize = iconExtent ?? isometryIconSize(context);
     final l10n = AppLocalizations.of(context);
 
     final hasDeleteButton = state.selectedPlacedPiece != null;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
+    final children = <Widget>[
         // Rotation anti-horaire
         IconButton(
           icon: Icon(GameIcons.isometryRotationTW.icon, size: iconSize),
@@ -860,20 +784,21 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             tooltip: l10n.isoRemove,
             color: GameIcons.removePiece.color,
           ),
-      ],
+        if (!hasDeleteButton && axis == Axis.vertical) const SizedBox.shrink(),
+      ];
+    return Flex(
+      direction: axis,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: axis == Axis.vertical
+          ? [for (final child in children) Expanded(child: Center(child: child))]
+          : children,
     );
   }
 
-  /// Hauteur RÉSERVÉE de la rangée d'isométrie (bloc 5) : compacte, ancrée sur la taille d'icône
-  /// d'isométrie. Réservée en permanence dans les deux orientations → le plateau ne se décale
-  /// jamais entre « rien sélectionné » et « pièce sélectionnée ».
+  /// Hauteur fixe de la rangée portrait, au-dessus du rack.
   double _isometryRowHeight(BuildContext context) => isometryIconSize(context) + 14;
 
-  /// Rangée d'isométrie **réservée** (bloc 5, §4 du PLAN_ERGONOMIE_ICONES) : hauteur fixe, juste
-  /// au-dessus du rack (portrait) ou en bas (paysage), **permanente**. Active (boutons réels, avec
-  /// grisage préventif §2) quand une pièce est sélectionnée ; **grisée et inerte** sinon. L'AppBar
-  /// (portrait) / la colonne d'actions (paysage) n'est donc plus escamotée : compteur et commandes
-  /// restent visibles (C1/C2).
+  /// Rangée portrait permanente : active sur sélection, grisée au repos.
   Widget _buildReservedIsometryRow(
       PentoscopeState state, PentoscopeNotifier notifier) {
     final active =
@@ -886,27 +811,54 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         border: Border(top: BorderSide(color: Colors.black12)),
       ),
       child: active
-          ? _buildFullWidthIsometryBar(state, notifier)
+          ? _buildIsometryBar(state, notifier)
           : IgnorePointer(child: Opacity(opacity: 0.30, child: _idleIsometryRow())),
     );
   }
 
   /// Les 4 glyphes d'isométrie grisés, ordre identique à la barre active (mémoire du geste, §3.3),
   /// affichés au repos (aucune pièce sélectionnée). Pas de bouton supprimer au repos.
-  Widget _idleIsometryRow() {
-    final iconSize = isometryIconSize(context);
+  Widget _idleIsometryRow({Axis axis = Axis.horizontal, double? iconExtent}) {
+    final iconSize = iconExtent ?? isometryIconSize(context);
     final glyphs = [
       GameIcons.isometryRotationTW,
       GameIcons.isometryRotationCW,
       GameIcons.isometrySymmetryH,
       GameIcons.isometrySymmetryV,
     ];
-    return Row(
+    return Flex(
+      direction: axis,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         for (final g in glyphs)
-          Icon(g.icon, size: iconSize, color: Colors.grey),
+          if (axis == Axis.vertical)
+            Expanded(child: Center(child: Icon(g.icon, size: iconSize, color: Colors.grey)))
+          else
+            Icon(g.icon, size: iconSize, color: Colors.grey),
+        if (axis == Axis.vertical) const Expanded(child: SizedBox.shrink()),
       ],
+    );
+  }
+
+  /// Colonne paysage : la cinquième place est réservée à la corbeille, même au repos.
+  Widget _buildReservedIsometryColumn(
+      PentoscopeState state, PentoscopeNotifier notifier, double width) {
+    final active = state.selectedPiece != null || state.selectedPlacedPiece != null;
+    return Container(
+      key: const ValueKey('landscape-isometries'),
+      width: width,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F5F5),
+        border: Border(right: BorderSide(color: Colors.black12)),
+      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final iconExtent = math.min(isometryIconSize(context),
+            math.max(0.0, constraints.maxHeight / 5 - 8));
+        return active
+            ? _buildIsometryBar(state, notifier, axis: Axis.vertical, iconExtent: iconExtent)
+            : IgnorePointer(child: Opacity(opacity: 0.30,
+                child: _idleIsometryRow(axis: Axis.vertical, iconExtent: iconExtent)));
+      }),
     );
   }
 
@@ -1127,7 +1079,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   /// Les actions de la barre, dans l'ordre, **communes aux deux orientations** (PLAN_ERGONOMIE
   /// §9). Une seule source garantit que portrait et paysage proposent la même chose — pas la
-  /// discipline de qui édite le fichier. Rendue en `Row` (portrait) ou `Column` (paysage), en
+  /// discipline de qui édite le fichier. Rendue en `Row` dans les deux orientations, en
   /// `spaceEvenly`. Le chrono est inséré au centre ; le compteur de solutions reste, les
   /// compteurs iso/déplacements/suppressions sont sortis de la barre (décision 66) — ils vivent
   /// dans le bandeau de fin de partie.
@@ -1147,8 +1099,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         color: Colors.blueGrey,
         onPressed: () {
           HapticFeedback.selectionClick();
-          // Sortie d'entraînement : restaurer la partie du jeu figée à l'entrée avant de revenir.
-          if (state.isTraining) notifier.endTraining();
           Navigator.popUntil(context, (r) => r.isFirst); // retour au menu d'entrée
         },
         tooltip: l10n.homeTooltip,
@@ -1157,17 +1107,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         icon: const Icon(Icons.add_circle_outline),
         iconSize: iconSize,
         color: Colors.blue,
-        // En entraînement, « + » tire un nouvel exercice (pas le dialogue de nouvelle partie, qui
-        // sortirait du mode). En jeu, dialogue de nouvelle partie.
-        onPressed: state.isTraining
-            ? () => notifier.startTraining()
-            : () => _showNewGameDialog(context, ref),
-        tooltip: state.isTraining ? l10n.next : l10n.newGame,
+        onPressed: () => _showNewGameDialog(context, ref),
+        tooltip: l10n.newGame,
       ),
       // Icône « person » (reset « recommencer ») retirée le 2026-09-07 (choix de Paul) : la remise à
       // zéro reste accessible par « Nouvelle partie » (add_circle) et par la carte de bilan.
-      // Indice masqué en entraînement (aucune table de solutions : il ne ferait rien).
-      if (!state.isComplete && !state.isTraining && state.availablePieces.isNotEmpty)
+      if (!state.isComplete && state.availablePieces.isNotEmpty)
         IconButton(
           icon: Icon(Icons.lightbulb,
               color: state.hasPossibleSolution ? Colors.amber : Colors.red),
@@ -1232,6 +1177,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// `showCounters`). Petit bandeau propre, à ne pas confondre avec le bandeau **debug**
   /// (`kShowLiveCounters`, 3 lignes) : les deux s'excluent (voir le Stack du build).
   Widget _statsOverlay(PentoscopeState state) {
+    final l10n = AppLocalizations.of(context);
+    final geometry = state.geometry;
+    final format = NumberFormat('0.#', l10n.localeName);
     const base = TextStyle(
       color: Colors.white,
       fontSize: 18,
@@ -1248,8 +1196,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             color: Colors.black.withValues(alpha: 0.62),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text('🔄 ${state.isometryCount}   ⚫ ${state.faultCount}',
-              style: base),
+          constraints: BoxConstraints(maxWidth: math.min(340, MediaQuery.sizeOf(context).width - 32)),
+          child: Wrap(spacing: 12, runSpacing: 4, children: [
+            if (geometry != null)
+              Text('${l10n.legendGeometry} ${format.format(geometry.value)}/${format.format(geometry.rules.initialScore)}', style: base),
+            Text('${l10n.legendFaults} ${state.faultCount}', style: base),
+            Text('${l10n.legendCheating} ${state.hintCount}', style: base),
+          ]),
         ),
       ),
     );
@@ -1292,7 +1245,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     // Rapport pièce/plateau : réglage live (`settings.game.rackCellRatio`), défaut
     // kPieceToBoardCellRatio. Gouverne la taille des pièces du rack ET l'épaisseur de la barre.
     final k = pieceRatio;
-    // [reservedExtra] : hauteur prise en PLUS par la rangée d'isométrie réservée (bloc 5), à
+    // [reservedExtra] : hauteur de la barre réservée (isométries portrait, actions paysage), à
     // retrancher de la hauteur disponible AVANT le calcul, sinon la case du rack serait ancrée
     // sur un plateau plus grand que le réel → l'ancre de drag se décalerait (invariant #3).
     final availH = body.height - reservedExtra;
@@ -1366,11 +1319,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  /// Layout paysage. Bloc 5 (§4) : la colonne d'actions gauche redevient **permanente**
-  /// (maison/chrono/ampoule/compteur, jamais escamotée), et la rangée d'isométrie **réservée**
-  /// passe **en bas**, pleine largeur (grisée au repos). Prix : elle coûte de la hauteur, la
-  /// dimension rare en paysage — à juger sur device (le confort des pièces décide). Sa hauteur
-  /// est retranchée dans `_barMetrics` (invariant #3).
+  /// Paysage : isométries à gauche, plateau au centre, rack à droite, actions en bas.
+  /// Les deux réserves restent fixes, quels que soient la sélection et le nombre de boutons.
   Widget _buildLandscapeLayout(
       BuildContext context,
       WidgetRef ref,
@@ -1382,39 +1332,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Largeur de la colonne d'actions : assez pour les icônes de la barre d'état + padding.
-        final actionColumnWidth = isometryIconSize(context) + 24;
-        final isoRowH = _isometryRowHeight(context);
-        // Barre (rack) ancrée sur le plateau ; la rangée d'isométrie du bas retranchée (invariant #3).
+        final isometryColumnWidth = isometryIconSize(context) + 24;
+        final actionsHeight = math.max(48.0, _uiIconSize(context) + 16);
         final m = _barMetrics(constraints.biggest, state.puzzle!.size, true,
-            actionColumnWidth, maxBoardCellSize(context),
-            ref.read(settingsProvider).game.rackCellRatio, reservedExtra: isoRowH);
+            isometryColumnWidth, maxBoardCellSize(context),
+            ref.read(settingsProvider).game.rackCellRatio, reservedExtra: actionsHeight);
         final sliderWidth = m.extent;
 
         return Column(
           children: [
-            // Haut : colonne d'actions (permanente), plateau, rack — même ordre qu'avant.
+            // Haut : transformations, plateau et rack.
             Expanded(
               child: Row(
                 children: [
-                  // 🎯 Colonne d'actions PERMANENTE — à gauche (plus escamotée par l'isométrie).
-                  Container(
-                    width: actionColumnWidth,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 2,
-                          offset: const Offset(1, 0),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: _buildBarItems(context, state, notifier),
-                    ),
-                  ),
+                  _buildReservedIsometryColumn(state, notifier, isometryColumnWidth),
 
                   // Plateau de jeu — au milieu
                   const Expanded(child: PentoscopeBoard(isLandscape: true)),
@@ -1441,8 +1372,18 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               ),
             ),
 
-            // Bas : rangée d'isométrie réservée, pleine largeur (permanente, grisée au repos).
-            _buildReservedIsometryRow(state, notifier),
+            Container(
+              key: const ValueKey('landscape-actions'),
+              height: actionsHeight,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.black12)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: _buildBarItems(context, state, notifier),
+              ),
+            ),
           ],
         );
       },
@@ -1609,6 +1550,10 @@ class _BilanCardState extends State<_BilanCard> {
   int _tier() {
     final m = widget.metrics;
     if (m == null || widget.hintCount > 0) return 1;
+    if (m.geometry != null) {
+      final ratio = m.geometry!.value / m.geometry!.rules.initialScore;
+      return m.faults == 0 ? 3 : (ratio >= .8 ? 2 : 1);
+    }
     if (m.faults == 0 && m.perfectVision) return 3;
     if (m.faults == 0) return 2;
     return 1;
@@ -1634,47 +1579,29 @@ class _BilanCardState extends State<_BilanCard> {
 
     // Détail replié par défaut, montré par le bouton infos.
     final List<Widget> detail = [];
-    if (m != null && !assisted) {
+    if (m != null) {
+      final geometry = m.geometry;
+      final format = NumberFormat('0.#', l10n.localeName);
+      if (geometry != null) {
+        detail.add(_MaillotLine(
+          color: const Color(0xFFF2B705), label: l10n.legendGeometry,
+          value: '${format.format(geometry.value)}/${format.format(geometry.rules.initialScore)}',
+        ));
+      } else if (!assisted) {
+        detail.add(_MaillotLine(
+          color: const Color(0xFFF2B705), label: l10n.legendAcuity,
+          value: '${m.acuityPercent} %', detail: l10n.geometryLegacy,
+        ));
+      }
       detail.addAll([
-        _MaillotLine(
-          color: const Color(0xFFF2B705),
-          label: l10n.legendAcuity,
-          value: '${m.acuityPercent} %',
-          detail: l10n.isometryDetail(m.isometryCount, m.minIso),
-        ),
-        _MaillotLine(
-          color: const Color(0xFFD64545),
-          label: l10n.legendFaults,
-          value: '${m.faults}',
-          detail: m.faults == 0 ? l10n.faultsNone : l10n.faultsSome,
-        ),
-        _MaillotLine(
-          color: const Color(0xFF2E9E5B),
-          label: l10n.legendTime,
-          value: _mmss(m.timeSeconds),
-        ),
-      ]);
-    } else if (m != null) {
-      // Partie AVEC aide : pas de score de performance (§4.8). Message + temps seulement.
-      detail.addAll([
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lightbulb, size: 18, color: Colors.orange),
-            const SizedBox(width: 8),
-            Text(
-              l10n.solvedWithHelp(widget.hintCount),
-              style: const TextStyle(
-                  color: Colors.orange, fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _MaillotLine(
-          color: const Color(0xFF2E9E5B),
-          label: l10n.legendTime,
-          value: _mmss(m.timeSeconds),
-        ),
+        _MaillotLine(color: const Color(0xFFD64545), label: l10n.legendFaults,
+          value: '${m.faults}'),
+        _MaillotLine(color: Colors.orange, label: l10n.legendCheating,
+          value: '${widget.hintCount}'),
+        _MaillotLine(color: const Color(0xFF2E9E5B), label: l10n.legendTime,
+          value: _mmss(m.timeSeconds)),
+        if (assisted) Text(l10n.geometryAssisted),
+        if (geometry?.experimental == true) Text(l10n.geometryExperimental),
       ]);
     }
 
@@ -1686,7 +1613,7 @@ class _BilanCardState extends State<_BilanCard> {
           elevation: 10,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1728,7 +1655,10 @@ class _BilanCardState extends State<_BilanCard> {
                   ),
                 ],
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
                   children: [
                     // Bouton infos : déplie le détail (isométries, temps, fautes, acuité).
                     IconButton(
@@ -1742,9 +1672,7 @@ class _BilanCardState extends State<_BilanCard> {
                           ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
-                    const Spacer(),
                     TextButton(onPressed: widget.onClose, child: Text(l10n.close)),
-                    const SizedBox(width: 8),
                     primaryButton,
                   ],
                 ),
@@ -1840,9 +1768,12 @@ class _MaillotLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
         children: [
-          Container(
+          Row(mainAxisSize: MainAxisSize.min, children: [Container(
             width: 14,
             height: 14,
             decoration: BoxDecoration(
@@ -1853,7 +1784,7 @@ class _MaillotLine extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(fontSize: 16)),
-          const Spacer(),
+          ]),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

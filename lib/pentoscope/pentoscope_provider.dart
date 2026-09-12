@@ -1,4 +1,8 @@
-// Modified: 2026-09-10 07:15 — validation sans mutation pour griser les isométries impossibles avant appui.
+// Modified: 2026-09-12 10:58 — persister Géométrie dans la colonne dédiée du nouveau schéma.
+// Historique: 2026-09-12 07:25 — Géométrie figée par partie, pénalités persistées et appuis Triche comptés.
+// Historique: 2026-09-11 15:10 — suppression de l’état, du tirage et des branches spécifiques au mode entraînement.
+// lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-09-10 07:15 — validation sans mutation pour griser les isométries impossibles avant appui.
 // Historique: 2026-09-09 08:15 — mode entraînement dans le provider (Option A, choix de Paul) : état
 //           isTraining, startTraining() (puzzle 1 pièce sur size5x5, cible en fantôme via currentSolution),
 //           trainingSolved (pièce sur le fantôme). isTraining court-circuite _saveCurrentGame/_clearCurrentGame/
@@ -106,16 +110,18 @@
 //             startTimer/stopTimer/getElapsedSeconds, clearPreview et setDragging retirés du
 //             provider ; fournis par les mixins via stateWith* (elapsedSeconds/preview/isDragging).
 //             Le garde du timer passe de _gameTimer==null à !isTimerRunning.
-// Modified: 2026-08-27 20:29 — étape 1 du plan d'unification : PentoscopeState implémente le
+// Historique: 2026-08-27 20:29 — étape 1 du plan d'unification : PentoscopeState implémente le
 //           contrat commun PieceManipulationState ; ViewOrientation déplacé dans
 //           common/ et ré-exporté d'ici. Aucun champ ni site d'appel modifié.
-// Modified: 2026-08-27 19:57 — fusion de PentoscopePlacedPiece dans common/PlacedPiece :
+// Historique: 2026-08-27 19:57 — fusion de PentoscopePlacedPiece dans common/PlacedPiece :
 //           classe locale supprimée, 19 références renommées. Aucun changement
 //           de comportement (aucune comparaison objet à objet dans ce fichier).
 // lib/pentoscope/pentoscope_provider.dart
-// Modified: 2605030800
+// Historique: 2605030800
 // Pentoscope: translation mastercase / snap
 // CHANGEMENTS: (1) selectedMasterAbs et _calculateDesiredAnchorFromDrag, (2) snap sur ancre désirée + synchro masterAbs après isométries
+import 'package:pentapol/pentoscope/geometry_score.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -142,7 +148,6 @@ import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/solution_source.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
-import 'package:pentapol/pentoscope/training/training_mode.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
@@ -325,9 +330,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// Applique un indice en plaçant une pièce du slider selon une solution possible
   void applyHint() {
-    if (state.puzzle == null) return;
+    if (state.puzzle == null || state.isRanked) return;
     if (state.availablePieces.isEmpty) return;
     if (!state.hasPossibleSolution) return;
+
+    // Un appui accepté compte même si la source ne peut pas fournir d'aide.
+    state = state.copyWith(hintCount: state.hintCount + 1);
 
     // Source du puzzle : table pré-calculée (solution compatible aléatoire,
     // décision §4.6) ou solveur à la volée. hintFrom renvoie les placements d'une
@@ -335,6 +343,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final board = _rebuildPlateau();
     final solution = _solutions.hintFrom(board, state.availablePieces);
     if (solution == null || solution.isEmpty) {
+      _saveCurrentGame();
       debugPrint('❌ HINT: Aucune solution trouvée');
       return;
     }
@@ -348,6 +357,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       }
     }
     if (hint == null) {
+      _saveCurrentGame();
       debugPrint('❌ HINT: Aucune pièce nouvelle dans la solution proposée');
       return;
     }
@@ -387,7 +397,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isComplete: isComplete,
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount,
-      hintCount: state.hintCount + 1, // 💡 Incrémenter le compteur de hints
       elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
       clearSelectedPiece: true,
       clearSelectedPlacedPiece: true,
@@ -415,8 +424,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     List<PlacedPiece> placedPieces,
     List<Pento> availablePieces,
   ) {
-    // Entraînement : pas de table de solutions (puzzle à 1 pièce). Toujours « soluble », pas de compte.
-    if (state.isTraining) return (true, null);
     if (state.puzzle == null) return (false, null);
     final board = _rebuildPlateau(pieces: placedPieces);
     final count = _solutions.countFrom(board);
@@ -559,6 +566,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
+      geometry: state.geometry?.afterTransition(
+        wasSolvable: state.hasPossibleSolution,
+        nowSolvable: hasPossibleSolution,
+        board: newPlateau,
+      ),
       // 🚑 Retrait alors que le plateau était ROUGE (state.hasPossibleSolution = valeur AVANT retrait)
       //    = sortie de cul-de-sac. Compteur d'observation (bandeau debug), hors maillots.
       redRemovalCount:
@@ -605,7 +617,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       for (final piece in pieces) piece.id: random.nextInt(piece.numOrientations),
     };
 
+    await ref.read(settingsProvider.notifier).ensureLoaded();
+    final geometry = GeometryScore(
+      rules: kGeometryTuningEnabled
+          ? ref.read(settingsProvider).game.geometryRules : const GeometryRules(),
+      experimental: kGeometryTuningEnabled,
+    );
     state = PentoscopeState(
+      geometry: geometry,
       viewOrientation: state.viewOrientation,
       puzzle: newPuzzle,
       plateau: plateau,
@@ -626,8 +645,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       elapsedSeconds: 0, // ⏱️ Reset timer
     );
 
-    // 🗄️ Recommencer efface la partie en cours précédente (§2.3).
-    _clearCurrentGame();
+    // Attendre la suppression avant de permettre les premières sauvegardes.
+    await _clearCurrentGame();
   }
 
   /// Offset local du toucher au départ d'un drag de pièce du RACK (px, capturé par le slider). Le
@@ -810,7 +829,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // ⏱️ Reset timer sans démarrer — efface l'origine, la partie repart de zéro
     resetTimer();
 
+    await ref.read(settingsProvider.notifier).ensureLoaded();
+    final geometry = GeometryScore(
+      rules: kGeometryTuningEnabled
+          ? ref.read(settingsProvider).game.geometryRules : const GeometryRules(),
+      experimental: kGeometryTuningEnabled,
+    );
     state = PentoscopeState(
+      geometry: geometry,
       viewOrientation: ViewOrientation.portrait,
       puzzle: puzzle,
       plateau: plateau,
@@ -830,100 +856,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isProgression: isProgression,
     );
 
-    // 🗄️ Nouvelle partie solo : efface la partie en cours précédente (§2.3).
-    _clearCurrentGame();
-  }
-
-  // ==========================================================================
-  // MODE ENTRAÎNEMENT (rotation mentale) — puzzle à 1 pièce, sans DB
-  // ==========================================================================
-
-  /// Exercice d'entraînement courant (forme cible, orientation de départ, min d'appuis). Sert à
-  /// l'écran pour le bilan de fin d'exercice. null hors mode entraînement.
-  TrainingExercise? _trainingExercise;
-  TrainingExercise? get trainingExercise => _trainingExercise;
-
-  /// Démarre un exercice d'entraînement (PLAN_MODE_ENTRAINEMENT §2) : puzzle à **une pièce** sur
-  /// `size7x5` (5×7), la **forme cible** en fantôme (`currentSolution`). Réutilise TOUTE la manipulation
-  /// du jeu (barre d'isométrie, tiroir, drag corrigé), mais `isTraining` court-circuite la DB et le
-  /// solveur. La réussite (pièce posée sur le fantôme) est détectée par l'écran, pas par `isComplete`
-  /// (numPieces=7 sur size7x5 → jamais atteint à une pièce).
-  /// État du jeu figé AVANT d'entrer en entraînement, pour le restaurer en sortant (l'entraînement
-  /// remplace l'état en mémoire ; sans ça, revenir au jeu perdrait la partie de progression en cours).
-  PentoscopeState? _preTrainingState;
-
-  void startTraining() {
-    // Ne snapshotter qu'à l'ENTRÉE (pas à « exercice suivant », déjà en entraînement).
-    if (!state.isTraining) _preTrainingState = state;
-    _isMultiplayer = false;
-    _activeChallenge = null;
-    _solutions = CorpusSolutionSource.empty(); // jamais lu (isTraining), mais évite tout stale.
-    _dragGrabLocal = null;
-
-    final ex = drawLevel1(
-        PentapolRng(DateTime.now().microsecondsSinceEpoch & 0x7fffffff));
-    _trainingExercise = ex;
-
-    // Plateau 5×7 (size7x5) : remplit l'écran en portrait (choix de Paul, cf. training_mode kTrainBoard*).
-    const size = PentoscopeSize.size7x5;
-    final piece = ex.piece;
-    final plateau = Plateau.allVisible(size.width, size.height);
-
-    // Fantôme = la forme cible, rendue par le guide du plateau (currentSolution).
-    final ghost = PlacedPiece(
-      piece: piece,
-      positionIndex: ex.targetPositionIndex,
-      gridX: ex.targetAnchor.x,
-      gridY: ex.targetAnchor.y,
-    );
-
-    resetTimer();
-
-    state = PentoscopeState(
-      viewOrientation: state.viewOrientation,
-      puzzle: const PentoscopePuzzle(
-          size: size, pieceIds: [], solutionCount: 0),
-      plateau: plateau,
-      availablePieces: [piece],
-      placedPieces: const [],
-      piecePositionIndices: {piece.id: ex.startPositionIndex},
-      initialOrientations: {piece.id: ex.startPositionIndex},
-      currentSolution: [ghost],
-      isTraining: true,
-      hasPossibleSolution: true,
-      solutionsCount: null,
-      validPlacements: const [],
-      elapsedSeconds: 0,
-    );
-
-    // Aperçu vert là où la pièce tient (orientation de départ). Régénéré par les isométries.
-    state = state.copyWith(
-        validPlacements: _generateValidPlacements(piece, ex.startPositionIndex));
-  }
-
-  /// Sort du mode entraînement en RESTAURANT l'état du jeu figé à l'entrée (partie de progression
-  /// intacte). No-op si on n'était pas en entraînement. Appelé par l'écran au retour au menu.
-  void endTraining() {
-    final saved = _preTrainingState;
-    if (saved == null) return;
-    _preTrainingState = null;
-    _trainingExercise = null;
-    state = saved;
-  }
-
-  /// Vrai si la pièce est posée EXACTEMENT sur le fantôme (mêmes cases). Détection de réussite du
-  /// mode entraînement (l'écran l'observe). false s'il n'y a pas de pièce posée ou pas de cible.
-  bool get trainingSolved {
-    if (!state.isTraining) return false;
-    final ghost = state.currentSolution;
-    if (ghost == null || ghost.isEmpty) return false;
-    if (state.placedPieces.length != 1) return false;
-    final placedCells = state.placedPieces.first.absoluteCells
-        .map((c) => (c.x, c.y))
-        .toSet();
-    final ghostCells = ghost.first.absoluteCells.map((c) => (c.x, c.y)).toSet();
-    return placedCells.length == ghostCells.length &&
-        placedCells.containsAll(ghostCells);
+    // Attendre la suppression avant de permettre les premières sauvegardes.
+    await _clearCurrentGame();
   }
 
   /// 🎮 Démarre un puzzle avec un seed et des pièces spécifiques (mode multiplayer)
@@ -1051,6 +985,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       // l'origine, le temps vivant continuerait de croître à chaque rebuild après la complétion.
       timeSeconds: state.elapsedSeconds,
       faults: state.faultCount,
+      geometry: state.geometry,
     );
   }
 
@@ -1064,7 +999,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // isRanked : un défi n'écrit PAS dans les records perso (parties libres/progression restent
     // purs) — son classement viendra du serveur (Phases 3-5). Le bilan affiche quand même ses
     // mesures (computeCompletionMetrics est indépendant). Décision de Paul, 2026-09-04.
-    if (puzzle == null || _isMultiplayer || state.isRanked || state.isTraining) return;
+    if (puzzle == null || _isMultiplayer || state.isRanked ||
+        state.geometry?.experimental == true) {
+      return;
+    }
 
     final metrics = computeCompletionMetrics();
     if (metrics == null) return;
@@ -1161,8 +1099,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (puzzle == null ||
         state.isComplete ||
         _isMultiplayer ||
-        state.isRanked ||
-        state.isTraining) {
+        state.isRanked) {
       return;
     }
 
@@ -1192,6 +1129,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             faultCount: state.faultCount,
             isProgression: state.isProgression,
             initialOrientations: initialJson,
+            geometryState: jsonEncode(state.geometry?.toJson() ?? {}),
           );
     } catch (e) {
       debugPrint('❌ Sauvegarde partie en cours échouée: $e');
@@ -1200,7 +1138,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// Efface la partie en cours (complétion, ou démarrage d'une partie neuve).
   Future<void> _clearCurrentGame() async {
-    if (state.isTraining) return; // l'entraînement ne touche jamais à la partie sauvegardée.
     try {
       await ref.read(settingsDatabaseProvider).clearCurrentGame();
     } catch (e) {
@@ -1261,6 +1198,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         (jsonDecode(row.initialOrientations) as Map<String, dynamic>)
             .map((k, v) => MapEntry(int.parse(k), v as int));
 
+    final geometry = GeometryScore.fromJson(jsonDecode(row.geometryState));
     final placedPieces = [
       for (final e in jsonDecode(row.placedPieces) as List)
         PlacedPiece(
@@ -1300,6 +1238,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     restoreTimerOrigin(row.elapsedSeconds);
 
     state = PentoscopeState(
+      geometry: geometry,
       viewOrientation: ViewOrientation.portrait,
       puzzle: puzzle,
       plateau: plateau,
@@ -1441,6 +1380,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
+      geometry: state.geometry?.afterTransition(
+        wasSolvable: state.hasPossibleSolution,
+        nowSolvable: hasPossibleSolution,
+        board: newPlateau,
+      ),
     );
 
     // 💾 À la complétion : enregistrer le record et effacer la partie en cours. Sinon,
@@ -1794,6 +1738,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
+      geometry: state.geometry?.afterTransition(
+        wasSolvable: state.hasPossibleSolution,
+        nowSolvable: hasPossibleSolution,
+        board: newPlateau,
+      ),
     );
 
     // === LOG APRES TRANSFO ===
@@ -2050,6 +1999,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
+      geometry: state.geometry?.afterTransition(
+        wasSolvable: state.hasPossibleSolution,
+        nowSolvable: hasPossibleSolution,
+        board: newPlateau,
+      ),
     );
 
     final finalMasterRaw = getRawMastercaseCoords(
@@ -2497,6 +2451,7 @@ class PentoscopeState implements PieceManipulationState {
   final bool isComplete;
   final int isometryCount;
   final int translationCount;
+  final GeometryScore? geometry;
   final int hintCount;   // 💡 Nombre de fois où la lampe a été utilisée
   final int deleteCount; // 🗑️ Nombre de suppressions de pièces
   final int faultCount;  // ⚫ Fautes (entrées en cul-de-sac, jaune→rouge) — maillot à pois
@@ -2538,19 +2493,13 @@ class PentoscopeState implements PieceManipulationState {
   /// une partie de progression ni persisté (éphémère, re-dérivable).
   final bool isRanked;
 
-  /// Mode **entraînement** (rotation mentale) : puzzle à UNE pièce avec la forme cible en fantôme
-  /// (`currentSolution`). Réutilise toute la manipulation du jeu (barre d'isométrie, tiroir, drag)
-  /// mais **n'écrit jamais** dans la base : `_saveCurrentGame`/`_clearCurrentGame`/`_saveCompletionRecord`
-  /// et `_solutionStatus` sont court-circuités par ce drapeau. La réussite (pièce sur le fantôme) est
-  /// détectée par l'écran, pas par `isComplete` (numPieces=7 sur size7x5 → jamais atteint à 1 pièce).
-  final bool isTraining;
-
   /// Orientations **initiales** du rack (pieceId → index d'orientation tel que distribué au
   /// démarrage), figées une fois pour toutes. `piecePositionIndices` mute quand le joueur
   /// tourne les pièces ; l'acuité (maillot jaune, CDC §4.2) se mesure contre ce rack initial.
   final Map<int, int> initialOrientations;
 
   const PentoscopeState({
+    this.geometry,
     this.viewOrientation = ViewOrientation.portrait,
     this.puzzle,
     required this.plateau,
@@ -2585,7 +2534,6 @@ class PentoscopeState implements PieceManipulationState {
     this.elapsedSeconds = 0, // ⏱️ Timer
     this.isProgression = false,
     this.isRanked = false,
-    this.isTraining = false,
     this.initialOrientations = const {},
   });
 
@@ -2629,6 +2577,7 @@ class PentoscopeState implements PieceManipulationState {
   }
 
   PentoscopeState copyWith({
+    GeometryScore? geometry,
     ViewOrientation? viewOrientation,
     PentoscopePuzzle? puzzle,
     Plateau? plateau,
@@ -2668,10 +2617,10 @@ class PentoscopeState implements PieceManipulationState {
     int? elapsedSeconds, // ⏱️ Timer
     bool? isProgression,
     bool? isRanked,
-    bool? isTraining,
     Map<int, int>? initialOrientations,
   }) {
     return PentoscopeState(
+      geometry: geometry ?? this.geometry,
       viewOrientation: viewOrientation ?? this.viewOrientation,
       puzzle: puzzle ?? this.puzzle,
       plateau: plateau ?? this.plateau,
@@ -2719,7 +2668,6 @@ class PentoscopeState implements PieceManipulationState {
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
       isProgression: isProgression ?? this.isProgression,
       isRanked: isRanked ?? this.isRanked,
-      isTraining: isTraining ?? this.isTraining,
       initialOrientations: initialOrientations ?? this.initialOrientations,
     );
   }

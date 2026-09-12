@@ -1,25 +1,20 @@
 {
   "@@locale": "en",
-
   "appTitle": "Pentapol",
   "loading": "Loading Pentoscope…",
-
   "cancel": "Cancel",
   "close": "Close",
   "save": "Save",
   "reset": "Reset",
   "retry": "Retry",
   "back": "Back",
-
   "settingsLanguage": "Language",
   "languageSystem": "System",
   "languageFrench": "Français",
   "languageEnglish": "English",
-
   "homeChallenge": "Weekly challenge",
   "homeRecords": "My records",
   "homeSettings": "Settings",
-
   "settingsTitle": "Settings",
   "settingsResetConfirm": "Reset all settings to their defaults?",
   "sectionInterface": "Interface",
@@ -31,15 +26,21 @@
   "solutionCounterSub": "Show the number of possible solutions",
   "haptics": "Haptic feedback",
   "hapticsSub": "Vibrate on actions",
-  "showCounters": "Show counters (isometries, faults)",
-  "showCountersSub": "Displays the isometry and fault counts in the game bar.",
+  "showCounters": "Show counters",
+  "showCountersSub": "Geometry, dead ends and cheating during the game.",
   "rackSize": "Rack piece size",
   "details": "Details",
   "showPieceNumbers": "Piece numbers",
   "showPieceNumbersSub": "One badge per piece on the board (color only when off).",
   "dragSensitivity": "Drag sensitivity",
   "dragMs": "{ms}ms",
-  "@dragMs": { "placeholders": { "ms": { "type": "int" } } },
+  "@dragMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
   "duelSettings": "Duel settings",
   "duelPlayerName": "Player name",
   "duelNicknameHint": "Enter your nickname",
@@ -48,44 +49,73 @@
   "clearStatsBody": "This cannot be undone.",
   "clearAction": "Clear",
   "version": "Version",
-
   "colorSchemeClassic": "Classic",
   "colorSchemePastel": "Pastel",
   "colorSchemeNeon": "Neon",
   "colorSchemeMonochrome": "Monochrome",
   "colorSchemeRainbow": "Rainbow",
   "colorSchemeCustom": "Custom",
-
   "customColorsTitle": "Custom colors",
   "saveTooltip": "Save",
   "pieceLabel": "Piece {name} (#{id})",
-  "@pieceLabel": { "placeholders": { "name": { "type": "String" }, "id": { "type": "int" } } },
+  "@pieceLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "pieceColorTitle": "Color of piece {name}",
-  "@pieceColorTitle": { "placeholders": { "name": { "type": "String" } } },
-
+  "@pieceColorTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "recordsTitle": "My records",
   "legendAcuity": "Accuracy",
-  "legendFaults": "Faults",
+  "legendFaults": "Dead ends",
   "legendTime": "Time",
   "recordsEmpty": "No records yet.\nFinish a puzzle without help to set one.",
   "perfectVisionMsg": "Perfect vision — 100% accuracy",
-
   "leaderboardTitle": "Ranking · {w}×{h}",
-  "@leaderboardTitle": { "placeholders": { "w": { "type": "int" }, "h": { "type": "int" } } },
+  "@leaderboardTitle": {
+    "placeholders": {
+      "w": {
+        "type": "int"
+      },
+      "h": {
+        "type": "int"
+      }
+    }
+  },
   "challengeWeek": "Weekly challenge {week}",
-  "@challengeWeek": { "placeholders": { "week": { "type": "String" } } },
+  "@challengeWeek": {
+    "placeholders": {
+      "week": {
+        "type": "String"
+      }
+    }
+  },
   "leaderboardEmpty": "No score this week\n(or server unreachable).",
-
   "solutionsTitle": "Solutions",
   "previous": "Previous",
   "next": "Next",
-
   "challengeTitle": "Weekly challenge",
   "challengeIntro": "Pick a size. The setup is the same for everyone this week, and hints are disabled (ranked mode).",
   "piecesCount": "{count, plural, one{{count} piece} other{{count} pieces}}",
-  "@piecesCount": { "placeholders": { "count": { "type": "int" } } },
+  "@piecesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rankingTooltip": "Ranking",
-
   "congrats": "Well done! 🎉",
   "firstPuzzlePrompt": "First puzzle solved. What's your name?",
   "yourName": "Your name",
@@ -97,39 +127,65 @@
   "hintDisabledChallenge": "Hint disabled in challenge mode",
   "noSolutionBack": "No solution — step back",
   "compatibleSolutionsTitle": "{count, plural, one{{count} compatible solution} other{{count} compatible solutions}}",
-  "@compatibleSolutionsTitle": { "placeholders": { "count": { "type": "int" } } },
+  "@compatibleSolutionsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "compatibleSolutionsTooltip": "Compatible solutions",
   "boardSize": "Board size",
   "sizeOption": "{label} ({w}×{h})",
-  "@sizeOption": { "placeholders": { "label": { "type": "String" }, "w": { "type": "int" }, "h": { "type": "int" } } },
+  "@sizeOption": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "w": {
+        "type": "int"
+      },
+      "h": {
+        "type": "int"
+      }
+    }
+  },
   "otherDraw": "Another draw",
   "showSolutionOpt": "Show solution",
   "launch": "Start",
   "nextLevel": "Next level",
   "solved": "Solved!",
   "faultsNone": "no dead ends",
-  "faultsSome": "dead ends",
+  "faultsSome": "dead ends entered",
   "solvedWithHelp": "{count, plural, one{Solved with {count} hint} other{Solved with {count} hints}}",
-  "@solvedWithHelp": { "placeholders": { "count": { "type": "int" } } },
+  "@solvedWithHelp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "viewRanking": "View ranking",
   "perfectVision": "Perfect vision",
-
   "isoRotateTW": "Rotate 90° ↺ (CCW)",
   "isoRotateCW": "Rotate 90° ↻ (CW)",
   "isoSymH": "Flip horizontal (SymH)",
   "isoSymV": "Flip vertical (SymV)",
   "isoRemove": "Remove",
-
   "quit": "Quit",
   "quitGameTitle": "Leave the game?",
   "quitGameBody": "You'll forfeit the current game.\nThe other players will continue without you.",
-
   "replay": "Play again",
   "victory": "Victory! 🎉",
   "niceTry": "Well played!",
   "finishedIn": "Finished in {time}",
-  "@finishedIn": { "placeholders": { "time": { "type": "String" } } },
-
+  "@finishedIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "yourNickname": "Your nickname",
   "enterNickname": "Enter your nickname",
   "createGame": "Create a game",
@@ -139,34 +195,52 @@
   "waitingLaunch": "Waiting to start…",
   "codeCopied": "Code copied!",
   "codeMustBe4": "The code must be 4 characters",
-
   "challengeWeekLabel": "Week {week}",
-  "@challengeWeekLabel": { "placeholders": { "week": { "type": "String" } } },
+  "@challengeWeekLabel": {
+    "placeholders": {
+      "week": {
+        "type": "String"
+      }
+    }
+  },
   "solutionsEmpty": "No solution compatible with this board.",
   "levelLabel": "Level {level}",
-  "@levelLabel": { "placeholders": { "level": { "type": "int" } } },
+  "@levelLabel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
   "play": "Play",
   "multiplayer": "Multiplayer",
   "defaultPlayer": "Player",
   "hint": "Hint",
   "drawSolutionsCount": "{count, plural, one{{count} solution} other{{count} solutions}}",
-  "@drawSolutionsCount": { "placeholders": { "count": { "type": "int" } } },
-
-  "trainingMode": "Training mode",
-  "trainingInstruction": "Rotate the piece and drop it onto the highlighted shape.",
-  "trainingInstructionPose": "Drop the piece onto the highlighted shape.",
-  "trainingPresses": "{count, plural, one{{count} press} other{{count} presses}}",
-  "@trainingPresses": { "placeholders": { "count": { "type": "int" } } },
-  "trainingEnough": "{count, plural, =0{no rotation needed} one{{count} press was enough} other{{count} presses would have been enough}}",
-  "@trainingEnough": { "placeholders": { "count": { "type": "int" } } },
-  "trainingSeconds": "{count}s",
-  "@trainingSeconds": { "placeholders": { "count": { "type": "int" } } },
-
+  "@drawSolutionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sectionDuel": "Duel mode",
   "sectionAbout": "About",
   "notDefined": "Not set",
   "duelStatsSummary": "{wins}W / {losses}L / {draws}D",
-  "@duelStatsSummary": { "placeholders": { "wins": { "type": "int" }, "losses": { "type": "int" }, "draws": { "type": "int" } } },
+  "@duelStatsSummary": {
+    "placeholders": {
+      "wins": {
+        "type": "int"
+      },
+      "losses": {
+        "type": "int"
+      },
+      "draws": {
+        "type": "int"
+      }
+    }
+  },
   "gameDuration": "Game duration",
   "statsHeader": "📊 Statistics",
   "statGames": "Games",
@@ -174,19 +248,36 @@
   "statLosses": "Losses",
   "statDraws": "Draws",
   "winRate": "Win rate: {rate}%",
-  "@winRate": { "placeholders": { "rate": { "type": "String" } } },
+  "@winRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "buildLabel": "Build",
   "aboutAuthor": "Author",
-
   "resultsTitle": "🏆 Results",
   "me": "Me",
   "finished": "Finished",
   "connecting": "Connecting…",
   "playersLabel": "Players",
   "waitingPlayers": "Waiting for players ({count}/4)",
-  "@waitingPlayers": { "placeholders": { "count": { "type": "int" } } },
+  "@waitingPlayers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "startGame": "{count, plural, one{Start ({count} player)} other{Start ({count} players)}}",
-  "@startGame": { "placeholders": { "count": { "type": "int" } } },
+  "@startGame": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "shareCode": "Share this code with your friends",
   "piecesLabel": "Pieces",
   "configFormat": "Format",
@@ -194,9 +285,24 @@
   "host": "Host",
   "genericError": "An error occurred",
   "piecesPlaced": "{count, plural, one{{count} piece placed} other{{count} pieces placed}}",
-  "@piecesPlaced": { "placeholders": { "count": { "type": "int" } } },
+  "@piecesPlaced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "isometryDetail": "{count} isometries · min {min}",
-  "@isometryDetail": { "placeholders": { "count": { "type": "int" }, "min": { "type": "int" } } },
+  "@isometryDetail": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
   "sectionRanking": "Online ranking",
   "displayName": "Display name",
   "shareScores": "Take part in the online ranking",
@@ -210,16 +316,16 @@
   "consentBody": "To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.",
   "consentEnable": "Take part",
   "consentLater": "Not now",
-  "guidedRotate": "Good! Use the arrows to turn the piece to match the outline.",
-  "guidedMirror": "Good! Try the mirror arrows to flip the piece to match the outline.",
+  "guidedRotate": "Good! Use the icons to turn the piece to match the outline.",
+  "guidedMirror": "Good! Try the mirror icons to flip the piece to match the outline.",
   "guidedDone": "Well done, you filled the board! You are ready to play.",
   "guidedReady": "Perfect! Hold the piece, then drag it onto its outline on the board.",
-  "guidedAnother": "Another practice",
+  "guidedAnother": "Training",
   "guidedBrowse": "Swipe through the rack to explore the pieces.",
   "guidedChoose": "Nice! Tap piece #{number} to select it.",
   "guidedNext": "Well done! Find piece #{number} in the rack and tap it.",
   "guidedPiece": "Piece #{number}",
-  "guidedRetry": "Nearly there! Adjust the shape with the arrows, then aim for the outline.",
+  "guidedRetry": "Nearly there! Adjust the shape with the icons, then aim for the outline.",
   "@guidedChoose": {
     "placeholders": {
       "number": {
@@ -240,5 +346,24 @@
         "type": "int"
       }
     }
-  }
+  },
+  "geometryTitle": "Score tuning",
+  "geometrySettingsSub": "Fine-tune the Geometry score",
+  "geometryNextGame": "Saved settings apply to the next solo game. A started game keeps its rules, even after resuming. Challenges and duels keep their own rules.",
+  "geometryExperimental": "Experimental scoring · no records",
+  "geometryInitial": "Starting score",
+  "geometryCoefficient": "Fill penalty",
+  "geometryExponent": "Progression exponent",
+  "geometryExponentHelp": "1: steady · 2: stronger near the end · 3–4: more forgiving early on",
+  "geometryAreaBonus": "Extra penalty: region not a multiple of 5",
+  "geometryPreview": "Points deducted for each new dead end",
+  "geometryPreviewFill": "Filled",
+  "geometryPreviewOrdinary": "Dead end",
+  "geometryPreviewArea": "Impossible region",
+  "geometryDefaults": "Restore defaults",
+  "geometrySaveError": "Could not save settings. Try again.",
+  "legendGeometry": "Geometry",
+  "legendCheating": "Cheating",
+  "geometryAssisted": "Assisted game",
+  "geometryLegacy": "Challenge scoring"
 }

@@ -1,4 +1,5 @@
-// Modified: 2026-09-09 05:29 — centralisation score : _isBetterAcuity retiré, les deux sites appellent
+// Modified: 2026-09-12 10:58 — schéma 11 destructif : snapshot Géométrie dans CurrentGame, remise à zéro autorisée par Paul.
+// Historique: 2026-09-09 05:29 — centralisation score : _isBetterAcuity retiré, les deux sites appellent
 //           isBetterAcuity de score_rules (comparaison unique, même produit croisé). Aucun changement
 //           de schéma ni de valeurs stockées.
 // Historique: 2026-09-05 17:24 — trois maillots (A) : « coups » et « Help » remplacés par les FAUTES.
@@ -66,6 +67,7 @@ class CurrentGame extends Table {
   TextColumn get pieceIds => text()();          // '1,2,3,…' — le tirage du puzzle
   IntColumn get solutionCount => integer()();   // repris de PentoscopePuzzle (toujours connu)
   TextColumn get placedPieces => text()();      // JSON : [{id,pos,x,y}, …]
+  TextColumn get geometryState => text().withDefault(const Constant('{}'))();
   TextColumn get positionIndices => text()();   // JSON : {pieceId: orientation}
   IntColumn get elapsedSeconds => integer()();
   IntColumn get isometryCount => integer()();
@@ -130,8 +132,7 @@ class SettingsDatabase extends _$SettingsDatabase {
   SettingsDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 10; // 9 → 10 : coups/Help → fautes (3 maillots), faultCount
-  //                              (règle n°6 : bump + destructif).
+  int get schemaVersion => 11; // Géométrie persistée ; remise à zéro prépublication.
 
   // ⚠️ Réécriture destructive : à tout changement de schemaVersion, drop + recrée toutes les
   // tables. L'app n'est pas publiée, il n'y a rien à migrer (PLAN_PERSISTANCE §5).
@@ -300,9 +301,11 @@ class SettingsDatabase extends _$SettingsDatabase {
     required int faultCount,
     required bool isProgression,
     required String initialOrientations,
+    String geometryState = '{}',
   }) async {
     await into(currentGame).insertOnConflictUpdate(
       CurrentGameCompanion.insert(
+        id: const Value(0), // INTEGER PRIMARY KEY ignore le défaut SQL si omis.
         sizeName: sizeName,
         pieceIds: pieceIds,
         solutionCount: solutionCount,
@@ -316,6 +319,7 @@ class SettingsDatabase extends _$SettingsDatabase {
         faultCount: Value(faultCount),
         isProgression: Value(isProgression),
         initialOrientations: Value(initialOrientations),
+        geometryState: Value(geometryState),
         savedAt: DateTime.now(),
       ),
     );
