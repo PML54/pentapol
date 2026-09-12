@@ -1,6 +1,10 @@
-// Modified: 2026-09-10 10:14 — feedback visible dès la prise, obstacle, sortie et retour au plateau sans perdre la pose.
+// Modified: 2026-09-11 15:10 — tester le glissé en mode jeu avec une base isolée, sans le mode supprimé.
+// test/rack_drag_landscape_test.dart
+// Historique: 2026-09-10 10:14 — feedback visible dès la prise, obstacle, sortie et retour au plateau sans perdre la pose.
 // Historique: 2026-09-10 09:46 — régression pièce 5 : drag réel rack tourné vers ligne basse, formats iPhone et tablette.
 import 'dart:math' as math;
+import 'package:drift/native.dart';
+import 'package:pentapol/database/settings_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,15 +35,20 @@ void main() {
       tester.view.physicalSize = screen;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(() => tester.runAsync(db.close));
       final game = _Game();
       final container = ProviderContainer(
         overrides: [
+          settingsDatabaseProvider.overrideWithValue(db),
           pentoscopeProvider.overrideWith(() => game),
           settingsProvider.overrideWith(_Settings.new),
         ],
       );
       addTearDown(container.dispose);
       container.read(pentoscopeProvider);
+      // Initialiser aussi la source de solutions, comme une vraie partie.
+      await tester.runAsync(() => game.startPuzzle(PentoscopeSize.size8x5));
       final piece = pentominos.firstWhere((p) => p.id == 5);
       final cell = screen == const Size(874, 402) ? 48.0 : 90.0;
       final rackCell = cell * 0.46;
@@ -59,7 +68,6 @@ void main() {
               plateau: Plateau.allVisible(5, 8),
               availablePieces: [piece],
               piecePositionIndices: {5: index},
-              isTraining: true,
             ),
           );
           await tester.pumpWidget(
@@ -168,7 +176,11 @@ void main() {
           await gesture.moveTo(target);
           await tester.pump();
           expect(feedback().invalidPlacement, isFalse);
-          await gesture.up();
+          await tester.runAsync(() async {
+            await gesture.up();
+            // Laisser les écritures SQLite finir hors de l’horloge simulée des gestes.
+            await db.customSelect('SELECT 1').get();
+          });
           await tester.pump();
           final placed = container.read(pentoscopeProvider).placedPieces.single;
           expect(placed.gridX, 0);

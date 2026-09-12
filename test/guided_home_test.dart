@@ -1,4 +1,6 @@
-// Modified: 2026-09-11 07:57 — sept pavages, aucune orientation déjà prête et enchaînement vers un autre entraînement.
+// Modified: 2026-09-12 03:40 — parcours en navigation accessible ; défilement testé séparément.
+// Historique: 2026-09-11 16:11 — vérifier Training en bouton plein et le retrait de Jouer à la fin du parcours.
+// Historique: 2026-09-11 07:57 — sept pavages, aucune orientation déjà prête et enchaînement vers un autre entraînement.
 // Historique: 2026-09-11 07:33 — tester exploration du rack, sélection, quatre commandes et dépôt depuis chaque case.
 // Historique: 2026-09-10 15:07 — accueil : dépôt naturel au centre de la silhouette, quelle que soit la case saisie.
 // Historique: 2026-09-10 14:57 — pavage réel et parcours guidé complet, gestes et langues, iPhone/tablette portrait/paysage.
@@ -13,6 +15,7 @@ import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/pentoscope/home/guided_home.dart';
 import 'package:pentapol/pentoscope/home/home_tirages_data.dart';
+import 'package:pentapol/pentoscope/home/guided_success_celebration.dart';
 
 void main() {
   for (var tirage = 0; tirage < kHomeTirages.length; tirage++) {
@@ -75,6 +78,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(accessibleNavigation: true),
+            child: child!,
+          ),
           locale: const Locale('fr'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -83,7 +90,6 @@ void main() {
               initialTirageIndex: 0,
               colorOf: (_) => Colors.teal,
               ratio: .46,
-              onPlay: () {},
             ),
           ),
         ),
@@ -194,6 +200,7 @@ void main() {
       await drag(0, const Offset(2, 2));
       expect(find.text(l10n.guidedRetry), findsOneWidget);
       expect(tester.getRect(find.byType(DragTarget<int>)), board);
+      expect(find.byType(GuidedSuccessCelebration), findsNothing);
       expect(find.textContaining('Étape'), findsNothing);
       expect(tester.takeException(), isNull);
     },
@@ -219,10 +226,15 @@ void main() {
             tester.view.devicePixelRatio = 1;
             addTearDown(tester.view.resetPhysicalSize);
             addTearDown(tester.view.resetDevicePixelRatio);
-            var playCount = 0;
             final boundary = GlobalKey();
             await tester.pumpWidget(
               MaterialApp(
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(accessibleNavigation: true),
+                  child: child!,
+                ),
                 locale: Locale(lang),
                 localizationsDelegates: AppLocalizations.localizationsDelegates,
                 supportedLocales: AppLocalizations.supportedLocales,
@@ -234,9 +246,6 @@ void main() {
                       colorOf: (id) =>
                           Colors.primaries[id % Colors.primaries.length],
                       ratio: .46,
-                      onPlay: () {
-                        playCount++;
-                      },
                     ),
                   ),
                 ),
@@ -267,6 +276,15 @@ void main() {
                 image.dispose();
               });
             }
+            final frame = tester.widget<DecoratedBox>(
+              find.byKey(const ValueKey('guided-board-frame')),
+            );
+            final decoration = frame.decoration as BoxDecoration;
+            expect(
+              decoration.border,
+              Border.all(color: Colors.grey.shade700, width: 3),
+            );
+            expect(decoration.borderRadius, BorderRadius.circular(16));
             final boardBefore = tester.getRect(find.byType(DragTarget<int>));
             expect(find.text(l10n.guidedBrowse), findsOneWidget);
             final keys = [
@@ -394,13 +412,37 @@ void main() {
                 isFalse,
               );
               await gesture.up();
+              await tester.pump();
+              await tester.pump(const Duration(milliseconds: 180));
+              expect(
+                find.byKey(const ValueKey('guided-celebration-paint')),
+                findsOneWidget,
+              );
+              expect(
+                tester
+                    .widget<GuidedSuccessCelebration>(
+                      find.byType(GuidedSuccessCelebration),
+                    )
+                    .complete,
+                step == 2,
+              );
+              expect(tester.getRect(find.byType(DragTarget<int>)), boardBefore);
               await tester.pumpAndSettle();
+              expect(
+                find.byKey(const ValueKey('guided-celebration-paint')),
+                findsNothing,
+              );
               expect(tester.takeException(), isNull);
             }
             expect(find.text(l10n.guidedDone), findsOneWidget);
-            expect(playCount, 0);
-            await tester.tap(find.text(l10n.play));
-            expect(playCount, 1);
+            expect(find.text(l10n.play), findsNothing);
+            expect(
+              find.ancestor(
+                of: find.text(l10n.guidedAnother),
+                matching: find.byType(FilledButton),
+              ),
+              findsOneWidget,
+            );
             await tester.tap(find.text(l10n.guidedAnother));
             await tester.pumpAndSettle();
             expect(find.text(l10n.guidedBrowse), findsOneWidget);
