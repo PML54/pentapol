@@ -1,4 +1,5 @@
-// Modified: 2026-09-21 10:55 — masquer toute empreinte source d'une pièce pendant sa translation.
+// Modified: 2026-09-21 14:31 — effacer l'aperçu quand une translation se termine hors cible.
+// Historique: 2026-09-21 10:55 — masquer toute empreinte source d'une pièce pendant sa translation.
 // Historique: 2026-09-21 10:28 — neutraliser la bordure du plateau sous une pièce déplacée.
 // Historique: 2026-09-21 10:16 — dissocier sélection interactive et contour source pendant le drag.
 // Historique: 2026-09-21 10:03 — masquer le contour source pendant le drag d'une pièce isométrée.
@@ -515,7 +516,16 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           notifier.setDragMastercase(logicalX, logicalY);
           notifier.setDragging(true);
         },
-        onDragEnd: (_) => notifier.setDragging(false),
+        onDragEnd: (details) {
+          if (!details.wasAccepted) {
+            // `onLeave` conserve volontairement la dernière ancre afin que le rack puisse
+            // accepter une pose au ras du bord bas. Sans cible finale, elle doit disparaître :
+            // sinon la source et l'ancien aperçu sont dessinés ensemble après le geste.
+            ref.read(dragOverBoardProvider.notifier).update(false);
+            notifier.clearPreview();
+          }
+          notifier.setDragging(false);
+        },
         feedback: Material(
           color: Colors.transparent,
           child: PieceDragFeedback(

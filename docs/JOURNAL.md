@@ -69,6 +69,18 @@ Le test combinatoire contrôle désormais rotations et symétries effectives : l
 pièce sélectionnée doit être absent de `state.plateau`. **209/209 tests**, analyse **0 erreur / 0
 avertissement / 116 infos**. À confirmer sur appareil par Paul.
 
+### Game — aperçu abandonné aux limites du plateau (2026-09-21)
+
+Lorsqu'une pièce déjà posée quittait le `DragTarget` puis était relâchée sans cible acceptante,
+`onLeave` conservait volontairement sa dernière ancre pour permettre les poses au ras du rack, mais
+aucun `onAccept` ne venait ensuite effacer cet aperçu. La fin du geste réaffichait alors la pièce à
+sa source tout en laissant le fantôme rouge ailleurs sur le plateau. `onDragEnd` efface désormais
+l'aperçu uniquement lorsque Flutter indique que le dépôt n'a pas été accepté ; les dépôts normaux
+aux bords gardent leur tolérance.
+
+Un test de geste reproduit sélection, aperçu, sortie du plateau et relâchement refusé. **210/210
+tests**, analyse **0 erreur / 0 avertissement / 116 infos**. À confirmer sur appareil par Paul.
+
 ### Version de release (2026-09-21)
 
 La prochaine release est `1.0.4+4` dans `pubspec.yaml`. `BuildInfo`, lu par la tuile Paramètres et
@@ -1074,6 +1086,12 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-21 (7) — Codex : fantôme résiduel supprimé après un dépôt hors cible.**
+Le dernier aperçu restait mémorisé quand une translation quittait le plateau puis se terminait sans
+être acceptée ; la source redevenait visible en même temps. `onDragEnd` nettoie maintenant l'aperçu
+dans ce seul cas. Test de geste dédié : **210/210 tests**, analyse **0 erreur / 0 avertissement /
+116 infos**. À confirmer sur appareil par Paul.
+
 **2026-09-21 (6) — Codex : cause du contour après isométrie corrigée dans l'état métier.**
 Rotation et symétrie réinséraient la pièce sélectionnée dans `state.plateau`, d'où l'empreinte
 source encore visible pendant la translation malgré les masques UI. Le plateau complet reste utilisé
@@ -1086,10 +1104,5 @@ Le masque de rendu s'appuie maintenant sur l'identifiant de la pièce sélection
 aussi toute empreinte dont la géométrie est antérieure à une isométrie. Le calculateur de bordures
 renvoie une bordure vide pour ces cellules, après priorité de l'aperçu. **14/14 tests ciblés**,
 analyse **0 erreur / 0 avertissement / 117 infos**.
-
-**2026-09-21 (4) — Codex : version de la prochaine release.**
-`pubspec.yaml` passe à `1.0.4+4` ; le `BuildInfo` généré, affiché dans Paramètres, est `1.0.4`
-build `202609211023` (21/09/2026 à 10:23). `flutter pub get` et l'analyse passent, avec **0 erreur /
-0 avertissement / 117 infos**.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*
