@@ -1,4 +1,5 @@
-// Modified: 2026-09-06 04:50 — i18n : MaterialApp câblé (localizationsDelegates, supportedLocales
+// Modified: 2026-09-21 11:04 — corriger une coquille dans le commentaire d'initialisation.
+// Historique: 2026-09-06 04:50 — i18n : MaterialApp câblé (localizationsDelegates, supportedLocales
 //           en/fr), locale résolue depuis AppSettings.localeCode (null = appareil) ; écran de
 //           chargement localisé.
 // Historique: 2026-09-04 04:34 — CDC §7.7 : pause du chrono en arrière-plan (paused → pauseTimer,

@@ -326,6 +326,14 @@
   "guidedNext": "Well done! Find piece #{number} in the rack and tap it.",
   "guidedPiece": "Piece #{number}",
   "guidedRetry": "Nearly there! Adjust the shape with the icons, then aim for the outline.",
+  "guidedSelectPiece": "Tap the piece in the rack to select it.",
+  "guidedTransformPiece": "Use the icons to put the piece in the right position.",
+  "guidedPlacePiece": "Move it to the right place on the board.",
+  "guidedPlaced": "That’s right!",
+  "recreationalSelect": "Tap the piece in the rack to select it.",
+  "recreationalTransform": "Use the icons to put the piece in the right position.",
+  "recreationalPlace": "Move it to the right place on the board.",
+  "recreationalPlaced": "That’s right!",
   "@guidedChoose": {
     "placeholders": {
       "number": {

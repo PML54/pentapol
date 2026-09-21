@@ -1,4 +1,6 @@
-// Modified: 2026-09-12 06:30 — transmettre le réglage des vibrations à l’accueil guidé.
+// Modified: 2026-09-21 09:04 — ne pas relancer le training après un retour à l'accueil.
+// Historique: 2026-09-21 08:49 — ouvrir le parcours initial avec le mode training explicite.
+// Historique: 2026-09-12 06:30 — transmettre le réglage des vibrations à l’accueil guidé.
 // Historique: 2026-09-11 16:11 — bouton Jouer permanent en tête pour passer directement de l’accueil au jeu.
 // lib/pentoscope/home/home_screen.dart
 // Historique: 2026-09-10 14:53 — accueil interactif : respecter le délai de prise réglé pour le jeu.
@@ -13,20 +15,33 @@ import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
+import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart'
     show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
     show PentoscopeGameScreen;
 
-import 'package:pentapol/pentoscope/home/guided_home.dart';
-
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  final bool startRecreationalOnOpen;
+
+  const HomeScreen({super.key, this.startRecreationalOnOpen = true});
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late bool _isLaunchingRecreational = widget.startRecreationalOnOpen;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.startRecreationalOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _playRecreational(context);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -37,13 +52,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             _buildHeader(context, settings.currentLevel),
             Expanded(
-              child: GuidedHome(
-                colorOf: settings.ui.getPieceColor,
-                ratio: settings.game.rackCellRatio,
-                enableHaptics: settings.game.enableHaptics,
-                longPressDuration: Duration(
-                  milliseconds: settings.game.longPressDuration,
-                ),
+              child: Center(
+                child: _isLaunchingRecreational
+                    ? const CircularProgressIndicator()
+                    : const SizedBox.shrink(),
               ),
             ),
           ],
@@ -86,10 +98,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           Expanded(
             child: Center(
-              child: FilledButton(
-                key: const ValueKey('home-play'),
-                onPressed: () => _play(context, level),
-                child: Text(l10n.play),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  FilledButton(
+                    key: const ValueKey('home-play'),
+                    onPressed: () => _play(context, level),
+                    child: Text(l10n.play),
+                  ),
+                ],
               ),
             ),
           ),
@@ -141,5 +160,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context,
       MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
     );
+  }
+
+  Future<void> _playRecreational(BuildContext context) async {
+    if (!_isLaunchingRecreational && mounted) {
+      setState(() => _isLaunchingRecreational = true);
+    }
+    final notifier = ref.read(pentoscopeProvider.notifier);
+    await notifier.startRecreationalPuzzle();
+    if (!context.mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            const PentoscopeGameScreen(mode: PentoscopeMode.training),
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _isLaunchingRecreational = false);
   }
 }

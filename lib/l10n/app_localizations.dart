@@ -1130,6 +1130,54 @@ abstract class AppLocalizations {
   /// **'Nearly there! Adjust the shape with the icons, then aim for the outline.'**
   String get guidedRetry;
 
+  /// No description provided for @guidedSelectPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the piece in the rack to select it.'**
+  String get guidedSelectPiece;
+
+  /// No description provided for @guidedTransformPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the icons to put the piece in the right position.'**
+  String get guidedTransformPiece;
+
+  /// No description provided for @guidedPlacePiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Move it to the right place on the board.'**
+  String get guidedPlacePiece;
+
+  /// No description provided for @guidedPlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s right!'**
+  String get guidedPlaced;
+
+  /// No description provided for @recreationalSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the piece in the rack to select it.'**
+  String get recreationalSelect;
+
+  /// No description provided for @recreationalTransform.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the icons to put the piece in the right position.'**
+  String get recreationalTransform;
+
+  /// No description provided for @recreationalPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Move it to the right place on the board.'**
+  String get recreationalPlace;
+
+  /// No description provided for @recreationalPlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s right!'**
+  String get recreationalPlaced;
+
   /// No description provided for @geometryTitle.
   ///
   /// In en, this message translates to:

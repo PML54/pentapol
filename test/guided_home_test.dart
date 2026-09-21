@@ -1,4 +1,6 @@
-// Modified: 2026-09-12 03:40 — parcours en navigation accessible ; défilement testé séparément.
+// Modified: 2026-09-21 08:04 — contrôler le bandeau déplaçable et les quatre états de consigne.
+// Historique: 2026-09-21 07:47 — contrôler l'absence de consigne après la première pièce et au bilan.
+// Historique: 2026-09-12 03:40 — parcours en navigation accessible ; défilement testé séparément.
 // Historique: 2026-09-11 16:11 — vérifier Training en bouton plein et le retrait de Jouer à la fin du parcours.
 // Historique: 2026-09-11 07:57 — sept pavages, aucune orientation déjà prête et enchaînement vers un autre entraînement.
 // Historique: 2026-09-11 07:33 — tester exploration du rack, sélection, quatre commandes et dépôt depuis chaque case.
@@ -156,7 +158,7 @@ void main() {
 
       // Un tap fonctionne aussi sans imposer un geste préalable au joueur.
       await choose(1, 80);
-      expect(find.text(l10n.guidedChoose(7)), findsOneWidget);
+      expect(find.text(l10n.guidedTransformPiece), findsOneWidget);
       final initial = piece(1).positionIndex;
       final p = piece(1).piece;
       await press('guided-rotate-left');
@@ -173,9 +175,9 @@ void main() {
       expect(piece(1).positionIndex, initial);
       final board = tester.getRect(find.byType(DragTarget<int>));
       await drag(1, board.center);
-      expect(find.text(l10n.guidedChoose(7)), findsOneWidget);
+      expect(find.text(l10n.guidedTransformPiece), findsOneWidget);
       await choose(0, 80);
-      expect(find.text(l10n.guidedRotate), findsOneWidget);
+      expect(find.text(l10n.guidedTransformPiece), findsOneWidget);
       final cells = guidedSteps().first.target.cells;
       final cell = board.width / 3;
       final destination =
@@ -193,12 +195,12 @@ void main() {
                 2,
           );
       await drag(0, destination);
-      expect(find.text(l10n.guidedRetry), findsOneWidget);
+      expect(find.text(l10n.guidedTransformPiece), findsOneWidget);
       expect(find.byKey(const ValueKey('guided-piece-0')), findsOneWidget);
       await press('guided-rotate');
-      expect(find.text(l10n.guidedReady), findsOneWidget);
+      expect(find.text(l10n.guidedPlacePiece), findsOneWidget);
       await drag(0, const Offset(2, 2));
-      expect(find.text(l10n.guidedRetry), findsOneWidget);
+      expect(find.text(l10n.guidedPlacePiece), findsOneWidget);
       expect(tester.getRect(find.byType(DragTarget<int>)), board);
       expect(find.byType(GuidedSuccessCelebration), findsNothing);
       expect(find.textContaining('Étape'), findsNothing);
@@ -286,7 +288,19 @@ void main() {
             );
             expect(decoration.borderRadius, BorderRadius.circular(16));
             final boardBefore = tester.getRect(find.byType(DragTarget<int>));
-            expect(find.text(l10n.guidedBrowse), findsOneWidget);
+            expect(find.text(l10n.guidedSelectPiece), findsOneWidget);
+            final messagePanel = find.byKey(
+              const ValueKey('guided-message-panel'),
+            );
+            final initialMessageCenter = tester.getCenter(messagePanel);
+            await tester.drag(messagePanel, const Offset(24, 12));
+            await tester.pump();
+            expect(
+              tester.getCenter(messagePanel),
+              initialMessageCenter + const Offset(24, 12),
+            );
+            await tester.drag(messagePanel, const Offset(-24, -12));
+            await tester.pump();
             final keys = [
               'guided-rotate-left',
               'guided-rotate',
@@ -313,10 +327,7 @@ void main() {
               landscape ? const Offset(0, -80) : const Offset(-140, 0),
             );
             await tester.pumpAndSettle();
-            expect(
-              find.text(l10n.guidedChoose(steps.first.piece.id)),
-              findsOneWidget,
-            );
+            expect(find.text(l10n.guidedSelectPiece), findsOneWidget);
             for (var step = 0; step < 3; step++) {
               final choose = find.byKey(ValueKey('guided-select-$step'));
               // Afficher l'emplacement entier : une rotation peut agrandir la pièce dedans.
@@ -332,6 +343,7 @@ void main() {
               await tester.pumpAndSettle();
               await tester.tap(choose);
               await tester.pumpAndSettle();
+              expect(find.text(l10n.guidedTransformPiece), findsOneWidget);
               expect(tester.getRect(find.byType(DragTarget<int>)), boardBefore);
               for (final key in keys) {
                 expect(
@@ -348,7 +360,7 @@ void main() {
                 await tester.tap(find.byKey(const ValueKey('guided-mirror')));
               }
               await tester.pump();
-              expect(find.text(l10n.guidedReady), findsOneWidget);
+              expect(find.text(l10n.guidedPlacePiece), findsOneWidget);
               final draggable = find.byKey(ValueKey('guided-piece-$step'));
               final rendererFinder = find.descendant(
                 of: draggable,
@@ -427,6 +439,9 @@ void main() {
                 step == 2,
               );
               expect(tester.getRect(find.byType(DragTarget<int>)), boardBefore);
+              if (step < 2) {
+                expect(find.text(l10n.guidedPlaced), findsOneWidget);
+              }
               await tester.pumpAndSettle();
               expect(
                 find.byKey(const ValueKey('guided-celebration-paint')),
@@ -434,7 +449,8 @@ void main() {
               );
               expect(tester.takeException(), isNull);
             }
-            expect(find.text(l10n.guidedDone), findsOneWidget);
+            expect(find.text(l10n.guidedDone), findsNothing);
+            expect(find.byKey(const ValueKey('guided-message')), findsNothing);
             expect(find.text(l10n.play), findsNothing);
             expect(
               find.ancestor(
@@ -445,7 +461,7 @@ void main() {
             );
             await tester.tap(find.text(l10n.guidedAnother));
             await tester.pumpAndSettle();
-            expect(find.text(l10n.guidedBrowse), findsOneWidget);
+            expect(find.text(l10n.guidedSelectPiece), findsOneWidget);
             final next = guidedSteps(
               tirageIndex: (tirage + 1) % kHomeTirages.length,
             );

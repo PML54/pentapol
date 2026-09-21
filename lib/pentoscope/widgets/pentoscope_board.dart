@@ -1,4 +1,8 @@
-// Modified: 2026-09-10 10:13 — feedback visible aussi hors plateau ; présence du doigt indépendante de l’aperçu conservé.
+// Modified: 2026-09-21 10:55 — masquer toute empreinte source d'une pièce pendant sa translation.
+// Historique: 2026-09-21 10:28 — neutraliser la bordure du plateau sous une pièce déplacée.
+// Historique: 2026-09-21 10:16 — dissocier sélection interactive et contour source pendant le drag.
+// Historique: 2026-09-21 10:03 — masquer le contour source pendant le drag d'une pièce isométrée.
+// Historique: 2026-09-10 10:13 — feedback visible aussi hors plateau ; présence du doigt indépendante de l’aperçu conservé.
 // Historique: 2026-09-10 09:49 — drag rack en paysage : reconstruire le doigt avant conversion des axes, ligne basse accessible.
 // Historique: 2026-09-10 06:48 — C8/décision 7 : numéro d'une pièce posée = UNE pastille (case haut-gauche,
 //           labelCells) au lieu du chiffre sur les 5 cases, optionnel via settings.game.showPieceNumbers,
@@ -350,20 +354,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       Set<Point> labelCells,
       ) {
     // 1️⃣ RÉCUPÉRER LES DONNÉES DE BASE
-    var cellValue = state.plateau.getCell(logicalX, logicalY);
-
-    // 🐛 FIX: Si cette cellule appartient à une pièce sélectionnée (en cours de déplacement),
-    // ne pas l'afficher à son ancienne position
-    if (state.selectedPlacedPiece != null) {
-      // Vérifier si cette cellule fait partie de la pièce sélectionnée
-      final selectedPiece = state.selectedPlacedPiece!;
-      for (final cell in selectedPiece.absoluteCells) {
-        if (cell.x == logicalX && cell.y == logicalY) {
-          cellValue = 0; // Masquer cette cellule de la pièce sélectionnée
-          break;
-        }
-      }
-    }
+    final plateauCellValue = state.plateau.getCell(logicalX, logicalY);
+    final selectedPieceId = state.selectedPlacedPiece?.piece.id;
+    // Masquer toutes les cellules source de cette pièce par son identifiant,
+    // pas par sa seule géométrie actuelle. Une isométrie peut avoir laissé une
+    // empreinte de l'ancienne forme dans le plateau rendu.
+    final isSelectedPieceSource = plateauCellValue == selectedPieceId;
+    var cellValue = isSelectedPieceSource ? 0 : plateauCellValue;
     final isSolutionCell = _isSolutionCell(state, logicalX, logicalY);
     final solutionPieceId = _getSolutionPieceIdAt(state, logicalX, logicalY);
 
@@ -383,15 +380,19 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       cellValue,
       settings,
     );
-    bool isSelected = selectedInfo.isSelected;
+    // La sélection reste active pour conserver le Draggable pendant le geste.
+    // Seul son dessin source est masqué : l'aperçu est alors l'unique pièce
+    // visible sous le doigt, sans casser le cycle du glissement.
+    final isSelected = selectedInfo.isSelected;
+    final showSelectedPiece = isSelected && !state.isDragging;
     bool isReferenceCell = false;
 
-    if (isSelected && selectedInfo.selectedColor != null) {
+    if (showSelectedPiece && selectedInfo.selectedColor != null) {
       cellColor = selectedInfo.selectedColor!;
     }
 
     // Vérifier mastercase
-    if (isSelected && state.selectedCellInPiece != null) {
+    if (showSelectedPiece && state.selectedCellInPiece != null) {
       // Chercher position locale pour comparer
       final selectedPiece = state.selectedPlacedPiece!;
       final position =
@@ -419,7 +420,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       state,
       logicalX,
       logicalY,
-      state.isDragging ? false : isSelected,
+      state.isDragging ? false : showSelectedPiece,
       settings,
     );
 
@@ -434,7 +435,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     String cellText = _getCellText(cellValue, isSolutionCell, solutionPieceId,
         isPieceLabelCell, settings.game.showPieceNumbers);
 
-    if (isSelected && selectedInfo.selectedText != null) {
+    if (showSelectedPiece && selectedInfo.selectedText != null) {
       cellText = selectedInfo.selectedText!;
     } else if (previewInfo.isPreview && previewInfo.previewText != null) {
       cellText = previewInfo.previewText!;
@@ -446,7 +447,8 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       // ✅ AJOUTER en premier!
       isReferenceCell,
       previewInfo.isPreview,
-      isSelected,
+      showSelectedPiece,
+      state.isDragging && isSelectedPieceSource,
       previewInfo.isSnappedPreview,
       previewInfo.isPreviewValid,
       logicalX,
@@ -475,21 +477,21 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           style: TextStyle(
             color: _getTextColor(
               previewInfo.isPreview,
-              isSelected,
+              showSelectedPiece,
               previewInfo.isPreviewValid,
               previewInfo.isSnappedPreview,
             ),
-            fontWeight: _getTextWeight(previewInfo.isPreview, isSelected),
+            fontWeight: _getTextWeight(previewInfo.isPreview, showSelectedPiece),
             // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
             // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
             // leur petite taille pour ne pas se chevaucher.
             fontSize: _getTextSize(
-              isSelected,
+              showSelectedPiece,
               previewInfo.isPreview,
               cellSize,
               isSinglePastille: cellValue > 0 &&
                   !isSolutionCell &&
-                  !isSelected &&
+                  !showSelectedPiece &&
                   !previewInfo.isPreview &&
                   isPieceLabelCell,
             ),
@@ -574,6 +576,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       bool isReferenceCell,
       bool isPreview,
       bool isSelected,
+      bool hideSelectedSourceBorder,
       bool isSnappedPreview,
       bool isPreviewValid,
       int logicalX,
@@ -595,6 +598,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         return Border.all(color: Colors.red, width: 3);
       }
     }
+
+    // `state.plateau` contient encore la pièce posée afin que le dépôt puisse
+    // reconstruire le plateau. Pendant le drag, ne pas laisser son calculateur
+    // de bordures en redessiner le contour à l'emplacement source.
+    if (hideSelectedSourceBorder) return const Border();
 
     // Pièce sélectionnée
     if (isSelected) return Border.all(color: Colors.amber, width: 3);

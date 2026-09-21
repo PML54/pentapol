@@ -1,4 +1,6 @@
-// Modified: 2026-09-12 10:58 — persister Géométrie dans la colonne dédiée du nouveau schéma.
+// Modified: 2026-09-21 11:04 — garder la pièce sélectionnée hors du plateau après toute isométrie.
+// Historique: 2026-09-21 09:19 — recalculer les destinations après une isométrie d'une pièce posée.
+// Historique: 2026-09-12 10:58 — persister Géométrie dans la colonne dédiée du nouveau schéma.
 // Historique: 2026-09-12 07:25 — Géométrie figée par partie, pénalités persistées et appuis Triche comptés.
 // Historique: 2026-09-11 15:10 — suppression de l’état, du tirage et des branches spécifiques au mode entraînement.
 // lib/pentoscope/pentoscope_provider.dart
@@ -169,8 +171,11 @@ final pentoscopeProvider =
 // TransformationResult vit désormais dans common/transformation_result.dart,
 // ré-exporté ci-dessus pour que les imports existants continuent de fonctionner.
 
-class PentoscopeNotifier extends Notifier<PentoscopeState> 
-    with PentominoGameMixin, GameTimerMixin<PentoscopeState>, PieceInteractionMixin<PentoscopeState> {
+class PentoscopeNotifier extends Notifier<PentoscopeState>
+    with
+        PentominoGameMixin,
+        GameTimerMixin<PentoscopeState>,
+        PieceInteractionMixin<PentoscopeState> {
   @override
   PentoscopeState stateWithDragging(bool isDragging) =>
       state.copyWith(isDragging: isDragging);
@@ -202,24 +207,28 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// Le défi en cours (semaine/taille), pour ouvrir son classement depuis le bilan. null hors défi.
   ChallengeDefinition? get activeChallenge => _activeChallenge;
 
+  /// Préparation interne d'un puzzle récréatif : les mutations passent par les mêmes
+  /// chemins que l'utilisateur, mais ne doivent pas écrire de partie/record.
+  bool _isRecreationalSetup = false;
+
   // ⏱️ Timer
-  
+
   // ============================================================================
   // IMPLÉMENTATION DES MÉTHODES ABSTRAITES DU MIXIN
   // ============================================================================
-  
+
   @override
   Plateau get currentPlateau => state.plateau;
-  
+
   @override
   Pento? get selectedPiece => state.selectedPiece;
-  
+
   @override
   int get selectedPositionIndex => state.selectedPositionIndex;
-  
+
   @override
   Point? get selectedCellInPiece => state.selectedCellInPiece;
-  
+
   @override
   bool canPlacePiece(Pento piece, int positionIndex, int gridX, int gridY) {
     return state.canPlacePiece(piece, positionIndex, gridX, gridY);
@@ -227,42 +236,68 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// preview vérifie la légalité et le recentrage sans modifier le jeu.
   TransformationResult applyIsometryRotationCW({bool preview = false}) {
-    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
-    return _applyIsoUsingLookup((p, idx) => p.rotationCW(idx), preview: preview);
+    if (state.selectedPiece == null && preview)
+      return TransformationResult.impossible;
+    return _applyIsoUsingLookup(
+      (p, idx) => p.rotationCW(idx),
+      preview: preview,
+    );
   }
 
   TransformationResult applyIsometryRotationTW({bool preview = false}) {
-    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
-    return _applyIsoUsingLookup((p, idx) => p.rotationTW(idx), preview: preview);
+    if (state.selectedPiece == null && preview)
+      return TransformationResult.impossible;
+    return _applyIsoUsingLookup(
+      (p, idx) => p.rotationTW(idx),
+      preview: preview,
+    );
   }
 
   TransformationResult applyIsometrySymmetryH({bool preview = false}) {
-    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
+    if (state.selectedPiece == null && preview)
+      return TransformationResult.impossible;
     if (state.viewOrientation == ViewOrientation.landscape) {
-      if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
+      if (state.selectedPlacedPiece != null &&
+          state.selectedCellInPiece != null) {
         return _applySymmetryAbs(SymmetryType.vertical, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryV(idx), preview: preview);
+      return _applyIsoUsingLookup(
+        (p, idx) => p.symmetryV(idx),
+        preview: preview,
+      );
     } else {
-      if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
+      if (state.selectedPlacedPiece != null &&
+          state.selectedCellInPiece != null) {
         return _applySymmetryAbs(SymmetryType.horizontal, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryH(idx), preview: preview);
+      return _applyIsoUsingLookup(
+        (p, idx) => p.symmetryH(idx),
+        preview: preview,
+      );
     }
   }
 
   TransformationResult applyIsometrySymmetryV({bool preview = false}) {
-    if (state.selectedPiece == null && preview) return TransformationResult.impossible;
+    if (state.selectedPiece == null && preview)
+      return TransformationResult.impossible;
     if (state.viewOrientation == ViewOrientation.landscape) {
-      if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
+      if (state.selectedPlacedPiece != null &&
+          state.selectedCellInPiece != null) {
         return _applySymmetryAbs(SymmetryType.horizontal, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryH(idx), preview: preview);
+      return _applyIsoUsingLookup(
+        (p, idx) => p.symmetryH(idx),
+        preview: preview,
+      );
     } else {
-      if (state.selectedPlacedPiece != null && state.selectedCellInPiece != null) {
+      if (state.selectedPlacedPiece != null &&
+          state.selectedCellInPiece != null) {
         return _applySymmetryAbs(SymmetryType.vertical, preview: preview);
       }
-      return _applyIsoUsingLookup((p, idx) => p.symmetryV(idx), preview: preview);
+      return _applyIsoUsingLookup(
+        (p, idx) => p.symmetryV(idx),
+        preview: preview,
+      );
     }
   }
 
@@ -317,9 +352,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ⏱️ TIMER
   // ==========================================================================
 
-
-
-
   // ==========================================================================
   // 📊 NOTE / SCORE
   // ==========================================================================
@@ -363,7 +395,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
     final hintPiece = hint.piece;
 
-    debugPrint('💡 HINT: Placer pièce ${hintPiece.id} à (${hint.gridX}, ${hint.gridY}) pos=${hint.positionIndex}');
+    debugPrint(
+      '💡 HINT: Placer pièce ${hintPiece.id} à (${hint.gridX}, ${hint.gridY}) pos=${hint.positionIndex}',
+    );
 
     // Créer le nouveau plateau et y poser la pièce indiquée
     final newPlateau = _rebuildPlateau();
@@ -387,8 +421,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
 
     // Vérifier s'il reste des solutions possibles + le compte
-    final (hasPossibleSolution, solutionsCount) =
-        _solutionStatus(newPlacedPieces, newAvailable);
+    final (hasPossibleSolution, solutionsCount) = _solutionStatus(
+      newPlacedPieces,
+      newAvailable,
+    );
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -397,7 +433,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isComplete: isComplete,
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount,
-      elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
+      elapsedSeconds: isComplete
+          ? getElapsedSeconds()
+          : null, // fige le temps à la complétion
       clearSelectedPiece: true,
       clearSelectedPlacedPiece: true,
       clearPreview: true,
@@ -407,11 +445,109 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💾 Un indice peut compléter le puzzle : même traitement que pour un placement.
     if (isComplete) {
       _saveCompletionRecord();
-      if (state.isRanked) _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
-      if (!_isMultiplayer && !state.isRanked) _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
+      if (state.isRanked)
+        _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
+      if (!_isMultiplayer && !state.isRanked)
+        _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
       _saveCurrentGame();
     }
+  }
+
+  /// Prépare le premier mode récréatif sur le vrai moteur Game :
+  ///
+  /// 1. démarre un vrai puzzle 5×7 ;
+  /// 2. applique 7 fois la lampe jaune via [applyHint] pour obtenir un plateau complet ;
+  /// 3. choisit une pièce dont le retrait laisse une solution unique quand c'est possible ;
+  /// 4. retire cette pièce via [removePlacedPiece].
+  ///
+  /// Les compteurs sont remis à zéro après la préparation : le joueur reçoit un plateau de Game
+  /// authentique, sans dette d'aides/suppressions automatiques.
+  Future<void> startRecreationalPuzzle({
+    PentoscopeSize size = PentoscopeSize.size7x5,
+  }) async {
+    _isRecreationalSetup = true;
+    try {
+      PlacedPiece? toRemove;
+      for (var attempt = 0; attempt < 10 && toRemove == null; attempt++) {
+        await startPuzzle(size, isProgression: false);
+        while (!state.isComplete && state.availablePieces.isNotEmpty) {
+          applyHint();
+        }
+        if (state.isComplete && state.placedPieces.isNotEmpty) {
+          toRemove = _chooseRecreationalPieceToRemove();
+        }
+      }
+      if (toRemove == null) {
+        throw StateError(
+          'Impossible de générer un puzzle récréatif à solution unique.',
+        );
+      }
+
+      removePlacedPiece(toRemove);
+
+      // La pièce retirée ne doit pas revenir déjà prête à poser : le parcours
+      // récréatif fait réellement pratiquer une isométrie avant le placement.
+      final initialOrientation = _differentOrientation(toRemove);
+      state = state.copyWith(
+        piecePositionIndices: {
+          ...state.piecePositionIndices,
+          toRemove.piece.id: initialOrientation,
+        },
+        initialOrientations: {
+          ...state.initialOrientations,
+          toRemove.piece.id: initialOrientation,
+        },
+      );
+
+      state = state.copyWith(
+        hintCount: 0,
+        deleteCount: 0,
+        faultCount: 0,
+        redRemovalCount: 0,
+        faultAireCount: 0,
+        faultSubtileCount: 0,
+        faultGraviteSum: 0,
+        isometryCount: 0,
+        translationCount: 0,
+        elapsedSeconds: 0,
+        isProgression: false,
+        isRanked: false,
+      );
+      resetTimer();
+      await _clearCurrentGame();
+    } finally {
+      _isRecreationalSetup = false;
+    }
+  }
+
+  PlacedPiece? _chooseRecreationalPieceToRemove() {
+    final candidates =
+        state.placedPieces
+            .where(
+              (placed) => _differentOrientation(placed) != placed.positionIndex,
+            )
+            .toList()
+          ..shuffle(Random());
+    for (final placed in candidates) {
+      final board = _rebuildPlateau(exclude: placed);
+      if (_solutions.countFrom(board) == 1) return placed;
+    }
+    return null;
+  }
+
+  int _differentOrientation(PlacedPiece placed) {
+    final piece = placed.piece;
+    final current = placed.positionIndex;
+    for (final transformed in [
+      piece.rotationTW(current),
+      piece.rotationCW(current),
+      piece.symmetryH(current),
+      piece.symmetryV(current),
+    ]) {
+      if (transformed != current) return transformed;
+    }
+    return current;
   }
 
   /// `(hasPossibleSolution, solutionsCount)` pour un plateau donné par ses pièces.
@@ -467,7 +603,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       final committed = sel == null
           ? state.piecePositionIndices
           : (Map<int, int>.from(state.piecePositionIndices)
-            ..[sel.id] = state.selectedPositionIndex);
+              ..[sel.id] = state.selectedPositionIndex);
       state = state.copyWith(
         piecePositionIndices: committed,
         clearSelectedPiece: true,
@@ -483,8 +619,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
   // ✨ NOUVELLE FONCTION: Trouver la position la plus proche
   // ==========================================================================
-
-
 
   void cycleToNextOrientation() {
     if (state.selectedPiece == null) return;
@@ -527,7 +661,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// et renvoie les increments — +1 sur la cause (aire non-mult-5 / subtile) et la gravité. Zéro
   /// si ce n'est pas une faute. Voir [analyzeFault]. Hors maillots, non persisté.
   ({int aire, int subtile, double gravite}) _faultObs(
-      bool wasSolvable, bool nowSolvable, Plateau board) {
+    bool wasSolvable,
+    bool nowSolvable,
+    Plateau board,
+  ) {
     if (!(wasSolvable && !nowSolvable)) {
       return (aire: 0, subtile: 0, gravite: 0.0);
     }
@@ -545,9 +682,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final newAvailable = [...state.availablePieces, placed.piece];
 
     // 💡 HINT: Recalculer si une solution est encore possible + le compte
-    final (hasPossibleSolution, solutionsCount) =
-        _solutionStatus(newPlaced, newAvailable);
-    final obs = _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau); // 🔎
+    final (hasPossibleSolution, solutionsCount) = _solutionStatus(
+      newPlaced,
+      newAvailable,
+    );
+    final obs = _faultObs(
+      state.hasPossibleSolution,
+      hasPossibleSolution,
+      newPlateau,
+    ); // 🔎
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -561,8 +704,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       solutionsCount: solutionsCount,
       validPlacements: [],
       hasPossibleSolution: hasPossibleSolution,
-      deleteCount: state.deleteCount + 1, // 🗑️ Incrémenter le compteur de suppressions
-      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (soluble→insoluble)
+      deleteCount:
+          state.deleteCount + 1, // 🗑️ Incrémenter le compteur de suppressions
+      faultCount: _bumpFault(
+        state.hasPossibleSolution,
+        hasPossibleSolution,
+      ), // 🔴 faute ? (soluble→insoluble)
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
@@ -603,8 +750,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     // Solution « à afficher » : une solution complète du tirage, servie par la SolutionSource
     // (corpus/table) sur le plateau vide. Plus de solveur.
-    final firstSolution =
-        state.showSolution ? _solutions.hintFrom(plateau, pieces) : null;
+    final firstSolution = state.showSolution
+        ? _solutions.hintFrom(plateau, pieces)
+        : null;
 
     // ⏱️ Reset sans démarrer le timer — efface l'origine, la partie suivante repart de zéro
     resetTimer();
@@ -614,13 +762,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // maillot jaune (acuité §4.2) resterait bloqué à minIso = 0 sur toute partie relancée.
     final random = Random();
     final piecePositionIndices = <int, int>{
-      for (final piece in pieces) piece.id: random.nextInt(piece.numOrientations),
+      for (final piece in pieces)
+        piece.id: random.nextInt(piece.numOrientations),
     };
 
     await ref.read(settingsProvider.notifier).ensureLoaded();
     final geometry = GeometryScore(
       rules: kGeometryTuningEnabled
-          ? ref.read(settingsProvider).game.geometryRules : const GeometryRules(),
+          ? ref.read(settingsProvider).game.geometryRules
+          : const GeometryRules(),
       experimental: kGeometryTuningEnabled,
     );
     state = PentoscopeState(
@@ -631,7 +781,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: pieces,
       placedPieces: [],
       piecePositionIndices: piecePositionIndices,
-      initialOrientations: Map.from(piecePositionIndices), // rack figé (acuité, §4.2)
+      initialOrientations: Map.from(
+        piecePositionIndices,
+      ), // rack figé (acuité, §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -641,7 +793,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       // ✅ Stocker la solution
       validPlacements: [], // ✨ NOUVEAU
       hasPossibleSolution: true, // 💡 Reset
-      solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
+      solutionsCount: _solutions.countFrom(
+        plateau,
+      ), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0, // ⏱️ Reset timer
     );
 
@@ -671,7 +825,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         ? state.selectedPositionIndex
         : state.getPiecePositionIndex(piece.id);
 
-    final anchorCell = grabbedCell ?? _calculateDefaultCell(piece, positionIndex);
+    final anchorCell =
+        grabbedCell ?? _calculateDefaultCell(piece, positionIndex);
     _cancelSelectedPlacedPieceIfAny();
 
     // ✨ BUGFIX: Mettre à jour le plateau EN PREMIER
@@ -694,11 +849,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // SÉLECTION PIÈCE PLACÉE (avec mastercase)
   // ==========================================================================
 
-  void selectPlacedPiece(
-    PlacedPiece placed,
-    int absoluteX,
-    int absoluteY,
-  ) {
+  void selectPlacedPiece(PlacedPiece placed, int absoluteX, int absoluteY) {
     if (state.isComplete) return; // ← Bloquer si puzzle complet
 
     // Calculer la cellule locale cliquée (mastercase) en coordonnées brutes
@@ -715,7 +866,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final minX = coords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
     final minY = coords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
-    final normalizedCoords = coords.map((p) => Point(p.x - minX, p.y - minY)).toList();
+    final normalizedCoords = coords
+        .map((p) => Point(p.x - minX, p.y - minY))
+        .toList();
 
     // Trouver quelle cellule normalisée correspond à la position cliquée
     Point? normalizedMastercase;
@@ -823,8 +976,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     // Solution à afficher si l'option « montrer la solution » est active : servie par la
     // SolutionSource (corpus/table) sur le plateau vide. Plus de solveur.
-    final firstSolution =
-        showSolution ? _solutions.hintFrom(plateau, pieces) : null;
+    final firstSolution = showSolution
+        ? _solutions.hintFrom(plateau, pieces)
+        : null;
 
     // ⏱️ Reset timer sans démarrer — efface l'origine, la partie repart de zéro
     resetTimer();
@@ -832,7 +986,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     await ref.read(settingsProvider.notifier).ensureLoaded();
     final geometry = GeometryScore(
       rules: kGeometryTuningEnabled
-          ? ref.read(settingsProvider).game.geometryRules : const GeometryRules(),
+          ? ref.read(settingsProvider).game.geometryRules
+          : const GeometryRules(),
       experimental: kGeometryTuningEnabled,
     );
     state = PentoscopeState(
@@ -843,7 +998,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: pieces,
       placedPieces: [],
       piecePositionIndices: piecePositionIndices,
-      initialOrientations: Map.from(piecePositionIndices), // rack figé (acuité, §4.2)
+      initialOrientations: Map.from(
+        piecePositionIndices,
+      ), // rack figé (acuité, §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -851,7 +1008,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       currentSolution: firstSolution,
       validPlacements: [],
       hasPossibleSolution: true,
-      solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
+      solutionsCount: _solutions.countFrom(
+        plateau,
+      ), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
       isProgression: isProgression,
     );
@@ -900,7 +1059,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: pieces,
       placedPieces: [],
       piecePositionIndices: piecePositionIndices,
-      initialOrientations: Map.from(piecePositionIndices), // rack figé (acuité, §4.2)
+      initialOrientations: Map.from(
+        piecePositionIndices,
+      ), // rack figé (acuité, §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -908,7 +1069,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       currentSolution: null,
       validPlacements: [],
       hasPossibleSolution: true,
-      solutionsCount: _solutions.countFrom(plateau), // 🔢 compte initial (plateau vide)
+      solutionsCount: _solutions.countFrom(
+        plateau,
+      ), // 🔢 compte initial (plateau vide)
       elapsedSeconds: 0,
     );
   }
@@ -922,11 +1085,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     _activeChallenge = challenge; // sa complétion POST le score au serveur
     final size = challenge.size;
     final pieceIds = challenge.pieceIds;
-    final puzzle = await _generator.generateFromSeed(size, 0, pieceIds); // compte lu dans la table
+    final puzzle = await _generator.generateFromSeed(
+      size,
+      0,
+      pieceIds,
+    ); // compte lu dans la table
     _solutions = await _makeSolutionSource(size, pieceIds);
 
-    final pieces =
-        pieceIds.map((id) => pentominos.firstWhere((p) => p.id == id)).toList();
+    final pieces = pieceIds
+        .map((id) => pentominos.firstWhere((p) => p.id == id))
+        .toList();
     final plateau = Plateau.allVisible(size.width, size.height);
     final piecePositionIndices = Map<int, int>.from(challenge.orientations);
 
@@ -938,7 +1106,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: pieces,
       placedPieces: [],
       piecePositionIndices: piecePositionIndices,
-      initialOrientations: Map.from(piecePositionIndices), // rack du défi (acuité §4.2)
+      initialOrientations: Map.from(
+        piecePositionIndices,
+      ), // rack du défi (acuité §4.2)
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -960,15 +1130,19 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // Composition à la main : le serveur fait autorité (§7 Acté 1). On tente sa définition ; à
     // défaut (404 non composé, ou hors ligne) on dérive localement — le défaut algorithmique,
     // identique au serveur tant qu'une semaine n'est pas composée à la main.
-    final fetched =
-        await _challengeApi.fetchChallenge(version: kChallengeVersion, week: w, size: size);
+    final fetched = await _challengeApi.fetchChallenge(
+      version: kChallengeVersion,
+      week: w,
+      size: size,
+    );
     if (fetched != null) {
       await startChallenge(fetched);
       return;
     }
     final masks = await _generator.solubleMasksFor(size);
     await startChallenge(
-        deriveChallenge(week: w, size: size, solubleMasks: masks));
+      deriveChallenge(week: w, size: size, solubleMasks: masks),
+    );
   }
 
   /// 🎽 Les trois mesures de la partie courante (maillots jaune/à pois/vert, CDC §4).
@@ -999,14 +1173,18 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // isRanked : un défi n'écrit PAS dans les records perso (parties libres/progression restent
     // purs) — son classement viendra du serveur (Phases 3-5). Le bilan affiche quand même ses
     // mesures (computeCompletionMetrics est indépendant). Décision de Paul, 2026-09-04.
-    if (puzzle == null || _isMultiplayer || state.isRanked ||
+    if (puzzle == null ||
+        _isRecreationalSetup ||
+        _isMultiplayer ||
+        state.isRanked ||
         state.geometry?.experimental == true) {
       return;
     }
 
     final metrics = computeCompletionMetrics();
     if (metrics == null) return;
-    final clean = state.hintCount == 0; // partie sans aide → peut poser un record (§4.8)
+    final clean =
+        state.hintCount == 0; // partie sans aide → peut poser un record (§4.8)
     final board = _rebuildPlateau();
     final solutionNumber = _solutions.solutionIndexOf(board);
     final db = ref.read(settingsDatabaseProvider);
@@ -1047,12 +1225,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// **Conformité V1** : ne fait **rien** sans `shareScoresOptIn` (envoi désactivé par défaut, §8) —
   /// c'est aussi ce qui garantit qu'aucun `playerId` n'est généré tant que le joueur n'a pas consenti.
   Future<void> _submitChallengeScore() async {
-    if (!ref.read(settingsProvider).shareScoresOptIn) return; // consentement requis (§8)
+    if (!ref.read(settingsProvider).shareScoresOptIn)
+      return; // consentement requis (§8)
     final ch = _activeChallenge;
     final metrics = computeCompletionMetrics();
     if (ch == null || metrics == null) return;
     try {
-      final playerId = await ref.read(settingsProvider.notifier).ensurePlayerId();
+      final playerId = await ref
+          .read(settingsProvider.notifier)
+          .ensurePlayerId();
       final pseudo = ref.read(settingsProvider).userName ?? 'Joueur';
       await _challengeApi.submitScore(
         version: kChallengeVersion,
@@ -1096,7 +1277,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final puzzle = state.puzzle;
     // isRanked : le défi est éphémère (re-dérivable) et ne doit pas écraser la partie de
     // progression sauvegardée.
-    if (puzzle == null ||
+    if (_isRecreationalSetup ||
+        puzzle == null ||
         state.isComplete ||
         _isMultiplayer ||
         state.isRanked) {
@@ -1115,7 +1297,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
 
     try {
-      await ref.read(settingsDatabaseProvider).saveCurrentGame(
+      await ref
+          .read(settingsDatabaseProvider)
+          .saveCurrentGame(
             sizeName: puzzle.size.name,
             pieceIds: puzzle.pieceIds.join(','),
             solutionCount: puzzle.solutionCount,
@@ -1182,7 +1366,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   Future<void> restoreGame(CurrentGameData row) async {
     _isMultiplayer = false;
     _activeChallenge = null;
-    final size = PentoscopeSize.values.firstWhere((s) => s.name == row.sizeName);
+    final size = PentoscopeSize.values.firstWhere(
+      (s) => s.name == row.sizeName,
+    );
     final pieceIds = row.pieceIds.split(',').map(int.parse).toList();
     final puzzle = PentoscopePuzzle(
       size: size,
@@ -1192,11 +1378,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     _solutions = await _makeSolutionSource(size, pieceIds);
 
     final piecePositionIndices =
-        (jsonDecode(row.positionIndices) as Map<String, dynamic>)
-            .map((k, v) => MapEntry(int.parse(k), v as int));
+        (jsonDecode(row.positionIndices) as Map<String, dynamic>).map(
+          (k, v) => MapEntry(int.parse(k), v as int),
+        );
     final initialOrientations =
-        (jsonDecode(row.initialOrientations) as Map<String, dynamic>)
-            .map((k, v) => MapEntry(int.parse(k), v as int));
+        (jsonDecode(row.initialOrientations) as Map<String, dynamic>).map(
+          (k, v) => MapEntry(int.parse(k), v as int),
+        );
 
     final geometry = GeometryScore.fromJson(jsonDecode(row.geometryState));
     final placedPieces = [
@@ -1231,7 +1419,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     } else if (count != null) {
       hasPossibleSolution = count > 0;
     } else {
-      hasPossibleSolution = _solutions.hasSolutionFrom(plateau, availablePieces);
+      hasPossibleSolution = _solutions.hasSolutionFrom(
+        plateau,
+        availablePieces,
+      );
     }
 
     // ⏱️ Reprendre le chrono à la valeur restaurée, sans démarrer le tic.
@@ -1245,7 +1436,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       availablePieces: availablePieces,
       placedPieces: placedPieces,
       piecePositionIndices: piecePositionIndices,
-      initialOrientations: initialOrientations, // rack figé restauré (acuité §4.2)
+      initialOrientations:
+          initialOrientations, // rack figé restauré (acuité §4.2)
       isComplete: false,
       isometryCount: row.isometryCount,
       translationCount: row.translationCount,
@@ -1258,7 +1450,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: count,
       elapsedSeconds: row.elapsedSeconds,
-      isProgression: row.isProgression, // sinon « Jouer » jette la partie reprise
+      isProgression:
+          row.isProgression, // sinon « Jouer » jette la partie reprise
     );
   }
 
@@ -1268,7 +1461,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// Méthode publique pour obtenir les coordonnées brutes de la mastercase
   /// Utile pour le widget board qui doit reconstruire les coordonnées de drag
-  /// 
+  ///
   /// Note: Cette méthode publique est différente de celle du mixin (qui prend des paramètres)
   Point? getRawMastercaseCoordsPublic() {
     if (state.selectedPiece == null || state.selectedCellInPiece == null) {
@@ -1348,8 +1541,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
 
     // 💡 HINT: Vérifier si une solution est encore possible + le compte
-    final (hasPossibleSolution, solutionsCount) =
-        _solutionStatus(newPlacedPieces, newAvailable);
+    final (hasPossibleSolution, solutionsCount) = _solutionStatus(
+      newPlacedPieces,
+      newAvailable,
+    );
     // 🔎 Observation : jamais de faute sur la complétion (cf. faultCount ci-dessous).
     final obs = isComplete
         ? (aire: 0, subtile: 0, gravite: 0.0)
@@ -1370,7 +1565,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       validPlacements: [],
       hasPossibleSolution: hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount, // 🔢
-      elapsedSeconds: isComplete ? getElapsedSeconds() : null, // fige le temps à la complétion
+      elapsedSeconds: isComplete
+          ? getElapsedSeconds()
+          : null, // fige le temps à la complétion
       // 🔴 faute ? Le coup qui COMPLÈTE le plateau vide `availablePieces` → `hasPossibleSolution`
       //    devient faux (§_solutionStatus) : ce n'est pas un cul-de-sac mais la VICTOIRE. On ne
       //    compte donc jamais de faute sur la complétion.
@@ -1391,8 +1588,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     //    persister l'avancement (no-op en multijoueur, où _isMultiplayer est vrai).
     if (isComplete) {
       _saveCompletionRecord();
-      if (state.isRanked) _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
-      if (!_isMultiplayer && !state.isRanked) _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
+      if (state.isRanked)
+        _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
+      if (!_isMultiplayer && !state.isRanked)
+        _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
       _saveCurrentGame();
     }
@@ -1426,8 +1625,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final anchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
     // Validité = l'ancre est-elle un placement valide ? `validPlacements` est déjà calculé pièce
     // exclue (pour une pièce posée) → l'appartenance vaut pour le tiroir ET le déplacement.
-    final valid =
-        state.validPlacements.any((p) => p.x == anchor.x && p.y == anchor.y);
+    final valid = state.validPlacements.any(
+      (p) => p.x == anchor.x && p.y == anchor.y,
+    );
 
     state = state.copyWith(
       previewX: anchor.x,
@@ -1440,7 +1640,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // VALIDATION ISOMÉTRIES - NOUVELLE MÉTHODE
   // ============================================================================
 
-  TransformationResult _applyIsoUsingLookup(int Function(Pento p, int idx) f, {bool preview = false}) {
+  TransformationResult _applyIsoUsingLookup(
+    int Function(Pento p, int idx) f, {
+    bool preview = false,
+  }) {
     final piece = state.selectedPiece;
     if (piece == null) return TransformationResult.success;
 
@@ -1493,13 +1696,19 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         final y = (cellNum - 1) ~/ 5;
         return Point(x, y);
       }).toList();
-      final minXOrig = originalRawCoords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-      final minYOrig = originalRawCoords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
+      final minXOrig = originalRawCoords
+          .map((p) => p.x)
+          .reduce((a, b) => a < b ? a : b);
+      final minYOrig = originalRawCoords
+          .map((p) => p.y)
+          .reduce((a, b) => a < b ? a : b);
       final normalizedOrigCoords = originalRawCoords
           .map((p) => Point(p.x - minXOrig, p.y - minYOrig))
           .toList();
       final masterIdxOrig = normalizedOrigCoords.indexWhere(
-        (p) => p.x == state.selectedCellInPiece!.x && p.y == state.selectedCellInPiece!.y,
+        (p) =>
+            p.x == state.selectedCellInPiece!.x &&
+            p.y == state.selectedCellInPiece!.y,
       );
       final masterRawOrig = masterIdxOrig == -1
           ? null
@@ -1554,7 +1763,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         );
 
         if (nearestPosition == null) {
-          debugPrint('❌ Transformation impossible - aucune position valide trouvée');
+          debugPrint(
+            '❌ Transformation impossible - aucune position valide trouvée',
+          );
           return TransformationResult.impossible;
         }
 
@@ -1562,7 +1773,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         adjustedGridY = nearestPosition.y;
         neededRecentering = true;
       } else {
-        debugPrint('❌ Transformation impossible - chevauchement et pas de mastercase');
+        debugPrint(
+          '❌ Transformation impossible - chevauchement et pas de mastercase',
+        );
         return TransformationResult.impossible;
       }
     }
@@ -1570,7 +1783,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 🔄 AJUSTEMENT AUTOMATIQUE si la pièce sort du plateau
     // Ajuster X si nécessaire
     while (adjustedGridX < 0 ||
-        (adjustedGridX + _getMaxLocalX(transformedPiece) >= state.plateau.width)) {
+        (adjustedGridX + _getMaxLocalX(transformedPiece) >=
+            state.plateau.width)) {
       if (adjustedGridX > 0) {
         adjustedGridX--;
         neededRecentering = true;
@@ -1588,7 +1802,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           );
 
           if (nearestPosition == null) {
-            debugPrint('❌ Transformation impossible - pièce sortirait du plateau');
+            debugPrint(
+              '❌ Transformation impossible - pièce sortirait du plateau',
+            );
             return TransformationResult.impossible;
           }
 
@@ -1597,7 +1813,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           neededRecentering = true;
           break;
         } else {
-          debugPrint('❌ Transformation impossible - pièce sortirait du plateau');
+          debugPrint(
+            '❌ Transformation impossible - pièce sortirait du plateau',
+          );
           return TransformationResult.impossible;
         }
       }
@@ -1605,7 +1823,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     // Ajuster Y si nécessaire
     while (adjustedGridY < 0 ||
-        (adjustedGridY + _getMaxLocalY(transformedPiece) >= state.plateau.height)) {
+        (adjustedGridY + _getMaxLocalY(transformedPiece) >=
+            state.plateau.height)) {
       if (adjustedGridY > 0) {
         adjustedGridY--;
         neededRecentering = true;
@@ -1623,7 +1842,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           );
 
           if (nearestPosition == null) {
-            debugPrint('❌ Transformation impossible - pièce sortirait du plateau');
+            debugPrint(
+              '❌ Transformation impossible - pièce sortirait du plateau',
+            );
             return TransformationResult.impossible;
           }
 
@@ -1632,7 +1853,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           neededRecentering = true;
           break;
         } else {
-          debugPrint('❌ Transformation impossible - pièce sortirait du plateau');
+          debugPrint(
+            '❌ Transformation impossible - pièce sortirait du plateau',
+          );
           return TransformationResult.impossible;
         }
       }
@@ -1653,23 +1876,35 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // Même verdict que l’action, avant toute écriture ou calcul de score.
     if (preview) {
       return neededRecentering
-          ? TransformationResult.recentered : TransformationResult.success;
+          ? TransformationResult.recentered
+          : TransformationResult.success;
     }
 
     final updatedPlacedPieces = state.placedPieces.map((p) {
       if (p.piece.id == sp.piece.id) {
-        return finalPiece;  // ← Utiliser finalPiece ajustée!
+        return finalPiece; // ← Utiliser finalPiece ajustée!
       }
       return p;
     }).toList();
 
-    // 🔄 Reconstruire le plateau avec les pièces mises à jour
-    final newPlateau = _rebuildPlateau(pieces: updatedPlacedPieces);
+    // Le plateau complet sert aux métriques, mais la pièce sélectionnée doit
+    // rester hors du plateau interactif jusqu'à son prochain dépôt.
+    final fullPlateau = _rebuildPlateau(pieces: updatedPlacedPieces);
+    final newPlateau = _rebuildPlateau(
+      pieces: updatedPlacedPieces,
+      exclude: finalPiece,
+    );
 
     // 💡 Recalculer si une solution est encore possible + le compte
-    final (hasPossibleSolution, solutionsCount) =
-        _solutionStatus(updatedPlacedPieces, state.availablePieces);
-    final obs = _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau); // 🔎
+    final (hasPossibleSolution, solutionsCount) = _solutionStatus(
+      updatedPlacedPieces,
+      state.availablePieces,
+    );
+    final obs = _faultObs(
+      state.hasPossibleSolution,
+      hasPossibleSolution,
+      fullPlateau,
+    ); // 🔎
 
     // Calculer la nouvelle position relative de la mastercase dans la pièce transformée
     Point? newSelectedCellInPiece;
@@ -1684,14 +1919,20 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         return Point(x, y);
       }).toList();
 
-      final minXOrig = originalCoords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-      final minYOrig = originalCoords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
+      final minXOrig = originalCoords
+          .map((p) => p.x)
+          .reduce((a, b) => a < b ? a : b);
+      final minYOrig = originalCoords
+          .map((p) => p.y)
+          .reduce((a, b) => a < b ? a : b);
       final normalizedOrigCoords = originalCoords
           .map((p) => Point(p.x - minXOrig, p.y - minYOrig))
           .toList();
 
       final mastercaseIndex = normalizedOrigCoords.indexWhere(
-        (p) => p.x == state.selectedCellInPiece!.x && p.y == state.selectedCellInPiece!.y,
+        (p) =>
+            p.x == state.selectedCellInPiece!.x &&
+            p.y == state.selectedCellInPiece!.y,
       );
 
       if (mastercaseIndex != -1) {
@@ -1701,8 +1942,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           return Point(x, y);
         }).toList();
 
-        final minXTrans = transformedCoords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-        final minYTrans = transformedCoords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
+        final minXTrans = transformedCoords
+            .map((p) => p.x)
+            .reduce((a, b) => a < b ? a : b);
+        final minYTrans = transformedCoords
+            .map((p) => p.y)
+            .reduce((a, b) => a < b ? a : b);
         final normalizedTransCoords = transformedCoords
             .map((p) => Point(p.x - minXTrans, p.y - minYTrans))
             .toList();
@@ -1711,16 +1956,25 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       }
     }
 
-    final resolvedSelectedCell = newSelectedCellInPiece ?? _remapSelectedCell(
-      piece: piece,
-      oldIndex: oldIdx,
-      newIndex: newIdx,
-      oldCell: state.selectedCellInPiece,
-    );
+    final resolvedSelectedCell =
+        newSelectedCellInPiece ??
+        _remapSelectedCell(
+          piece: piece,
+          oldIndex: oldIdx,
+          newIndex: newIdx,
+          oldCell: state.selectedCellInPiece,
+        );
+
+    // Le plateau courant exclut encore la pièce sélectionnée : c'est le bon
+    // moment de recalculer les destinations pour sa nouvelle orientation.
+    final validPlacements = _generateValidPlacements(
+      piece,
+      newIdx,
+    ).where((p) => p.x != finalPiece.gridX || p.y != finalPiece.gridY).toList();
 
     state = state.copyWith(
       plateau: newPlateau,
-      selectedPlacedPiece: finalPiece,  // ← Mettre à jour!
+      selectedPlacedPiece: finalPiece, // ← Mettre à jour!
       placedPieces: updatedPlacedPieces,
       selectedPositionIndex: newIdx,
       selectedCellInPiece: resolvedSelectedCell,
@@ -1731,17 +1985,21 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
               finalPiece.gridY + resolvedSelectedCell.y,
             ),
       clearPreview: true,
+      validPlacements: validPlacements,
       isometryCount: state.isometryCount + 1,
       hasPossibleSolution: hasPossibleSolution, // 💡 Mise à jour!
       solutionsCount: solutionsCount, // 🔢
-      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (rotation posée)
+      faultCount: _bumpFault(
+        state.hasPossibleSolution,
+        hasPossibleSolution,
+      ), // 🔴 faute ? (rotation posée)
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
       geometry: state.geometry?.afterTransition(
         wasSolvable: state.hasPossibleSolution,
         nowSolvable: hasPossibleSolution,
-        board: newPlateau,
+        board: fullPlateau,
       ),
     );
 
@@ -1753,20 +2011,29 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         final y = (cellNum - 1) ~/ 5;
         return Point(x, y);
       }).toList();
-      final minXTrans = transformedRawCoords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-      final minYTrans = transformedRawCoords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
+      final minXTrans = transformedRawCoords
+          .map((p) => p.x)
+          .reduce((a, b) => a < b ? a : b);
+      final minYTrans = transformedRawCoords
+          .map((p) => p.y)
+          .reduce((a, b) => a < b ? a : b);
       final normalizedTransCoords = transformedRawCoords
           .map((p) => Point(p.x - minXTrans, p.y - minYTrans))
           .toList();
       final masterIdxTrans = normalizedTransCoords.indexWhere(
-        (p) => p.x == state.selectedCellInPiece!.x && p.y == state.selectedCellInPiece!.y,
+        (p) =>
+            p.x == state.selectedCellInPiece!.x &&
+            p.y == state.selectedCellInPiece!.y,
       );
       final masterRawTrans = masterIdxTrans == -1
           ? null
           : transformedRawCoords[masterIdxTrans];
       final masterAbsTrans = masterRawTrans == null
           ? null
-          : Point(finalPiece.gridX + masterRawTrans.x, finalPiece.gridY + masterRawTrans.y);
+          : Point(
+              finalPiece.gridX + masterRawTrans.x,
+              finalPiece.gridY + masterRawTrans.y,
+            );
       debugPrint(
         '🧩 AFTER: grid=(${finalPiece.gridX},${finalPiece.gridY}) '
         'masterNorm=(${state.selectedCellInPiece!.x},${state.selectedCellInPiece!.y}) '
@@ -1775,10 +2042,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       );
     }
 
-    return neededRecentering ? TransformationResult.recentered : TransformationResult.success;
+    return neededRecentering
+        ? TransformationResult.recentered
+        : TransformationResult.success;
   }
 
-  TransformationResult _applySymmetryAbs(SymmetryType type, {bool preview = false}) {
+  TransformationResult _applySymmetryAbs(
+    SymmetryType type, {
+    bool preview = false,
+  }) {
     final piece = state.selectedPiece;
     final sp = state.selectedPlacedPiece;
     if (piece == null || sp == null) return TransformationResult.success;
@@ -1793,10 +2065,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       oldIdx,
       state.selectedCellInPiece!,
     );
-    final masterAbs = Point(
-      sp.gridX + masterRaw.x,
-      sp.gridY + masterRaw.y,
-    );
+    final masterAbs = Point(sp.gridX + masterRaw.x, sp.gridY + masterRaw.y);
 
     final cellsAbs = sp.absoluteCells.toList();
     debugPrint(
@@ -1921,7 +2190,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // Même verdict que l’action, avant toute écriture ou calcul de score.
     if (preview) {
       return neededRecentering
-          ? TransformationResult.recentered : TransformationResult.success;
+          ? TransformationResult.recentered
+          : TransformationResult.success;
     }
 
     final updatedPlacedPieces = state.placedPieces.map((p) {
@@ -1931,11 +2201,23 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       return p;
     }).toList();
 
-    final newPlateau = _rebuildPlateau(pieces: updatedPlacedPieces);
+    // Même invariant que pour les rotations : les métriques voient le plateau
+    // complet, l'interaction conserve la pièce sélectionnée « en main ».
+    final fullPlateau = _rebuildPlateau(pieces: updatedPlacedPieces);
+    final newPlateau = _rebuildPlateau(
+      pieces: updatedPlacedPieces,
+      exclude: finalPiece,
+    );
 
-    final (hasPossibleSolution, solutionsCount) =
-        _solutionStatus(updatedPlacedPieces, state.availablePieces);
-    final obs = _faultObs(state.hasPossibleSolution, hasPossibleSolution, newPlateau); // 🔎
+    final (hasPossibleSolution, solutionsCount) = _solutionStatus(
+      updatedPlacedPieces,
+      state.availablePieces,
+    );
+    final obs = _faultObs(
+      state.hasPossibleSolution,
+      hasPossibleSolution,
+      fullPlateau,
+    ); // 🔎
 
     Point? newSelectedCellInPiece;
     if (state.selectedCellInPiece != null) {
@@ -1946,10 +2228,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         return Point(x, y);
       }).toList();
 
-      final minXTrans =
-          transformedCoords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-      final minYTrans =
-          transformedCoords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
+      final minXTrans = transformedCoords
+          .map((p) => p.x)
+          .reduce((a, b) => a < b ? a : b);
+      final minYTrans = transformedCoords
+          .map((p) => p.y)
+          .reduce((a, b) => a < b ? a : b);
       final normalizedTransCoords = transformedCoords
           .map((p) => Point(p.x - minXTrans, p.y - minYTrans))
           .toList();
@@ -1972,12 +2256,21 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       }
     }
 
-    final resolvedSelectedCell = newSelectedCellInPiece ?? _remapSelectedCell(
-      piece: piece,
-      oldIndex: oldIdx,
-      newIndex: newIdx,
-      oldCell: state.selectedCellInPiece,
-    );
+    final resolvedSelectedCell =
+        newSelectedCellInPiece ??
+        _remapSelectedCell(
+          piece: piece,
+          oldIndex: oldIdx,
+          newIndex: newIdx,
+          oldCell: state.selectedCellInPiece,
+        );
+
+    // Le plateau courant exclut encore la pièce sélectionnée : c'est le bon
+    // moment de recalculer les destinations pour sa nouvelle orientation.
+    final validPlacements = _generateValidPlacements(
+      piece,
+      newIdx,
+    ).where((p) => p.x != finalPiece.gridX || p.y != finalPiece.gridY).toList();
 
     state = state.copyWith(
       plateau: newPlateau,
@@ -1992,17 +2285,21 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
               finalPiece.gridY + resolvedSelectedCell.y,
             ),
       clearPreview: true,
+      validPlacements: validPlacements,
       isometryCount: state.isometryCount + 1,
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount, // 🔢
-      faultCount: _bumpFault(state.hasPossibleSolution, hasPossibleSolution), // 🔴 faute ? (symétrie posée)
+      faultCount: _bumpFault(
+        state.hasPossibleSolution,
+        hasPossibleSolution,
+      ), // 🔴 faute ? (symétrie posée)
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
       geometry: state.geometry?.afterTransition(
         wasSolvable: state.hasPossibleSolution,
         nowSolvable: hasPossibleSolution,
-        board: newPlateau,
+        board: fullPlateau,
       ),
     );
 
@@ -2035,29 +2332,39 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
     // 1. Trouver l'index STABLE (ordre géométrique) de la mastercase
     // On ne peut pas utiliser le cellNum (il change selon l'orientation).
-    final originalPosition = originalPiece.piece.orientations[originalPiece.positionIndex];
+    final originalPosition =
+        originalPiece.piece.orientations[originalPiece.positionIndex];
     final originalCoords = originalPosition.map((cellNum) {
       final x = (cellNum - 1) % 5;
       final y = (cellNum - 1) ~/ 5;
       return Point(x, y);
     }).toList();
 
-    final minXOrig = originalCoords.map((p) => p.x).reduce((a, b) => a < b ? a : b);
-    final minYOrig = originalCoords.map((p) => p.y).reduce((a, b) => a < b ? a : b);
-    final normalizedOrigCoords = originalCoords.map((p) => Point(p.x - minXOrig, p.y - minYOrig)).toList();
+    final minXOrig = originalCoords
+        .map((p) => p.x)
+        .reduce((a, b) => a < b ? a : b);
+    final minYOrig = originalCoords
+        .map((p) => p.y)
+        .reduce((a, b) => a < b ? a : b);
+    final normalizedOrigCoords = originalCoords
+        .map((p) => Point(p.x - minXOrig, p.y - minYOrig))
+        .toList();
 
     // Trouver l'index de la mastercase dans les coordonnées normalisées
     final mastercaseIndex = normalizedOrigCoords.indexWhere(
       (p) => p.x == mastercase.x && p.y == mastercase.y,
     );
     if (mastercaseIndex == -1) {
-      debugPrint('Warning: Mastercase not found in original position, keeping original position');
+      debugPrint(
+        'Warning: Mastercase not found in original position, keeping original position',
+      );
       return Point(originalPiece.gridX, originalPiece.gridY);
     }
 
     // 2. Calculer les coordonnées normalisées dans la nouvelle orientation
     // et réutiliser le même index (ordre stable)
-    final transformedPosition = transformedPiece.piece.orientations[transformedPiece.positionIndex];
+    final transformedPosition =
+        transformedPiece.piece.orientations[transformedPiece.positionIndex];
     final transformedCoords = transformedPosition.map((cellNum) {
       final x = (cellNum - 1) % 5;
       final y = (cellNum - 1) ~/ 5;
@@ -2088,12 +2395,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   /// Helper: calcule la mastercase par défaut (première cellule normalisée)
-  /// 
+  ///
   /// ✅ Utilise maintenant la méthode du mixin
   Point? _calculateDefaultCell(Pento piece, int positionIndex) {
     return calculateDefaultCell(piece, positionIndex);
   }
-
 
   /// Annule le mode "pièce placée en main" (sélection sur plateau) en
   /// reconstruisant le plateau complet à partir des pièces placées.
@@ -2229,8 +2535,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         .map((p) => Point(p.x - minX, p.y - minY))
         .toList();
 
-    final mastercaseIndex = normalizedCoords
-        .indexWhere((p) => p.x == mastercaseLocal.x && p.y == mastercaseLocal.y);
+    final mastercaseIndex = normalizedCoords.indexWhere(
+      (p) => p.x == mastercaseLocal.x && p.y == mastercaseLocal.y,
+    );
     if (mastercaseIndex == -1) {
       // La mastercase n'existe pas dans cette orientation
       return null;
@@ -2246,7 +2553,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     for (int radius = 0; radius <= maxRadius; radius++) {
       // Générer toutes les positions à cette distance
       final candidates = <Point>[];
-      
+
       if (radius == 0) {
         candidates.add(Point(initialGridX, initialGridY));
       } else {
@@ -2291,7 +2598,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         }
 
         if (isValid) {
-          debugPrint('✅ Position valide trouvée à distance $radius: (${candidate.x}, ${candidate.y})');
+          debugPrint(
+            '✅ Position valide trouvée à distance $radius: (${candidate.x}, ${candidate.y})',
+          );
           return candidate;
         }
       }
@@ -2308,17 +2617,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// Retourne une liste de Point (gridX, gridY) où la pièce peut être placée
   List<Point> _generateValidPlacements(Pento piece, int positionIndex) {
     final validPlacements = <Point>[];
-    
 
     // 🔧 FIX: Calculer les offsets de la pièce pour étendre le balayage
     // Certaines pièces ont des cellules avec des offsets positifs par rapport à l'ancre,
     // donc l'ancre peut être négative pour placer la pièce aux bords gauche/haut
     final position = piece.orientations[positionIndex];
-    
+
     // Trouver les offsets min/max de la forme normalisée
     int minOffsetX = 5, minOffsetY = 5;
     int maxOffsetX = 0, maxOffsetY = 0;
-    
+
     // D'abord calculer le min pour la normalisation (comme dans absoluteCells)
     int normMinX = 5, normMinY = 5;
     for (final cellNum in position) {
@@ -2327,7 +2635,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       if (x < normMinX) normMinX = x;
       if (y < normMinY) normMinY = y;
     }
-    
+
     // Puis calculer les offsets normalisés
     for (final cellNum in position) {
       final localX = (cellNum - 1) % 5 - normMinX;
@@ -2354,7 +2662,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       }
     }
 
-    debugPrint('   → ${validPlacements.length} positions valides: $validPlacements');
+    debugPrint(
+      '   → ${validPlacements.length} positions valides: $validPlacements',
+    );
     return validPlacements;
   }
 
@@ -2377,10 +2687,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // Helper unifié : reconstruit le plateau depuis une liste de pièces.
   // exclude : pièce à ignorer (ex: pièce sélectionnée temporairement retirée).
   // pieces  : liste source (défaut: state.placedPieces).
-  Plateau _rebuildPlateau({
-    List<PlacedPiece>? pieces,
-    PlacedPiece? exclude,
-  }) {
+  Plateau _rebuildPlateau({List<PlacedPiece>? pieces, PlacedPiece? exclude}) {
     final src = pieces ?? state.placedPieces;
     final p = Plateau.allVisible(state.plateau.width, state.plateau.height);
     for (final placed in src) {
@@ -2401,7 +2708,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
 
   /// Remapping de la cellule de référence lors d'une isométrie
-  /// 
+  ///
   /// ✅ Utilise maintenant la méthode du mixin (même implémentation)
   Point? _remapSelectedCell({
     required Pento piece,
@@ -2416,7 +2723,6 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       oldCell: oldCell,
     );
   }
-
 }
 
 /// État du jeu Pentoscope
@@ -2452,9 +2758,10 @@ class PentoscopeState implements PieceManipulationState {
   final int isometryCount;
   final int translationCount;
   final GeometryScore? geometry;
-  final int hintCount;   // 💡 Nombre de fois où la lampe a été utilisée
+  final int hintCount; // 💡 Nombre de fois où la lampe a été utilisée
   final int deleteCount; // 🗑️ Nombre de suppressions de pièces
-  final int faultCount;  // ⚫ Fautes (entrées en cul-de-sac, jaune→rouge) — maillot à pois
+  final int
+  faultCount; // ⚫ Fautes (entrées en cul-de-sac, jaune→rouge) — maillot à pois
   /// 🚑 Retraits effectués alors que le plateau était ROUGE (insoluble) = sorties de cul-de-sac.
   /// Compteur d'OBSERVATION (bandeau debug, décision de Paul 2026-09-07) : n'entre PAS dans les
   /// maillots, **non persisté** (remis à 0 à une reprise de partie — sans importance pour le debug).
@@ -2518,7 +2825,7 @@ class PentoscopeState implements PieceManipulationState {
     this.isComplete = false,
     this.isometryCount = 0,
     this.translationCount = 0,
-    this.hintCount = 0,   // 💡
+    this.hintCount = 0, // 💡
     this.deleteCount = 0, // 🗑️
     this.faultCount = 0, // ⚫
     this.redRemovalCount = 0, // 🚑 (observation, non persisté)
@@ -2601,7 +2908,7 @@ class PentoscopeState implements PieceManipulationState {
     bool? isComplete,
     int? isometryCount,
     int? translationCount,
-    int? hintCount,   // 💡
+    int? hintCount, // 💡
     int? deleteCount, // 🗑️
     int? faultCount, // ⚫
     int? redRemovalCount, // 🚑
@@ -2663,7 +2970,8 @@ class PentoscopeState implements PieceManipulationState {
       showSolution: showSolution ?? this.showSolution,
       // ✅ NOUVEAU
       currentSolution: currentSolution ?? this.currentSolution, // ✅ NOUVEAU
-      hasPossibleSolution: hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT
+      hasPossibleSolution:
+          hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds, // ⏱️ Timer
       isProgression: isProgression ?? this.isProgression,

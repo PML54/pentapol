@@ -1,4 +1,5 @@
-// Modified: 2026-09-07 07:17 — conformité défi V1 : l'icône classement passe par
+// Modified: 2026-09-21 08:49 — ouvrir l'écran de jeu avec le mode défi explicite.
+// Historique: 2026-09-07 07:17 — conformité défi V1 : l'icône classement passe par
 //           openLeaderboardWithConsent (opt-in requis, §4.5) au lieu d'un Navigator.push direct.
 // Historique: 2026-09-06 04:50 — i18n : chaînes visibles passées par AppLocalizations (titre, intro,
 //           compte de pièces au pluriel, tooltip classement).
@@ -15,6 +16,7 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
+import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
 
 /// Écran de sélection du défi de la semaine : le joueur choisit une dimension de plateau, tout le
@@ -34,10 +36,9 @@ class ChallengeScreen extends ConsumerWidget {
           children: [
             Text(
               l10n.challengeWeekLabel(week.toString()),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
@@ -49,11 +50,16 @@ class ChallengeScreen extends ConsumerWidget {
               Card(
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
-                  leading: const Icon(Icons.flag_outlined, color: Color(0xFF2E9E5B)),
+                  leading: const Icon(
+                    Icons.flag_outlined,
+                    color: Color(0xFF2E9E5B),
+                  ),
                   title: Text(
                     '${size.width}×${size.height}',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: Text(l10n.piecesCount(size.numPieces)),
                   trailing: Row(
@@ -84,12 +90,18 @@ class ChallengeScreen extends ConsumerWidget {
   }
 
   Future<void> _launch(
-      BuildContext context, WidgetRef ref, PentoscopeSize size) async {
+    BuildContext context,
+    WidgetRef ref,
+    PentoscopeSize size,
+  ) async {
     await ref.read(pentoscopeProvider.notifier).startWeeklyChallenge(size);
     if (!context.mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
+      MaterialPageRoute(
+        builder: (_) =>
+            const PentoscopeGameScreen(mode: PentoscopeMode.challenge),
+      ),
     );
   }
 }

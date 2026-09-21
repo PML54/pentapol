@@ -1,4 +1,6 @@
-// Modified: 2026-09-12 06:30 — retours haptiques de sélection, prise, transformation, cible et pose, réglables.
+// Modified: 2026-09-21 08:04 — bandeau déplaçable et quatre consignes liées à l'état de la pièce.
+// Historique: 2026-09-21 07:47 — masquer les consignes après la première pièce et en fin d'entraînement.
+// Historique: 2026-09-12 06:30 — retours haptiques de sélection, prise, transformation, cible et pose, réglables.
 // Historique: 2026-09-12 03:40 — consignes agrandies et défilantes, réserve fixe pour préserver le plateau.
 // Historique: 2026-09-11 16:11 — bouton Training plein pour le prochain parcours ; Jouer déplacé dans l’en-tête.
 // Historique: 2026-09-11 07:57 — sept accueils 3×5 et orientations initiales toujours différentes de la cible.
@@ -141,9 +143,9 @@ class _GuidedHomeState extends State<GuidedHome> {
   late List<int> orientations = steps.map((s) => s.initialOrientation).toList();
   int step = 0;
   int? selected;
-  bool browsed = false;
   bool validHover = false;
-  bool retry = false;
+  bool justPlaced = false;
+  Offset messageOffset = Offset.zero;
   bool get complete => step == steps.length;
   bool get shapeReady =>
       !complete &&
@@ -169,9 +171,8 @@ class _GuidedHomeState extends State<GuidedHome> {
   void select(int index) {
     updateHover(false);
     setState(() {
-      browsed = true;
       selected = index;
-      retry = false;
+      justPlaced = false;
     });
   }
 
@@ -182,7 +183,7 @@ class _GuidedHomeState extends State<GuidedHome> {
     setState(() {
       final i = selected!;
       orientations[i] = operation(steps[i].piece, orientations[i]);
-      retry = false;
+      justPlaced = false;
     });
   }
 
@@ -191,8 +192,8 @@ class _GuidedHomeState extends State<GuidedHome> {
     setState(() {
       step = 0;
       selected = null;
-      browsed = false;
-      retry = false;
+      justPlaced = false;
+      messageOffset = Offset.zero;
       // Parcourir les sept configurations sans répétition avant le tour suivant.
       tirageIndex = (tirageIndex + 1) % kHomeTirages.length;
       steps = guidedSteps(tirageIndex: tirageIndex);
@@ -216,23 +217,11 @@ class _GuidedHomeState extends State<GuidedHome> {
         targetArea.contains(local);
   }
 
-  String message(AppLocalizations l10n) {
-    if (complete) return l10n.guidedDone;
-    if (!browsed) return l10n.guidedBrowse;
-    final id = steps[step].piece.id;
-    if (selected != null && selected != step) return l10n.guidedChoose(id);
-    if (selected == null) {
-      return step == 0 ? l10n.guidedChoose(id) : l10n.guidedNext(id);
-    }
-    if (retry) return l10n.guidedRetry;
-    if (shapeReady) return l10n.guidedReady;
-    return needsGuidedMirror(
-          steps[step].piece,
-          orientations[step],
-          steps[step].targetOrientation,
-        )
-        ? l10n.guidedMirror
-        : l10n.guidedRotate;
+  String? message(AppLocalizations l10n) {
+    if (complete) return null;
+    if (justPlaced) return l10n.guidedPlaced;
+    if (selected == null) return l10n.guidedSelectPiece;
+    return shapeReady ? l10n.guidedPlacePiece : l10n.guidedTransformPiece;
   }
 
   @override
@@ -262,16 +251,10 @@ class _GuidedHomeState extends State<GuidedHome> {
 
         // Réserve identique pour toutes les consignes : le plateau ne saute pas.
         final messageHeight = [
-          l10n.guidedBrowse,
-          l10n.guidedRotate,
-          l10n.guidedMirror,
-          l10n.guidedReady,
-          l10n.guidedRetry,
-          l10n.guidedDone,
-          for (final s in steps) ...[
-            l10n.guidedChoose(s.piece.id),
-            l10n.guidedNext(s.piece.id),
-          ],
+          l10n.guidedSelectPiece,
+          l10n.guidedTransformPiece,
+          l10n.guidedPlacePiece,
+          l10n.guidedPlaced,
         ].map(textHeight).reduce(math.max);
         // Même taille et mêmes configurations d'icônes que le jeu.
         final iconSize = isometryIconSize(context);
@@ -323,11 +306,24 @@ class _GuidedHomeState extends State<GuidedHome> {
                       if (d.data != step || !accepts(d.offset, cell)) return;
                       if (widget.enableHaptics) HapticFeedback.mediumImpact();
                       updateHover(false);
+                      final placedStep = step;
                       setState(() {
                         step++;
                         selected = null;
-                        retry = false;
+                        justPlaced = true;
                       });
+                      Future<void>.delayed(
+                        const Duration(milliseconds: 900),
+                        () {
+                          if (mounted &&
+                              !complete &&
+                              step == placedStep + 1 &&
+                              selected == null &&
+                              justPlaced) {
+                            setState(() => justPlaced = false);
+                          }
+                        },
+                      );
                     },
                     builder: (context, candidates, rejected) => Stack(
                       children: [
@@ -442,16 +438,43 @@ class _GuidedHomeState extends State<GuidedHome> {
           'guided-mirror-horizontal',
           'guided-mirror',
         ];
+        final currentMessage = message(l10n);
         final controls = Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
               height: messageHeight,
-              child: GuidedScrollingMessage(
-                message: message(l10n),
-                style: textStyle,
-                width: controlsWidth,
-              ),
+              child: currentMessage == null
+                  ? null
+                  : Transform.translate(
+                      offset: messageOffset,
+                      child: GestureDetector(
+                        key: const ValueKey('guided-message-panel'),
+                        behavior: HitTestBehavior.opaque,
+                        onPanUpdate: (details) =>
+                            setState(() => messageOffset += details.delta),
+                        child: Material(
+                          color: Colors.white.withValues(alpha: .94),
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Row(
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(Icons.drag_indicator),
+                              ),
+                              Expanded(
+                                child: GuidedScrollingMessage(
+                                  message: currentMessage,
+                                  style: textStyle,
+                                  width: math.max(1, controlsWidth - 40),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -485,38 +508,27 @@ class _GuidedHomeState extends State<GuidedHome> {
               height: rackHeight,
               child: complete
                   ? null
-                  : NotificationListener<ScrollUpdateNotification>(
-                      onNotification: (n) {
-                        // Une vraie exploration du rack précède le choix ; pas un défilement programmatique.
-                        if (!browsed &&
-                            n.dragDetails != null &&
-                            n.metrics.pixels.abs() > 12) {
-                          setState(() => browsed = true);
-                        }
-                        return false;
-                      },
-                      child: Scrollbar(
+                  : Scrollbar(
+                      controller: rackController,
+                      thumbVisibility: true,
+                      child: ListView(
+                        key: const ValueKey('guided-rack'),
                         controller: rackController,
-                        thumbVisibility: true,
-                        child: ListView(
-                          key: const ValueKey('guided-rack'),
-                          controller: rackController,
-                          scrollDirection: landscape
-                              ? Axis.vertical
-                              : Axis.horizontal,
-                          itemExtent: landscape
-                              ? rackHeight
-                              : math.max(rackHeight, controlsWidth * .62),
-                          children: [
-                            // La première pièce demandée est au bout : on apprend réellement à défiler.
-                            for (final i in [1, 2, 0])
-                              if (i >= step)
-                                Center(
-                                  key: ValueKey('guided-slot-$i'),
-                                  child: rackPiece(i, rackCell, l10n),
-                                ),
-                          ],
-                        ),
+                        scrollDirection: landscape
+                            ? Axis.vertical
+                            : Axis.horizontal,
+                        itemExtent: landscape
+                            ? rackHeight
+                            : math.max(rackHeight, controlsWidth * .62),
+                        children: [
+                          // La première pièce demandée est au bout : on apprend réellement à défiler.
+                          for (final i in [1, 2, 0])
+                            if (i >= step)
+                              Center(
+                                key: ValueKey('guided-slot-$i'),
+                                child: rackPiece(i, rackCell, l10n),
+                              ),
+                        ],
                       ),
                     ),
             ),
@@ -579,8 +591,6 @@ class _GuidedHomeState extends State<GuidedHome> {
           },
           onDragEnd: (_) {
             updateHover(false);
-            // Le DragTarget accepte aussi les survols mal orientés : seul step change à la pose réelle.
-            if (mounted && step <= i) setState(() => retry = selected == step);
           },
           feedback: Material(
             color: Colors.transparent,

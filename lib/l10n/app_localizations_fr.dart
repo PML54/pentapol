@@ -623,6 +623,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tu y es presque ! Ajuste la forme avec les icônes, puis vise la silhouette.';
 
   @override
+  String get guidedSelectPiece =>
+      'Appuie sur la pièce du tiroir pour la sélectionner.';
+
+  @override
+  String get guidedTransformPiece =>
+      'Mets la pièce dans la bonne position avec les icônes.';
+
+  @override
+  String get guidedPlacePiece => 'Déplace-la au bon endroit sur le plateau.';
+
+  @override
+  String get guidedPlaced => 'C’est bon !';
+
+  @override
+  String get recreationalSelect =>
+      'Appuie sur la pièce du tiroir pour la sélectionner.';
+
+  @override
+  String get recreationalTransform =>
+      'Mets la pièce dans la bonne position avec les icônes.';
+
+  @override
+  String get recreationalPlace => 'Déplace-la au bon endroit sur le plateau.';
+
+  @override
+  String get recreationalPlaced => 'C’est bon !';
+
+  @override
   String get geometryTitle => 'Réglage du barème';
 
   @override

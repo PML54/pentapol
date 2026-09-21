@@ -619,6 +619,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nearly there! Adjust the shape with the icons, then aim for the outline.';
 
   @override
+  String get guidedSelectPiece => 'Tap the piece in the rack to select it.';
+
+  @override
+  String get guidedTransformPiece =>
+      'Use the icons to put the piece in the right position.';
+
+  @override
+  String get guidedPlacePiece => 'Move it to the right place on the board.';
+
+  @override
+  String get guidedPlaced => 'That’s right!';
+
+  @override
+  String get recreationalSelect => 'Tap the piece in the rack to select it.';
+
+  @override
+  String get recreationalTransform =>
+      'Use the icons to put the piece in the right position.';
+
+  @override
+  String get recreationalPlace => 'Move it to the right place on the board.';
+
+  @override
+  String get recreationalPlaced => 'That’s right!';
+
+  @override
   String get geometryTitle => 'Score tuning';
 
   @override

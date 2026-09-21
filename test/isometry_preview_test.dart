@@ -1,4 +1,6 @@
-// Modified: 2026-09-10 07:19 — vérifier les aperçus sans mutation et leur équivalence avec les actions aux bords.
+// Modified: 2026-09-21 11:04 — garantir qu'une isométrie ne réinsère pas la pièce sélectionnée dans le plateau.
+// Historique: 2026-09-21 09:19 — couvrir le recalcul des destinations après une rotation posée.
+// Historique: 2026-09-10 07:19 — vérifier les aperçus sans mutation et leur équivalence avec les actions aux bords.
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,24 +21,38 @@ void main() {
     debugPrint = (String? message, {int? wrapWidth}) {};
     addTearDown(() => debugPrint = originalDebugPrint);
     final fixture = _Fixture();
-    final container = ProviderContainer(overrides: [
-      pentoscopeProvider.overrideWith(() => fixture),
-    ]);
+    final container = ProviderContainer(
+      overrides: [pentoscopeProvider.overrideWith(() => fixture)],
+    );
     addTearDown(container.dispose);
     container.read(pentoscopeProvider);
-    final actions = [fixture.applyIsometryRotationTW, fixture.applyIsometryRotationCW,
-      fixture.applyIsometrySymmetryH, fixture.applyIsometrySymmetryV];
+    final actions = [
+      fixture.applyIsometryRotationTW,
+      fixture.applyIsometryRotationCW,
+      fixture.applyIsometrySymmetryH,
+      fixture.applyIsometrySymmetryV,
+    ];
     final results = <TransformationResult>{};
     for (final view in ViewOrientation.values) {
       for (final piece in pentominos) {
         for (var index = 0; index < piece.numOrientations; index++) {
-          for (final anchor in [const Point(0, 0), const Point(1, 1), const Point(2, 2)]) {
-            final placed = PlacedPiece(piece: piece, positionIndex: index,
-                gridX: anchor.x, gridY: anchor.y);
+          for (final anchor in [
+            const Point(0, 0),
+            const Point(1, 1),
+            const Point(2, 2),
+          ]) {
+            final placed = PlacedPiece(
+              piece: piece,
+              positionIndex: index,
+              gridX: anchor.x,
+              gridY: anchor.y,
+            );
             if (placed.absoluteCells.any((c) => c.x >= 5 || c.y >= 5)) continue;
             for (final blocked in [false, true]) {
               final board = Plateau.allVisible(5, 5);
-              for (final c in placed.absoluteCells) { board.setCell(c.x, c.y, piece.id); }
+              for (final c in placed.absoluteCells) {
+                board.setCell(c.x, c.y, piece.id);
+              }
               if (blocked) {
                 for (var y = 0; y < 5; y++) {
                   for (var x = 0; x < 5; x++) {
@@ -46,27 +62,58 @@ void main() {
               }
               final master = placed.absoluteCells.first;
               final initial = PentoscopeState.initial().copyWith(
-                plateau: board, placedPieces: [placed], selectedPiece: piece,
-                selectedPositionIndex: index, selectedPlacedPiece: placed,
-                selectedCellInPiece: Point(master.x - anchor.x, master.y - anchor.y),
-                viewOrientation: view);
+                plateau: board,
+                placedPieces: [placed],
+                selectedPiece: piece,
+                selectedPositionIndex: index,
+                selectedPlacedPiece: placed,
+                selectedCellInPiece: Point(
+                  master.x - anchor.x,
+                  master.y - anchor.y,
+                ),
+                viewOrientation: view,
+              );
               for (final action in actions) {
                 fixture.load(initial);
                 final gridBefore = jsonEncode(board.grid);
                 final preview = action(preview: true);
-                expect(identical(container.read(pentoscopeProvider), initial), isTrue);
+                expect(
+                  identical(container.read(pentoscopeProvider), initial),
+                  isTrue,
+                );
                 expect(jsonEncode(board.grid), gridBefore);
                 final actual = action();
-                expect(preview, actual, reason: 'piece ${piece.id}, $index, $view, $anchor, $blocked');
+                expect(
+                  preview,
+                  actual,
+                  reason: 'piece ${piece.id}, $index, $view, $anchor, $blocked',
+                );
                 results.add(actual);
                 if (actual == TransformationResult.impossible) {
-                  expect(identical(container.read(pentoscopeProvider), initial), isTrue);
+                  expect(
+                    identical(container.read(pentoscopeProvider), initial),
+                    isTrue,
+                  );
+                } else if (!identical(
+                  container.read(pentoscopeProvider),
+                  initial,
+                )) {
+                  final transformed = container.read(pentoscopeProvider);
+                  expect(
+                    transformed.plateau.grid.expand((row) => row),
+                    isNot(contains(piece.id)),
+                    reason:
+                        'la pièce ${piece.id} sélectionnée doit rester hors du plateau après $action',
+                  );
                 }
               }
             }
           }
-          final rack = PentoscopeState.initial().copyWith(selectedPiece: piece,
-              selectedPositionIndex: index, viewOrientation: view);
+          final rack = PentoscopeState.initial().copyWith(
+            selectedPiece: piece,
+            selectedPositionIndex: index,
+            viewOrientation: view,
+          );
           for (final action in actions) {
             fixture.load(rack);
             expect(action(preview: true), TransformationResult.success);
@@ -80,5 +127,63 @@ void main() {
     for (final action in actions) {
       expect(action(preview: true), TransformationResult.impossible);
     }
+  });
+
+  test('rotation posée : destinations identiques sans resélection', () {
+    final originalDebugPrint = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {};
+    addTearDown(() => debugPrint = originalDebugPrint);
+
+    final fixture = _Fixture();
+    final container = ProviderContainer(
+      overrides: [pentoscopeProvider.overrideWith(() => fixture)],
+    );
+    addTearDown(container.dispose);
+    container.read(pentoscopeProvider);
+
+    final piece = pentominos.firstWhere((piece) => piece.id == 11);
+    final placed = PlacedPiece(
+      piece: piece,
+      positionIndex: 0,
+      gridX: 3,
+      gridY: 3,
+    );
+    final board = Plateau.allVisible(10, 10);
+    for (final cell in placed.absoluteCells) {
+      board.setCell(cell.x, cell.y, piece.id);
+    }
+    fixture.load(
+      PentoscopeState.initial().copyWith(
+        plateau: board,
+        placedPieces: [placed],
+      ),
+    );
+
+    final master = placed.absoluteCells.first;
+    fixture.selectPlacedPiece(placed, master.x, master.y);
+    expect(
+      fixture.applyIsometryRotationCW(),
+      isNot(TransformationResult.impossible),
+    );
+
+    final transformedState = container.read(pentoscopeProvider);
+    final transformed = transformedState.selectedPlacedPiece!;
+    final destinationsAfterRotation = transformedState.validPlacements;
+    expect(
+      destinationsAfterRotation.any(
+        (position) =>
+            position.x == transformed.gridX && position.y == transformed.gridY,
+      ),
+      isFalse,
+    );
+
+    fixture.cancelSelection();
+    final newMaster = transformed.absoluteCells.first;
+    fixture.selectPlacedPiece(transformed, newMaster.x, newMaster.y);
+
+    expect(
+      container.read(pentoscopeProvider).validPlacements,
+      unorderedEquals(destinationsAfterRotation),
+    );
   });
 }

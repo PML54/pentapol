@@ -1,4 +1,5 @@
-// Modified: 2026-09-12 10:58 — parcours réel du corpus, barème figé, reprise SQLite, Triche et exclusion des records.
+// Modified: 2026-09-21 08:49 — vérifier le puzzle training 5x7 construit par le vrai moteur Game.
+// Historique: 2026-09-12 10:58 — parcours réel du corpus, barème figé, reprise SQLite, Triche et exclusion des records.
 import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -121,6 +122,48 @@ void main() {
       expect(await db.select(db.solvedSolutions).get(), isEmpty);
       expect(game.computeCompletionMetrics()!.geometry!.value, 100);
       expect(container.read(pentoscopeProvider).hintCount, 3);
+    },
+  );
+
+  test(
+    'puzzle récréatif prépare un vrai Game 5x7 avec une pièce manquante',
+    () async {
+      final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+      final game = _Game();
+      final container = ProviderContainer(
+        overrides: [
+          settingsDatabaseProvider.overrideWithValue(db),
+          pentoscopeProvider.overrideWith(() => game),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await db.close();
+      });
+
+      container.read(pentoscopeProvider);
+      await container.read(settingsProvider.notifier).ensureLoaded();
+      await game.startRecreationalPuzzle();
+
+      final state = container.read(pentoscopeProvider);
+      expect(state.puzzle!.size, PentoscopeSize.size7x5);
+      expect(state.plateau.width, 5);
+      expect(state.plateau.height, 7);
+      expect(state.isComplete, isFalse);
+      expect(state.placedPieces.length, 6);
+      expect(state.availablePieces.length, 1);
+      final missing = state.availablePieces.single;
+      expect(missing.numOrientations, greaterThan(1));
+      expect(
+        state.initialOrientations[missing.id],
+        state.getPiecePositionIndex(missing.id),
+      );
+      expect(state.hasPossibleSolution, isTrue);
+      expect(state.solutionsCount, 1);
+      expect(state.hintCount, 0);
+      expect(state.deleteCount, 0);
+      expect(state.isProgression, isFalse);
+      expect(await db.loadCurrentGame(), isNull);
     },
   );
 }

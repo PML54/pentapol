@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-12
+## §ÉTAT — au 2026-09-21
 
 ### L'application
 
@@ -25,6 +25,56 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 **multijoueur**, qui réutilise son provider. Démarrage sur `HomeScreen` (écran d'accueil livré le
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
+
+### Training — mode explicite, bandeau déplaçable et quatre états (2026-09-21)
+
+Le démarrage ouvre le vrai `PentoscopeGameScreen` sur un puzzle récréatif avec une pièce manquante.
+Un nouveau `PentoscopeMode` explicite distingue `training`, `game`, `challenge`, `multiplayer` et
+`analysis`, à la place du booléen d'affichage du guide. Le bandeau du mode training défile en continu,
+possède une poignée et peut être déplacé au doigt pour dégager la pièce.
+
+Le training automatique ne se lance qu'une fois, à l'ouverture initiale. Un retour par l'icône
+Accueil reste désormais sur l'accueil ; `Jouer` ouvre ensuite explicitement le mode `game`, sans
+bandeau ni message de training.
+
+Les quatre consignes sont dérivées de l'état réel du moteur : aucune sélection ; sélection sans
+placement valide (`validPlacements` vide, même après une ou plusieurs mauvaises isométries) ;
+orientation offrant un placement valide ; puzzle complété (« C'est bon ! »). La fin du training
+n'affiche jamais le bilan de score : seul le bouton `Training` prépare immédiatement un autre exercice.
+
+**Vérifications : 208/208 tests complets**, puis 10/10 tests ciblés après branchement du défilement ;
+analyse complète **0 erreur / 0 avertissement / 116 infos**.
+
+### Game — translation après isométrie (2026-09-21)
+
+Après une rotation ou un miroir d'une pièce déjà posée, les destinations de translation sont
+recalculées avec sa nouvelle orientation alors que la pièce reste retirée du plateau. Elles ne
+conservent donc plus la géométrie antérieure qui pouvait la ramener à son point de départ jusqu'à
+une désélection suivie d'une nouvelle sélection. Le même recalcul couvre les deux chemins,
+rotation et symétrie.
+
+**Vérification ciblée : 2/2 tests**, dont une rotation de la pièce 11 suivie d'une comparaison avec
+les destinations obtenues après la resélection manuelle.
+
+### Game — contour source pendant le déplacement (2026-09-21)
+
+Cause réelle trouvée après essai sur appareil : la sélection retirait bien la pièce du plateau,
+mais une rotation ou une symétrie reconstruisait ensuite ce plateau en y réinsérant la pièce
+transformée. Les masques de rendu ajoutés auparavant ne corrigeaient donc que le symptôme. Les deux
+chemins d'isométrie conservent maintenant un plateau complet pour les métriques et un plateau
+interactif sans la pièce sélectionnée jusqu'au dépôt. Le contour ne peut plus rester à la source ;
+l'aperçu sous le doigt utilise la nouvelle géométrie.
+
+Le test combinatoire contrôle désormais rotations et symétries effectives : l'identifiant de la
+pièce sélectionnée doit être absent de `state.plateau`. **209/209 tests**, analyse **0 erreur / 0
+avertissement / 116 infos**. À confirmer sur appareil par Paul.
+
+### Version de release (2026-09-21)
+
+La prochaine release est `1.0.4+4` dans `pubspec.yaml`. `BuildInfo`, lu par la tuile Paramètres et
+le dialogue À propos, a été régénéré en `1.0.4`, build `202609211023`, le 21/09/2026 à 10:23.
+
+Analyse complète : **0 erreur / 0 avertissement / 117 infos**.
 
 ### Géométrie — barème paramétrable (2026-09-12)
 
@@ -50,7 +100,7 @@ Référence complète : [Barème Géométrie](BAREME_GEOMETRIE.md).
 **205/205 tests**, analyse **0 erreur / 0 avertissement / 106 infos**. Reprise sur vrai corpus,
 reset SQLite, fenêtre et bilan FR/EN avec grands caractères en portrait/paysage vérifiés.
 Deux tests passent aussi avec le drapeau public false. Réglage des coefficients par Paul
-sur appareil ; documentation mise à jour. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
+sur appareil ; documentation mise à jour. Commité et poussé le 2026-09-12 (voir `git log`).
 
 ### Accueil — vocabulaire des icônes et retours physiques (2026-09-12)
 
@@ -65,7 +115,7 @@ intégralement coupée lorsque le réglage est désactivé.
 **188/188 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**. Deux tests de
 gestes interceptent le canal système et contrôlent les événements en mode actif/inactif,
 y compris refus et mouvement dans la cible. Ressenti à apprécier par Paul sur iPhone.
-Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
+Documentation actualisée. Commité et poussé le 2026-09-12 (voir `git log`).
 
 ### Accueil — consignes agrandies et défilantes (2026-09-12)
 
@@ -83,7 +133,7 @@ pas de position pendant les messages. Le bandeau ne capture pas les gestes. Aucu
 aux traductions, contenu EN/FR existant conservé. **186/186 tests** ; analyse complète **0 erreur /
 0 avertissement / 106 infos**. Quatre tests du mouvement et des modes accessibles, parcours de
 l’accueil et accès direct au jeu vérifiés avec les grands caractères. Documentation actualisée.
-Ressenti du défilement à apprécier par Paul sur iPhone. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
+Ressenti du défilement à apprécier par Paul sur iPhone. Commité et poussé le 2026-09-12 (voir `git log`).
 
 ### Accueil — Jouer permanent en tête et bouton Training (2026-09-11)
 
@@ -98,7 +148,7 @@ le chevauchement sur petit écran. La partie de progression en cours est réutil
 **Vérifications : 182/182 tests**, analyse complète **0 erreur / 0 avertissement / 106 infos**.
 Les 88 parcours contrôlent Training et le tirage suivant. Quatre tests d’accueil contrôlent
 l’accès immédiat, la conservation de la partie/du chrono et les boutons sans chevauchement,
-en FR/EN sur 320×568 et 874×402. Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
+en FR/EN sur 320×568 et 874×402. Documentation actualisée. Commité et poussé le 2026-09-12 (voir `git log`).
 
 ### Paysage — isométries à gauche, actions générales en bas (2026-09-11)
 
@@ -116,7 +166,7 @@ retranche la nouvelle hauteur basse pour maintenir le rapport de taille rack/pla
 Douze cas de disposition : formats 667×375, 874×402, 1366×1024 et portrait 390×844, chacun sur
 3×5, 8×5 et 6×10, avec marges système simulées. Contrôle des emplacements, de l’absence de
 débordement et du plateau fixe au repos, sur sélection rack et sur sélection plateau/corbeille.
-Ressenti à comparer par Paul sur iPhone. Documentation actualisée. Commité et poussé le 2026-09-12 (voir §PASSATIONS 5).
+Ressenti à comparer par Paul sur iPhone. Documentation actualisée. Commité et poussé le 2026-09-12 (voir `git log`).
 
 ### Suppression du mode entraînement séparé — 2026-09-11
 
@@ -136,7 +186,7 @@ isolent les écritures dans une base SQLite en mémoire, hors de l’horloge sim
 **Vérifications : 166/166 tests**, dont les parcours de l’accueil, les célébrations et les
 prises paysage sur iPhone/tablette simulés. Analyse complète **0 erreur / 0 avertissement /
 106 informations**. Recherche des symboles de l’ancien mode : aucune référence active dans
-`lib/` et `test/` (anciens headers historiques exceptés). Commité et poussé le 2026-09-12 dans `00a13ef` (voir §PASSATIONS 5).
+`lib/` et `test/` (anciens headers historiques exceptés). Commité et poussé le 2026-09-12 dans `00a13ef` (voir `git log`).
 
 ### Accueil — contour et célébrations, 2026-09-11
 
@@ -151,7 +201,7 @@ Le réglage système de réduction des animations désactive l’effet, les enco
 du déclenchement et de la fin de l’effet, plus les gestes pendant la célébration et la réduction
 des animations. Analyse complète : **0 erreur / 0 avertissement / 106 informations**.
 Le ressenti de cette nouvelle célébration reste à apprécier par Paul sur iPhone.
-Code, tests et documentation commités et poussés le 2026-09-12 (voir §PASSATIONS 5).
+Code, tests et documentation commités et poussés le 2026-09-12 (voir `git log`).
 
 ### Accueil — sept entraînements 3×5, 2026-09-11, `5f910e9`
 
@@ -1024,27 +1074,22 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-12 (5) — CLI : lot des 11-12/09 commité et poussé sur `origin/main`.**
-Quatre commits : `cd17918` feat(géométrie+accueil) — barème paramétrable, haptique et
-consignes défilantes, l10n EN/FR, `build_info` estampillé `202609121549` ; `ad61576`
-test — barème, accueil guidé, dispositions paysage ; `00a13ef` refactor(entrainement) —
-suppression du mode autonome (les trois fichiers supprimés) ; `4887baf` docs — §ÉTAT,
-`BAREME_GEOMETRIE.md`, accueil, checklist. Avant commit : `flutter analyze` **0 erreur /
-0 avertissement** (61 infos), **205/205 tests** verts. Ressentis device restent à apprécier
-par Paul (haptique, défilement, calage des coefficients du barème).
+**2026-09-21 (6) — Codex : cause du contour après isométrie corrigée dans l'état métier.**
+Rotation et symétrie réinséraient la pièce sélectionnée dans `state.plateau`, d'où l'empreinte
+source encore visible pendant la translation malgré les masques UI. Le plateau complet reste utilisé
+pour Géométrie/impasses, tandis que le plateau interactif exclut la pièce jusqu'au dépôt. Test
+combinatoire étendu aux quatre isométries : **209/209 tests**, analyse **0 erreur / 0 avertissement /
+116 infos**. À confirmer sur appareil par Paul.
 
-**2026-09-12 (4) — Codex : barème Géométrie paramétrable et reprise fiable.**
-Fenêtre avec aperçu, barème figé et persisté, Impasses/Triche au bilan. Schéma 11 destructif
-sur demande explicite de Paul ; id=0 rendu explicite pour retrouver la sauvegarde.
-205 tests verts, 0 erreur/avertissement (106 infos), drapeau public vérifié. Les parties
-expérimentales restent hors records ; voir BAREME_GEOMETRIE.md et CHECKLIST_APPSTORE.md.
-Aucun commit/push.
+**2026-09-21 (5) — Codex : empreinte source supprimée pendant la translation.**
+Le masque de rendu s'appuie maintenant sur l'identifiant de la pièce sélectionnée, afin de retirer
+aussi toute empreinte dont la géométrie est antérieure à une isométrie. Le calculateur de bordures
+renvoie une bordure vide pour ces cellules, après priorité de l'aperçu. **14/14 tests ciblés**,
+analyse **0 erreur / 0 avertissement / 117 infos**.
 
-**2026-09-12 (3) — Codex : icônes dans les consignes, retours haptiques dans l’accueil.**
-FR/EN corrigés et régénérés ; retours de sélection, transformation, prise, cible et pose acceptée.
-Réglage des vibrations respecté, pas de doublon automatique de Flutter ni de clic à chaque pixel.
-**188/188 tests**, analyse **0 erreur / 0 avertissement / 106 infos**. Documentation à jour,
-ressenti à apprécier sur appareil, aucun commit/push.
-
+**2026-09-21 (4) — Codex : version de la prochaine release.**
+`pubspec.yaml` passe à `1.0.4+4` ; le `BuildInfo` généré, affiché dans Paramètres, est `1.0.4`
+build `202609211023` (21/09/2026 à 10:23). `flutter pub get` et l'analyse passent, avec **0 erreur /
+0 avertissement / 117 infos**.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*
