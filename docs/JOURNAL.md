@@ -26,6 +26,41 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
+### Records perso vides — rappel (2026-09-22)
+
+L'écran Records est vide **par construction** depuis `cd17918` (2026-09-12) : le schéma 11
+destructif a effacé les anciennes lignes, et `_saveCompletionRecord` sort dès que
+`state.geometry?.experimental == true` — ce qui est le cas de **toute** partie tant que
+`PENTAPOL_SCORE_TUNING` vaut true (défaut, release compris). Voir `BAREME_GEOMETRIE.md`
+§« Pendant le calibrage » et `CHECKLIST_APPSTORE.md` n° 24. Aucune régression de l'écran ni de
+la navigation. Objection notée : les colonnes des records (acuité, fautes, temps) ne dépendent
+pas du barème Géométrie, l'exclusion est plus large que nécessaire. Décision de Paul (option A) :
+vérifier d'abord sur appareil avec le drapeau coupé —
+
+```
+flutter run --release -d 00008150-000165D4027B401C --dart-define=PENTAPOL_SCORE_TUNING=false
+```
+
+Attendu : après une partie Game terminée **sans lampe** (`hintCount == 0`), une carte apparaît
+dans Records.
+
+**Puis, dans la foulée, Paul a retenu l'option B** : retirer `state.geometry?.experimental == true`
+de la garde de `_saveCompletionRecord` (les records ne stockent rien qui dépende du barème). Un
+test de non-régression accompagne le retrait. Documents alignés : `BAREME_GEOMETRIE.md`,
+`MANUEL_DEFIS_ET_MAILLOTS.md`, `PLAN_PERSISTANCE.md`, `CHECKLIST_APPSTORE.md` n° 24. Le contrat
+de records Géométrie (option C) reste à trancher avec le barème final. Les records effacés par le
+schéma 11 ne sont pas récupérables.
+
+### Plateau — suppression du jour sous le cadre (2026-09-22)
+
+La bordure extérieure de 3 px était placée dans la `decoration` du conteneur : Flutter la comptait
+comme un padding et réduisait la grille de 6 px sur chaque axe. Pour un plateau non carré, les cases
+étaient dimensionnées depuis la largeur intérieure et leur hauteur cumulée ne remplissait plus le
+cadre, laissant un petit jour en bas. La bordure passe en `foregroundDecoration` : elle est peinte
+au-dessus de la grille sans modifier ses contraintes. Le test de layout vérifie désormais l'égalité
+exacte des rectangles de la grille et du cadre pour trois tailles de plateau sur quatre écrans.
+**Vérifications : 216/216 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
+
 ### Nettoyage des fichiers Dart orphelins (2026-09-22)
 
 Audit des 75 fichiers Dart de `lib/` par imports `package:pentapol`, puis recoupement de chaque
@@ -1173,6 +1208,10 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-22 (17) — CLI : cadre du plateau sans jour inférieur.**
+La bordure extérieure est maintenant superposée à la grille au lieu de réduire son espace de 3 px
+sur chaque côté. La grille remplit exactement son cadre sur les 12 combinaisons écran/plateau du test.
+
 **2026-09-22 (16) — CLI : suppression des derniers fichiers Dart orphelins.**
 Retrait de cinq fichiers sans appelant : ancien cluster de layout (provider + manager), géométrie
 historique, formateur de temps inutilisé et visionneuse de solutions dont l'accès avait été retiré.
@@ -1183,11 +1222,5 @@ Documentation active et pages techniques générées mises en cohérence.
 visible. Un tap plein cadre lance un nouveau tirage de même taille, ou le niveau débloqué dans le
 parcours de progression ; le bouton `+` reste disponible. Défi et autres modes conservent leur carte.
 Testé en FR/EN, portrait/paysage, avec contrôle de la relance.
-
-**2026-09-22 (14) — CLI : miniature de déplacement paramétrable.**
-Nouveau réglage global EN/FR « Pièce pendant le déplacement », masqué par défaut et persisté en JSON.
-Il contrôle le feedback sous le doigt depuis le tiroir et depuis le plateau, sans toucher au fantôme
-de destination. Tests du défaut, de la sérialisation et des deux états du feedback ; ancien test de
-glissé conservé avec l'option explicitement active.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

@@ -2,7 +2,8 @@
 
 > **État au 2026-09-12 :** le solo expérimente la note Géométrie paramétrable, avec
 > snapshot dans `CurrentGame.geometryState` (schéma 11 destructif, demandé par Paul).
-> Ces parties sont exclues des records ; les défis gardent leur contrat d'acuité.
+> Ces parties posent des records acuité/fautes/temps comme les autres (exclusion levée le
+> 2026-09-22, option B) ; les défis gardent leur contrat d'acuité.
 > Cette évolution et ses règles de persistance sont dans [BAREME_GEOMETRIE.md](BAREME_GEOMETRIE.md).
 
 

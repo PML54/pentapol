@@ -70,8 +70,15 @@ Le détail du bilan défile si nécessaire en paysage et adapte les lignes aux g
   suppression de l'ancienne partie avant de rendre la main.
 
 Pendant le calibrage, **toutes les nouvelles parties solo sont expérimentales**, même avec
-les valeurs initiales. Elles n'écrivent ni PuzzleStats ni SolvedSolutions. La progression
-reste disponible. Les contrats des défis/duels et le calcul d'acuité des classements ne
+les valeurs initiales. La progression reste disponible.
+
+> **Révisé le 2026-09-22 (décision de Paul, option B).** Du 12 au 22/09, une partie
+> expérimentale n'écrivait ni PuzzleStats ni SolvedSolutions — d'où un écran Records vide
+> par construction. Cette exclusion était plus large que nécessaire : les colonnes des records
+> (acuité, fautes, temps) ne dépendent pas de `GeometryRules`. Elle est **levée** :
+> `_saveCompletionRecord` ne teste plus `geometry.experimental`. Les records restent purement
+> acuité/fautes/temps ; le jour où une colonne Géométrie y entrera (CHECKLIST n° 24), la
+> question de l'exclusion se reposera pour cette colonne seule. Les contrats des défis/duels et le calcul d'acuité des classements ne
 changent pas dans ce chantier : leur migration vers Géométrie sera décidée avec le barème final.
 
 ## Avant publication
@@ -80,7 +87,7 @@ Le drapeau `PENTAPOL_SCORE_TUNING` vaut true par défaut, **y compris en release
 essais de Paul sur iPhone. `--dart-define=PENTAPOL_SCORE_TUNING=false` masque l'entrée et fait
 utiliser `const GeometryRules()` aux nouvelles parties ; une valeur personnalisée sauvegardée
 ne peut donc pas contaminer une nouvelle partie publique. Une partie déjà commencée conserve
-son snapshot et son exclusion des records.
+son snapshot.
 
 Avant soumission : fixer les valeurs retenues dans GeometryRules, désactiver le drapeau par
 défaut, arrêter le contrat des records locaux et du classement en ligne, puis remplacer la
@@ -92,7 +99,7 @@ migration du système de records.** Voir CHECKLIST_APPSTORE.md.
 - **205/205 tests** sur la suite complète ; analyse **0 erreur / 0 avertissement / 106 infos**.
 - Calculs chiffrés, classification des poches, correction, deuxième impasse et victoire.
 - Parcours sur le vrai corpus 3×5 : pénalité, aide, sauvegarde SQLite, nouveau provider,
-  reprise fidèle, nouvelles valeurs à la partie suivante, exclusion des records.
+  reprise fidèle, nouvelles valeurs à la partie suivante, exclusion des records (levée le 2026-09-22).
 - Montée d'une base avec schéma 10 vers 11 : données effacées et colonne créée.
 - Fenêtre et bilan FR/EN, 320×568 et 874×402, police système à 130 % : aperçu,
   abandon, sauvegarde, réouverture, reset et absence de débordement.

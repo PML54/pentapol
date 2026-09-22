@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 05:35 — vérifier le Training 2 réel : deux pièces voisines retirées,
+// Modified: 2026-09-22 08:01 — option B : une partie de calibrage pose de nouveau un record
+//           (ligne PuzzleStats, completed 1) ; l'ancienne assertion « aucun record » est levée.
+// Historique: 2026-09-22 05:35 — vérifier le Training 2 réel : deux pièces voisines retirées,
 //           rack réorienté et plateau à solution unique.
 // Historique: 2026-09-21 08:49 — vérifier le puzzle training 5x7 construit par le vrai moteur Game.
 // Historique: 2026-09-12 10:58 — parcours réel du corpus, barème figé, reprise SQLite, Triche et exclusion des records.
@@ -115,15 +117,58 @@ void main() {
         next.toJson(),
       );
       expect(container.read(pentoscopeProvider).geometry!.value, 100);
-      // Fin expérimentale : aucun record n'est écrit, même après toutes les aides.
+      // Option B (2026-09-22) : une partie de calibrage pose désormais un record. Complétée par les
+      // aides (donc non propre → bests null), la LIGNE PuzzleStats existe quand même (completed 1).
       while (!container.read(pentoscopeProvider).isComplete) {
         game.applyHint();
       }
       await db.customSelect('SELECT 1').get();
-      expect(await db.select(db.puzzleStats).get(), isEmpty);
-      expect(await db.select(db.solvedSolutions).get(), isEmpty);
+      final stats = await db.allPuzzleStats();
+      expect(stats, hasLength(1));
+      expect(stats.single.completed, 1);
+      expect(stats.single.bestFaults, isNull); // partie non propre → aucun best posé
+      expect(await db.select(db.solvedSolutions).get(), isEmpty); // 3×5 : pas de numéro de solution
+      expect(container.read(pentoscopeProvider).geometry!.experimental, isTrue);
       expect(game.computeCompletionMetrics()!.geometry!.value, 100);
       expect(container.read(pentoscopeProvider).hintCount, 3);
+    },
+  );
+
+  test(
+    'option B : une partie de calibrage Géométrie pose un record (ligne PuzzleStats)',
+    () async {
+      final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+      final game = _Game();
+      final container = ProviderContainer(
+        overrides: [
+          settingsDatabaseProvider.overrideWithValue(db),
+          pentoscopeProvider.overrideWith(() => game),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await db.close();
+      });
+
+      container.read(pentoscopeProvider);
+      await container.read(settingsProvider.notifier).ensureLoaded();
+      await game.drawMask(PentoscopeSize.size3x5);
+      await game.startPuzzle(PentoscopeSize.size3x5, mask: 74);
+      // Calibrage actif par défaut (kGeometryTuningEnabled == true) : la partie est expérimentale.
+      expect(container.read(pentoscopeProvider).geometry!.experimental, isTrue);
+
+      // Compléter via les aides suffit : la partie n'est pas « propre » (bests null), mais la LIGNE
+      // PuzzleStats doit exister — c'est la garantie de non-régression de l'option B.
+      while (!container.read(pentoscopeProvider).isComplete) {
+        game.applyHint();
+      }
+      await db.customSelect('SELECT 1').get(); // laisser finir l'écriture asynchrone
+
+      final stats = await db.allPuzzleStats();
+      expect(stats, hasLength(1));
+      expect(stats.single.completed, 1);
+      // La garde est bien LEVÉE (option B), pas contournée : la partie reste expérimentale.
+      expect(container.read(pentoscopeProvider).geometry!.experimental, isTrue);
     },
   );
 

@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 05:35 — training 2 : retirer deux pièces voisines, toutes deux
+// Modified: 2026-09-22 08:01 — records : une partie de calibrage (geometry.experimental) pose de
+//           nouveau des records — garde de _saveCompletionRecord allégée (option B, décision Paul).
+// Historique: 2026-09-22 05:35 — training 2 : retirer deux pièces voisines, toutes deux
 //           réorientées dans le tiroir, en conservant une complétion unique.
 // Historique: 2026-09-21 11:04 — garder la pièce sélectionnée hors du plateau après toute isométrie.
 // Historique: 2026-09-21 09:19 — recalculer les destinations après une isométrie d'une pièce posée.
@@ -1217,14 +1219,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// autre taille n'a pas de numéro → `PuzzleStats`. Aucun test de taille ici.
   Future<void> _saveCompletionRecord() async {
     final puzzle = state.puzzle;
-    // isRanked : un défi n'écrit PAS dans les records perso (parties libres/progression restent
-    // purs) — son classement viendra du serveur (Phases 3-5). Le bilan affiche quand même ses
-    // mesures (computeCompletionMetrics est indépendant). Décision de Paul, 2026-09-04.
+    // Exclusions : setup récréatif/training (pas une vraie partie), multijoueur, et isRanked — un
+    // défi n'écrit PAS dans les records perso (parties libres/progression restent pures) ; son
+    // classement viendra du serveur (Phases 3-5). Le bilan affiche quand même ses mesures
+    // (computeCompletionMetrics est indépendant). Décision de Paul, 2026-09-04.
+    // Une partie de CALIBRAGE (geometry.experimental) n'est **plus** exclue (option B, 2026-09-22) :
+    // les colonnes des records — acuité, fautes, temps — ne dépendent pas de GeometryRules.
     if (puzzle == null ||
         _isRecreationalSetup ||
         _isMultiplayer ||
-        state.isRanked ||
-        state.geometry?.experimental == true) {
+        state.isRanked) {
       return;
     }
 
