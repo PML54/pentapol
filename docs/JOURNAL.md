@@ -26,6 +26,20 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
+### Nettoyage des fichiers Dart orphelins (2026-09-22)
+
+Audit des 75 fichiers Dart de `lib/` par imports `package:pentapol`, puis recoupement de chaque
+symbole public et des faux positifs générés. Cinq fichiers sans appelant ont été supprimés :
+`config/ui_layout_provider.dart`, son unique dépendance transitive `config/ui_layout_manager.dart`,
+`utils/pentomino_geometry.dart`, `utils/time_format.dart` et
+`pentoscope/screens/solutions_browser_screen.dart`. Cette dernière visionneuse avait perdu son
+dernier point d'entrée lors du retrait de l'icône `view_carousel`.
+
+`main.dart`, `settings_database.g.dart` et les localisations générées ne sont pas orphelins : ils
+sont respectivement point d'entrée, `part` Drift et classes chargées par le délégué l10n. Les pages
+générées de `tools/docs/` et les références actives dans la documentation ont été nettoyées.
+**Vérifications : 216/216 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
+
 ### Game — bilan dans l'AppBar et nouvelle partie au tap (2026-09-22)
 
 À la complétion d'une partie `Game`, la carte flottante ne masque plus le plateau. L'AppBar reprend
@@ -1159,6 +1173,11 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-22 (16) — CLI : suppression des derniers fichiers Dart orphelins.**
+Retrait de cinq fichiers sans appelant : ancien cluster de layout (provider + manager), géométrie
+historique, formateur de temps inutilisé et visionneuse de solutions dont l'accès avait été retiré.
+Documentation active et pages techniques générées mises en cohérence.
+
 **2026-09-22 (15) — CLI : bilan Game dans l'AppBar et nouvelle partie au tap.**
 À la réussite d'un Game, le bilan défile désormais dans la barre et laisse le plateau entièrement
 visible. Un tap plein cadre lance un nouveau tirage de même taille, ou le niveau débloqué dans le
@@ -1170,11 +1189,5 @@ Nouveau réglage global EN/FR « Pièce pendant le déplacement », masqué par 
 Il contrôle le feedback sous le doigt depuis le tiroir et depuis le plateau, sans toucher au fantôme
 de destination. Tests du défaut, de la sérialisation et des deux états du feedback ; ancien test de
 glissé conservé avec l'option explicitement active.
-
-**2026-09-22 (13) — CLI : Training 2 à deux pièces voisines.**
-Le Training suit désormais un cycle 1 → 2 → 1. Le niveau 2 retire d'une solution complète deux
-pièces partageant un côté, exige que le plateau résiduel garde une solution unique, puis distribue
-les deux pièces avec une mauvaise orientation. Le bandeau adapte ses consignes et le tap de fin ;
-le double-tap vers Game reste disponible aux deux niveaux. Test réel répété sur dix générations.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

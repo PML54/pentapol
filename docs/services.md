@@ -123,8 +123,7 @@ cases normalisées aux `cartesianCoords` → `positionIndex`.
 
 ### Importé par
 
-`pentoscope/solution_source.dart`, `pentoscope/pentoscope_solutions_provider.dart`,
-`pentoscope/screens/solutions_browser_screen.dart`.
+`pentoscope/solution_source.dart` et `pentoscope/pentoscope_solutions_provider.dart`.
 
 ---
 

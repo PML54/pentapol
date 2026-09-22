@@ -525,7 +525,6 @@ classique.
 | Écran | Rôle |
 |---|---|
 | `pentoscope/screens/pentoscope_game_screen.dart` | **l'écran unique** : gameplay, AppBar, dialogue « Nouvelle partie », bilan |
-| `pentoscope/screens/solutions_browser_screen.dart` | parcourir les solutions compatibles (tailles à table) |
 | `pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart` | création/jointure de room |
 | `pentoscope_multiplayer/screens/pentoscope_mp_game_screen.dart` | gameplay multijoueur |
 | `pentoscope_multiplayer/screens/pentoscope_mp_result_screen.dart` | classement final |
@@ -540,26 +539,11 @@ classique.
 
 ## Code présent mais inactif
 
-Utile à savoir avant de partir sur une fausse piste :
-
-Vérifié au `grep` le 2026-08-30 — aucun de ces fichiers n'est importé hors de lui-même :
-
-| Fichier | Statut |
-|---|---|
-| `common/bigint_plateau.dart` | orphelin, **et la meilleure des implémentations** du couple (pieces, mask). À faire adopter, pas à supprimer |
-| `common/shape_recognizer.dart` | orphelin |
-| `config/ui_layout_provider.dart` | orphelin — ses **9** providers (`uiLayoutProvider`, `isLandscapeProvider`, `boardDimensionsProvider`…) ne sont utilisés nulle part |
-| `utils/solution_collector.dart` | orphelin |
-| `services/pentomino_solver.dart` | atteint uniquement via `solution_collector`, lui-même orphelin → **inactif dans l'app** ; ne sert qu'à l'outil hors-ligne `tools/generate_6x10_solutions.dart` |
-
-> `common/isometry_transforms.dart` et `common/isometry_transformation_service.dart`,
-> listés ici dans la version précédente, ont depuis été **supprimés**.
-
-> ⚠️ `services/pentomino_solver.dart` porte un défaut à corriger avant toute génération de
-> nouvelle table : `maxSeconds = 30` n'est pas paramétrable et une troncature par timeout
-> est **invisible** pour l'appelant. C'est ce qui a produit un fichier de solutions brutes
-> incomplet (8175 sur 9356) sans que rien ne le signale.
-> → `docs/PLAN_6X10_DANS_PENTOSCOPE.md` §5.1.
+Audit exhaustif du 2026-09-22 : aucun fichier Dart orphelin ne reste dans `lib/`. Les cinq derniers
+fichiers sans appelant (`ui_layout_provider`, son unique dépendance `ui_layout_manager`,
+`pentomino_geometry`, `time_format` et `solutions_browser_screen`) ont été supprimés après contrôle
+des imports et de leurs symboles publics. Les anciens solveurs et utilitaires cités dans l'historique
+avaient déjà été retirés.
 
 ---
 
@@ -575,7 +559,7 @@ Vérifié au `grep` le 2026-08-30 — aucun de ces fichiers n'est importé hors 
 | Persistance | trois tables actives | `GameSessions` et `SolutionStats` n'ont **plus aucun écrivain** ; suppression décidée (plan §9) |
 | Scoring | `calculateScore` du mode classique | supprimé avec lui ; seule `calculateNote()` (sur 20) subsiste |
 | Compensation paysage H/V | située dans `pentomino_game_provider.dart` | dans `pentoscope_provider.dart`, sur `state.viewOrientation` |
-| Code inactif | 5 fichiers, dont 2 depuis supprimés | 5 fichiers, liste re-vérifiée au `grep` |
+| Code inactif | 5 fichiers, dont 2 depuis supprimés | aucun fichier Dart orphelin depuis l'audit du 2026-09-22 |
 | Écrans | 9, dont 3 supprimés depuis | 8, chemins complets |
 
 ---

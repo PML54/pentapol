@@ -75,10 +75,10 @@ Ceux-là ne font pas planter l'app. Ils décident si quelqu'un la garde.
 
 - **`bigint_plateau.dart` et `shape_recognizer.dart` supprimés le 2026-09-09** (`git rm`, décision de
   Paul) — orphelins autonomes, zéro importateur, `analyze` 0/0 et tests inchangés après retrait.
-- Orphelin restant : **`ui_layout_provider.dart`** (et ses 9 providers). Sans effet à l'exécution,
-  mais alourdit la relecture. Il est **entrelacé** avec `ui_layout_manager` → `ui_dimensions`
-  (import chaîné) : son retrait est un **chantier de code**, pas une correction documentaire, à
-  décider avec Paul.
+- **Orphelins Dart résolus le 2026-09-22** : `ui_layout_provider.dart`, son unique dépendance
+  `ui_layout_manager.dart`, `pentomino_geometry.dart`, `time_format.dart` et l'ancienne visionneuse
+  `solutions_browser_screen.dart` ont été supprimés après contrôle des imports et symboles publics.
+  `ui_dimensions.dart` reste actif et partagé par l'interface.
 - ~~`pentomino_solver.dart`~~ **résolu le 2026-08-31 (étape B, chantier 2)** : `pentomino_solver.dart`,
   `tools/generate_6x10_solutions.dart` et `solution_collector.dart` **supprimés**. Retrait par
   **substitution** : l'énumération du 6×10 est reprise par `tools/generate_solutions_corpus.dart`

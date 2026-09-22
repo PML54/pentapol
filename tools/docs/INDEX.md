@@ -207,46 +207,6 @@
 - `TextDimensions()`
 - `UILayout()`
 
-### config/ui_layout_manager.dart
-
-**Fonctions :**
-
-- `calculate()`
-- `UILayout()`
-- `ActionBarDimensions()`
-- `SliderDimensions()`
-- `BoardDimensions()`
-- `TextDimensions()`
-- `fromContext()`
-- `calculate()`
-- `fromConstraints()`
-- `calculate()`
-
-### config/ui_layout_provider.dart
-
-**Fonctions :**
-
-- `UILayoutState()`
-- `UILayoutState()`
-- `copyWith()`
-- `UILayoutState()`
-- `build()`
-- `updateScreenSize()`
-- `updateBoardSize()`
-- `recalculate()`
-- `UILayoutNotifier()`
-- `UILayoutInitializer()`
-- `createState()`
-- `didChangeDependencies()`
-- `build()`
-- `calculateLayout()`
-- `calculateBoardDimensions()`
-- `calculateLayout()`
-- `calculateSliderDimensions()`
-- `calculateLayout()`
-- `calculateActionBarDimensions()`
-- `calculateLayout()`
-
 ---
 
 ## Module: database
@@ -574,28 +534,6 @@
 - `Row()`
 - `Expanded()`
 - `SizedBox()`
-
-### pentoscope/screens/solutions_browser_screen.dart
-
-**Fonctions :**
-
-- `createState()`
-- `initState()`
-- `build()`
-- `Scaffold()`
-- `Scaffold()`
-- `SizedBox()`
-- `SizedBox()`
-- `Container()`
-- `Container()`
-- `SizedBox()`
-- `SizedBox()`
-- `Divider()`
-- `SizedBox()`
-- `SizedBox()`
-- `neighborId()`
-- `Border()`
-- `Border()`
 
 ### pentoscope/solution_source.dart
 
@@ -993,22 +931,6 @@
 
 ## Module: utils
 
-### utils/pentomino_geometry.dart
-
-**Fonctions :**
-
-- `Point2D()`
-- `toString()`
-- `cellNumberToCoords()`
-- `Point2D()`
-- `calculateBarycenter()`
-- `Point2D()`
-- `getPieceRotationCenter()`
-- `calculateBarycenter()`
-- `PentominoGeometry()`
-- `describeTransformation()`
-- `toOffset()`
-
 ### utils/piece_utils.dart
 
 **Fonctions :**
@@ -1047,10 +969,3 @@
 - `placementsToGrid()`
 - `PentominoSolution()`
 - `main()`
-
-### utils/time_format.dart
-
-**Fonctions :**
-
-- `formatMillis()`
-

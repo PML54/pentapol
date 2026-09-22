@@ -15,15 +15,16 @@
 > ⚠️ **Complété le 2026-08-30.** Quatre autres chemins cités ici sont morts depuis la
 > suppression du mode classique : `lib/classical/pentomino_game_screen.dart`,
 > `lib/providers/solutions_provider.dart`, `lib/services/plateau_solution_counter.dart`,
-> et `lib/screens/solutions_browser_screen.dart` — ce dernier n'est pas supprimé mais
-> **déménagé** en `lib/pentoscope/screens/solutions_browser_screen.dart`.
+> et `lib/screens/solutions_browser_screen.dart` — ce dernier avait alors été
+> **déménagé** en `lib/pentoscope/screens/solutions_browser_screen.dart`, puis a été supprimé
+> le 2026-09-22 après le retrait de son dernier point d'entrée.
 >
 > Le singleton global `solutionMatcher` n'existe plus : chaque table a son instance, via
 > `pentoscopeSolutionsProvider`. Le masque `(pieces, mask)` est construit par
 > `TableSolutionSource._mask`.
 >
-> ⚠️ Ne pas confondre `solutions_viewer_screen` (supprimé) et le **navigateur**
-> `solutions_browser_screen.dart` (vivant, déménagé).
+> `solutions_viewer_screen` et le navigateur `solutions_browser_screen.dart` sont désormais
+> tous deux supprimés ; leurs histoires restent distinctes dans `git log`.
 
 > Périmètre : encodage des plateaux et des solutions 6×10 (fichiers `.bin`, `bit6`,
 > `BigInt` 360 bits, `PlateauCompressor`). Hors périmètre : table statique
@@ -413,9 +414,8 @@ zéro référence externe.
 Après suppression : **66 fichiers `.dart`** dans `lib/`, **0 import `package:pentapol/`
 cassé** (contrôle exhaustif de tous les imports contre la liste des fichiers existants).
 
-> ⚠️ Ne pas confondre avec `lib/screens/solutions_browser_screen.dart`, qui est **vivant**
-> (importé par `classical/pentomino_game_screen.dart` et par `action_slider.dart`) et n'a
-> pas été touché. Les deux noms ne diffèrent que par *viewer* / *browser*.
+> À cette date, `lib/screens/solutions_browser_screen.dart` était encore vivant. Il a ensuite été
+> déplacé dans `pentoscope/`, puis supprimé le 2026-09-22 après disparition de son dernier appelant.
 
 Les défauts **B1 et B2 sont donc clos** : le code qui les portait n'existe plus.
 
@@ -612,8 +612,9 @@ Relevé de **tous** les `&` du chemin vivant. Sans exception, ils opèrent avec 
 
 - `solution_matcher.dart:502` — `(solution & maskBits) == piecesBits`, `maskBits` portant
   `0x3F` sur chaque case occupée
-- `solution_matcher.dart:398`, `bigint_plateau.dart:96–105`,
-  `solutions_browser_screen.dart:354` — extraction par `& 0x3F` puis égalité exacte
+- `solution_matcher.dart:398` — extraction par `& 0x3F` puis égalité exacte. Les deux autres
+  implémentations historiques (`bigint_plateau.dart` et `solutions_browser_screen.dart`) ont été
+  supprimées depuis cette analyse.
 
 Le test `S & P == P` avec `P` un code de pièce — celui que l'antichaîne rend non ambigu —
 **n'apparaît nulle part** dans `lib/`. Avec un masque pleine largeur, `solution & 0x3F`
