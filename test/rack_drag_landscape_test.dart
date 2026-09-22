@@ -1,4 +1,5 @@
-// Modified: 2026-09-11 15:10 — tester le glissé en mode jeu avec une base isolée, sans le mode supprimé.
+// Modified: 2026-09-22 06:06 — activer explicitement la miniature pour conserver son test historique.
+// Historique: 2026-09-11 15:10 — tester le glissé en mode jeu avec une base isolée, sans le mode supprimé.
 // test/rack_drag_landscape_test.dart
 // Historique: 2026-09-10 10:14 — feedback visible dès la prise, obstacle, sortie et retour au plateau sans perdre la pose.
 // Historique: 2026-09-10 09:46 — régression pièce 5 : drag réel rack tourné vers ligne basse, formats iPhone et tablette.
@@ -25,7 +26,8 @@ class _Game extends PentoscopeNotifier {
 
 class _Settings extends SettingsNotifier {
   @override
-  AppSettings build() => const AppSettings();
+  AppSettings build() =>
+      const AppSettings(game: GameSettings(showDragFeedback: true));
 }
 
 void main() {

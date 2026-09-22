@@ -68,13 +68,17 @@ redémarre immédiatement avec le nouveau texte.
 La zone garde la hauteur de la plus longue consigne : ni le mouvement ni le changement de message
 ne déplacent le plateau. Une poignée permet de déplacer tout le bandeau au doigt lorsqu'il masque
 une pièce. La couleur de police du bandeau change à chaque état (aucune sélection : bleu ; sans
-placement valide : deep-orange ; placement valide : violet ; résolu : vert). La fin affiche
-« C'est bon ! — Tap pour un autre training. Double tap pour jouer », sans bouton ni bilan de score.
+placement valide : deep-orange ; placement valide : violet ; résolu : vert). La fin du Training 1
+affiche « C'est bon ! — Tap pour le training 2. Double tap pour jouer » ; celle du Training 2 propose
+de recommencer au Training 1. Aucun bouton ni bilan de score n'est affiché.
 En réduction des animations ou
 navigation accessible, la consigne est fixe dès le départ et annoncée une seule fois aux aides vocales.
 Rendu isolé dans `lib/pentoscope/home/guided_scrolling_message.dart`.
-À la fin, un **tap sur le plateau résolu** lance un autre entraînement ; un **double-tap** démarre
-une vraie partie `Game` au niveau courant et remplace l'écran Training. Il n'y a ni bouton
+Le parcours alterne deux niveaux. Le **Training 1** retire une pièce d'un plateau complet. Après sa
+réussite, un tap lance le **Training 2** : deux pièces qui partageaient au moins un côté sont retirées
+et placées dans le tiroir, chacune avec une orientation différente. Leur retrait conserve une solution
+unique. Après la réussite du Training 2, un tap recommence au Training 1. À chaque fin, un
+**double-tap** démarre une vraie partie `Game` au niveau courant et remplace l'écran Training. Il n'y a ni bouton
 « Voir un autre » ni relance automatique (la relance auto 1 s a été essayée puis écartée). Le retour
 Accueil ouvre le menu principal ; son bouton Training permet également de repartir sur un nouvel
 exercice. Aucune boucle animée ne joue à la place du joueur.

@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
+// Modified: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
+//           deux pièces ; le double-tap vers Game reste prioritaire.
+// Historique: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
 //           conservé pour enchaîner l'entraînement.
 // Historique: 2026-09-22 04:46 — fin training : bandeau « Tap pour un autre training » + tap sur le
 //           plateau résolu (training-continue) pour enchaîner (ni bouton ni relance auto) ; geste
@@ -37,6 +39,7 @@ class _Game extends PentoscopeNotifier {
 
 class _AutoGame extends _Game {
   int recreationalStarts = 0;
+  int? lastMissingPieceCount;
   int gameStarts = 0;
 
   @override
@@ -67,19 +70,21 @@ class _AutoGame extends _Game {
   @override
   Future<void> startRecreationalPuzzle({
     PentoscopeSize size = PentoscopeSize.size7x5,
+    int missingPieceCount = 1,
   }) async {
     recreationalStarts++;
-    final piece = pentominos.first;
+    lastMissingPieceCount = missingPieceCount;
+    final pieces = pentominos.take(missingPieceCount).toList();
     load(
       PentoscopeState.initial().copyWith(
         puzzle: PentoscopePuzzle(
           size: size,
-          pieceIds: [piece.id],
+          pieceIds: pieces.map((piece) => piece.id).toList(),
           solutionCount: 1,
         ),
         plateau: Plateau.allVisible(size.width, size.height),
-        availablePieces: [piece],
-        piecePositionIndices: {piece.id: 0},
+        availablePieces: pieces,
+        piecePositionIndices: {for (final piece in pieces) piece.id: 0},
         solutionsCount: 1,
       ),
     );
@@ -89,12 +94,15 @@ class _AutoGame extends _Game {
 class _GestureGame extends _Game {
   int? acceptedY;
   int recreationalStarts = 0;
+  int? lastMissingPieceCount;
 
   @override
   Future<void> startRecreationalPuzzle({
     PentoscopeSize size = PentoscopeSize.size7x5,
+    int missingPieceCount = 1,
   }) async {
     recreationalStarts++;
+    lastMissingPieceCount = missingPieceCount;
     final piece = pentominos.first;
     load(
       PentoscopeState.initial().copyWith(
@@ -416,7 +424,7 @@ void main() {
     await tester.pump();
     // Bandeau de fin : félicitation + consigne des gestes.
     expect(find.textContaining('C’est bon'), findsWidgets);
-    expect(find.textContaining('Tap pour un autre'), findsWidgets);
+    expect(find.textContaining('Tap pour le training 2'), findsWidgets);
     expect(find.textContaining('Double tap pour jouer'), findsWidgets);
     // État 4 — puzzle complété.
     expect(guideColor(), TrainingBarColors.complete);
@@ -556,11 +564,12 @@ void main() {
 
     expect(game.acceptedY, 0);
     expect(container.read(pentoscopeProvider).isComplete, isTrue);
-    // Ni bouton ni relance auto : le plateau résolu attend un tap pour l'exercice suivant.
+    // Ni bouton ni relance auto : le plateau résolu attend un tap pour le Training 2.
     expect(find.byKey(const ValueKey('training-next')), findsNothing);
     expect(game.recreationalStarts, 0);
     await tester.tap(find.byKey(const ValueKey('training-continue')));
     await tester.pump(const Duration(milliseconds: 400));
     expect(game.recreationalStarts, 1);
+    expect(game.lastMissingPieceCount, 2);
   });
 }

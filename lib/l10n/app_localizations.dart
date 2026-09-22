@@ -1,4 +1,3 @@
-// Modified: 2026-09-22 05:29 — gen-l10n : consigne de fin Training avec double-tap vers Game.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -254,6 +253,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vibrate on actions'**
   String get hapticsSub;
+
+  /// No description provided for @showDragFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece during dragging'**
+  String get showDragFeedback;
+
+  /// No description provided for @showDragFeedbackSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a copy of the piece under your finger.'**
+  String get showDragFeedbackSub;
 
   /// No description provided for @showCounters.
   ///
@@ -1161,6 +1172,12 @@ abstract class AppLocalizations {
   /// **'Tap the piece in the rack to select it.'**
   String get recreationalSelect;
 
+  /// No description provided for @recreationalSelectTwo.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one of the two pieces in the rack.'**
+  String get recreationalSelectTwo;
+
   /// No description provided for @recreationalTransform.
   ///
   /// In en, this message translates to:
@@ -1182,8 +1199,14 @@ abstract class AppLocalizations {
   /// No description provided for @recreationalTapAgain.
   ///
   /// In en, this message translates to:
-  /// **'Tap for another training. Double tap to play.'**
+  /// **'Tap to restart with Training 1. Double tap to play.'**
   String get recreationalTapAgain;
+
+  /// No description provided for @recreationalTapTraining2.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for Training 2. Double tap to play.'**
+  String get recreationalTapTraining2;
 
   /// No description provided for @geometryTitle.
   ///

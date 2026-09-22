@@ -1,4 +1,5 @@
-// Modified: 2026-09-10 10:13 — pièce visible dès la prise du rack, contour rouge tant que le dépôt est interdit.
+// Modified: 2026-09-22 06:06 — respecter le réglage de visibilité de la miniature de drag.
+// Historique: 2026-09-10 10:13 — pièce visible dès la prise du rack, contour rouge tant que le dépôt est interdit.
 // Historique: 2026-09-10 06:00 — ergonomie (bloc 3, C6) : fondu de bord du rack SENSIBLE au défilement.
 //           Fondu de tête seulement si on a défilé (offset > 0) → la 1re pièce n'est jamais rognée
 //           (C6) ; fondu de queue tant qu'il reste des pièces après → suggère au nouveau joueur (3×5)
@@ -99,7 +100,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     final ref = context as WidgetRef;
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
-    final settings = ref.read(settingsProvider);
+    final settings = ref.watch(settingsProvider);
     
 
     final pieces = state.availablePieces;
@@ -268,6 +269,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             isSelected: isSelected,
             selectedPositionIndex: isSelected ? displayPositionIndex : state.selectedPositionIndex,
             longPressDuration: Duration(milliseconds: settings.game.longPressDuration),
+            showDragFeedback: settings.game.showDragFeedback,
             // Toute la boîte de la case répond au doigt : le « I » (1 case) s'attrape comme le reste.
             // Carrée (côté = maxDim) → _grabbedCell centre correctement.
             hitBoxSize: pieceBox,

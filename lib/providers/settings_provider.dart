@@ -1,4 +1,5 @@
-// Modified: 2026-09-12 10:58 — sauvegarde fiable du barème pour les prochaines parties.
+// Modified: 2026-09-22 06:06 — persister l'affichage optionnel de la miniature de drag.
+// Historique: 2026-09-12 10:58 — sauvegarde fiable du barème pour les prochaines parties.
 // Historique: 2026-09-12 07:25 — enregistrement du barème pour les prochaines parties solo.
 // Historique: 2026-09-11 15:10 — retrait de l’enregistrement des exercices du mode supprimé.
 // lib/providers/settings_provider.dart
@@ -334,6 +335,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// Afficher/masquer les compteurs isométries + fautes dans la barre du jeu (retour de Paul).
   Future<void> setShowCounters(bool value) async {
     state = state.copyWith(game: state.game.copyWith(showCounters: value));
+    await _saveSettings();
+  }
+
+  /// Afficher/masquer la miniature qui suit le doigt ; l'aperçu du plateau reste actif.
+  Future<void> setShowDragFeedback(bool value) async {
+    state = state.copyWith(game: state.game.copyWith(showDragFeedback: value));
     await _saveSettings();
   }
 

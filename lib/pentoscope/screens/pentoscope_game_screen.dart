@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 05:14 — training terminé : double-tap plein cadre vers le mode Game,
+// Modified: 2026-09-22 05:35 — enchaîner le Training 1 avec un Training 2 à deux pièces
+//           voisines, puis recommencer le cycle ; double-tap vers Game conservé.
+// Historique: 2026-09-22 05:14 — training terminé : double-tap plein cadre vers le mode Game,
 //           tap simple conservé pour enchaîner un training.
 // Historique: 2026-09-22 04:46 — training : fin d'exercice → bandeau « C'est bon ! — Tap pour un autre
 //           training » et tap simple plein cadre (training-continue) pour enchaîner ; ni bouton ni
@@ -270,6 +272,8 @@ class PentoscopeGameScreen extends ConsumerStatefulWidget {
 }
 
 class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
+  int _trainingStage = 1;
+
   // 👁️ État du mini-plateau adversaire
   bool _showOpponentOverlay = false;
 
@@ -486,10 +490,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 child: GestureDetector(
                   key: const ValueKey('training-continue'),
                   behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    notifier.startRecreationalPuzzle();
-                  },
+                  onTap: () => _startNextTraining(notifier),
                   onDoubleTap: () => _openGameFromTraining(notifier),
                 ),
               ),
@@ -528,9 +529,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final l10n = AppLocalizations.of(context);
     final message = state.isComplete
         // Puzzle résolu : féliciter ET indiquer les gestes depuis le plateau.
-        ? '${l10n.recreationalPlaced} — ${l10n.recreationalTapAgain}'
+        ? '${l10n.recreationalPlaced} — ${_trainingStage == 1 ? l10n.recreationalTapTraining2 : l10n.recreationalTapAgain}'
         : state.selectedPiece == null
-        ? l10n.recreationalSelect
+        ? (_trainingStage == 2
+              ? l10n.recreationalSelectTwo
+              : l10n.recreationalSelect)
         : state.validPlacements.isEmpty
         ? l10n.recreationalTransform
         : l10n.recreationalPlace;
@@ -570,6 +573,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         );
       },
     );
+  }
+
+  Future<void> _startNextTraining(PentoscopeNotifier notifier) async {
+    HapticFeedback.selectionClick();
+    final nextStage = _trainingStage == 1 ? 2 : 1;
+    setState(() => _trainingStage = nextStage);
+    await notifier.startRecreationalPuzzle(missingPieceCount: nextStage);
   }
 
   Future<void> _openGameFromTraining(PentoscopeNotifier notifier) async {

@@ -26,9 +26,9 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
-### Training — mode explicite, bandeau déplaçable et quatre états (2026-09-21)
+### Training — deux niveaux progressifs, bandeau déplaçable et quatre états (2026-09-22)
 
-Le démarrage ouvre le vrai `PentoscopeGameScreen` sur un puzzle récréatif avec une pièce manquante.
+Le démarrage ouvre le vrai `PentoscopeGameScreen` sur le Training 1 avec une pièce manquante.
 Un nouveau `PentoscopeMode` explicite distingue `training`, `game`, `challenge`, `multiplayer` et
 `analysis`, à la place du booléen d'affichage du guide. Le bandeau du mode training défile en continu,
 possède une poignée et peut être déplacé au doigt pour dégager la pièce.
@@ -42,13 +42,15 @@ placement valide (`validPlacements` vide, même après une ou plusieurs mauvaise
 orientation offrant un placement valide ; puzzle complété (« C'est bon ! »). La fin du training
 n'affiche jamais le bilan de score.
 
-**Enchaînement à la demande (2026-09-22).** Le bouton « Voir un autre » (`training-next`) est retiré.
+**Cycle Training 1 → Training 2 (2026-09-22).** Le bouton « Voir un autre » (`training-next`) est retiré.
 Une **relance auto** (Timer 1 s) avait d'abord été branchée, puis **écartée** (choix de Paul) : elle
 enchaînait un exercice toutes les ~1 s, un tapis roulant qui ne laissait pas respirer. À la place, à la
-complétion, le bandeau affiche **« C'est bon ! — Tap pour un autre training. Double tap pour jouer »**
-(`recreationalPlaced` + `recreationalTapAgain`, EN/FR) et le **plateau résolu attend le geste** —
-capteur plein cadre `training-continue` (`Positioned.fill`, `HitTestBehavior.opaque`) : `onTap` lance
-l'exercice suivant, `onDoubleTap` démarre une vraie partie `Game` au niveau courant via
+complétion du Training 1, le bandeau propose le **Training 2** ; `onTap` appelle
+`startRecreationalPuzzle(missingPieceCount: 2)`. Le moteur part d'une solution complète et choisit
+deux pièces partageant un côté dont le retrait laisse une solution unique. Les deux pièces reviennent
+dans le tiroir avec une orientation différente. Une fois le Training 2 résolu, le tap recommence au
+Training 1. Le capteur plein cadre `training-continue` conserve à chaque fin `onDoubleTap`, qui démarre
+une vraie partie `Game` au niveau courant via
 `startPuzzle(sizeForLevel(currentLevel), isProgression: true)` puis remplace l'écran Training.
 La police du bandeau défilant est légèrement agrandie (`fontSize` `0.36→0.40`, bornes `16-20 → 18-22`).
 
@@ -69,12 +71,11 @@ L'`import ui_dimensions.dart` (redondant, `kBoardSideMargin`/`kMaxBoardCellFacto
 `pentoscope_game_screen.dart`) est retiré → plus d'avertissement. La chaîne l10n `guidedAnother` du
 bouton retiré est **conservée** (littéral gardé, cf. `docs/I18N.md`).
 
-**Vérifications : 212/212 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
-L'enchaînement au tap reste couvert dans « dépôt sur la rangée haute » (`recreationalStarts == 0`
-après complétion, puis tap sur `training-continue` → `== 1`) ; le passage au Game est couvert par
-double-tap (`gameStarts == 1`, guide training absent après remplacement d'écran). Le bandeau de fin
-est vérifié (contient « C'est bon », « Tap pour un autre » et « Double tap pour jouer ») ; couleurs
-vérifiées sur les états 1, 2 et 4. **Ressenti du geste à confirmer sur appareil par Paul.**
+**Vérifications : 213/213 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
+Le test du moteur exécute dix générations aléatoires successives
+du Training 2 : 5 pièces posées, 2 au tiroir, 10 cases vides connexes, une solution restante, aucune
+partie persistée. Le widget vérifie que le tap de fin du Training 1 demande bien deux pièces ; le
+double-tap vers Game et les quatre couleurs restent couverts. **Ressenti à confirmer sur appareil par Paul.**
 
 ### Accueil — menu principal complet (2026-09-21)
 
@@ -130,6 +131,19 @@ les builds pendant le développement et n'a pas à être interprétée comme la 
 Seules la **date et l'heure affichées dans Paramètres** font foi pour identifier précisément la
 version testée. La version de `pubspec.yaml` reste une donnée technique de packaging, à renseigner
 selon les contraintes des stores au moment de la soumission.
+
+### Game et Training — miniature de déplacement optionnelle (2026-09-22)
+
+Le réglage Jeu « Pièce pendant le déplacement » pilote la copie réduite qui suit le doigt, aussi
+bien depuis le tiroir que lors du déplacement d'une pièce déjà posée. Il est **désactivé par défaut** :
+l'aperçu coloré sur le plateau, sa validité et le suivi exact du doigt restent inchangés. Le champ
+`GameSettings.showDragFeedback` est persisté dans le JSON des réglages (aucune migration) et les
+widgets observent le provider pour appliquer immédiatement le changement. Le comportement historique
+reste disponible en activant l'interrupteur.
+
+**Vérifications : 216/216 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
+Les tests couvrent le défaut masqué, la sérialisation JSON, les deux rendus du feedback et le glissé
+historique complet avec l'option explicitement active.
 
 ### Géométrie — barème paramétrable (2026-09-12)
 
@@ -1129,26 +1143,23 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-22 (14) — CLI : miniature de déplacement paramétrable.**
+Nouveau réglage global EN/FR « Pièce pendant le déplacement », masqué par défaut et persisté en JSON.
+Il contrôle le feedback sous le doigt depuis le tiroir et depuis le plateau, sans toucher au fantôme
+de destination. Tests du défaut, de la sérialisation et des deux états du feedback ; ancien test de
+glissé conservé avec l'option explicitement active.
+
+**2026-09-22 (13) — CLI : Training 2 à deux pièces voisines.**
+Le Training suit désormais un cycle 1 → 2 → 1. Le niveau 2 retire d'une solution complète deux
+pièces partageant un côté, exige que le plateau résiduel garde une solution unique, puis distribue
+les deux pièces avec une mauvaise orientation. Le bandeau adapte ses consignes et le tap de fin ;
+le double-tap vers Game reste disponible aux deux niveaux. Test réel répété sur dix générations.
+
 **2026-09-22 (12) — CLI : double-tap de fin Training vers Game.**
 Sur le plateau résolu du mode Training, `training-continue` garde le tap simple pour enchaîner un
 autre exercice, et ajoute `onDoubleTap` pour démarrer une vraie partie `Game` au niveau courant
 (`startPuzzle(sizeForLevel(currentLevel), isProgression: true)`) puis remplacer l'écran Training.
 Le bandeau annonce désormais « Double tap pour jouer » en EN/FR. Tests adaptés : tap simple toujours
 couvert, double-tap vérifie le démarrage Game et l'absence du guide training.
-
-**2026-09-22 (11) — Décision de Paul : identification des builds par date et heure.**
-La version de `pubspec.yaml` n'est pas significative pour distinguer les builds de développement.
-La référence faisant foi est la date et l'heure affichées dans Paramètres ; la valeur du pubspec
-reste uniquement une donnée technique de packaging pour les stores.
-
-**2026-09-22 (10) — CLI : training enchaîné au tap, bouton retiré, WIP « dépôt » terminé.**
-Le bouton « Voir un autre » (`training-next`) disparaît. Une relance auto (Timer 1 s) a été essayée
-puis **écartée** (tapis roulant sans pause, retour de Paul) : à la place, à la fin le bandeau affiche
-« C'est bon ! — Tap pour un autre training » et le plateau résolu attend un **tap**
-(`training-continue`, plein cadre) pour l'exercice suivant. (Un double-tap intermédiaire a été abandonné,
-latence perçue.) Police du bandeau légèrement agrandie. WIP
-« dépôt sur la rangée haute » corrigé — long press avant `moveTo`, motif de `rack_drag_landscape_test`
-— et import `ui_dimensions` redondant retiré. **212/212 tests**, analyse **0 erreur / 0 avertissement /
-116 infos**. Ressenti à confirmer sur appareil par Paul.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

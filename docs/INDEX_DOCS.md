@@ -18,7 +18,7 @@
 
 | Document | Usage / état |
 |---|---|
-| [Accueil](ACCUEIL_GUIDE.md) | Menu principal responsive (Jouer/Training + tuiles Défi, Multijoueur, Records, Réglages) et mode Training (bandeau coloré par état, fin relancée au tap ou envoyée vers Game au double-tap) ; parcours 3×5 participatif conservé |
+| [Accueil](ACCUEIL_GUIDE.md) | Menu principal responsive et mode Training en cycle : niveau 1 à une pièce, puis niveau 2 à deux pièces voisines ; tap pour avancer/recommencer, double-tap vers Game ; parcours 3×5 participatif conservé |
 | [Barème Géométrie](BAREME_GEOMETRIE.md) | Réglage, formule, Triche, reprise et préparation de la publication |
 | [Fonctionnement](FONCTIONNEMENT.md) | Synthèse actuelle en tête ; ancienne description détaillée explicitement historique |
 | [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md) | Rangée permanente et grisage livrés ; vignettes et axes des miroirs encore ouverts |

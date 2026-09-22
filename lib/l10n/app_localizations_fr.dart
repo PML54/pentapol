@@ -1,4 +1,3 @@
-// Modified: 2026-09-22 05:29 — gen-l10n : consigne de fin Training avec double-tap vers Game.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -87,6 +86,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get hapticsSub => 'Vibrations lors des actions';
+
+  @override
+  String get showDragFeedback => 'Pièce pendant le déplacement';
+
+  @override
+  String get showDragFeedbackSub =>
+      'Afficher une copie de la pièce sous le doigt.';
 
   @override
   String get showCounters => 'Afficher les compteurs';
@@ -642,6 +648,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Appuie sur la pièce du tiroir pour la sélectionner.';
 
   @override
+  String get recreationalSelectTwo => 'Choisis une des deux pièces du tiroir.';
+
+  @override
   String get recreationalTransform =>
       'Mets la pièce dans la bonne position avec les icônes.';
 
@@ -653,7 +662,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get recreationalTapAgain =>
-      'Tap pour un autre training. Double tap pour jouer.';
+      'Tap pour recommencer au training 1. Double tap pour jouer.';
+
+  @override
+  String get recreationalTapTraining2 =>
+      'Tap pour le training 2. Double tap pour jouer.';
 
   @override
   String get geometryTitle => 'Réglage du barème';

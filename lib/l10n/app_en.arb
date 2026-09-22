@@ -26,6 +26,8 @@
   "solutionCounterSub": "Show the number of possible solutions",
   "haptics": "Haptic feedback",
   "hapticsSub": "Vibrate on actions",
+  "showDragFeedback": "Piece during dragging",
+  "showDragFeedbackSub": "Show a copy of the piece under your finger.",
   "showCounters": "Show counters",
   "showCountersSub": "Geometry, dead ends and cheating during the game.",
   "rackSize": "Rack piece size",
@@ -331,10 +333,12 @@
   "guidedPlacePiece": "Move it to the right place on the board.",
   "guidedPlaced": "That’s right!",
   "recreationalSelect": "Tap the piece in the rack to select it.",
+  "recreationalSelectTwo": "Choose one of the two pieces in the rack.",
   "recreationalTransform": "Use the icons to put the piece in the right position.",
   "recreationalPlace": "Move it to the right place on the board.",
   "recreationalPlaced": "That’s right!",
-  "recreationalTapAgain": "Tap for another training. Double tap to play.",
+  "recreationalTapAgain": "Tap to restart with Training 1. Double tap to play.",
+  "recreationalTapTraining2": "Tap for Training 2. Double tap to play.",
   "@guidedChoose": {
     "placeholders": {
       "number": {

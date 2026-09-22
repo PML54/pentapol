@@ -1,4 +1,5 @@
-// Modified: 2026-09-12 10:58 — accès au réglage du barème avant déploiement.
+// Modified: 2026-09-22 06:06 — interrupteur de visibilité de la miniature pendant le drag.
+// Historique: 2026-09-12 10:58 — accès au réglage du barème avant déploiement.
 // Historique: 2026-09-10 06:38 — réglage « Numéro des pièces » (SwitchListTile → setShowPieceNumbers, C8) :
 //           pastille des pièces posées. Plus « Taille des pièces du rack » (stepper 0.30-0.60) →
 //           setRackCellRatio : calibrage live du rack sur device (retour de Paul, décision 6).
@@ -173,6 +174,15 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(l10n.hapticsSub),
             value: settings.game.enableHaptics,
             onChanged: (value) => notifier.setEnableHaptics(value),
+          ),
+
+          SwitchListTile(
+            key: const ValueKey('show-drag-feedback'),
+            secondary: const Icon(Icons.touch_app_outlined),
+            title: Text(l10n.showDragFeedback),
+            subtitle: Text(l10n.showDragFeedbackSub),
+            value: settings.game.showDragFeedback,
+            onChanged: notifier.setShowDragFeedback,
           ),
 
           // Compteurs isométries + fautes dans la barre du jeu

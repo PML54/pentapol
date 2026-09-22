@@ -1,4 +1,6 @@
-// Modified: 2026-09-21 11:04 — garder la pièce sélectionnée hors du plateau après toute isométrie.
+// Modified: 2026-09-22 05:35 — training 2 : retirer deux pièces voisines, toutes deux
+//           réorientées dans le tiroir, en conservant une complétion unique.
+// Historique: 2026-09-21 11:04 — garder la pièce sélectionnée hors du plateau après toute isométrie.
 // Historique: 2026-09-21 09:19 — recalculer les destinations après une isométrie d'une pièce posée.
 // Historique: 2026-09-12 10:58 — persister Géométrie dans la colonne dédiée du nouveau schéma.
 // Historique: 2026-09-12 07:25 — Géométrie figée par partie, pénalités persistées et appuis Triche comptés.
@@ -454,49 +456,59 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
-  /// Prépare le premier mode récréatif sur le vrai moteur Game :
+  /// Prépare un exercice Training sur le vrai moteur Game :
   ///
   /// 1. démarre un vrai puzzle 5×7 ;
   /// 2. applique 7 fois la lampe jaune via [applyHint] pour obtenir un plateau complet ;
-  /// 3. choisit une pièce dont le retrait laisse une solution unique quand c'est possible ;
-  /// 4. retire cette pièce via [removePlacedPiece].
+  /// 3. choisit une ou deux pièces dont le retrait laisse une solution unique ;
+  /// 4. pour deux pièces, exige qu'elles partagent au moins un côté ;
+  /// 5. retire les pièces via [removePlacedPiece].
   ///
   /// Les compteurs sont remis à zéro après la préparation : le joueur reçoit un plateau de Game
   /// authentique, sans dette d'aides/suppressions automatiques.
   Future<void> startRecreationalPuzzle({
     PentoscopeSize size = PentoscopeSize.size7x5,
+    int missingPieceCount = 1,
   }) async {
+    if (missingPieceCount != 1 && missingPieceCount != 2) {
+      throw ArgumentError.value(missingPieceCount, 'missingPieceCount');
+    }
     _isRecreationalSetup = true;
     try {
-      PlacedPiece? toRemove;
-      for (var attempt = 0; attempt < 10 && toRemove == null; attempt++) {
+      List<PlacedPiece>? toRemove;
+      for (var attempt = 0; attempt < 20 && toRemove == null; attempt++) {
         await startPuzzle(size, isProgression: false);
         while (!state.isComplete && state.availablePieces.isNotEmpty) {
           applyHint();
         }
         if (state.isComplete && state.placedPieces.isNotEmpty) {
-          toRemove = _chooseRecreationalPieceToRemove();
+          toRemove = _chooseRecreationalPiecesToRemove(missingPieceCount);
         }
       }
       if (toRemove == null) {
         throw StateError(
-          'Impossible de générer un puzzle récréatif à solution unique.',
+          'Impossible de générer un training à $missingPieceCount pièce(s).',
         );
       }
 
-      removePlacedPiece(toRemove);
+      for (final placed in toRemove) {
+        removePlacedPiece(placed);
+      }
 
-      // La pièce retirée ne doit pas revenir déjà prête à poser : le parcours
-      // récréatif fait réellement pratiquer une isométrie avant le placement.
-      final initialOrientation = _differentOrientation(toRemove);
+      // Les pièces retirées ne reviennent pas déjà prêtes à poser : chaque niveau
+      // fait réellement pratiquer une isométrie avant le placement.
+      final rackOrientations = {
+        for (final placed in toRemove)
+          placed.piece.id: _differentOrientation(placed),
+      };
       state = state.copyWith(
         piecePositionIndices: {
           ...state.piecePositionIndices,
-          toRemove.piece.id: initialOrientation,
+          ...rackOrientations,
         },
         initialOrientations: {
           ...state.initialOrientations,
-          toRemove.piece.id: initialOrientation,
+          ...rackOrientations,
         },
       );
 
@@ -521,7 +533,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
-  PlacedPiece? _chooseRecreationalPieceToRemove() {
+  List<PlacedPiece>? _chooseRecreationalPiecesToRemove(int count) {
     final candidates =
         state.placedPieces
             .where(
@@ -529,11 +541,46 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             )
             .toList()
           ..shuffle(Random());
-    for (final placed in candidates) {
-      final board = _rebuildPlateau(exclude: placed);
-      if (_solutions.countFrom(board) == 1) return placed;
+    if (count == 1) {
+      for (final placed in candidates) {
+        final board = _rebuildPlateau(exclude: placed);
+        if (_solutions.countFrom(board) == 1) return [placed];
+      }
+      return null;
+    }
+
+    final pairs = <List<PlacedPiece>>[];
+    for (var i = 0; i < candidates.length; i++) {
+      for (var j = i + 1; j < candidates.length; j++) {
+        if (_shareEdge(candidates[i], candidates[j])) {
+          pairs.add([candidates[i], candidates[j]]);
+        }
+      }
+    }
+    pairs.shuffle(Random());
+    for (final pair in pairs) {
+      final ids = pair.map((placed) => placed.piece.id).toSet();
+      final remaining = state.placedPieces
+          .where((placed) => !ids.contains(placed.piece.id))
+          .toList();
+      if (_solutions.countFrom(_rebuildPlateau(pieces: remaining)) == 1) {
+        return pair;
+      }
     }
     return null;
+  }
+
+  bool _shareEdge(PlacedPiece first, PlacedPiece second) {
+    final secondCells = second.absoluteCells.toSet();
+    for (final cell in first.absoluteCells) {
+      if (secondCells.contains(Point(cell.x - 1, cell.y)) ||
+          secondCells.contains(Point(cell.x + 1, cell.y)) ||
+          secondCells.contains(Point(cell.x, cell.y - 1)) ||
+          secondCells.contains(Point(cell.x, cell.y + 1))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   int _differentOrientation(PlacedPiece placed) {

@@ -1,4 +1,5 @@
-// Modified: 2026-09-03 07:10 — fix drag tiroir : callback onGrab + dragAnchorStrategy captent
+// Modified: 2026-09-22 06:06 — rendre la miniature de drag optionnelle sans modifier le geste.
+// Historique: 2026-09-03 07:10 — fix drag tiroir : callback onGrab + dragAnchorStrategy captent
 //           l'offset local du toucher au départ du drag, transmis à l'appelant (le slider) pour
 //           ancrer la pièce sur la cellule empoignée. Feedback par défaut inchangé.
 // Historique: 2026-09-01 14:09 — hitBoxSize optionnel : la zone tactile au repos remplit toute la
@@ -14,11 +15,11 @@ import 'package:flutter/material.dart';
 import 'package:pentapol/common/pentominos.dart';
 
 /// Widget pour gérer proprement le double-tap sans propagation
-/// 
+///
 /// Gère deux modes :
 /// - Pièce non sélectionnée : LongPressDraggable (long press pour drag)
 /// - Pièce sélectionnée : Draggable normal (drag immédiat)
-/// 
+///
 /// Interactions :
 /// - Tap simple : sélectionner la pièce
 /// - Double-tap : faire pivoter (si déjà sélectionnée)
@@ -34,6 +35,7 @@ class DraggablePieceWidget extends StatefulWidget {
   final VoidCallback onCycle;
   final VoidCallback onCancel;
   final Widget Function(bool isDragging) childBuilder;
+  final bool showDragFeedback;
 
   /// Appelé au départ du drag avec l'offset local du toucher (dans la boîte du widget) et la
   /// taille de cette boîte, pour que l'appelant en déduise la cellule empoignée et ancre le drag
@@ -55,6 +57,7 @@ class DraggablePieceWidget extends StatefulWidget {
     required this.onCycle,
     required this.onCancel,
     required this.childBuilder,
+    required this.showDragFeedback,
     this.hitBoxSize,
     this.onGrab,
   });
@@ -171,6 +174,10 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
     );
   }
 
+  Widget _dragFeedback() => widget.showDragFeedback
+      ? Material(color: Colors.transparent, child: widget.childBuilder(true))
+      : const SizedBox.shrink();
+
   @override
   Widget build(BuildContext context) {
     // Si la pièce est déjà sélectionnée, utiliser Draggable normal
@@ -185,10 +192,7 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
             widget.onCancel();
           }
         },
-        feedback: Material(
-          color: Colors.transparent,
-          child: widget.childBuilder(true),
-        ),
+        feedback: _dragFeedback(),
         childWhenDragging: _placeholderWhenDragging(),
         child: _restingChild(),
       );
@@ -203,14 +207,10 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
             widget.onCancel();
           }
         },
-        feedback: Material(
-          color: Colors.transparent,
-          child: widget.childBuilder(true),
-        ),
+        feedback: _dragFeedback(),
         childWhenDragging: _placeholderWhenDragging(),
         child: _restingChild(),
       );
     }
   }
 }
-

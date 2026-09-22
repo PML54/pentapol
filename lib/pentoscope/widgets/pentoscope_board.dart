@@ -1,4 +1,5 @@
-// Modified: 2026-09-21 14:31 — effacer l'aperçu quand une translation se termine hors cible.
+// Modified: 2026-09-22 06:06 — masquer aussi la miniature des pièces déjà posées selon le réglage.
+// Historique: 2026-09-21 14:31 — effacer l'aperçu quand une translation se termine hors cible.
 // Historique: 2026-09-21 10:55 — masquer toute empreinte source d'une pièce pendant sa translation.
 // Historique: 2026-09-21 10:28 — neutraliser la bordure du plateau sous une pièce déplacée.
 // Historique: 2026-09-21 10:16 — dissocier sélection interactive et contour source pendant le drag.
@@ -80,7 +81,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     final ref = context as WidgetRef;
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
-    final settings = ref.read(settingsProvider);
+    final settings = ref.watch(settingsProvider);
 
     // Informe le provider APRÈS le build (sinon Riverpod assertion).
     // ✅ Ne PAS modifier le provider pendant le build.
@@ -526,16 +527,18 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           }
           notifier.setDragging(false);
         },
-        feedback: Material(
-          color: Colors.transparent,
-          child: PieceDragFeedback(
-            piece: state.selectedPiece!,
-            positionIndex: _getDisplayPositionIndex(
-              state.selectedPositionIndex, state.selectedPiece!, isLandscape),
-            cellSize: cellSize * settings.game.rackCellRatio,
-            getPieceColor: (id) => settings.ui.getPieceColor(id),
-          ),
-        ),
+        feedback: settings.game.showDragFeedback
+            ? Material(
+                color: Colors.transparent,
+                child: PieceDragFeedback(
+                  piece: state.selectedPiece!,
+                  positionIndex: _getDisplayPositionIndex(
+                    state.selectedPositionIndex, state.selectedPiece!, isLandscape),
+                  cellSize: cellSize * settings.game.rackCellRatio,
+                  getPieceColor: (id) => settings.ui.getPieceColor(id),
+                ),
+              )
+            : const SizedBox.shrink(),
         childWhenDragging: previewInfo.isPreview ? cellWidget : emptyCell,
         child: state.isDragging
             ? (previewInfo.isPreview ? cellWidget : emptyCell)

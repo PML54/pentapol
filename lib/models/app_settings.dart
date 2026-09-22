@@ -1,4 +1,6 @@
-// Modified: 2026-09-12 10:58 — sauvegarde JSON du barème Géométrie dans les réglages.
+// Modified: 2026-09-22 06:06 — réglage showDragFeedback (défaut false) pour masquer
+//           la miniature qui suit le doigt, sans masquer l'aperçu du plateau.
+// Historique: 2026-09-12 10:58 — sauvegarde JSON du barème Géométrie dans les réglages.
 // Historique: 2026-09-11 15:10 — retrait du compteur JSON de l’ancien entraînement ; réglages existants compatibles.
 // lib/models/app_settings.dart
 // Historique: 2026-09-10 06:36 — réglage showPieceNumbers (bool, défaut true, C8/décision 7) : numéro des
@@ -286,6 +288,10 @@ class GameSettings {
   /// (badge d'identification, toujours visible) ni la vue solution.
   final bool showPieceNumbers;
 
+  /// Afficher la miniature qui suit le doigt pendant un déplacement depuis le tiroir ou le
+  /// plateau. L'aperçu coloré à l'emplacement visé reste toujours visible. Défaut `false`.
+  final bool showDragFeedback;
+
   const GameSettings({
     this.geometryRules = const GeometryRules(),
     this.showSolutionCounter = true,
@@ -294,6 +300,7 @@ class GameSettings {
     this.showCounters = false,
     this.rackCellRatio = 0.46, // figé par Paul le 2026-09-10 après calibrage device
     this.showPieceNumbers = true,
+    this.showDragFeedback = false,
   });
 
   GameSettings copyWith({
@@ -304,6 +311,7 @@ class GameSettings {
     bool? showCounters,
     double? rackCellRatio,
     bool? showPieceNumbers,
+    bool? showDragFeedback,
   }) {
     return GameSettings(
       geometryRules: geometryRules ?? this.geometryRules,
@@ -313,6 +321,7 @@ class GameSettings {
       showCounters: showCounters ?? this.showCounters,
       rackCellRatio: rackCellRatio ?? this.rackCellRatio,
       showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
+      showDragFeedback: showDragFeedback ?? this.showDragFeedback,
     );
   }
 
@@ -325,6 +334,7 @@ class GameSettings {
       'showCounters': showCounters,
       'rackCellRatio': rackCellRatio,
       'showPieceNumbers': showPieceNumbers,
+      'showDragFeedback': showDragFeedback,
     };
   }
 
@@ -337,6 +347,7 @@ class GameSettings {
       showCounters: json['showCounters'] ?? false,
       rackCellRatio: (json['rackCellRatio'] as num?)?.toDouble() ?? 0.46,
       showPieceNumbers: json['showPieceNumbers'] ?? true,
+      showDragFeedback: json['showDragFeedback'] ?? false,
     );
   }
 }
