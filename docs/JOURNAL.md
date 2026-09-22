@@ -26,6 +26,22 @@ pré-calculées : `subset_counts.bin` (comptes), `solutions_corpus.bin` (corpus 
 2026-09-02, voir plus bas), puis `PentoscopeGameScreen` sur le niveau courant. Plus de notion de
 difficulté.
 
+### Game — bilan dans l'AppBar et nouvelle partie au tap (2026-09-22)
+
+À la complétion d'une partie `Game`, la carte flottante ne masque plus le plateau. L'AppBar reprend
+le principe du Training avec un résumé défilant : réussite, étoiles, Géométrie, impasses, triche et
+temps, suivi de « Tap pour une nouvelle partie ». Le capteur plein cadre `game-continue` lance un
+nouveau tirage de même taille ; dans le parcours de progression, il lance le niveau qui vient d'être
+débloqué. Le bouton `+` reste dans la barre pour choisir explicitement une taille et les options.
+
+Ce comportement est limité à `PentoscopeMode.game`. Le Défi conserve sa carte et son accès au
+classement ; les autres modes gardent leur cycle propre. Le dialogue de saisie du nom reste modal et
+intercepte naturellement les gestes tant qu'il est ouvert.
+
+**Vérifications : 216/216 tests complets**, dont le bilan en français et en anglais sur petit
+portrait et paysage, avec contrôle du nouveau tirage au tap. Analyse : **0 erreur / 0 avertissement /
+116 infos**.
+
 ### Training — deux niveaux progressifs, bandeau déplaçable et quatre états (2026-09-22)
 
 Le démarrage ouvre le vrai `PentoscopeGameScreen` sur le Training 1 avec une pièce manquante.
@@ -1143,6 +1159,12 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-22 (15) — CLI : bilan Game dans l'AppBar et nouvelle partie au tap.**
+À la réussite d'un Game, le bilan défile désormais dans la barre et laisse le plateau entièrement
+visible. Un tap plein cadre lance un nouveau tirage de même taille, ou le niveau débloqué dans le
+parcours de progression ; le bouton `+` reste disponible. Défi et autres modes conservent leur carte.
+Testé en FR/EN, portrait/paysage, avec contrôle de la relance.
+
 **2026-09-22 (14) — CLI : miniature de déplacement paramétrable.**
 Nouveau réglage global EN/FR « Pièce pendant le déplacement », masqué par défaut et persisté en JSON.
 Il contrôle le feedback sous le doigt depuis le tiroir et depuis le plateau, sans toucher au fantôme
@@ -1154,12 +1176,5 @@ Le Training suit désormais un cycle 1 → 2 → 1. Le niveau 2 retire d'une sol
 pièces partageant un côté, exige que le plateau résiduel garde une solution unique, puis distribue
 les deux pièces avec une mauvaise orientation. Le bandeau adapte ses consignes et le tap de fin ;
 le double-tap vers Game reste disponible aux deux niveaux. Test réel répété sur dix générations.
-
-**2026-09-22 (12) — CLI : double-tap de fin Training vers Game.**
-Sur le plateau résolu du mode Training, `training-continue` garde le tap simple pour enchaîner un
-autre exercice, et ajoute `onDoubleTap` pour démarrer une vraie partie `Game` au niveau courant
-(`startPuzzle(sizeForLevel(currentLevel), isProgression: true)`) puis remplacer l'écran Training.
-Le bandeau annonce désormais « Double tap pour jouer » en EN/FR. Tests adaptés : tap simple toujours
-couvert, double-tap vérifie le démarrage Game et l'absence du guide training.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

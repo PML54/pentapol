@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 05:35 — enchaîner le Training 1 avec un Training 2 à deux pièces
+// Modified: 2026-09-22 06:24 — afficher le bilan Game dans l'AppBar et relancer au tap.
+// Historique: 2026-09-22 05:35 — enchaîner le Training 1 avec un Training 2 à deux pièces
 //           voisines, puis recommencer le cycle ; double-tap vers Game conservé.
 // Historique: 2026-09-22 05:14 — training terminé : double-tap plein cadre vers le mode Game,
 //           tap simple conservé pour enchaîner un training.
@@ -261,6 +262,18 @@ String _formatTime(int seconds) {
   return '$m:${s.toString().padLeft(2, '0')}';
 }
 
+int _completionTier(CompletionMetrics? metrics, int hintCount) {
+  if (metrics == null || hintCount > 0) return 1;
+  if (metrics.geometry != null) {
+    final ratio =
+        metrics.geometry!.value / metrics.geometry!.rules.initialScore;
+    return metrics.faults == 0 ? 3 : (ratio >= .8 ? 2 : 1);
+  }
+  if (metrics.faults == 0 && metrics.perfectVision) return 3;
+  if (metrics.faults == 0) return 2;
+  return 1;
+}
+
 class PentoscopeGameScreen extends ConsumerStatefulWidget {
   final PentoscopeMode mode;
 
@@ -495,6 +508,17 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 ),
               ),
 
+            // Fin du Game : comme dans le Training, le plateau résolu reste visible et un tap
+            // plein cadre enchaîne directement sur un nouveau tirage dans le même parcours.
+            if (widget.mode == PentoscopeMode.game && state.isComplete)
+              Positioned.fill(
+                child: GestureDetector(
+                  key: const ValueKey('game-continue'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _startNextGame(state, notifier),
+                ),
+              ),
+
             // 👁️ Mini-plateau adversaire (overlay)
             if (_showOpponentOverlay)
               _buildOpponentOverlay(context, state, settings),
@@ -503,6 +527,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             // Capteur plein cadre actif uniquement dans cet état (rien d'autre à faire sur le
             // plateau une fois résolu). N'affecte pas la barre du haut (hors de ce Stack).
             if (widget.mode != PentoscopeMode.training &&
+                widget.mode != PentoscopeMode.game &&
                 state.isComplete &&
                 _bilanFerme)
               Positioned.fill(
@@ -516,6 +541,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             // résolu (visible derrière). Fermable ; ne bloque pas (les zones hors carte laissent
             // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
             if (widget.mode != PentoscopeMode.training &&
+                widget.mode != PentoscopeMode.game &&
                 state.isComplete &&
                 !_bilanFerme)
               _buildBilanCard(context, state, notifier),
@@ -591,6 +617,19 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       context,
       MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
     );
+  }
+
+  Future<void> _startNextGame(
+    PentoscopeState state,
+    PentoscopeNotifier notifier,
+  ) async {
+    final puzzle = state.puzzle;
+    if (puzzle == null) return;
+    HapticFeedback.selectionClick();
+    final size = state.isProgression
+        ? sizeForLevel(ref.read(settingsProvider).currentLevel)
+        : puzzle.size;
+    await notifier.startPuzzle(size, isProgression: state.isProgression);
   }
 
   // ============================================================================
@@ -1298,6 +1337,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       return [homeButton, Expanded(child: _buildTrainingBarMessage(state))];
     }
 
+    if (widget.mode == PentoscopeMode.game && state.isComplete) {
+      return [
+        homeButton,
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          iconSize: iconSize,
+          color: Colors.blue,
+          onPressed: () => _showNewGameDialog(context, ref),
+          tooltip: l10n.newGame,
+        ),
+        Expanded(child: _buildGameCompletionBar(state, notifier)),
+      ];
+    }
+
     // Compteur masqué à la complétion : l'info de fin vit dans la carte de bilan (nettoyage).
     final showCounter =
         ref.read(settingsProvider).game.showSolutionCounter &&
@@ -1364,6 +1417,50 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       items.insert(items.length ~/ 2, _buildChrono(context, state));
     }
     return items;
+  }
+
+  Widget _buildGameCompletionBar(
+    PentoscopeState state,
+    PentoscopeNotifier notifier,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final metrics = notifier.computeCompletionMetrics();
+    final tier = _completionTier(metrics, state.hintCount);
+    final stars = [
+      ...List.filled(tier, '★'),
+      ...List.filled(3 - tier, '☆'),
+    ].join();
+    final parts = <String>[
+      l10n.solved,
+      stars,
+      if (metrics?.geometry != null)
+        '${l10n.legendGeometry} ${NumberFormat('0.#', l10n.localeName).format(metrics!.geometry!.value)}/${NumberFormat('0.#', l10n.localeName).format(metrics.geometry!.rules.initialScore)}',
+      '${l10n.legendFaults} ${metrics?.faults ?? state.faultCount}',
+      '${l10n.legendCheating} ${state.hintCount}',
+      '${l10n.legendTime} ${_formatTime(metrics?.timeSeconds ?? state.elapsedSeconds)}',
+      l10n.gameTapNewGame,
+    ];
+    final message = parts.join(' · ');
+    final barHeight = _uiAppBarHeight(context);
+    return LayoutBuilder(
+      builder: (context, constraints) => Semantics(
+        key: const ValueKey('game-completion-summary'),
+        liveRegion: true,
+        label: message,
+        child: SizedBox(
+          height: (barHeight - 12).clamp(30.0, 42.0),
+          child: GuidedScrollingMessage(
+            message: message,
+            style: TextStyle(
+              color: TrainingBarColors.complete,
+              fontSize: (barHeight * 0.34).clamp(16.0, 20.0),
+              fontWeight: FontWeight.w700,
+            ),
+            width: constraints.maxWidth,
+          ),
+        ),
+      ),
+    );
   }
 
   /// Chronomètre de la barre — lisible : `_uiLabelSize × 1.4`, gras (§9.3).
@@ -1795,15 +1892,7 @@ class _BilanCardState extends State<_BilanCard> {
   /// Palier de réussite (nombre d'étoiles) selon fautes + acuité (retour de Paul, 2026-09-10) :
   /// 3 = parfait (acuité 100 % ET 0 faute, sans aide), 2 = propre (0 faute), 1 = résolu / avec aide.
   int _tier() {
-    final m = widget.metrics;
-    if (m == null || widget.hintCount > 0) return 1;
-    if (m.geometry != null) {
-      final ratio = m.geometry!.value / m.geometry!.rules.initialScore;
-      return m.faults == 0 ? 3 : (ratio >= .8 ? 2 : 1);
-    }
-    if (m.faults == 0 && m.perfectVision) return 3;
-    if (m.faults == 0) return 2;
-    return 1;
+    return _completionTier(widget.metrics, widget.hintCount);
   }
 
   @override

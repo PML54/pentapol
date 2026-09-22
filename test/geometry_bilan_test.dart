@@ -1,4 +1,4 @@
-// Modified: 2026-09-12 10:58 — bilan Géométrie/Impasses/Triche FR/EN, grands caractères et paysage.
+// Modified: 2026-09-22 06:24 — vérifier le bilan Game dans l'AppBar et la relance au tap.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +12,22 @@ import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 
 class _Game extends PentoscopeNotifier {
+  int starts = 0;
+  PentoscopeSize? startedSize;
+
   void load(PentoscopeState next) => state = next;
+
+  @override
+  Future<void> startPuzzle(
+    PentoscopeSize size, {
+    int? mask,
+    bool showSolution = false,
+    bool isProgression = false,
+  }) async {
+    starts++;
+    startedSize = size;
+    state = state.copyWith(isComplete: false);
+  }
 }
 
 class _Settings extends SettingsNotifier {
@@ -69,23 +84,31 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byIcon(Icons.info_outline));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        final summary = find.byKey(const ValueKey('game-completion-summary'));
+        expect(summary, findsOneWidget);
+        final semantics = tester.widget<Semantics>(summary);
+        final label = semantics.properties.label!;
         expect(
-          find.text(lang == 'fr' ? 'Géométrie' : 'Geometry'),
-          findsOneWidget,
+          label,
+          contains(lang == 'fr' ? 'Géométrie 92,5/100' : 'Geometry 92.5/100'),
         );
+        expect(label, contains(lang == 'fr' ? 'Impasses 2' : 'Dead ends 2'));
+        expect(label, contains(lang == 'fr' ? 'Triche 1' : 'Cheating 1'));
         expect(
-          find.text(lang == 'fr' ? 'Impasses' : 'Dead ends'),
-          findsOneWidget,
-        );
-        expect(find.text(lang == 'fr' ? 'Triche' : 'Cheating'), findsOneWidget);
-        expect(
-          find.text(lang == 'fr' ? '92,5/100' : '92.5/100'),
-          findsOneWidget,
+          label,
+          contains(
+            lang == 'fr'
+                ? 'Tap pour une nouvelle partie.'
+                : 'Tap for a new game.',
+          ),
         );
         expect(find.text('Acuité'), findsNothing);
+        expect(find.byKey(const ValueKey('game-continue')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('game-continue')));
+        await tester.pump();
+        expect(game.starts, 1);
+        expect(game.startedSize, PentoscopeSize.size3x5);
         expect(tester.takeException(), isNull);
       });
     }

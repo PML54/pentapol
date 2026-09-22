@@ -185,6 +185,7 @@
   "recreationalPlaced": "C’est bon !",
   "recreationalTapAgain": "Tap pour recommencer au training 1. Double tap pour jouer.",
   "recreationalTapTraining2": "Tap pour le training 2. Double tap pour jouer.",
+  "gameTapNewGame": "Tap pour une nouvelle partie.",
   "geometryTitle": "Réglage du barème",
   "geometrySettingsSub": "Mettre au point la note Géométrie",
   "geometryNextGame": "Les réglages sauvegardés s’appliquent à la prochaine partie solo. Une partie commencée conserve son barème, même après une reprise. Les défis et duels gardent leurs règles.",
