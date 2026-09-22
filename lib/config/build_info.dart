@@ -1,18 +1,17 @@
-// Modified: 2026-09-22 07:07 — build 1.0.8 horodaté pour le bilan Game dans l'AppBar.
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
-// Dernière génération : 22/09/2026 à 07:07
+// Dernière génération : 22/09/2026 à 08:04
 
 /// Informations de build de l'application
 class BuildInfo {
   /// Version de l'application (format semver)
-  static const String version = '1.0.8';
+  static const String version = '1.0.7';
 
   /// Numéro de build (format YYYYMMDDHHMM)
-  static const int buildNumber = 202609220707;
+  static const int buildNumber = 202609220804;
 
   /// Date et heure du build (ISO 8601)
-  static const String buildDate = '2026-09-22T07:07:09';
+  static const String buildDate = '2026-09-22T08:04:44';
 
   /// Date formatée pour affichage
   static String get buildDateFormatted {
