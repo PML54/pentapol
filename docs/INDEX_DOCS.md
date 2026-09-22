@@ -1,6 +1,6 @@
 # Index de la documentation
 
-> Actualisé le 2026-09-12 : ajout du barème Géométrie paramétrable.
+> Actualisé le 2026-09-22 : accueil devenu menu principal ; fin de training relancée au tap.
 > L’état courant et les passations sont dans [JOURNAL.md](JOURNAL.md).
 > Cet index oriente la lecture ; il ne certifie pas un nouvel audit complet de chaque document.
 
@@ -18,7 +18,7 @@
 
 | Document | Usage / état |
 |---|---|
-| [Accueil guidé](ACCUEIL_GUIDE.md) | Référence du 3×5 participatif ; révision locale du 2026-09-11 avec rack défilant, commandes du jeu et sept tirages à orienter, validée par Paul (« c’est OK ») |
+| [Accueil](ACCUEIL_GUIDE.md) | Menu principal responsive (Jouer/Training + tuiles Défi, Multijoueur, Records, Réglages) et mode Training (bandeau coloré par état, fin « C’est bon ! — Tap pour un autre training » relancée au tap) ; parcours 3×5 participatif conservé |
 | [Barème Géométrie](BAREME_GEOMETRIE.md) | Réglage, formule, Triche, reprise et préparation de la publication |
 | [Fonctionnement](FONCTIONNEMENT.md) | Synthèse actuelle en tête ; ancienne description détaillée explicitement historique |
 | [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md) | Rangée permanente et grisage livrés ; vignettes et axes des miroirs encore ouverts |
