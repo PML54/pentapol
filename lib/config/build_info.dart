@@ -1,17 +1,18 @@
+// Modified: 2026-09-22 05:29 — build 1.0.7 horodaté pour le double-tap Training vers Game.
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
-// Dernière génération : 22/09/2026 à 05:04
+// Dernière génération : 22/09/2026 à 05:27
 
 /// Informations de build de l'application
 class BuildInfo {
   /// Version de l'application (format semver)
-  static const String version = '1.0.6';
+  static const String version = '1.0.7';
 
   /// Numéro de build (format YYYYMMDDHHMM)
-  static const int buildNumber = 202609220504;
+  static const int buildNumber = 202609220527;
 
   /// Date et heure du build (ISO 8601)
-  static const String buildDate = '2026-09-22T05:04:00';
+  static const String buildDate = '2026-09-22T05:27:18';
 
   /// Date formatée pour affichage
   static String get buildDateFormatted {

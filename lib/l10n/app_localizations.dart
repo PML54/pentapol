@@ -1,3 +1,4 @@
+// Modified: 2026-09-22 05:29 — gen-l10n : consigne de fin Training avec double-tap vers Game.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -1181,7 +1182,7 @@ abstract class AppLocalizations {
   /// No description provided for @recreationalTapAgain.
   ///
   /// In en, this message translates to:
-  /// **'Tap for another training.'**
+  /// **'Tap for another training. Double tap to play.'**
   String get recreationalTapAgain;
 
   /// No description provided for @geometryTitle.

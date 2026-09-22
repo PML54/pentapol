@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 04:46 — training : fin d'exercice → bandeau « C'est bon ! — Tap pour un autre
+// Modified: 2026-09-22 05:14 — training terminé : double-tap plein cadre vers le mode Game,
+//           tap simple conservé pour enchaîner un training.
+// Historique: 2026-09-22 04:46 — training : fin d'exercice → bandeau « C'est bon ! — Tap pour un autre
 //           training » et tap simple plein cadre (training-continue) pour enchaîner ; ni bouton ni
 //           relance auto (tapis roulant écarté). Police du bandeau défilant légèrement agrandie.
 // Historique: 2026-09-22 03:59 — bandeau training : couleur de police par état (bloc 5), une teinte
@@ -477,9 +479,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             if (kShowLiveCounters && !settings.game.showCounters)
               _debugIndicatorsOverlay(state),
 
-            // Fin de training : pas de relance auto (tapis roulant écarté). Le plateau résolu attend
-            // un tap plein cadre pour lancer l'exercice suivant (le bandeau l'annonce), à la main de
-            // l'utilisateur.
+            // Fin de training : tap simple pour continuer l'entraînement, double-tap pour passer
+            // immédiatement au vrai module Game.
             if (widget.mode == PentoscopeMode.training && state.isComplete)
               Positioned.fill(
                 child: GestureDetector(
@@ -489,6 +490,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                     HapticFeedback.selectionClick();
                     notifier.startRecreationalPuzzle();
                   },
+                  onDoubleTap: () => _openGameFromTraining(notifier),
                 ),
               ),
 
@@ -525,7 +527,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   Widget _buildTrainingBarMessage(PentoscopeState state) {
     final l10n = AppLocalizations.of(context);
     final message = state.isComplete
-        // Puzzle résolu : féliciter ET indiquer le geste pour enchaîner (tap sur le plateau).
+        // Puzzle résolu : féliciter ET indiquer les gestes depuis le plateau.
         ? '${l10n.recreationalPlaced} — ${l10n.recreationalTapAgain}'
         : state.selectedPiece == null
         ? l10n.recreationalSelect
@@ -567,6 +569,17 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _openGameFromTraining(PentoscopeNotifier notifier) async {
+    HapticFeedback.mediumImpact();
+    final level = ref.read(settingsProvider).currentLevel;
+    await notifier.startPuzzle(sizeForLevel(level), isProgression: true);
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
     );
   }
 
@@ -1272,10 +1285,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
 
     if (widget.mode == PentoscopeMode.training) {
-      return [
-        homeButton,
-        Expanded(child: _buildTrainingBarMessage(state)),
-      ];
+      return [homeButton, Expanded(child: _buildTrainingBarMessage(state))];
     }
 
     // Compteur masqué à la complétion : l'info de fin vit dans la carte de bilan (nettoyage).

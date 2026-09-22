@@ -1,3 +1,4 @@
+// Modified: 2026-09-22 05:29 — gen-l10n : consigne de fin Training avec double-tap vers Game.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -651,7 +652,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get recreationalPlaced => 'C’est bon !';
 
   @override
-  String get recreationalTapAgain => 'Tap pour un autre training.';
+  String get recreationalTapAgain =>
+      'Tap pour un autre training. Double tap pour jouer.';
 
   @override
   String get geometryTitle => 'Réglage du barème';

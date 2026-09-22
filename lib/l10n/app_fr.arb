@@ -180,7 +180,7 @@
   "recreationalTransform": "Mets la pièce dans la bonne position avec les icônes.",
   "recreationalPlace": "Déplace-la au bon endroit sur le plateau.",
   "recreationalPlaced": "C’est bon !",
-  "recreationalTapAgain": "Tap pour un autre training.",
+  "recreationalTapAgain": "Tap pour un autre training. Double tap pour jouer.",
   "geometryTitle": "Réglage du barème",
   "geometrySettingsSub": "Mettre au point la note Géométrie",
   "geometryNextGame": "Les réglages sauvegardés s’appliquent à la prochaine partie solo. Une partie commencée conserve son barème, même après une reprise. Les défis et duels gardent leurs règles.",

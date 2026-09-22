@@ -45,10 +45,11 @@ n'affiche jamais le bilan de score.
 **Enchaînement à la demande (2026-09-22).** Le bouton « Voir un autre » (`training-next`) est retiré.
 Une **relance auto** (Timer 1 s) avait d'abord été branchée, puis **écartée** (choix de Paul) : elle
 enchaînait un exercice toutes les ~1 s, un tapis roulant qui ne laissait pas respirer. À la place, à la
-complétion, le bandeau affiche **« C'est bon ! — Tap pour un autre training »**
-(`recreationalPlaced` + nouveau `recreationalTapAgain`, EN/FR) et le **plateau résolu attend un tap** —
-capteur plein cadre `training-continue` (`Positioned.fill`, `HitTestBehavior.opaque`, `onTap`) qui lance
-l'exercice suivant. (Un double-tap avait été essayé puis abandonné — latence perçue — choix de Paul.)
+complétion, le bandeau affiche **« C'est bon ! — Tap pour un autre training. Double tap pour jouer »**
+(`recreationalPlaced` + `recreationalTapAgain`, EN/FR) et le **plateau résolu attend le geste** —
+capteur plein cadre `training-continue` (`Positioned.fill`, `HitTestBehavior.opaque`) : `onTap` lance
+l'exercice suivant, `onDoubleTap` démarre une vraie partie `Game` au niveau courant via
+`startPuzzle(sizeForLevel(currentLevel), isProgression: true)` puis remplace l'écran Training.
 La police du bandeau défilant est légèrement agrandie (`fontSize` `0.36→0.40`, bornes `16-20 → 18-22`).
 
 **Couleur de police par état (2026-09-22).** Le bandeau ne se distingue plus seulement par son texte :
@@ -69,10 +70,11 @@ L'`import ui_dimensions.dart` (redondant, `kBoardSideMargin`/`kMaxBoardCellFacto
 bouton retiré est **conservée** (littéral gardé, cf. `docs/I18N.md`).
 
 **Vérifications : 212/212 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
-L'enchaînement au tap est couvert deux fois (« quatre états » et « dépôt sur la rangée haute » :
-`recreationalStarts == 0` après complétion, puis tap sur `training-continue` → `== 1`) ; le bandeau de
-fin est vérifié (contient « C'est bon » ET « Tap pour un autre ») ; couleurs vérifiées sur les états
-1, 2 et 4. **Ressenti du geste à confirmer sur appareil par Paul.**
+L'enchaînement au tap reste couvert dans « dépôt sur la rangée haute » (`recreationalStarts == 0`
+après complétion, puis tap sur `training-continue` → `== 1`) ; le passage au Game est couvert par
+double-tap (`gameStarts == 1`, guide training absent après remplacement d'écran). Le bandeau de fin
+est vérifié (contient « C'est bon », « Tap pour un autre » et « Double tap pour jouer ») ; couleurs
+vérifiées sur les états 1, 2 et 4. **Ressenti du geste à confirmer sur appareil par Paul.**
 
 ### Accueil — menu principal complet (2026-09-21)
 
@@ -121,12 +123,13 @@ aux bords gardent leur tolérance.
 Un test de geste reproduit sélection, aperçu, sortie du plateau et relâchement refusé. **210/210
 tests**, analyse **0 erreur / 0 avertissement / 116 infos**. À confirmer sur appareil par Paul.
 
-### Version de release (2026-09-21)
+### Identification des builds (décision de Paul, 2026-09-22)
 
-La prochaine release est `1.0.4+4` dans `pubspec.yaml`. `BuildInfo`, lu par la tuile Paramètres et
-le dialogue À propos, a été régénéré en `1.0.4`, build `202609211023`, le 21/09/2026 à 10:23.
-
-Analyse complète : **0 erreur / 0 avertissement / 117 infos**.
+La valeur `version:` de `pubspec.yaml` n'est pas l'identifiant fonctionnel retenu pour distinguer
+les builds pendant le développement et n'a pas à être interprétée comme la « prochaine release ».
+Seules la **date et l'heure affichées dans Paramètres** font foi pour identifier précisément la
+version testée. La version de `pubspec.yaml` reste une donnée technique de packaging, à renseigner
+selon les contraintes des stores au moment de la soumission.
 
 ### Géométrie — barème paramétrable (2026-09-12)
 
@@ -1126,6 +1129,18 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-22 (12) — CLI : double-tap de fin Training vers Game.**
+Sur le plateau résolu du mode Training, `training-continue` garde le tap simple pour enchaîner un
+autre exercice, et ajoute `onDoubleTap` pour démarrer une vraie partie `Game` au niveau courant
+(`startPuzzle(sizeForLevel(currentLevel), isProgression: true)`) puis remplacer l'écran Training.
+Le bandeau annonce désormais « Double tap pour jouer » en EN/FR. Tests adaptés : tap simple toujours
+couvert, double-tap vérifie le démarrage Game et l'absence du guide training.
+
+**2026-09-22 (11) — Décision de Paul : identification des builds par date et heure.**
+La version de `pubspec.yaml` n'est pas significative pour distinguer les builds de développement.
+La référence faisant foi est la date et l'heure affichées dans Paramètres ; la valeur du pubspec
+reste uniquement une donnée technique de packaging pour les stores.
+
 **2026-09-22 (10) — CLI : training enchaîné au tap, bouton retiré, WIP « dépôt » terminé.**
 Le bouton « Voir un autre » (`training-next`) disparaît. Une relance auto (Timer 1 s) a été essayée
 puis **écartée** (tapis roulant sans pause, retour de Paul) : à la place, à la fin le bandeau affiche
@@ -1135,19 +1150,5 @@ latence perçue.) Police du bandeau légèrement agrandie. WIP
 « dépôt sur la rangée haute » corrigé — long press avant `moveTo`, motif de `rack_drag_landscape_test`
 — et import `ui_dimensions` redondant retiré. **212/212 tests**, analyse **0 erreur / 0 avertissement /
 116 infos**. Ressenti à confirmer sur appareil par Paul.
-
-**2026-09-22 (9) — CLI : bandeau training coloré par état (plan bloc 5).**
-Quatre teintes (bleu / deep-orange / violet / vert) calculées par le même cascade que la consigne,
-constantes dans `lib/config/training_bar_colors.dart`. Changement sec assumé (le défilement de
-`GuidedScrollingMessage` se réinitialise déjà à chaque changement de message ; `style` passé en
-paramètre, hors portée d'un `AnimatedDefaultTextStyle`). Test « quatre états » vert (couleur vérifiée
-sur 3 états). ⚠️ WIP antérieur non commité dans le même fichier de test (« dépôt sur la rangée haute »
-en échec, import `ui_dimensions` obsolète) — hors périmètre.
-
-**2026-09-21 (8) — Codex : l'écran vide devient un menu principal responsive.**
-Jouer et Training forment le panneau principal ; Défi, Multijoueur, Records et Réglages sont quatre
-tuiles. L'identité Pentapol remplace la rangée d'actions redondante. Petit portrait et paysage,
-FR/EN, couverts par les tests. **210/210 tests**, analyse **0 erreur / 0 avertissement / 116 infos**.
-
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

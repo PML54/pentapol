@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 04:46 — fin training : bandeau « Tap pour un autre training » + tap sur le
+// Modified: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
+//           conservé pour enchaîner l'entraînement.
+// Historique: 2026-09-22 04:46 — fin training : bandeau « Tap pour un autre training » + tap sur le
 //           plateau résolu (training-continue) pour enchaîner (ni bouton ni relance auto) ; geste
 //           « dépôt » via long press ; import ui_dimensions redondant retiré ; couleur par état.
 // Historique: 2026-09-21 19:13 — vérifier le guide training dans la barre et le dépôt sur la rangée haute.
@@ -412,24 +414,27 @@ void main() {
       ),
     );
     await tester.pump();
-    // Bandeau de fin : félicitation + consigne du geste (tap).
+    // Bandeau de fin : félicitation + consigne des gestes.
     expect(find.textContaining('C’est bon'), findsWidgets);
     expect(find.textContaining('Tap pour un autre'), findsWidgets);
+    expect(find.textContaining('Double tap pour jouer'), findsWidgets);
     // État 4 — puzzle complété.
     expect(guideColor(), TrainingBarColors.complete);
-    // Ni bouton « Voir un autre » ni relance auto : le plateau résolu attend un tap.
+    // Ni bouton « Voir un autre » ni relance auto : le plateau résolu attend un geste.
     expect(find.byKey(const ValueKey('training-next')), findsNothing);
     expect(find.text('Géométrie'), findsNothing);
     expect(game.recreationalStarts, 0);
+    expect(game.gameStarts, 0);
 
-    // Un tap sur le plateau résolu lance l'exercice suivant.
+    // Un double-tap lance le vrai Game et remplace l'écran training.
     await tester.tap(find.byKey(const ValueKey('training-continue')));
-    await tester.pump();
-    expect(game.recreationalStarts, 1);
-    expect(
-      find.text('Appuie sur la pièce du tiroir pour la sélectionner.'),
-      findsWidgets,
-    );
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.byKey(const ValueKey('training-continue')));
+    await tester.pumpAndSettle();
+    expect(game.recreationalStarts, 0);
+    expect(game.gameStarts, 1);
+    expect(find.byKey(const ValueKey('recreational-guide')), findsNothing);
+    expect(find.byKey(const ValueKey('training-continue')), findsNothing);
   });
 
   testWidgets('le guide training est dans la barre paysage', (tester) async {
@@ -555,7 +560,7 @@ void main() {
     expect(find.byKey(const ValueKey('training-next')), findsNothing);
     expect(game.recreationalStarts, 0);
     await tester.tap(find.byKey(const ValueKey('training-continue')));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(game.recreationalStarts, 1);
   });
 }

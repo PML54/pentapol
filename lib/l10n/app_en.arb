@@ -334,7 +334,7 @@
   "recreationalTransform": "Use the icons to put the piece in the right position.",
   "recreationalPlace": "Move it to the right place on the board.",
   "recreationalPlaced": "That’s right!",
-  "recreationalTapAgain": "Tap for another training.",
+  "recreationalTapAgain": "Tap for another training. Double tap to play.",
   "@guidedChoose": {
     "placeholders": {
       "number": {
