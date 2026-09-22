@@ -1178,6 +1178,12 @@ abstract class AppLocalizations {
   /// **'That’s right!'**
   String get recreationalPlaced;
 
+  /// No description provided for @recreationalTapAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for another training.'**
+  String get recreationalTapAgain;
+
   /// No description provided for @geometryTitle.
   ///
   /// In en, this message translates to:

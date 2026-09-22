@@ -645,6 +645,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recreationalPlaced => 'That’s right!';
 
   @override
+  String get recreationalTapAgain => 'Tap for another training.';
+
+  @override
   String get geometryTitle => 'Score tuning';
 
   @override

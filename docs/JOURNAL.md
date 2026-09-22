@@ -13,7 +13,7 @@
 
 ---
 
-## §ÉTAT — au 2026-09-21
+## §ÉTAT — au 2026-09-22
 
 ### L'application
 
@@ -40,10 +40,50 @@ bandeau ni message de training.
 Les quatre consignes sont dérivées de l'état réel du moteur : aucune sélection ; sélection sans
 placement valide (`validPlacements` vide, même après une ou plusieurs mauvaises isométries) ;
 orientation offrant un placement valide ; puzzle complété (« C'est bon ! »). La fin du training
-n'affiche jamais le bilan de score : seul le bouton `Training` prépare immédiatement un autre exercice.
+n'affiche jamais le bilan de score.
 
-**Vérifications : 208/208 tests complets**, puis 10/10 tests ciblés après branchement du défilement ;
-analyse complète **0 erreur / 0 avertissement / 116 infos**.
+**Enchaînement à la demande (2026-09-22).** Le bouton « Voir un autre » (`training-next`) est retiré.
+Une **relance auto** (Timer 1 s) avait d'abord été branchée, puis **écartée** (choix de Paul) : elle
+enchaînait un exercice toutes les ~1 s, un tapis roulant qui ne laissait pas respirer. À la place, à la
+complétion, le bandeau affiche **« C'est bon ! — Tap pour un autre training »**
+(`recreationalPlaced` + nouveau `recreationalTapAgain`, EN/FR) et le **plateau résolu attend un tap** —
+capteur plein cadre `training-continue` (`Positioned.fill`, `HitTestBehavior.opaque`, `onTap`) qui lance
+l'exercice suivant. (Un double-tap avait été essayé puis abandonné — latence perçue — choix de Paul.)
+La police du bandeau défilant est légèrement agrandie (`fontSize` `0.36→0.40`, bornes `16-20 → 18-22`).
+
+**Couleur de police par état (2026-09-22).** Le bandeau ne se distingue plus seulement par son texte :
+chaque état a sa teinte, calculée par **le même `if` en cascade** que la consigne — état 1 bleu, état 2
+deep-orange, état 3 violet, état 4 vert (foncés, fond blanc). Les quatre couleurs sont des constantes
+`lib/config/training_bar_colors.dart` (`static final` et non `const` : `Colors.blue.shade800` est un
+getter). **Changement sec assumé** : la couleur ne varie qu'avec le message, et `GuidedScrollingMessage`
+réinitialise déjà son défilement à chaque changement de message (`configure()`) ; de plus il reçoit
+`style` en paramètre explicite, donc un `AnimatedDefaultTextStyle` ne l'atteindrait pas — animer ne
+ferait que lutter contre ce reset inhérent.
+
+**WIP « dépôt sur la rangée haute » terminé (2026-09-22).** Le test de geste échouait (`acceptedY`
+nul) parce qu'il tapait la pièce puis la déplaçait d'un saut — un `Draggable` sélectionné ne démarrait
+pas. Corrigé sur le motif éprouvé de `rack_drag_landscape_test` : pièce **non** sélectionnée →
+`LongPressDraggable`, `startGesture` + `pump(300 ms)` (long press, défaut 100 ms) **avant** `moveTo`.
+L'`import ui_dimensions.dart` (redondant, `kBoardSideMargin`/`kMaxBoardCellFactor` viennent déjà de
+`pentoscope_game_screen.dart`) est retiré → plus d'avertissement. La chaîne l10n `guidedAnother` du
+bouton retiré est **conservée** (littéral gardé, cf. `docs/I18N.md`).
+
+**Vérifications : 212/212 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
+L'enchaînement au tap est couvert deux fois (« quatre états » et « dépôt sur la rangée haute » :
+`recreationalStarts == 0` après complétion, puis tap sur `training-continue` → `== 1`) ; le bandeau de
+fin est vérifié (contient « C'est bon » ET « Tap pour un autre ») ; couleurs vérifiées sur les états
+1, 2 et 4. **Ressenti du geste à confirmer sur appareil par Paul.**
+
+### Accueil — menu principal complet (2026-09-21)
+
+Après le Training, `HomeScreen` n'affichait plus que sa barre d'actions au-dessus d'un corps vide.
+Le retour Accueil ouvre désormais un vrai menu : identité Pentapol et motif de cinq cases, panneau
+principal Jouer avec niveau courant, bouton Training, puis quatre tuiles Défi, Multijoueur, Records
+et Réglages. Les anciennes actions de l'en-tête ont été retirées pour éviter les doublons.
+
+La composition est verticale et défilable en portrait, côte à côte en paysage. Les tests couvrent
+320×568 et 874×402 en français et en anglais. **210/210 tests**, analyse **0 erreur / 0
+avertissement / 116 infos**.
 
 ### Game — translation après isométrie (2026-09-21)
 
@@ -1086,23 +1126,28 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-21 (7) — Codex : fantôme résiduel supprimé après un dépôt hors cible.**
-Le dernier aperçu restait mémorisé quand une translation quittait le plateau puis se terminait sans
-être acceptée ; la source redevenait visible en même temps. `onDragEnd` nettoie maintenant l'aperçu
-dans ce seul cas. Test de geste dédié : **210/210 tests**, analyse **0 erreur / 0 avertissement /
-116 infos**. À confirmer sur appareil par Paul.
+**2026-09-22 (10) — CLI : training enchaîné au tap, bouton retiré, WIP « dépôt » terminé.**
+Le bouton « Voir un autre » (`training-next`) disparaît. Une relance auto (Timer 1 s) a été essayée
+puis **écartée** (tapis roulant sans pause, retour de Paul) : à la place, à la fin le bandeau affiche
+« C'est bon ! — Tap pour un autre training » et le plateau résolu attend un **tap**
+(`training-continue`, plein cadre) pour l'exercice suivant. (Un double-tap intermédiaire a été abandonné,
+latence perçue.) Police du bandeau légèrement agrandie. WIP
+« dépôt sur la rangée haute » corrigé — long press avant `moveTo`, motif de `rack_drag_landscape_test`
+— et import `ui_dimensions` redondant retiré. **212/212 tests**, analyse **0 erreur / 0 avertissement /
+116 infos**. Ressenti à confirmer sur appareil par Paul.
 
-**2026-09-21 (6) — Codex : cause du contour après isométrie corrigée dans l'état métier.**
-Rotation et symétrie réinséraient la pièce sélectionnée dans `state.plateau`, d'où l'empreinte
-source encore visible pendant la translation malgré les masques UI. Le plateau complet reste utilisé
-pour Géométrie/impasses, tandis que le plateau interactif exclut la pièce jusqu'au dépôt. Test
-combinatoire étendu aux quatre isométries : **209/209 tests**, analyse **0 erreur / 0 avertissement /
-116 infos**. À confirmer sur appareil par Paul.
+**2026-09-22 (9) — CLI : bandeau training coloré par état (plan bloc 5).**
+Quatre teintes (bleu / deep-orange / violet / vert) calculées par le même cascade que la consigne,
+constantes dans `lib/config/training_bar_colors.dart`. Changement sec assumé (le défilement de
+`GuidedScrollingMessage` se réinitialise déjà à chaque changement de message ; `style` passé en
+paramètre, hors portée d'un `AnimatedDefaultTextStyle`). Test « quatre états » vert (couleur vérifiée
+sur 3 états). ⚠️ WIP antérieur non commité dans le même fichier de test (« dépôt sur la rangée haute »
+en échec, import `ui_dimensions` obsolète) — hors périmètre.
 
-**2026-09-21 (5) — Codex : empreinte source supprimée pendant la translation.**
-Le masque de rendu s'appuie maintenant sur l'identifiant de la pièce sélectionnée, afin de retirer
-aussi toute empreinte dont la géométrie est antérieure à une isométrie. Le calculateur de bordures
-renvoie une bordure vide pour ces cellules, après priorité de l'aperçu. **14/14 tests ciblés**,
-analyse **0 erreur / 0 avertissement / 117 infos**.
+**2026-09-21 (8) — Codex : l'écran vide devient un menu principal responsive.**
+Jouer et Training forment le panneau principal ; Défi, Multijoueur, Records et Réglages sont quatre
+tuiles. L'identité Pentapol remplace la rangée d'actions redondante. Petit portrait et paysage,
+FR/EN, couverts par les tests. **210/210 tests**, analyse **0 erreur / 0 avertissement / 116 infos**.
+
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

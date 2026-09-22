@@ -651,6 +651,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get recreationalPlaced => 'C’est bon !';
 
   @override
+  String get recreationalTapAgain => 'Tap pour un autre training.';
+
+  @override
   String get geometryTitle => 'Réglage du barème';
 
   @override

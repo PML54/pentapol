@@ -2,16 +2,21 @@
 
 > Révision du 2026-09-21 : l'application ouvre directement le vrai écran de jeu en mode `training`,
 > avec une pièce manquante, un bandeau défilant déplaçable et quatre consignes pilotées par le moteur.
+> Au retour, un véritable menu responsive remplace désormais l'écran vide sous l'ancien en-tête.
 > Sept variantes validées par Paul le 2026-09-11 (« c’est OK »), enregistrées dans `5f910e9`.
 > Contour renforcé et célébrations ajoutés ensuite : modifications locales, ressenti à apprécier sur iPhone.
 > Sa validation du 2026-09-10 portait sur la version précédente (`72a16bf`).
 
 ## Parcours visible
 
-L’application démarre sur `HomeScreen`. L’en-tête présente un bouton plein **Jouer** au centre,
-à la place de l’icône personne. Il ouvre directement le jeu sans devoir terminer l’accueil.
-Multijoueur et Défi sont à gauche, Records et Réglages à droite ; une place dédiée au bouton
-central évite les chevauchements sur petit écran. Le titre PENTAPOL reste retiré.
+L’application démarre sur `HomeScreen`, qui lance automatiquement le Training initial. Au retour,
+le menu principal présente l'identité **Pentapol** et un motif de cinq cases. **Jouer** est l'action
+dominante et affiche le niveau courant ; **Training** permet de relancer l'apprentissage. Défi de la
+semaine, Multijoueur, Mes records et Réglages occupent quatre tuiles distinctes.
+
+En portrait, le panneau Jouer/Training précède la grille et l'ensemble peut défiler sur les petits
+écrans. En paysage, le panneau et la grille sont côte à côte. Le menu est identique en français et
+en anglais, sans doublon de ces actions dans l'en-tête.
 
 Le parcours visible commence par « Appuie sur la pièce du tiroir pour la sélectionner » dans
 `PentoscopeGameScreen`. Le mode est porté par `PentoscopeMode.training`, distinct de `game`,
@@ -66,8 +71,9 @@ une pièce. La fin affiche seulement « C'est bon ! » et le bouton `Training`, 
 En réduction des animations ou
 navigation accessible, la consigne est fixe dès le départ et annoncée une seule fois aux aides vocales.
 Rendu isolé dans `lib/pentoscope/home/guided_scrolling_message.dart`.
-À la fin, Training lance un autre entraînement. Jouer reste dans l’en-tête, sans doublon
-sous le plateau. Aucune boucle animée ne joue à la place du joueur.
+À la fin, Training lance un autre entraînement. Le retour Accueil ouvre le menu principal ; son
+bouton Training permet également de repartir sur un nouvel exercice. Aucune boucle animée ne joue
+à la place du joueur.
 
 ## Contour et encouragements animés
 
@@ -152,8 +158,9 @@ Les formats de tests widget ne constituent pas une validation tactile sur appare
 
 Vérification du 2026-09-12 : **188 tests réussis** en suite complète ; analyse du dépôt
 complet : **0 erreur, 0 avertissement, 106 informations** (incluant les outils).
-Quatre tests dans `test/home_play_test.dart` vérifient l’accès immédiat via Jouer, la conservation
-de la partie et du chrono, et l’absence de chevauchement des boutons (petit portrait/paysage, EN/FR).
+Les tests de `test/home_play_test.dart` vérifient l’accès via Jouer, la conservation de la partie et
+du chrono, la présence des six destinations du menu et l'absence de débordement en petit portrait
+et en paysage, en français et en anglais.
 Les tests de l’accueil et le contrôle combinatoire des distances restent conservés.
 Paul confirme « c’est OK » le 2026-09-11 pour cette version à sept variantes et orientations
 à corriger. Le contour renforcé et les célébrations ont été ajoutés après ce retour.

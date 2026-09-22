@@ -1,8 +1,15 @@
-// Modified: 2026-09-21 09:04 — vérifier que Jouer revient au Game sans bandeau après le training.
+// Modified: 2026-09-22 04:46 — fin training : bandeau « Tap pour un autre training » + tap sur le
+//           plateau résolu (training-continue) pour enchaîner (ni bouton ni relance auto) ; geste
+//           « dépôt » via long press ; import ui_dimensions redondant retiré ; couleur par état.
+// Historique: 2026-09-21 19:13 — vérifier le guide training dans la barre et le dépôt sur la rangée haute.
+// Historique: 2026-09-21 17:13 — vérifier le menu principal complet après le training.
+// Historique: 2026-09-21 09:04 — vérifier que Jouer revient au Game sans bandeau après le training.
 // Historique: 2026-09-21 08:49 — tester mode training, bandeau déplaçable, quatre états et nouvel exercice.
 // Historique: 2026-09-12 03:40 — parcours en navigation accessible ; défilement testé séparément.
 // Historique: 2026-09-11 16:12 — vérifier l’accès immédiat au jeu depuis le bouton de l’accueil.
 // test/home_play_test.dart
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +17,8 @@ import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/common/point.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
+import 'package:pentapol/config/training_bar_colors.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/providers/settings_provider.dart';
@@ -18,6 +27,7 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
+import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 
 class _Game extends PentoscopeNotifier {
   void load(PentoscopeState value) => state = value;
@@ -74,6 +84,59 @@ class _AutoGame extends _Game {
   }
 }
 
+class _GestureGame extends _Game {
+  int? acceptedY;
+  int recreationalStarts = 0;
+
+  @override
+  Future<void> startRecreationalPuzzle({
+    PentoscopeSize size = PentoscopeSize.size7x5,
+  }) async {
+    recreationalStarts++;
+    final piece = pentominos.first;
+    load(
+      PentoscopeState.initial().copyWith(
+        puzzle: PentoscopePuzzle(
+          size: size,
+          pieceIds: [piece.id],
+          solutionCount: 1,
+        ),
+        plateau: Plateau.allVisible(size.width, size.height),
+        availablePieces: [piece],
+        piecePositionIndices: {piece.id: 0},
+        solutionsCount: 1,
+      ),
+    );
+  }
+
+  @override
+  void updatePreview(int gridX, int gridY) {
+    load(
+      state.copyWith(
+        previewX: gridX,
+        previewY: gridY,
+        isPreviewValid: true,
+        isSnapped: false,
+      ),
+    );
+  }
+
+  @override
+  bool tryPlaceAtAnchor(int anchorX, int anchorY) {
+    acceptedY = anchorY;
+    load(
+      state.copyWith(
+        availablePieces: const [],
+        clearSelectedPiece: true,
+        clearPreview: true,
+        validPlacements: const [],
+        isComplete: true,
+      ),
+    );
+    return true;
+  }
+}
+
 class _Settings extends SettingsNotifier {
   @override
   AppSettings build() => const AppSettings();
@@ -123,6 +186,11 @@ void main() {
     expect(game.recreationalStarts, 1);
     expect(find.byType(PentoscopeGameScreen), findsNothing);
     expect(find.byKey(const ValueKey('home-play')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-challenge')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-multiplayer')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-records')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-settings')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('home-play')));
     await tester.pumpAndSettle();
@@ -191,22 +259,17 @@ void main() {
           );
           await tester.pumpAndSettle();
           expect(find.byKey(const ValueKey('home-recreational')), findsNothing);
-          expect(find.byKey(const ValueKey('home-training')), findsNothing);
+          expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
           final play = find.byKey(const ValueKey('home-play'));
           expect(tester.widget(play), isA<FilledButton>());
           expect(find.byIcon(Icons.person), findsNothing);
-          final bounds = tester.getRect(play);
-          for (final icon in [
-            Icons.people,
-            Icons.flag_outlined,
-            Icons.emoji_events_outlined,
-            Icons.settings,
+          for (final key in [
+            'home-challenge',
+            'home-multiplayer',
+            'home-records',
+            'home-settings',
           ]) {
-            final button = find.ancestor(
-              of: find.byIcon(icon),
-              matching: find.byType(IconButton),
-            );
-            expect(bounds.overlaps(tester.getRect(button)), isFalse);
+            expect(find.byKey(ValueKey(key)), findsOneWidget);
           }
           await tester.tap(play);
           await tester.pumpAndSettle();
@@ -222,6 +285,10 @@ void main() {
   testWidgets('le training suit les quatre états et relance sans bilan', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final game = _AutoGame();
     final container = ProviderContainer(
       overrides: [
@@ -267,11 +334,33 @@ void main() {
       find.text('Appuie sur la pièce du tiroir pour la sélectionner.'),
       findsWidgets,
     );
-    final guide = find.byKey(const ValueKey('training-guide-drag'));
-    final guideStart = tester.getCenter(guide);
-    await tester.drag(guide, const Offset(40, 28));
-    await tester.pump();
-    expect(tester.getCenter(guide), guideStart + const Offset(40, 28));
+    // Couleur de police par état (bloc 5) — en navigation accessible le bandeau est
+    // stationnaire : un `Text` de clé 'guided-message' porte le style, couleur comprise.
+    Color? guideColor() => tester
+        .widget<Text>(find.byKey(const ValueKey('guided-message')))
+        .style
+        ?.color;
+    // État 1 — aucune sélection.
+    expect(guideColor(), TrainingBarColors.noSelection);
+    final guide = find.byKey(const ValueKey('recreational-guide'));
+    final portraitActions = find.byKey(const ValueKey('portrait-actions'));
+    expect(
+      find.descendant(of: portraitActions, matching: guide),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('game-body-stack')),
+        matching: guide,
+      ),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('training-guide-drag')), findsNothing);
+    expect(find.byIcon(Icons.drag_indicator), findsNothing);
+    expect(find.byIcon(Icons.add_circle_outline), findsNothing);
+    expect(find.byIcon(Icons.lightbulb), findsNothing);
+    expect(find.text('0:00'), findsNothing);
+    expect(find.byIcon(Icons.home_outlined), findsOneWidget);
 
     game.selectPiece(piece);
     game.load(
@@ -282,6 +371,8 @@ void main() {
       find.text('Mets la pièce dans la bonne position avec les icônes.'),
       findsWidgets,
     );
+    // État 2 — sélection sans placement valide.
+    expect(guideColor(), TrainingBarColors.noValidPlacement);
 
     game.applyIsometryRotationCW();
     game.load(
@@ -321,16 +412,150 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('C’est bon !'), findsWidgets);
-    expect(find.byKey(const ValueKey('training-next')), findsOneWidget);
+    // Bandeau de fin : félicitation + consigne du geste (tap).
+    expect(find.textContaining('C’est bon'), findsWidgets);
+    expect(find.textContaining('Tap pour un autre'), findsWidgets);
+    // État 4 — puzzle complété.
+    expect(guideColor(), TrainingBarColors.complete);
+    // Ni bouton « Voir un autre » ni relance auto : le plateau résolu attend un tap.
+    expect(find.byKey(const ValueKey('training-next')), findsNothing);
     expect(find.text('Géométrie'), findsNothing);
+    expect(game.recreationalStarts, 0);
 
-    await tester.tap(find.byKey(const ValueKey('training-next')));
-    await tester.pumpAndSettle();
+    // Un tap sur le plateau résolu lance l'exercice suivant.
+    await tester.tap(find.byKey(const ValueKey('training-continue')));
+    await tester.pump();
     expect(game.recreationalStarts, 1);
     expect(
       find.text('Appuie sur la pièce du tiroir pour la sélectionner.'),
       findsWidgets,
     );
+  });
+
+  testWidgets('le guide training est dans la barre paysage', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(874, 402);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final game = _AutoGame();
+    final container = ProviderContainer(
+      overrides: [
+        pentoscopeProvider.overrideWith(() => game),
+        settingsProvider.overrideWith(_Settings.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(pentoscopeProvider);
+    final size = PentoscopeSize.size3x5;
+    final piece = pentominos.firstWhere((p) => p.numOrientations > 1);
+    game.load(
+      PentoscopeState.initial().copyWith(
+        puzzle: PentoscopePuzzle(
+          size: size,
+          pieceIds: [piece.id],
+          solutionCount: 1,
+        ),
+        plateau: Plateau.allVisible(size.width, size.height),
+        availablePieces: [piece],
+        piecePositionIndices: {piece.id: 0},
+        solutionsCount: 1,
+      ),
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          locale: const Locale('fr'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const PentoscopeGameScreen(mode: PentoscopeMode.training),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final actions = find.byKey(const ValueKey('landscape-actions'));
+    final guide = find.byKey(const ValueKey('recreational-guide'));
+    expect(find.descendant(of: actions, matching: guide), findsOneWidget);
+    expect(find.byIcon(Icons.home_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.add_circle_outline), findsNothing);
+    expect(find.byIcon(Icons.lightbulb), findsNothing);
+    expect(find.text('0:00'), findsNothing);
+  });
+
+  testWidgets('le training accepte un dépôt sur la rangée haute', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final game = _GestureGame();
+    final container = ProviderContainer(
+      overrides: [
+        pentoscopeProvider.overrideWith(() => game),
+        settingsProvider.overrideWith(_Settings.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(pentoscopeProvider);
+    final size = PentoscopeSize.size3x5;
+    final piece = pentominos.firstWhere((p) => p.numOrientations > 1);
+    game.load(
+      PentoscopeState.initial().copyWith(
+        puzzle: PentoscopePuzzle(
+          size: size,
+          pieceIds: [piece.id],
+          solutionCount: 1,
+        ),
+        plateau: Plateau.allVisible(size.width, size.height),
+        availablePieces: [piece],
+        piecePositionIndices: {piece.id: 0},
+        solutionsCount: 1,
+      ),
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          locale: const Locale('fr'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const PentoscopeGameScreen(mode: PentoscopeMode.training),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final rackPiece = find.byType(PieceRenderer).first;
+
+    final boardRect = tester.getRect(find.byType(PentoscopeBoard));
+    final cellSize = [
+      (boardRect.width - 2 * kBoardSideMargin) / size.width,
+      boardRect.height / size.height,
+      tester.view.physicalSize.shortestSide * kMaxBoardCellFactor,
+    ].reduce(math.min);
+    final gridTop = boardRect.bottom - cellSize * size.height;
+    final target = Offset(boardRect.center.dx, gridTop + cellSize / 2);
+
+    // Pièce non sélectionnée → LongPressDraggable : tenir le long press (défaut 100 ms) AVANT de
+    // déplacer (motif de rack_drag_landscape_test). Un tap + saut unique ne démarre pas le drag.
+    final gesture = await tester.startGesture(tester.getCenter(rackPiece));
+    await tester.pump(const Duration(milliseconds: 300));
+    await gesture.moveTo(target);
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    expect(game.acceptedY, 0);
+    expect(container.read(pentoscopeProvider).isComplete, isTrue);
+    // Ni bouton ni relance auto : le plateau résolu attend un tap pour l'exercice suivant.
+    expect(find.byKey(const ValueKey('training-next')), findsNothing);
+    expect(game.recreationalStarts, 0);
+    await tester.tap(find.byKey(const ValueKey('training-continue')));
+    await tester.pump();
+    expect(game.recreationalStarts, 1);
   });
 }

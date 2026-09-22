@@ -1,4 +1,10 @@
-// Modified: 2026-09-21 08:49 — mode explicite, guide training déplaçable et fin sans bilan.
+// Modified: 2026-09-22 04:46 — training : fin d'exercice → bandeau « C'est bon ! — Tap pour un autre
+//           training » et tap simple plein cadre (training-continue) pour enchaîner ; ni bouton ni
+//           relance auto (tapis roulant écarté). Police du bandeau défilant légèrement agrandie.
+// Historique: 2026-09-22 03:59 — bandeau training : couleur de police par état (bloc 5), une teinte
+//           par branche du cascade via TrainingBarColors ; changement sec (défilement déjà réinit.).
+// Historique: 2026-09-21 19:13 — placer le guide training dans la barre d'actions sans bloquer le plateau.
+// Historique: 2026-09-21 08:49 — mode explicite, guide training déplaçable et fin sans bilan.
 // Historique: 2026-09-12 10:58 — bilan et compteurs Géométrie, Impasses, Triche ; ancien score identifié.
 // Historique: 2026-09-11 15:58 — paysage : isométries à gauche, commandes générales en bas, zones fixes.
 // lib/pentoscope/screens/pentoscope_game_screen.dart
@@ -156,6 +162,7 @@ import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/config/game_icons_config.dart';
+import 'package:pentapol/config/training_bar_colors.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
@@ -261,8 +268,6 @@ class PentoscopeGameScreen extends ConsumerStatefulWidget {
 }
 
 class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
-  Offset _trainingGuideOffset = Offset.zero;
-  bool _startingTraining = false;
   // 👁️ État du mini-plateau adversaire
   bool _showOpponentOverlay = false;
 
@@ -419,7 +424,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 // d'isométrie ne la remplace plus (elle a sa rangée réservée au-dessus du rack), donc
                 // maison/chrono/ampoule/compteur restent visibles pendant la manipulation (C1/C2).
                 title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  key: const ValueKey('portrait-actions'),
+                  mainAxisAlignment: widget.mode == PentoscopeMode.training
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.spaceEvenly,
                   children: _buildBarItems(context, state, notifier),
                 ),
               ),
@@ -430,6 +438,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       // alors les contraintes réduites, et le plateau se recalcule sur la place restante.
       body: SafeArea(
         child: Stack(
+          key: const ValueKey('game-body-stack'),
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
@@ -468,11 +477,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             if (kShowLiveCounters && !settings.game.showCounters)
               _debugIndicatorsOverlay(state),
 
-            if (widget.mode == PentoscopeMode.training)
-              _buildTrainingGuide(state),
-
+            // Fin de training : pas de relance auto (tapis roulant écarté). Le plateau résolu attend
+            // un tap plein cadre pour lancer l'exercice suivant (le bandeau l'annonce), à la main de
+            // l'utilisateur.
             if (widget.mode == PentoscopeMode.training && state.isComplete)
-              _buildNextTrainingButton(notifier),
+              Positioned.fill(
+                child: GestureDetector(
+                  key: const ValueKey('training-continue'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    notifier.startRecreationalPuzzle();
+                  },
+                ),
+              ),
 
             // 👁️ Mini-plateau adversaire (overlay)
             if (_showOpponentOverlay)
@@ -504,96 +522,53 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  Widget _buildTrainingGuide(PentoscopeState state) {
+  Widget _buildTrainingBarMessage(PentoscopeState state) {
     final l10n = AppLocalizations.of(context);
-    final guideWidth = math.min(MediaQuery.sizeOf(context).width - 64, 620.0);
-    const messageStyle = TextStyle(
-      color: Colors.white,
-      fontSize: 20,
-      fontWeight: FontWeight.w700,
-    );
     final message = state.isComplete
-        ? l10n.recreationalPlaced
+        // Puzzle résolu : féliciter ET indiquer le geste pour enchaîner (tap sur le plateau).
+        ? '${l10n.recreationalPlaced} — ${l10n.recreationalTapAgain}'
         : state.selectedPiece == null
         ? l10n.recreationalSelect
         : state.validPlacements.isEmpty
         ? l10n.recreationalTransform
         : l10n.recreationalPlace;
-    return Positioned(
-      top: 8,
-      left: 16,
-      right: 16,
-      child: Transform.translate(
-        offset: _trainingGuideOffset,
-        child: Center(
-          child: GestureDetector(
-            key: const ValueKey('training-guide-drag'),
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: (details) =>
-                setState(() => _trainingGuideOffset += details.delta),
-            child: Semantics(
-              liveRegion: true,
-              label: message,
-              child: Material(
-                key: const ValueKey('recreational-guide'),
-                color: Colors.black87,
-                elevation: 3,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 10,
-                  ),
-                  child: SizedBox(
-                    width: guideWidth,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.drag_indicator, color: Colors.white70),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: SizedBox(
-                            height: 30,
-                            child: GuidedScrollingMessage(
-                              message: message,
-                              style: messageStyle,
-                              width: guideWidth - 34,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+    // Couleur de police par état — même cascade que `message` (une teinte par branche).
+    // Changement sec à la transition : la couleur ne varie qu'avec le message, et
+    // GuidedScrollingMessage réinitialise déjà son défilement à chaque changement de message.
+    final messageColor = state.isComplete
+        ? TrainingBarColors.complete
+        : state.selectedPiece == null
+        ? TrainingBarColors.noSelection
+        : state.validPlacements.isEmpty
+        ? TrainingBarColors.noValidPlacement
+        : TrainingBarColors.validPlacement;
+    final barHeight = _uiAppBarHeight(context);
+    final messageHeight = (barHeight - 12).clamp(30.0, 42.0);
+    final messageStyle = TextStyle(
+      color: messageColor,
+      // Police du bandeau défilant légèrement agrandie (0.36→0.40, bornes 16-20 → 18-22).
+      fontSize: (barHeight * 0.40).clamp(18.0, 22.0),
+      fontWeight: FontWeight.w700,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return Semantics(
+          key: const ValueKey('recreational-guide'),
+          liveRegion: true,
+          label: message,
+          child: SizedBox(
+            height: messageHeight,
+            child: GuidedScrollingMessage(
+              message: message,
+              style: messageStyle,
+              width: width,
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
-
-  Widget _buildNextTrainingButton(PentoscopeNotifier notifier) => Positioned(
-    left: 16,
-    right: 16,
-    bottom: 16,
-    child: Center(
-      child: FilledButton(
-        key: const ValueKey('training-next'),
-        onPressed: _startingTraining
-            ? null
-            : () async {
-                setState(() => _startingTraining = true);
-                await notifier.startRecreationalPuzzle();
-                if (!mounted) return;
-                setState(() {
-                  _startingTraining = false;
-                  _trainingGuideOffset = Offset.zero;
-                });
-              },
-        child: Text(AppLocalizations.of(context).guidedAnother),
-      ),
-    ),
-  );
 
   // ============================================================================
   // 👁️ MINI-PLATEAU ADVERSAIRE (OVERLAY)
@@ -1285,6 +1260,24 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   ) {
     final iconSize = _uiIconSize(context);
     final l10n = AppLocalizations.of(context);
+    final homeButton = IconButton(
+      icon: const Icon(Icons.home_outlined),
+      iconSize: iconSize,
+      color: Colors.blueGrey,
+      onPressed: () {
+        HapticFeedback.selectionClick();
+        Navigator.popUntil(context, (r) => r.isFirst);
+      },
+      tooltip: l10n.homeTooltip,
+    );
+
+    if (widget.mode == PentoscopeMode.training) {
+      return [
+        homeButton,
+        Expanded(child: _buildTrainingBarMessage(state)),
+      ];
+    }
+
     // Compteur masqué à la complétion : l'info de fin vit dans la carte de bilan (nettoyage).
     final showCounter =
         ref.read(settingsProvider).game.showSolutionCounter &&
@@ -1292,19 +1285,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         !state.isComplete;
 
     final items = <Widget>[
-      IconButton(
-        icon: const Icon(Icons.home_outlined),
-        iconSize: iconSize,
-        color: Colors.blueGrey,
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          Navigator.popUntil(
-            context,
-            (r) => r.isFirst,
-          ); // retour au menu d'entrée
-        },
-        tooltip: l10n.homeTooltip,
-      ),
+      homeButton,
       IconButton(
         icon: const Icon(Icons.add_circle_outline),
         iconSize: iconSize,
@@ -1620,7 +1601,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 border: Border(top: BorderSide(color: Colors.black12)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: widget.mode == PentoscopeMode.training
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.spaceEvenly,
                 children: _buildBarItems(context, state, notifier),
               ),
             ),
