@@ -1,4 +1,4 @@
-// Modified: 2026-09-23 16:05 — vérifier la barre d'isométries de la démo.
+// Modified: 2026-09-23 17:45 — vérifier sélection, icône puis transformation.
 // test/animated_home_board_test.dart
 
 import 'package:flutter/material.dart';
@@ -43,13 +43,14 @@ void main() {
     await tester.pumpWidget(
       app(solutions: [firstSolution, firstSolution.reversed.toList()]),
     );
-    await tester.pump(const Duration(milliseconds: 9950));
+    await tester.pump(const Duration(milliseconds: 16450));
     await tester.pump(const Duration(milliseconds: 260));
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(cellColor(tester, 0, 4), const Color(0xFFD9E0E8));
   });
 
-  testWidgets('la cible gris pâle précède la couleur de chaque pièce', (
+  testWidgets('la sélection puis l’icône précèdent le déplacement', (
     tester,
   ) async {
     await tester.pumpWidget(app());
@@ -67,20 +68,37 @@ void main() {
     final initialTurn = tester.widget<Transform>(
       find.byKey(const ValueKey('home-rack-piece-0')),
     );
+    final selectedSlot = tester.widget<Container>(
+      find.byKey(const ValueKey('home-piece-slot-0')),
+    );
+    expect((selectedSlot.decoration! as BoxDecoration).border!.top.width, 2);
+    final initialAction = tester.widget<Container>(
+      find.byKey(const ValueKey('home-isometry-action-0')),
+    );
+    expect((initialAction.decoration! as BoxDecoration).border, isNull);
+    expect(cellColor(tester, 0, 0), const Color(0xFFF3F5F8));
+
+    await tester.pump(const Duration(milliseconds: 500));
+    final chosenAction = tester.widget<Container>(
+      find.byKey(const ValueKey('home-isometry-action-0')),
+    );
+    expect((chosenAction.decoration! as BoxDecoration).border!.top.width, 2);
     expect(cellColor(tester, 0, 0), const Color(0xFFD9E0E8));
 
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 700));
     final oriented = tester.widget<Transform>(
       find.byKey(const ValueKey('home-rack-piece-0')),
     );
     expect(oriented.transform, isNot(initialTurn.transform));
 
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const ValueKey('home-moving-piece')), findsOneWidget);
     expect(cellColor(tester, 0, 0), const Color(0xFFD9E0E8));
 
-    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 1100));
     expect(cellColor(tester, 0, 0), const Color(0xFFCCCCCC));
+    expect(cellColor(tester, 0, 1), const Color(0xFFF3F5F8));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(cellColor(tester, 0, 1), const Color(0xFFD9E0E8));
 
     await tester.pumpWidget(const SizedBox.shrink());

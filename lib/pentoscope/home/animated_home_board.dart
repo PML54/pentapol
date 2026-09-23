@@ -1,4 +1,4 @@
-// Modified: 2026-09-23 17:15 — ralentir encore légèrement la démonstration.
+// Modified: 2026-09-23 17:45 — montrer sélection, choix d'icône puis transformation.
 // lib/pentoscope/home/animated_home_board.dart
 
 import 'dart:math' as math;
@@ -55,26 +55,34 @@ final homeDemoSolutionsProvider = FutureProvider<List<List<PlacedPiece>>>((
 
 @immutable
 class HomeDemoTiming {
-  final Duration preview;
+  final Duration selection;
+  final Duration actionChoice;
+  final Duration orientation;
   final Duration drag;
   final Duration settle;
   final Duration completed;
   final Duration reset;
 
   const HomeDemoTiming({
-    this.preview = const Duration(milliseconds: 650),
-    this.drag = const Duration(milliseconds: 800),
-    this.settle = const Duration(milliseconds: 180),
-    this.completed = const Duration(milliseconds: 1150),
-    this.reset = const Duration(milliseconds: 700),
+    this.selection = const Duration(milliseconds: 500),
+    this.actionChoice = const Duration(milliseconds: 550),
+    this.orientation = const Duration(milliseconds: 700),
+    this.drag = const Duration(milliseconds: 900),
+    this.settle = const Duration(milliseconds: 200),
+    this.completed = const Duration(milliseconds: 1400),
+    this.reset = const Duration(milliseconds: 850),
   });
 
   int get pieceMilliseconds =>
-      preview.inMilliseconds + drag.inMilliseconds + settle.inMilliseconds;
+      selection.inMilliseconds +
+      actionChoice.inMilliseconds +
+      orientation.inMilliseconds +
+      drag.inMilliseconds +
+      settle.inMilliseconds;
 }
 
 class AnimatedHomeBoard extends StatefulWidget {
-  static const double chromeHeight = 120;
+  static const double chromeHeight = 132;
 
   final List<List<PlacedPiece>> solutions;
   final Color Function(int pieceId) colorOf;
@@ -183,8 +191,8 @@ class _AnimatedHomeBoardState extends State<AnimatedHomeBoard>
 
 class _HomeGameScene extends StatelessWidget {
   static const rackGap = 12.0;
-  static const rackHeight = 108.0;
-  static const toolbarHeight = 44.0;
+  static const rackHeight = 120.0;
+  static const toolbarHeight = 54.0;
   final List<PlacedPiece> solution;
   final Color Function(int pieceId) colorOf;
   final double cellSize;
@@ -222,13 +230,18 @@ class _HomeGameScene extends StatelessWidget {
     var current = (elapsed ~/ pieceMs).clamp(0, solution.length);
     if (elapsed >= piecesDuration) current = solution.length;
     final local = current < solution.length ? elapsed % pieceMs : 0;
-    final dragStart = timing.preview.inMilliseconds;
+    final selectionEnd = timing.selection.inMilliseconds;
+    final actionEnd = selectionEnd + timing.actionChoice.inMilliseconds;
+    final dragStart = actionEnd + timing.orientation.inMilliseconds;
     final dragEnd = dragStart + timing.drag.inMilliseconds;
     final dragging =
         current < solution.length && local >= dragStart && local < dragEnd;
     final orientProgress = current < solution.length
         ? Curves.easeOutCubic.transform(
-            (local / timing.preview.inMilliseconds).clamp(0.0, 1.0),
+            ((local - actionEnd) / timing.orientation.inMilliseconds).clamp(
+              0.0,
+              1.0,
+            ),
           )
         : 1.0;
     final dragProgress = dragging
@@ -255,7 +268,8 @@ class _HomeGameScene extends StatelessWidget {
                     colorOf: colorOf,
                     cellSize: cellSize,
                     placedCount: current,
-                    highlighted: current < solution.length
+                    highlighted:
+                        current < solution.length && local >= selectionEnd
                         ? solution[current]
                         : null,
                     glow: pulse,
@@ -268,12 +282,16 @@ class _HomeGameScene extends StatelessWidget {
                     colorOf: colorOf,
                     width: sceneWidth,
                     height: rackHeight,
-                    cellSize: cellSize * .30,
+                    cellSize: cellSize * .32,
                     placedCount: current,
                     hideCurrent: dragging,
                     currentIndex: current,
                     orientProgress: orientProgress,
                     clockwise: current.isOdd,
+                    selectionVisible:
+                        current < solution.length && local < dragStart,
+                    actionVisible:
+                        current < solution.length && local >= selectionEnd,
                   ),
                 ),
                 if (dragging)
@@ -420,6 +438,8 @@ class _DemoRack extends StatelessWidget {
   final int currentIndex;
   final double orientProgress;
   final bool clockwise;
+  final bool selectionVisible;
+  final bool actionVisible;
 
   const _DemoRack({
     required this.solution,
@@ -432,6 +452,8 @@ class _DemoRack extends StatelessWidget {
     required this.currentIndex,
     required this.orientProgress,
     required this.clockwise,
+    required this.selectionVisible,
+    required this.actionVisible,
   });
 
   @override
@@ -448,7 +470,9 @@ class _DemoRack extends StatelessWidget {
       children: [
         SizedBox(
           height: _HomeGameScene.toolbarHeight,
-          child: _DemoIsometryBar(clockwise: clockwise),
+          child: _DemoIsometryBar(
+            activeAction: actionVisible ? (clockwise ? 1 : 0) : null,
+          ),
         ),
         const Divider(height: 1, thickness: 1, color: Color(0xFFD8DEE8)),
         Expanded(
@@ -463,17 +487,36 @@ class _DemoRack extends StatelessWidget {
                           index < placedCount ||
                               (index == placedCount && hideCurrent)
                           ? const SizedBox.shrink()
-                          : Transform.rotate(
-                              key: ValueKey('home-rack-piece-$index'),
-                              angle:
-                                  _rackAngle(index) *
-                                  (index == currentIndex
-                                      ? 1 - orientProgress
-                                      : 1),
-                              child: _DemoPiece(
-                                cells: _normalizedCells(solution[index]),
-                                color: colorOf(solution[index].piece.id),
-                                cellSize: cellSize,
+                          : Container(
+                              key: ValueKey('home-piece-slot-$index'),
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: index == currentIndex && selectionVisible
+                                    ? const Color(
+                                        0xFF4D9DF7,
+                                      ).withValues(alpha: .13)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(7),
+                                border:
+                                    index == currentIndex && selectionVisible
+                                    ? Border.all(
+                                        color: const Color(0xFF4D9DF7),
+                                        width: 2,
+                                      )
+                                    : null,
+                              ),
+                              child: Transform.rotate(
+                                key: ValueKey('home-rack-piece-$index'),
+                                angle:
+                                    _rackAngle(index) *
+                                    (index == currentIndex
+                                        ? 1 - orientProgress
+                                        : 1),
+                                child: _DemoPiece(
+                                  cells: _normalizedCells(solution[index]),
+                                  color: colorOf(solution[index].piece.id),
+                                  cellSize: cellSize,
+                                ),
                               ),
                             ),
                     ),
@@ -488,9 +531,9 @@ class _DemoRack extends StatelessWidget {
 }
 
 class _DemoIsometryBar extends StatelessWidget {
-  final bool clockwise;
+  final int? activeAction;
 
-  const _DemoIsometryBar({required this.clockwise});
+  const _DemoIsometryBar({required this.activeAction});
 
   @override
   Widget build(BuildContext context) {
@@ -506,19 +549,25 @@ class _DemoIsometryBar extends StatelessWidget {
       children: [
         for (var index = 0; index < actions.length; index++)
           Container(
-            width: 40,
-            height: 40,
+            key: ValueKey('home-isometry-action-$index'),
+            width: 50,
+            height: 50,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: index == (clockwise ? 1 : 0)
-                  ? actions[index].color.withValues(alpha: .14)
+              color: index == activeAction
+                  ? actions[index].color.withValues(alpha: .18)
                   : Colors.transparent,
               shape: BoxShape.circle,
+              border: index == activeAction
+                  ? Border.all(color: actions[index].color, width: 2)
+                  : null,
             ),
             child: Icon(
               actions[index].icon,
-              size: 34,
-              color: actions[index].color,
+              size: 42,
+              color: index == activeAction
+                  ? actions[index].color
+                  : actions[index].color.withValues(alpha: .48),
             ),
           ),
       ],

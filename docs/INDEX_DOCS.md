@@ -1,6 +1,6 @@
 # Index de la documentation
 
-> Actualisé le 2026-09-22 : accueil devenu menu principal ; fin de training relancée au tap.
+> Actualisé le 2026-09-23 : accueil visuel 5×5 automatique ; Training lancé explicitement.
 > L’état courant et les passations sont dans [JOURNAL.md](JOURNAL.md).
 > Cet index oriente la lecture ; il ne certifie pas un nouvel audit complet de chaque document.
 
@@ -18,7 +18,7 @@
 
 | Document | Usage / état |
 |---|---|
-| [Accueil](ACCUEIL_GUIDE.md) | Menu principal responsive et mode Training en cycle : niveau 1 à une pièce, puis niveau 2 à deux pièces voisines ; tap pour avancer/recommencer, double-tap vers Game ; parcours 3×5 participatif conservé |
+| [Accueil](ACCUEIL_GUIDE.md) | Menu responsive avec démo 5×5 ; Training explicite en cycle, niveau 1 à une pièce puis niveau 2 à deux pièces voisines |
 | [Barème Géométrie](BAREME_GEOMETRIE.md) | Réglage, formule, Triche, reprise et préparation de la publication |
 | [Fonctionnement](FONCTIONNEMENT.md) | Synthèse actuelle en tête ; ancienne description détaillée explicitement historique |
 | [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md) | Rangée permanente et grisage livrés ; vignettes et axes des miroirs encore ouverts |

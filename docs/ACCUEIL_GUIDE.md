@@ -1,33 +1,34 @@
-# Accueil guidé 3×5
+# Accueil et Training 3×5
 
-> Révision du 2026-09-21 : l'application ouvre directement le vrai écran de jeu en mode `training`,
-> avec une pièce manquante, un bandeau défilant déplaçable et quatre consignes pilotées par le moteur.
-> Au retour, un véritable menu responsive remplace désormais l'écran vide sous l'ancien en-tête.
-> Sept variantes validées par Paul le 2026-09-11 (« c’est OK »), enregistrées dans `5f910e9`.
-> Contour renforcé et célébrations ajoutés ensuite : modifications locales, ressenti à apprécier sur iPhone.
-> Sa validation du 2026-09-10 portait sur la version précédente (`72a16bf`).
+> Révision du 2026-09-23 : l'application ouvre un menu responsive avec une démo automatique 5×5.
+> Le Training ne démarre plus automatiquement ; son bouton ouvre le vrai écran de jeu en mode
+> `training`, avec une ou deux pièces manquantes et quatre consignes pilotées par le moteur.
 
 ## Parcours visible
 
-L’application démarre sur `HomeScreen`, qui lance automatiquement le Training initial. Au retour,
-le menu principal présente l'identité **Pentapol** et un motif de cinq cases. **Jouer** est l'action
-dominante et affiche le niveau courant ; **Training** permet de relancer l'apprentissage. Défi de la
-semaine, Multijoueur, Mes records et Réglages occupent quatre tuiles distinctes.
+L’application démarre sur `HomeScreen`. Le menu présente l'identité **Pentapol**, une mini-partie
+5×5 automatique et cinq destinations. **Jeu Solo** et **Jeu Duo** partagent la première rangée ;
+**Défi**, **Training** et **Réglages** partagent la seconde. Les Records sont accessibles par le
+trophée de l'en-tête. En portrait, la démo précède les actions ; en paysage, elles sont côte à côte.
 
-En portrait, le panneau Jouer/Training précède la grille et l'ensemble peut défiler sur les petits
-écrans. En paysage, le panneau et la grille sont côte à côte. Le menu est identique en français et
-en anglais, sans doublon de ces actions dans l'en-tête.
+La démo choisit huit solutions distinctes dans le corpus et les alterne. Chaque pièce suit quatre
+étapes lisibles : sélection encadrée dans le tiroir, choix mis en évidence parmi les quatre icônes
+d'isométrie, transformation, puis déplacement vers la cible gris pâle. Les icônes mesurent 42 px et
+la boucle complète dure environ 16,5 secondes. Elle ne bloque jamais les boutons.
 
 Le parcours visible commence par « Appuie sur la pièce du tiroir pour la sélectionner » dans
 `PentoscopeGameScreen`. Le mode est porté par `PentoscopeMode.training`, distinct de `game`,
 `challenge`, `multiplayer` et `analysis`.
-Ce training se lance automatiquement une seule fois au démarrage. Après un retour à l'accueil,
-le bouton Jouer ouvre `PentoscopeMode.game` sans consigne de training.
+Ce Training se lance uniquement depuis son bouton. Après un retour à l'accueil, Jeu Solo ouvre
+`PentoscopeMode.game` sans consigne de Training.
 Le joueur la touche pour la sélectionner ; sa silhouette apparaît alors sur le plateau.
 Un maintien permet aussi de sélectionner et glisser directement, comme dans le jeu.
 Aucun compteur ni libellé d’étapes n’est affiché.
 
-## Sept petits entraînements
+## Référence historique : sept petits entraînements
+
+> Cette section décrit le parcours d'accueil antérieur au 2026-09-21. Elle est conservée pour
+> expliquer les variantes et composants historiques ; elle ne décrit plus le démarrage actuel.
 
 Les sept pavages existants sont utilisés : **PFU, PUN, PVL, PVU, PYU, TYL, VLN**.
 L’accueil choisit un premier tirage au montage. Le bouton **« Training »**

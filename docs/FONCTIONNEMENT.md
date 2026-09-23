@@ -1,25 +1,20 @@
 # Pentapol — Documentation fonctionnelle
 
-## Lecture actuelle — 2026-09-12
+## Lecture actuelle — 2026-09-23
 
-L’application démarre sur **HomeScreen** et son **accueil guidé 3×5** : sept tirages,
-avec trois pièces à orienter puis déposer. Aucune ne démarre dans son orientation cible.
-À la fin : bouton plein « Training » pour passer au prochain tirage. Depuis le
-2026-09-11, il invite à défiler dans le rack, choisir une pièce par numéro, la sélectionner
-et la poser avec les quatre icônes du jeu. Les étapes numérotées sont remplacées par des
-consignes et encouragements EN/FR. Depuis le 2026-09-12, ces consignes sont plus grandes,
-en gras, et défilent en continu à 72 pixels logiques/s, sans pause entre les tours. Le plateau reste fixe ;
-les modes accessibles présentent directement le texte immobile. Les consignes parlent d’icônes.
-Des retours vibratoires ponctuent la prise, l’entrée dans la cible et la pose acceptée,
-selon le réglage des vibrations de l’application. La prise peut se
-faire sur toute case ; le dépôt est assisté dans la zone cible. Paul a validé le dépôt de la version du 2026-09-10
-sur iPhone ; il valide aussi la version à sept variantes le 2026-09-11 (« c’est OK »). Voir [Accueil guidé](ACCUEIL_GUIDE.md) pour les règles et les vérifications.
+L’application démarre sur **HomeScreen**, désormais un menu visuel et non un Training automatique.
+Son centre présente une mini-partie 5×5 issue du corpus réel : huit solutions distinctes alternent,
+avec cinq pièces dans le tiroir. Pour chaque pose, la démo montre successivement la sélection de la
+pièce, le choix d'une des quatre icônes d'isométrie, la transformation puis le déplacement vers une
+cible gris pâle. La boucle dure environ 16,5 secondes, s'arrête avec l'écran et devient statique si
+le système réduit les animations.
 
-L’en-tête donne accès au jeu solo, au duel, aux défis,
-aux records et aux réglages. Le titre PENTAPOL a été retiré ; le bouton plein Jouer remplace
-l’icône personne au centre et permet de passer directement au jeu, à tout moment. Le parcours d’accueil ne modifie pas la partie sauvegardée.
-Le mode séparé à une pièce sur 5×7 et son icône sont supprimés depuis le 2026-09-11,
-à la demande de Paul ; l’entraînement se fait dans les sept parcours de l’accueil.
+Sous la démo, **Jeu Solo** et **Jeu Duo** partagent la première rangée. **Défi**, **Training** et
+**Réglages** forment la seconde ; les Records restent accessibles par le trophée de l'en-tête.
+Training ouvre explicitement `PentoscopeGameScreen` en mode `training` sur un plateau 3×5. Il
+alterne un exercice à une pièce manquante et un exercice à deux pièces voisines, avec consignes
+EN/FR et les quatre transformations du Game. Le lancement asynchrone ne modifie pas la partie Solo
+sauvegardée. Voir [Accueil et Training](ACCUEIL_GUIDE.md) pour les règles et vérifications.
 
 Le jeu s’appuie sur Pentoscope et des tables précalculées : `CorpusSolutionSource` pour les
 tirages 5×n, `TableSolutionSource` pour le 6×10 complet. Le compteur fonctionne sur toutes les
