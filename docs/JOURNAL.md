@@ -53,6 +53,10 @@ géométriques historiques.
 La rotation paysage conserve désormais la continuité de l'illustration : les fragments pivotent de
 90° vers la gauche, dans le même sens que la grille, au lieu de pivoter en sens inverse.
 
+La version interne affichée dans Paramètres est **1.0.8 (build 202609231048)**. Elle est portée par
+`lib/config/build_info.dart` ; la version de packaging de `pubspec.yaml` reste volontairement
+inchangée jusqu'à la préparation d'une soumission aux stores.
+
 ### L'application
 
 Un seul module de jeu, **Pentoscope** : tailles `size3x5`…`size10x5` (tirage d'un masque de
@@ -1270,6 +1274,10 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-23 (25) — CLI : version interne 1.0.8.**
+Mise à jour de la version et du build affichés dans Paramètres, sans toucher à la version de
+packaging du `pubspec.yaml`.
 
 **2026-09-23 (24) — CLI : continuité de l'image en paysage.**
 La grille et ses fragments illustrés utilisent maintenant la même rotation antihoraire lors du
