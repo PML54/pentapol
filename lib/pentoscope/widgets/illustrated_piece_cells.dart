@@ -1,4 +1,4 @@
-// Modified: 2026-09-23 06:06 — utiliser le paysage simplifié 3:5.
+// Modified: 2026-09-23 07:03 — suivre la rotation antihoraire du plateau en paysage.
 // Historique: 2026-09-23 05:48 — adapter le découpage à toutes les dimensions de plateau.
 // Historique: 2026-09-23 05:32 — recevoir la solution-image fixée au démarrage de la partie.
 // Historique: 2026-09-23 05:13 — prototype 6×10 : découper une image par cellules de pentominos.
@@ -11,6 +11,9 @@ import 'package:pentapol/common/point.dart';
 
 const String kIllustratedPuzzleAsset =
     'assets/images/pentapol_puzzle_landscape_3x5.png';
+
+/// Le plateau logique pivote de 90° vers la gauche en paysage.
+const int kIllustratedLandscapeQuarterTurns = 3;
 
 /// Découpage stable de l'image selon la première solution 6×10 de référence.
 ///

@@ -1,4 +1,4 @@
-// Modified: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
+// Modified: 2026-09-23 07:03 — préserver les raccords de l'image en paysage.
 // Historique: 2026-09-23 05:32 — découper l'image selon la solution fixée pour la partie.
 // Historique: 2026-09-23 05:13 — rendre les fragments illustrés sur le plateau 6×10.
 // Historique: 2026-09-22 19:09 — transmettre le double-tap du plateau au mode Game.
@@ -550,7 +550,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               cellSize: cellSize,
               boardWidth: illustratedLayout!.boardWidth,
               boardHeight: illustratedLayout.boardHeight,
-              quarterTurns: isLandscape ? 1 : 0,
+              quarterTurns: isLandscape ? kIllustratedLandscapeQuarterTurns : 0,
               opacity: previewInfo.isPreview && !previewInfo.isPreviewValid
                   ? 0.35
                   : 1,

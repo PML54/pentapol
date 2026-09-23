@@ -1,4 +1,4 @@
-// Modified: 2026-09-23 06:42 — vérifier la lampe et la victoire propres au mode Image.
+// Modified: 2026-09-23 07:03 — verrouiller la rotation de l'image en paysage.
 // test/illustrated_hint_solution_test.dart
 
 import 'package:drift/native.dart';
@@ -9,10 +9,15 @@ import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
+import 'package:pentapol/pentoscope/widgets/illustrated_piece_cells.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('le paysage tourne les fragments dans le même sens que le plateau', () {
+    expect(kIllustratedLandscapeQuarterTurns, 3);
+  });
 
   test('la lampe suit la solution-image sur toutes les tailles', () async {
     final db = SettingsDatabase.forTesting(NativeDatabase.memory());

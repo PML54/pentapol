@@ -50,6 +50,9 @@ lampe jaune vérifie les placements par rapport à la solution-image de référe
 forment une mauvaise image n'est plus déclaré terminé. Le mode classique conserve les règles
 géométriques historiques.
 
+La rotation paysage conserve désormais la continuité de l'illustration : les fragments pivotent de
+90° vers la gauche, dans le même sens que la grille, au lieu de pivoter en sens inverse.
+
 ### L'application
 
 Un seul module de jeu, **Pentoscope** : tailles `size3x5`…`size10x5` (tirage d'un masque de
@@ -1267,6 +1270,10 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-23 (24) — CLI : continuité de l'image en paysage.**
+La grille et ses fragments illustrés utilisent maintenant la même rotation antihoraire lors du
+passage portrait → paysage ; les raccords entre cases restent alignés.
 
 **2026-09-23 (23) — CLI : lampe et victoire alignées sur le mode Image.**
 Le mode est figé par partie et repris depuis la sauvegarde. En Image, un placement hors de la
