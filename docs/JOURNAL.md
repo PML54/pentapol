@@ -57,6 +57,30 @@ La version interne affichée dans Paramètres est **1.0.8 (build 202609231048)**
 `lib/config/build_info.dart` ; la version de packaging de `pubspec.yaml` reste volontairement
 inchangée jusqu'à la préparation d'une soumission aux stores.
 
+### Accueil visuel (2026-09-23)
+
+L'accueil affiche désormais directement le logo, une démonstration **5×5** et cinq destinations selon
+leur importance : **Jeu Solo**, **Jeu Duo**, puis **Défi**, **Training** et **Réglages**. Le niveau
+solo apparaît dans le bouton principal au lieu d'occuper un panneau séparé. L'accès aux Records est
+conservé par une icône trophée discrète dans l'en-tête. La démonstration prépare huit solutions 5×5
+distinctes choisies dans le corpus du Game, sans modifier la partie du joueur, puis en présente une
+nouvelle à chaque boucle. Ses cinq pièces apparaissent dans un tiroir miniature, dans un ordre de
+pose également variable. Pour chacune : cible gris pâle sur le plateau, rotation dans le tiroir,
+retrait, glissé automatique fluide, puis pose dans sa vraie couleur. Le plateau complet produit une
+légère impulsion avant de se vider. Les durées sont regroupées dans
+`HomeDemoTiming` et un unique `AnimationController`, détruit avec le widget, porte toute la boucle.
+Quand le système réduit les animations, le plateau complet est affiché sans mouvement. L'accueil
+devient le premier écran visible ; le Training ne se lance plus automatiquement au démarrage.
+Le plateau d'accueil est agrandi ; Solo et Duo partagent désormais une ligne, sans rappel du niveau.
+Le lancement asynchrone du Training conserve le contexte de navigation de l'écran pendant l'attente.
+Le tiroir de démonstration reprend la barre des quatre isométries du Game au-dessus des pièces ;
+le sens de rotation actif est mis en évidence. Le contour extérieur du plateau est renforcé.
+La démo occupe désormais la largeur et la hauteur disponibles au maximum : plateau, pièces du
+tiroir et icônes sont agrandis, tandis que les actions du bas sont plus compactes. La chorégraphie
+est ralentie d'environ 20 % et le libellé « Défi de la semaine » devient simplement « Défi ».
+Les glyphes d'isométrie de la démo mesurent 34 px pour rester immédiatement lisibles sur téléphone.
+La boucle dure désormais environ dix secondes, avec une rotation et un déplacement plus posés.
+
 ### L'application
 
 Un seul module de jeu, **Pentoscope** : tailles `size3x5`…`size10x5` (tirage d'un masque de
@@ -1274,6 +1298,11 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-23 (26) — CLI : accueil visuel et pédagogique.**
+Remplacement du panneau Niveau/Jouer/Training par une mini-partie 5×5 automatique : vraie solution
+aléatoire, tiroir, cible jaune et drag pièce par pièce. Deux actions principales, trois raccourcis,
+réduction de mouvement et layouts compacts testés.
 
 **2026-09-23 (25) — CLI : version interne 1.0.8.**
 Mise à jour de la version et du build affichés dans Paramètres, sans toucher à la version de

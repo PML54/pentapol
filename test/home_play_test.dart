@@ -1,4 +1,4 @@
-// Modified: 2026-09-23 06:24 — fixer le Training sur un plateau 3×5.
+// Modified: 2026-09-23 15:10 — vérifier l'accueil compact et le chargement Training asynchrone.
 // Historique: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
 //           deux pièces ; le double-tap vers Game reste prioritaire.
 // Historique: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
@@ -13,6 +13,7 @@
 // Historique: 2026-09-12 03:40 — parcours en navigation accessible ; défilement testé séparément.
 // Historique: 2026-09-11 16:12 — vérifier l’accès immédiat au jeu depuis le bouton de l’accueil.
 // test/home_play_test.dart
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -92,6 +93,22 @@ class _AutoGame extends _Game {
         piecePositionIndices: {for (final piece in pieces) piece.id: 0},
         solutionsCount: 1,
       ),
+    );
+  }
+}
+
+class _DelayedTrainingGame extends _AutoGame {
+  final ready = Completer<void>();
+
+  @override
+  Future<void> startRecreationalPuzzle({
+    PentoscopeSize size = PentoscopeSize.size3x5,
+    int missingPieceCount = 1,
+  }) async {
+    await ready.future;
+    await super.startRecreationalPuzzle(
+      size: size,
+      missingPieceCount: missingPieceCount,
     );
   }
 }
@@ -238,10 +255,10 @@ void main() {
     },
   );
 
-  testWidgets('le démarrage ouvre directement le Game récréatif', (
+  testWidgets('le démarrage affiche le nouvel accueil puis ouvre le Training', (
     tester,
   ) async {
-    final game = _AutoGame();
+    final game = _DelayedTrainingGame();
     final container = ProviderContainer(
       overrides: [
         pentoscopeProvider.overrideWith(() => game),
@@ -256,7 +273,9 @@ void main() {
         container: container,
         child: MaterialApp(
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(accessibleNavigation: true),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(accessibleNavigation: true, disableAnimations: true),
             child: child!,
           ),
           locale: const Locale('fr'),
@@ -268,24 +287,29 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(game.recreationalStarts, 1);
-    expect(find.byType(PentoscopeGameScreen), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-recreational')), findsNothing);
-    expect(
-      find.text('Appuie sur la pièce du tiroir pour la sélectionner.'),
-      findsWidgets,
-    );
-
-    await tester.tap(find.byIcon(Icons.home_outlined));
-    await tester.pumpAndSettle();
-    expect(game.recreationalStarts, 1);
+    expect(game.recreationalStarts, 0);
     expect(find.byType(PentoscopeGameScreen), findsNothing);
+    expect(find.byKey(const ValueKey('home-recreational')), findsNothing);
+    expect(find.byKey(const ValueKey('home-animated-board')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-play')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-challenge')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-multiplayer')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-records')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-settings')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('home-training')));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    game.ready.complete();
+    await tester.pumpAndSettle();
+    expect(game.recreationalStarts, 1);
+    expect(find.byType(PentoscopeGameScreen), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.pumpAndSettle();
+    expect(game.recreationalStarts, 1);
+    expect(find.byType(PentoscopeGameScreen), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('home-play')));
     await tester.pumpAndSettle();
@@ -340,9 +364,10 @@ void main() {
               container: container,
               child: MaterialApp(
                 builder: (context, child) => MediaQuery(
-                  data: MediaQuery.of(
-                    context,
-                  ).copyWith(accessibleNavigation: true),
+                  data: MediaQuery.of(context).copyWith(
+                    accessibleNavigation: true,
+                    disableAnimations: true,
+                  ),
                   child: child!,
                 ),
                 locale: Locale(lang),

@@ -45,13 +45,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get homeChallenge => 'Weekly challenge';
+  String get homeChallenge => 'Challenge';
 
   @override
   String get homeRecords => 'My records';
 
   @override
   String get homeSettings => 'Settings';
+
+  @override
+  String get homeSolo => 'Solo Game';
+
+  @override
+  String get homeDuo => 'Duo Game';
 
   @override
   String get settingsTitle => 'Settings';

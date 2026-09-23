@@ -1,4 +1,4 @@
-// Modified: 2026-09-21 17:13 — remplacer l'accueil vide par un menu principal responsive.
+// Modified: 2026-09-23 16:40 — maximiser la démo et compacter les actions inférieures.
 // Historique: 2026-09-21 09:04 — ne pas relancer le training après un retour à l'accueil.
 // Historique: 2026-09-21 08:49 — ouvrir le parcours initial avec le mode training explicite.
 // Historique: 2026-09-12 06:30 — transmettre le réglage des vibrations à l’accueil guidé.
@@ -6,14 +6,16 @@
 // lib/pentoscope/home/home_screen.dart
 // Historique: 2026-09-10 14:53 — accueil interactif : respecter le délai de prise réglé pour le jeu.
 // Historique: 2026-09-10 10:24 — accueil : remplacer la démonstration passive par le 3×5 guidé.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/settings_screen.dart';
-import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
+import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
@@ -21,11 +23,12 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart'
     show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
     show PentoscopeGameScreen;
+import 'package:pentapol/pentoscope/home/animated_home_board.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final bool startRecreationalOnOpen;
 
-  const HomeScreen({super.key, this.startRecreationalOnOpen = true});
+  const HomeScreen({super.key, this.startRecreationalOnOpen = false});
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
@@ -38,7 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     if (widget.startRecreationalOnOpen) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _playRecreational(context);
+        if (mounted) _playRecreational();
       });
     }
   }
@@ -73,18 +76,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFE4E7EC))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const _PentapolMark(size: 28),
-          const SizedBox(width: 12),
-          Text(
-            l10n.appTitle,
-            style: const TextStyle(
-              color: Color(0xFF27364A),
-              fontSize: 25,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _PentapolMark(size: 28),
+              const SizedBox(width: 12),
+              Text(
+                l10n.appTitle,
+                style: const TextStyle(
+                  color: Color(0xFF27364A),
+                  fontSize: 25,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              key: const ValueKey('home-records'),
+              tooltip: l10n.homeRecords,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RecordsScreen()),
+              ),
+              icon: const Icon(
+                Icons.emoji_events_outlined,
+                color: Color(0xFF52657D),
+              ),
             ),
           ),
         ],
@@ -93,94 +116,86 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildMenu(BuildContext context, int level) {
-    final l10n = AppLocalizations.of(context);
+    final settings = ref.watch(settingsProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
         final landscape = constraints.maxWidth > constraints.maxHeight;
-        final playPanel = _PlayPanel(
-          level: l10n.levelLabel(level),
-          playLabel: l10n.play,
-          trainingLabel: l10n.guidedAnother,
-          onPlay: () => _play(context, level),
-          onTraining: () => _playRecreational(context),
+        final demoHeight = (constraints.maxHeight - (landscape ? 12 : 130))
+            .clamp(250.0, 380.0);
+        final heightCellSize =
+            (demoHeight - AnimatedHomeBoard.chromeHeight) / 5;
+        final contentWidth = math.min(
+          constraints.maxWidth - 16,
+          landscape ? 720.0 : 520.0,
         );
-        final destinations = GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: landscape ? 1.65 : 1.45,
-          children: [
-            _HomeDestination(
-              key: const ValueKey('home-challenge'),
-              icon: Icons.flag_outlined,
-              color: const Color(0xFFE84A5F),
-              label: l10n.homeChallenge,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChallengeScreen()),
-              ),
+        final demoWidth = landscape ? contentWidth - 24 - 320 : contentWidth;
+        final widthCellSize = demoWidth / 6.4;
+        final demoCellSize = math.min(heightCellSize, widthCellSize);
+        final resolvedDemoHeight =
+            demoCellSize * 5 + AnimatedHomeBoard.chromeHeight;
+        final resolvedDemoWidth = demoCellSize * 6.4;
+        final demo = ref.watch(homeDemoSolutionsProvider);
+        final board = demo.when(
+          data: (solutions) => AnimatedHomeBoard(
+            key: const ValueKey('home-animated-board'),
+            solutions: solutions,
+            colorOf: settings.ui.getPieceColor,
+            cellSize: demoCellSize,
+          ),
+          loading: () => SizedBox(
+            key: const ValueKey('home-animated-board-loading'),
+            width: resolvedDemoWidth,
+            height: resolvedDemoHeight,
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            _HomeDestination(
-              key: const ValueKey('home-multiplayer'),
-              icon: Icons.people_outline,
-              color: const Color(0xFF3768C5),
-              label: l10n.multiplayer,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PentoscopeMPLobbyScreen(),
-                ),
-              ),
+          ),
+          error: (_, _) => SizedBox(
+            width: resolvedDemoWidth,
+            height: resolvedDemoHeight,
+            child: const Icon(
+              Icons.grid_view_rounded,
+              color: Color(0xFF9AA8B8),
             ),
-            _HomeDestination(
-              key: const ValueKey('home-records'),
-              icon: Icons.emoji_events_outlined,
-              color: const Color(0xFFE9A820),
-              label: l10n.homeRecords,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RecordsScreen()),
-              ),
-            ),
-            _HomeDestination(
-              key: const ValueKey('home-settings'),
-              icon: Icons.tune,
-              color: const Color(0xFF657487),
-              label: l10n.homeSettings,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              ),
-            ),
-          ],
+          ),
+        );
+        final actions = _HomeActions(
+          onSolo: () => _play(context, level),
+          onDuo: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PentoscopeMPLobbyScreen()),
+          ),
+          onChallenge: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChallengeScreen()),
+          ),
+          onTraining: _playRecreational,
+          onSettings: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          ),
         );
 
         return Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: landscape ? 6 : 8,
+            ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
+              constraints: BoxConstraints(maxWidth: landscape ? 720 : 520),
               child: landscape
-                  ? SizedBox(
-                      height: constraints.maxHeight - 40,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(width: 280, child: playPanel),
-                          const SizedBox(width: 24),
-                          Expanded(child: destinations),
-                        ],
-                      ),
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        board,
+                        const SizedBox(width: 24),
+                        SizedBox(width: 320, child: actions),
+                      ],
                     )
                   : Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
-                        playPanel,
-                        const SizedBox(height: 20),
-                        destinations,
-                      ],
+                      children: [board, const SizedBox(height: 10), actions],
                     ),
             ),
           ),
@@ -208,13 +223,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Future<void> _playRecreational(BuildContext context) async {
+  Future<void> _playRecreational() async {
     if (!_isLaunchingRecreational && mounted) {
       setState(() => _isLaunchingRecreational = true);
     }
     final notifier = ref.read(pentoscopeProvider.notifier);
     await notifier.startRecreationalPuzzle();
-    if (!context.mounted) return;
+    if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -227,93 +242,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _PlayPanel extends StatelessWidget {
-  final String level;
-  final String playLabel;
-  final String trainingLabel;
-  final VoidCallback onPlay;
+class _HomeActions extends StatelessWidget {
+  final VoidCallback onSolo;
+  final VoidCallback onDuo;
+  final VoidCallback onChallenge;
   final VoidCallback onTraining;
+  final VoidCallback onSettings;
 
-  const _PlayPanel({
-    required this.level,
-    required this.playLabel,
-    required this.trainingLabel,
-    required this.onPlay,
+  const _HomeActions({
+    required this.onSolo,
+    required this.onDuo,
+    required this.onChallenge,
     required this.onTraining,
+    required this.onSettings,
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minWidth: 250),
-    padding: const EdgeInsets.all(24),
-    decoration: BoxDecoration(
-      color: const Color(0xFF27364A),
-      borderRadius: BorderRadius.circular(24),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: _PentapolMark(size: 48),
-        ),
-        const SizedBox(height: 28),
-        Text(
-          level,
-          style: const TextStyle(
-            color: Color(0xFFCAD2DE),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 14),
-        FilledButton.icon(
-          key: const ValueKey('home-play'),
-          onPressed: onPlay,
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: Text(playLabel),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF4D9DF7),
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-            textStyle: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                key: const ValueKey('home-play'),
+                onPressed: onSolo,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(l10n.homeSolo),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF3768C5),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(46),
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          key: const ValueKey('home-training'),
-          onPressed: onTraining,
-          icon: const Icon(Icons.school_outlined),
-          label: Text(trainingLabel),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: const BorderSide(color: Color(0xFF8392A7)),
-            minimumSize: const Size.fromHeight(46),
-            textStyle: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const ValueKey('home-multiplayer'),
+                onPressed: onDuo,
+                icon: const Icon(Icons.people_outline),
+                label: Text(l10n.homeDuo),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF3768C5),
+                  side: const BorderSide(color: Color(0xFF9BB8E8)),
+                  minimumSize: const Size.fromHeight(46),
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _HomeDestination(
+                key: const ValueKey('home-challenge'),
+                icon: Icons.flag_outlined,
+                label: l10n.homeChallenge,
+                onTap: onChallenge,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _HomeDestination(
+                key: const ValueKey('home-training'),
+                icon: Icons.school_outlined,
+                label: l10n.guidedAnother,
+                onTap: onTraining,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _HomeDestination(
+                key: const ValueKey('home-settings'),
+                icon: Icons.tune,
+                label: l10n.homeSettings,
+                onTap: onSettings,
+              ),
+            ),
+          ],
         ),
       ],
-    ),
-  );
+    );
+  }
 }
 
 class _HomeDestination extends StatelessWidget {
   final IconData icon;
-  final Color color;
   final String label;
   final VoidCallback onTap;
 
   const _HomeDestination({
     super.key,
     required this.icon,
-    required this.color,
     required this.label,
     required this.onTap,
   });
@@ -322,37 +363,29 @@ class _HomeDestination extends StatelessWidget {
   Widget build(BuildContext context) => Material(
     color: Colors.white,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(12),
       side: const BorderSide(color: Color(0xFFE0E4EA)),
     ),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF27364A),
-                  fontSize: 15,
-                  height: 1.1,
-                  fontWeight: FontWeight.w700,
-                ),
+            Icon(icon, color: const Color(0xFF52657D), size: 20),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF27364A),
+                fontSize: 11.5,
+                height: 1.05,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],

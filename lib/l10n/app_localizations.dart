@@ -173,7 +173,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeChallenge.
   ///
   /// In en, this message translates to:
-  /// **'Weekly challenge'**
+  /// **'Challenge'**
   String get homeChallenge;
 
   /// No description provided for @homeRecords.
@@ -187,6 +187,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get homeSettings;
+
+  /// No description provided for @homeSolo.
+  ///
+  /// In en, this message translates to:
+  /// **'Solo Game'**
+  String get homeSolo;
+
+  /// No description provided for @homeDuo.
+  ///
+  /// In en, this message translates to:
+  /// **'Duo Game'**
+  String get homeDuo;
 
   /// No description provided for @settingsTitle.
   ///
