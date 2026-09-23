@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 08:01 — records : une partie de calibrage (geometry.experimental) pose de
+// Modified: 2026-09-23 06:42 — figer le mode Image par partie et aligner lampe/victoire.
+// Historique: 2026-09-22 08:01 — records : une partie de calibrage (geometry.experimental) pose de
 //           nouveau des records — garde de _saveCompletionRecord allégée (option B, décision Paul).
 // Historique: 2026-09-22 05:35 — training 2 : retirer deux pièces voisines, toutes deux
 //           réorientées dans le tiroir, en conservant une complétion unique.
@@ -373,11 +374,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // Un appui accepté compte même si la source ne peut pas fournir d'aide.
     state = state.copyWith(hintCount: state.hintCount + 1);
 
-    // Source du puzzle : table pré-calculée (solution compatible aléatoire,
-    // décision §4.6) ou solveur à la volée. hintFrom renvoie les placements d'une
-    // solution ; on y choisit une pièce non encore posée.
     final board = _rebuildPlateau();
-    final solution = _solutions.hintFrom(board, state.availablePieces);
+    final fixedSolution = state.isIllustratedMode
+        ? state.illustratedSolution
+        : null;
+    if (fixedSolution != null && !_matchesFixedSolution(fixedSolution)) {
+      _saveCurrentGame();
+      debugPrint('❌ HINT: Le plateau suit une autre solution que l’image');
+      return;
+    }
+    final solution =
+        fixedSolution ?? _solutions.hintFrom(board, state.availablePieces);
     if (solution == null || solution.isEmpty) {
       _saveCurrentGame();
       debugPrint('❌ HINT: Aucune solution trouvée');
@@ -417,7 +424,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         .where((p) => p.id != hintPiece.id)
         .toList();
 
-    final isComplete = newPlacedPieces.length == state.puzzle!.size.numPieces;
+    final fillsBoard = newPlacedPieces.length == state.puzzle!.size.numPieces;
+    final isComplete =
+        fillsBoard &&
+        (!state.isIllustratedMode ||
+            _placementsMatchFixedSolution(
+              newPlacedPieces,
+              state.illustratedSolution,
+            ));
 
     // ⏱️ Arrêter le timer si puzzle complet
     if (isComplete) {
@@ -458,10 +472,33 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
+  bool _matchesFixedSolution(List<PlacedPiece> solution) {
+    return _placementsMatchFixedSolution(state.placedPieces, solution);
+  }
+
+  bool _placementsMatchFixedSolution(
+    List<PlacedPiece> placedPieces,
+    List<PlacedPiece>? solution,
+  ) {
+    if (solution == null) return false;
+    final targetById = {for (final piece in solution) piece.piece.id: piece};
+    for (final placed in placedPieces) {
+      final target = targetById[placed.piece.id];
+      if (target == null) return false;
+      final actualCells = placed.absoluteCells.toSet();
+      final targetCells = target.absoluteCells.toSet();
+      if (actualCells.length != targetCells.length ||
+          !actualCells.containsAll(targetCells)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// Prépare un exercice Training sur le vrai moteur Game :
   ///
-  /// 1. démarre un vrai puzzle 5×7 ;
-  /// 2. applique 7 fois la lampe jaune via [applyHint] pour obtenir un plateau complet ;
+  /// 1. démarre un vrai puzzle 3×5 ;
+  /// 2. applique la lampe jaune via [applyHint] pour obtenir un plateau complet ;
   /// 3. choisit une ou deux pièces dont le retrait laisse une solution unique ;
   /// 4. pour deux pièces, exige qu'elles partagent au moins un côté ;
   /// 5. retire les pièces via [removePlacedPiece].
@@ -469,7 +506,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// Les compteurs sont remis à zéro après la préparation : le joueur reçoit un plateau de Game
   /// authentique, sans dette d'aides/suppressions automatiques.
   Future<void> startRecreationalPuzzle({
-    PentoscopeSize size = PentoscopeSize.size7x5,
+    PentoscopeSize size = PentoscopeSize.size3x5,
     int missingPieceCount = 1,
   }) async {
     if (missingPieceCount != 1 && missingPieceCount != 2) {
@@ -610,6 +647,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     List<Pento> availablePieces,
   ) {
     if (state.puzzle == null) return (false, null);
+    if (state.isIllustratedMode) {
+      final followsImage = _placementsMatchFixedSolution(
+        placedPieces,
+        state.illustratedSolution,
+      );
+      return (followsImage && availablePieces.isNotEmpty, followsImage ? 1 : 0);
+    }
     final board = _rebuildPlateau(pieces: placedPieces);
     final count = _solutions.countFrom(board);
     final bool has;
@@ -797,10 +841,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final plateau = Plateau.allVisible(puzzle.size.width, puzzle.size.height);
 
+    final illustratedSolution = _solutions.hintFrom(plateau, pieces);
+
     // Solution « à afficher » : une solution complète du tirage, servie par la SolutionSource
     // (corpus/table) sur le plateau vide. Plus de solveur.
     final firstSolution = state.showSolution
-        ? _solutions.hintFrom(plateau, pieces)
+        ? illustratedSolution ?? _solutions.hintFrom(plateau, pieces)
         : null;
 
     // ⏱️ Reset sans démarrer le timer — efface l'origine, la partie suivante repart de zéro
@@ -816,6 +862,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     };
 
     await ref.read(settingsProvider.notifier).ensureLoaded();
+    final isIllustratedMode = ref
+        .read(settingsProvider)
+        .game
+        .showIllustratedPieces;
     final geometry = GeometryScore(
       rules: kGeometryTuningEnabled
           ? ref.read(settingsProvider).game.geometryRules
@@ -839,6 +889,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       showSolution: state.showSolution,
       // ✅ Récupérer de state
       currentSolution: firstSolution,
+      illustratedSolution: illustratedSolution,
+      isIllustratedMode: isIllustratedMode,
       // ✅ Stocker la solution
       validPlacements: [], // ✨ NOUVEAU
       hasPossibleSolution: true, // 💡 Reset
@@ -1014,6 +1066,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final plateau = Plateau.allVisible(size.width, size.height);
 
+    final illustratedSolution = _solutions.hintFrom(plateau, pieces);
+
     // 🎯 INITIALISER ALÉATOIREMENT LES POSITIONS
     final Random random = Random();
     final piecePositionIndices = <int, int>{};
@@ -1026,13 +1080,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // Solution à afficher si l'option « montrer la solution » est active : servie par la
     // SolutionSource (corpus/table) sur le plateau vide. Plus de solveur.
     final firstSolution = showSolution
-        ? _solutions.hintFrom(plateau, pieces)
+        ? illustratedSolution ?? _solutions.hintFrom(plateau, pieces)
         : null;
 
     // ⏱️ Reset timer sans démarrer — efface l'origine, la partie repart de zéro
     resetTimer();
 
     await ref.read(settingsProvider.notifier).ensureLoaded();
+    final isIllustratedMode = ref
+        .read(settingsProvider)
+        .game
+        .showIllustratedPieces;
     final geometry = GeometryScore(
       rules: kGeometryTuningEnabled
           ? ref.read(settingsProvider).game.geometryRules
@@ -1055,6 +1113,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       translationCount: 0,
       showSolution: showSolution,
       currentSolution: firstSolution,
+      illustratedSolution: illustratedSolution,
+      isIllustratedMode: isIllustratedMode,
       validPlacements: [],
       hasPossibleSolution: true,
       solutionsCount: _solutions.countFrom(
@@ -1364,7 +1424,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             faultCount: state.faultCount,
             isProgression: state.isProgression,
             initialOrientations: initialJson,
-            geometryState: jsonEncode(state.geometry?.toJson() ?? {}),
+            geometryState: jsonEncode({
+              ...?state.geometry?.toJson(),
+              'isIllustratedMode': state.isIllustratedMode,
+            }),
           );
     } catch (e) {
       debugPrint('❌ Sauvegarde partie en cours échouée: $e');
@@ -1437,7 +1500,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           (k, v) => MapEntry(int.parse(k), v as int),
         );
 
-    final geometry = GeometryScore.fromJson(jsonDecode(row.geometryState));
+    final geometryJson = jsonDecode(row.geometryState) as Map<String, dynamic>;
+    final geometry = GeometryScore.fromJson(geometryJson);
+    final isIllustratedMode = geometryJson['isIllustratedMode'] == true;
     final placedPieces = [
       for (final e in jsonDecode(row.placedPieces) as List)
         PlacedPiece(
@@ -1479,6 +1544,13 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // ⏱️ Reprendre le chrono à la valeur restaurée, sans démarrer le tic.
     restoreTimerOrigin(row.elapsedSeconds);
 
+    // La solution-image n'est pas persistée : à la reprise, en choisir une compatible avec
+    // toutes les pièces déjà posées garantit que leurs fragments restent cohérents.
+    final illustratedSolution = _solutions.hintFrom(plateau, availablePieces);
+    final effectiveHasPossibleSolution =
+        !isIllustratedMode ||
+        _placementsMatchFixedSolution(placedPieces, illustratedSolution);
+
     state = PentoscopeState(
       geometry: geometry,
       viewOrientation: ViewOrientation.portrait,
@@ -1497,8 +1569,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultCount: row.faultCount, // 🔴 fautes restaurées
       showSolution: false, // non restaurable (§2.4)
       currentSolution: null,
+      illustratedSolution: illustratedSolution,
+      isIllustratedMode: isIllustratedMode,
       validPlacements: [],
-      hasPossibleSolution: hasPossibleSolution,
+      hasPossibleSolution: isIllustratedMode
+          ? effectiveHasPossibleSolution
+          : hasPossibleSolution,
       solutionsCount: count,
       elapsedSeconds: row.elapsedSeconds,
       isProgression:
@@ -1578,8 +1654,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           .toList();
     }
 
-    final isComplete =
+    final fillsBoard =
         newPlacedPieces.length == (state.puzzle?.size.numPieces ?? 0);
+    final isComplete =
+        fillsBoard &&
+        (!state.isIllustratedMode ||
+            _placementsMatchFixedSolution(
+              newPlacedPieces,
+              state.illustratedSolution,
+            ));
 
     // Compter les translations (déplacement d'une pièce déjà placée)
     final newTranslationCount = state.selectedPlacedPiece != null
@@ -2832,6 +2915,13 @@ class PentoscopeState implements PieceManipulationState {
   /// SolutionSource via hintFrom ; `null` si l'option est désactivée.
   final List<PlacedPiece>? currentSolution;
 
+  /// Solution choisie une fois au démarrage : source commune de l'image et de la lampe.
+  final List<PlacedPiece>? illustratedSolution;
+
+  /// Mode figé au démarrage de la partie. En mode Image, la lampe et la victoire exigent
+  /// [illustratedSolution] ; changer le réglage global ne transforme pas la partie en cours.
+  final bool isIllustratedMode;
+
   // 💡 HINT: Indique si au moins une solution est encore possible
   final bool hasPossibleSolution;
 
@@ -2887,6 +2977,8 @@ class PentoscopeState implements PieceManipulationState {
     this.isDragging = false,
     this.showSolution = false,
     this.currentSolution,
+    this.illustratedSolution,
+    this.isIllustratedMode = false,
     this.hasPossibleSolution = true, // 💡 Par défaut true au démarrage
     this.solutionsCount, // 🔢 null tant qu'aucun puzzle à table n'est démarré
     this.elapsedSeconds = 0, // ⏱️ Timer
@@ -2970,6 +3062,8 @@ class PentoscopeState implements PieceManipulationState {
     bool? isDragging,
     bool? showSolution, // ✅ NOUVEAU
     List<PlacedPiece>? currentSolution,
+    List<PlacedPiece>? illustratedSolution,
+    bool? isIllustratedMode,
     bool? hasPossibleSolution, // 💡 HINT
     int? solutionsCount, // 🔢
     int? elapsedSeconds, // ⏱️ Timer
@@ -3021,6 +3115,8 @@ class PentoscopeState implements PieceManipulationState {
       showSolution: showSolution ?? this.showSolution,
       // ✅ NOUVEAU
       currentSolution: currentSolution ?? this.currentSolution, // ✅ NOUVEAU
+      illustratedSolution: illustratedSolution ?? this.illustratedSolution,
+      isIllustratedMode: isIllustratedMode ?? this.isIllustratedMode,
       hasPossibleSolution:
           hasPossibleSolution ?? this.hasPossibleSolution, // 💡 HINT
       solutionsCount: solutionsCount ?? this.solutionsCount, // 🔢

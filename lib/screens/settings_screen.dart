@@ -16,6 +16,7 @@
 //           de langue (Système/Français/English → settings.localeCode) sous la section Interface.
 // Historique: 2026-09-02 20:37 — pseudo unique : « Nom du joueur » lit/écrit settings.userName (nom
 //           canonique) au lieu de duel.playerName ; setUserName remplace setDuelPlayerName ici.
+// Modified: 2026-09-23 05:13 — exposer le prototype de pièces illustrées 6×10.
 // lib/screens/settings_screen.dart
 // Historique: 2026-09-01 08:58 — sortie fiable sur iPad : bouton « Fermer » ancré en bas
 //           (bottomNavigationBar) + SafeArea, la flèche retour du haut étant recouverte par les
@@ -183,6 +184,15 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(l10n.showDragFeedbackSub),
             value: settings.game.showDragFeedback,
             onChanged: notifier.setShowDragFeedback,
+          ),
+
+          SwitchListTile(
+            key: const ValueKey('show-illustrated-pieces'),
+            secondary: const Icon(Icons.image_outlined),
+            title: Text(l10n.showIllustratedPieces),
+            subtitle: Text(l10n.showIllustratedPiecesSub),
+            value: settings.game.showIllustratedPieces,
+            onChanged: notifier.setShowIllustratedPieces,
           ),
 
           // Compteurs isométries + fautes dans la barre du jeu

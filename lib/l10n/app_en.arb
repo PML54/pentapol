@@ -28,6 +28,8 @@
   "hapticsSub": "Vibrate on actions",
   "showDragFeedback": "Piece during dragging",
   "showDragFeedbackSub": "Show a copy of the piece under your finger.",
+  "showIllustratedPieces": "Illustrated pieces (experimental)",
+  "showIllustratedPiecesSub": "Split an image across the pieces of every board size.",
   "showCounters": "Show counters",
   "showCountersSub": "Geometry, dead ends and cheating during the game.",
   "rackSize": "Rack piece size",

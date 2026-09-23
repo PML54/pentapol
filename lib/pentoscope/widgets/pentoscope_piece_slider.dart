@@ -1,4 +1,7 @@
-// Modified: 2026-09-22 16:31 — afficher la pièce hors plateau pour supprimer la zone aveugle au-dessus du tiroir.
+// Modified: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
+// Historique: 2026-09-23 05:32 — employer la solution-image propre à la partie.
+// Historique: 2026-09-23 05:13 — afficher les fragments illustrés dans le tiroir 6×10.
+// Historique: 2026-09-22 16:31 — afficher la pièce hors plateau pour supprimer la zone aveugle au-dessus du tiroir.
 // Historique: 2026-09-22 06:06 — respecter le réglage de visibilité de la miniature de drag.
 // Historique: 2026-09-10 10:13 — pièce visible dès la prise du rack, contour rouge tant que le dépôt est interdit.
 // Historique: 2026-09-10 06:00 — ergonomie (bloc 3, C6) : fondu de bord du rack SENSIBLE au défilement.
@@ -38,6 +41,7 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
+import 'package:pentapol/pentoscope/widgets/illustrated_piece_cells.dart';
 
 class PentoscopePieceSlider extends ConsumerStatefulWidget {
   final bool isLandscape;
@@ -103,6 +107,16 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
+    final illustratedLayout =
+        state.isIllustratedMode &&
+            state.puzzle != null &&
+            state.illustratedSolution != null
+        ? IllustratedPuzzleLayout.fromSolution(
+            state.illustratedSolution!,
+            boardWidth: state.puzzle!.size.width,
+            boardHeight: state.puzzle!.size.height,
+          )
+        : null;
 
     final pieces = state.availablePieces;
 
@@ -134,6 +148,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
           state,
           settings,
           widget.isLandscape,
+          illustratedLayout,
         );
       },
     );
@@ -253,6 +268,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     PentoscopeState state,
     settings,
     bool isLandscape,
+    IllustratedPuzzleLayout? illustratedLayout,
   ) {
     // Emplacement serré (C6, retour de Paul sur le 3×5) : au lieu d'une boîte carrée de 5 cases
     // pour tout le monde, la boîte fait la **dimension max de la pièce sur toutes ses orientations**
@@ -344,6 +360,16 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                 isDragging: isDragging,
                 cellSize: widget.pieceCellSize,
                 getPieceColor: (pieceId) => settings.ui.getPieceColor(pieceId),
+                cellBackgroundBuilder: illustratedLayout == null
+                    ? null
+                    : (index, size) => IllustratedPuzzleCell(
+                        sourceCell: illustratedLayout.cellsForPiece(
+                          piece.id,
+                        )![index],
+                        cellSize: size,
+                        boardWidth: illustratedLayout.boardWidth,
+                        boardHeight: illustratedLayout.boardHeight,
+                      ),
               );
               // Visible dès la prise, rouge hors plateau ou si le placement est interdit.
               if (isDragging) {
@@ -353,6 +379,11 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                   cellSize: widget.pieceCellSize,
                   getPieceColor: (id) => settings.ui.getPieceColor(id),
                   showOverBoard: settings.game.showDragFeedback,
+                  illustratedSourceCells: illustratedLayout?.cellsForPiece(
+                    piece.id,
+                  ),
+                  illustratedBoardWidth: illustratedLayout?.boardWidth,
+                  illustratedBoardHeight: illustratedLayout?.boardHeight,
                 );
               }
               // Halo au repos seulement (pièce sélectionnée, immobile).

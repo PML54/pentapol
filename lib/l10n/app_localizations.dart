@@ -266,6 +266,18 @@ abstract class AppLocalizations {
   /// **'Show a copy of the piece under your finger.'**
   String get showDragFeedbackSub;
 
+  /// No description provided for @showIllustratedPieces.
+  ///
+  /// In en, this message translates to:
+  /// **'Illustrated pieces (experimental)'**
+  String get showIllustratedPieces;
+
+  /// No description provided for @showIllustratedPiecesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Split an image across the pieces of every board size.'**
+  String get showIllustratedPiecesSub;
+
   /// No description provided for @showCounters.
   ///
   /// In en, this message translates to:

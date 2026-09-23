@@ -17,12 +17,38 @@
 
 ### Prototype d'image pour les pièces (2026-09-23)
 
-Première étape volontairement sans modification du moteur ni du rendu : ajout de
-`assets/images/puzzle_landscape_01.png`, une illustration originale verticale au ratio 3:5
-(`971×1619`), conçue avec de grandes zones colorées et des raccords continus pour un futur découpage
-par pentominos. L'asset est déclaré dans `pubspec.yaml`, mais aucun écran ne le consomme encore.
-`flutter pub get` valide la déclaration. La validation finale de la version compte **219/219 tests**
-et une analyse sans erreur ni avertissement.
+L'illustration active est désormais `assets/images/pentapol_puzzle_landscape_3x5.png`
+(`1800×3000`, ratio 3:5) : paysage en papier découpé simplifié, avec ciel, soleil, nuages,
+collines, rivière, arbres et maison. Elle remplace visuellement le premier prototype, jugé trop
+complexe ; `puzzle_landscape_01.png` reste déclaré comme solution de repli. L'image active peut
+désormais être découpée sur **toutes les tailles**, de 3×5 à 6×10. Une solution de référence associe
+chaque cellule logique d'une pièce à un fragment de l'image ; l'ordre géométrique stable des cinq
+cellules fait suivre ce fragment pendant les rotations, retournements, déplacements et poses. Le
+rendu couvre le tiroir, la miniature de déplacement, l'aperçu et les pièces posées, en portrait et
+en paysage. Il s'agit d'une couche visuelle seulement : moteur, solutions et persistance de partie
+restent inchangés. Le réglage « Pièces illustrées (expérimental) » est **désactivé par défaut**.
+La toile est redimensionnée aux dimensions logiques de chaque plateau avant découpe. Correction du
+premier essai : la découpe n'est plus adossée à la solution 0 fixe. Chaque partie choisit sa propre
+**solution-image** parmi les solutions de son tirage au démarrage, et la lampe jaune emploie ensuite
+exactement cette solution. Une utilisation répétée reconstitue donc l'image complète. Une
+autre solution reste acceptée pour gagner ; si le joueur s'y est engagé, la lampe ne force pas un
+placement contradictoire. À la reprise d'une sauvegarde, une solution-image compatible avec les
+pièces déjà posées est choisie.
+
+### Training simplifié (2026-09-23)
+
+Le Training démarre désormais systématiquement sur le plateau 3×5. Le Training 1 présente deux
+pièces déjà posées et une pièce à replacer ; le Training 2 conserve une pièce posée et demande de
+replacer les deux autres. Le mode Game et sa progression de tailles restent inchangés.
+
+### Règles du mode Image (2026-09-23)
+
+Le choix classique/image est maintenant figé au démarrage de chaque partie et conservé dans sa
+sauvegarde. Modifier le réglage ne transforme donc pas une partie déjà ouverte. En mode Image, la
+lampe jaune vérifie les placements par rapport à la solution-image de référence, et non par rapport
+à n'importe quelle solution géométrique du tirage. Un rectangle de pentominos dont les fragments
+forment une mauvaise image n'est plus déclaré terminé. Le mode classique conserve les règles
+géométriques historiques.
 
 ### L'application
 
@@ -1242,16 +1268,24 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
+**2026-09-23 (23) — CLI : lampe et victoire alignées sur le mode Image.**
+Le mode est figé par partie et repris depuis la sauvegarde. En Image, un placement hors de la
+solution illustrée éteint la lampe et une mosaïque visuellement incorrecte ne valide plus la partie.
+
+**2026-09-23 (22) — CLI : Training fixé au 3×5.**
+Les deux exercices Training utilisent désormais le plus petit plateau : une pièce à replacer au
+premier exercice, puis deux au second. Le Game conserve sa taille et sa progression propres.
+
+**2026-09-23 (21) — CLI : pièces illustrées sur toutes les tailles, lampe alignée.**
+Découpage de `pentapol_puzzle_landscape_3x5.png` selon une solution de référence : chaque fragment
+suit sa cellule dans le tiroir, le drag, l'aperçu et le plateau. La référence est choisie par partie
+et la lampe guide cette même solution. Réglage expérimental persistant et désactivé par défaut.
+
 **2026-09-23 (20) — CLI : image prototype 3:5 ajoutée aux assets.**
 Ajout et déclaration de `puzzle_landscape_01.png`, sans branchement au rendu ni au moteur du jeu.
 
 **2026-09-22 (19) — CLI : Game piloté par double-tap du plateau.**
 Suppression du bouton `+` en Game. Double-tap non vide : nouveau tirage de même taille ; double-tap
 vide : taille suivante, avec cycle 6×10 → 3×5. Training, Défi et autres modes restent inchangés.
-
-**2026-09-22 (18) — CLI : continuité visuelle du glissé au-dessus du tiroir.**
-Même lorsque la copie de déplacement est masquée dans les réglages, la pièce reste visible sous le
-doigt hors du plateau, où aucun fantôme ne prend le relais. La bande de commandes ne forme donc plus
-une zone aveugle, notamment sur iPad.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

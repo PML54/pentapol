@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 08:01 — option B : une partie de calibrage pose de nouveau un record
+// Modified: 2026-09-23 06:24 — vérifier les deux exercices Training sur le plateau 3×5.
+// Historique: 2026-09-22 08:01 — option B : une partie de calibrage pose de nouveau un record
 //           (ligne PuzzleStats, completed 1) ; l'ancienne assertion « aucun record » est levée.
 // Historique: 2026-09-22 05:35 — vérifier le Training 2 réel : deux pièces voisines retirées,
 //           rack réorienté et plateau à solution unique.
@@ -21,118 +22,119 @@ class _Game extends PentoscopeNotifier {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-    'vraies impasses, réglages figés, SQLite, reprise et partie suivante',
-    () async {
-      final db = SettingsDatabase.forTesting(NativeDatabase.memory());
-      final game = _Game();
-      final container = ProviderContainer(
-        overrides: [
-          settingsDatabaseProvider.overrideWithValue(db),
-          pentoscopeProvider.overrideWith(() => game),
-        ],
-      );
-      addTearDown(() async {
-        container.dispose();
-        await db.close();
-      });
-      container.read(pentoscopeProvider);
-      final settings = container.read(settingsProvider.notifier);
-      await settings.ensureLoaded();
-      const first = GeometryRules(fillPenalty: 12, exponent: 3, areaPenalty: 7);
-      const next = GeometryRules(fillPenalty: 30, areaPenalty: 10);
-      await settings.setGeometryRules(first);
-      await game.drawMask(PentoscopeSize.size3x5);
-      await game.startPuzzle(PentoscopeSize.size3x5, mask: 74);
-      final baseline = container.read(pentoscopeProvider);
-      expect(baseline.geometry!.rules.toJson(), first.toJson());
-      await settings.setGeometryRules(next);
-      expect(
-        container.read(pentoscopeProvider).geometry!.rules.toJson(),
-        first.toJson(),
-      );
-      // Chercher un placement légal qui crée réellement une impasse dans le corpus.
-      var found = false;
-      search:
-      for (final piece in baseline.availablePieces) {
-        for (
-          var orientation = 0;
-          orientation < piece.numOrientations;
-          orientation++
-        ) {
-          for (var y = 0; y < baseline.plateau.height; y++) {
-            for (var x = 0; x < baseline.plateau.width; x++) {
-              if (!baseline.canPlacePiece(piece, orientation, x, y)) continue;
-              game.load(
-                baseline.copyWith(
-                  piecePositionIndices: {piece.id: orientation},
-                ),
-              );
-              game.selectPiece(piece);
-              expect(game.tryPlaceAtAnchor(x, y), isTrue);
-              if (container.read(pentoscopeProvider).faultCount == 1) {
-                found = true;
-                break search;
-              }
+  test('vraies impasses, réglages figés, SQLite, reprise et partie suivante', () async {
+    final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+    final game = _Game();
+    final container = ProviderContainer(
+      overrides: [
+        settingsDatabaseProvider.overrideWithValue(db),
+        pentoscopeProvider.overrideWith(() => game),
+      ],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+    container.read(pentoscopeProvider);
+    final settings = container.read(settingsProvider.notifier);
+    await settings.ensureLoaded();
+    const first = GeometryRules(fillPenalty: 12, exponent: 3, areaPenalty: 7);
+    const next = GeometryRules(fillPenalty: 30, areaPenalty: 10);
+    await settings.setGeometryRules(first);
+    await game.drawMask(PentoscopeSize.size3x5);
+    await game.startPuzzle(PentoscopeSize.size3x5, mask: 74);
+    final baseline = container.read(pentoscopeProvider);
+    expect(baseline.geometry!.rules.toJson(), first.toJson());
+    await settings.setGeometryRules(next);
+    expect(
+      container.read(pentoscopeProvider).geometry!.rules.toJson(),
+      first.toJson(),
+    );
+    // Chercher un placement légal qui crée réellement une impasse dans le corpus.
+    var found = false;
+    search:
+    for (final piece in baseline.availablePieces) {
+      for (
+        var orientation = 0;
+        orientation < piece.numOrientations;
+        orientation++
+      ) {
+        for (var y = 0; y < baseline.plateau.height; y++) {
+          for (var x = 0; x < baseline.plateau.width; x++) {
+            if (!baseline.canPlacePiece(piece, orientation, x, y)) continue;
+            game.load(
+              baseline.copyWith(piecePositionIndices: {piece.id: orientation}),
+            );
+            game.selectPiece(piece);
+            expect(game.tryPlaceAtAnchor(x, y), isTrue);
+            if (container.read(pentoscopeProvider).faultCount == 1) {
+              found = true;
+              break search;
             }
           }
         }
       }
-      expect(found, isTrue);
-      final bad = container.read(pentoscopeProvider);
-      expect(bad.geometry!.penalties, greaterThan(0));
-      // Un appui rouge ne compte pas comme triche et une correction ne rend aucun point.
+    }
+    expect(found, isTrue);
+    final bad = container.read(pentoscopeProvider);
+    expect(bad.geometry!.penalties, greaterThan(0));
+    // Un appui rouge ne compte pas comme triche et une correction ne rend aucun point.
+    game.applyHint();
+    expect(container.read(pentoscopeProvider).hintCount, 0);
+    game.removePlacedPiece(bad.placedPieces.single);
+    expect(
+      container.read(pentoscopeProvider).geometry!.penalties,
+      bad.geometry!.penalties,
+    );
+    game.applyHint();
+    expect(container.read(pentoscopeProvider).hintCount, 1);
+    await game.saveCurrentGameSnapshot();
+    final saved = (await db.loadCurrentGame())!;
+    expect((await db.select(db.currentGame).get()).map((r) => r.id), [0]);
+    expect(jsonDecode(saved.geometryState)['rules'], first.toJson());
+    final before = container.read(pentoscopeProvider);
+    final resumed = _Game();
+    final other = ProviderContainer(
+      overrides: [
+        settingsDatabaseProvider.overrideWithValue(db),
+        pentoscopeProvider.overrideWith(() => resumed),
+      ],
+    );
+    other.read(pentoscopeProvider);
+    await resumed.restoreGame(saved);
+    final restored = other.read(pentoscopeProvider);
+    expect(restored.geometry!.toJson(), before.geometry!.toJson());
+    expect(restored.hintCount, 1);
+    expect(restored.faultCount, 1);
+    expect(restored.placedPieces.length, before.placedPieces.length);
+    other.dispose();
+    await game.startPuzzle(PentoscopeSize.size3x5, mask: 74);
+    expect(
+      container.read(pentoscopeProvider).geometry!.rules.toJson(),
+      next.toJson(),
+    );
+    expect(container.read(pentoscopeProvider).geometry!.value, 100);
+    // Option B (2026-09-22) : une partie de calibrage pose désormais un record. Complétée par les
+    // aides (donc non propre → bests null), la LIGNE PuzzleStats existe quand même (completed 1).
+    while (!container.read(pentoscopeProvider).isComplete) {
       game.applyHint();
-      expect(container.read(pentoscopeProvider).hintCount, 0);
-      game.removePlacedPiece(bad.placedPieces.single);
-      expect(
-        container.read(pentoscopeProvider).geometry!.penalties,
-        bad.geometry!.penalties,
-      );
-      game.applyHint();
-      expect(container.read(pentoscopeProvider).hintCount, 1);
-      await game.saveCurrentGameSnapshot();
-      final saved = (await db.loadCurrentGame())!;
-      expect((await db.select(db.currentGame).get()).map((r) => r.id), [0]);
-      expect(jsonDecode(saved.geometryState)['rules'], first.toJson());
-      final before = container.read(pentoscopeProvider);
-      final resumed = _Game();
-      final other = ProviderContainer(
-        overrides: [
-          settingsDatabaseProvider.overrideWithValue(db),
-          pentoscopeProvider.overrideWith(() => resumed),
-        ],
-      );
-      other.read(pentoscopeProvider);
-      await resumed.restoreGame(saved);
-      final restored = other.read(pentoscopeProvider);
-      expect(restored.geometry!.toJson(), before.geometry!.toJson());
-      expect(restored.hintCount, 1);
-      expect(restored.faultCount, 1);
-      expect(restored.placedPieces.length, before.placedPieces.length);
-      other.dispose();
-      await game.startPuzzle(PentoscopeSize.size3x5, mask: 74);
-      expect(
-        container.read(pentoscopeProvider).geometry!.rules.toJson(),
-        next.toJson(),
-      );
-      expect(container.read(pentoscopeProvider).geometry!.value, 100);
-      // Option B (2026-09-22) : une partie de calibrage pose désormais un record. Complétée par les
-      // aides (donc non propre → bests null), la LIGNE PuzzleStats existe quand même (completed 1).
-      while (!container.read(pentoscopeProvider).isComplete) {
-        game.applyHint();
-      }
-      await db.customSelect('SELECT 1').get();
-      final stats = await db.allPuzzleStats();
-      expect(stats, hasLength(1));
-      expect(stats.single.completed, 1);
-      expect(stats.single.bestFaults, isNull); // partie non propre → aucun best posé
-      expect(await db.select(db.solvedSolutions).get(), isEmpty); // 3×5 : pas de numéro de solution
-      expect(container.read(pentoscopeProvider).geometry!.experimental, isTrue);
-      expect(game.computeCompletionMetrics()!.geometry!.value, 100);
-      expect(container.read(pentoscopeProvider).hintCount, 3);
-    },
-  );
+    }
+    await db.customSelect('SELECT 1').get();
+    final stats = await db.allPuzzleStats();
+    expect(stats, hasLength(1));
+    expect(stats.single.completed, 1);
+    expect(
+      stats.single.bestFaults,
+      isNull,
+    ); // partie non propre → aucun best posé
+    expect(
+      await db.select(db.solvedSolutions).get(),
+      isEmpty,
+    ); // 3×5 : pas de numéro de solution
+    expect(container.read(pentoscopeProvider).geometry!.experimental, isTrue);
+    expect(game.computeCompletionMetrics()!.geometry!.value, 100);
+    expect(container.read(pentoscopeProvider).hintCount, 3);
+  });
 
   test(
     'option B : une partie de calibrage Géométrie pose un record (ligne PuzzleStats)',
@@ -162,7 +164,9 @@ void main() {
       while (!container.read(pentoscopeProvider).isComplete) {
         game.applyHint();
       }
-      await db.customSelect('SELECT 1').get(); // laisser finir l'écriture asynchrone
+      await db
+          .customSelect('SELECT 1')
+          .get(); // laisser finir l'écriture asynchrone
 
       final stats = await db.allPuzzleStats();
       expect(stats, hasLength(1));
@@ -173,7 +177,7 @@ void main() {
   );
 
   test(
-    'puzzle récréatif prépare un vrai Game 5x7 avec une pièce manquante',
+    'puzzle récréatif prépare un vrai Game 3x5 avec une pièce manquante',
     () async {
       final db = SettingsDatabase.forTesting(NativeDatabase.memory());
       final game = _Game();
@@ -193,11 +197,11 @@ void main() {
       await game.startRecreationalPuzzle();
 
       final state = container.read(pentoscopeProvider);
-      expect(state.puzzle!.size, PentoscopeSize.size7x5);
-      expect(state.plateau.width, 5);
-      expect(state.plateau.height, 7);
+      expect(state.puzzle!.size, PentoscopeSize.size3x5);
+      expect(state.plateau.width, 3);
+      expect(state.plateau.height, 5);
       expect(state.isComplete, isFalse);
-      expect(state.placedPieces.length, 6);
+      expect(state.placedPieces.length, 2);
       expect(state.availablePieces.length, 1);
       final missing = state.availablePieces.single;
       expect(missing.numOrientations, greaterThan(1));
@@ -236,7 +240,8 @@ void main() {
         await game.startRecreationalPuzzle(missingPieceCount: 2);
 
         final state = container.read(pentoscopeProvider);
-        expect(state.placedPieces.length, 5);
+        expect(state.puzzle!.size, PentoscopeSize.size3x5);
+        expect(state.placedPieces.length, 1);
         expect(state.availablePieces.length, 2);
         expect(state.solutionsCount, 1);
         expect(state.hasPossibleSolution, isTrue);

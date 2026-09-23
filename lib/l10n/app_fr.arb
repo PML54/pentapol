@@ -28,6 +28,8 @@
   "hapticsSub": "Vibrations lors des actions",
   "showDragFeedback": "Pièce pendant le déplacement",
   "showDragFeedbackSub": "Afficher une copie de la pièce sous le doigt.",
+  "showIllustratedPieces": "Pièces illustrées (expérimental)",
+  "showIllustratedPiecesSub": "Découper une image sur les pièces de tous les plateaux.",
   "showCounters": "Afficher les compteurs",
   "showCountersSub": "Géométrie, impasses et triche pendant la partie.",
   "rackSize": "Taille des pièces du rack",

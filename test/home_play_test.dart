@@ -1,4 +1,4 @@
-// Modified: 2026-09-22 19:09 — vérifier le double-tap Game : relance, taille suivante et cycle.
+// Modified: 2026-09-23 06:24 — fixer le Training sur un plateau 3×5.
 // Historique: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
 //           deux pièces ; le double-tap vers Game reste prioritaire.
 // Historique: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
@@ -74,7 +74,7 @@ class _AutoGame extends _Game {
 
   @override
   Future<void> startRecreationalPuzzle({
-    PentoscopeSize size = PentoscopeSize.size7x5,
+    PentoscopeSize size = PentoscopeSize.size3x5,
     int missingPieceCount = 1,
   }) async {
     recreationalStarts++;
@@ -103,7 +103,7 @@ class _GestureGame extends _Game {
 
   @override
   Future<void> startRecreationalPuzzle({
-    PentoscopeSize size = PentoscopeSize.size7x5,
+    PentoscopeSize size = PentoscopeSize.size3x5,
     int missingPieceCount = 1,
   }) async {
     recreationalStarts++;
@@ -216,8 +216,8 @@ void main() {
       Future<void> doubleTapBoard() async {
         await tester.tap(find.byType(PentoscopeBoard));
         await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.byType(PentoscopeBoard));
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.tap(find.byType(PentoscopeBoard));
+        await tester.pump(const Duration(milliseconds: 100));
       }
 
       expect(find.byIcon(Icons.add_circle_outline), findsNothing);

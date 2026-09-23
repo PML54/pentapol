@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 06:06 — réglage showDragFeedback (défaut false) pour masquer
+// Modified: 2026-09-23 05:13 — réglage expérimental des pièces illustrées 6×10.
+// Historique: 2026-09-22 06:06 — réglage showDragFeedback (défaut false) pour masquer
 //           la miniature qui suit le doigt, sans masquer l'aperçu du plateau.
 // Historique: 2026-09-12 10:58 — sauvegarde JSON du barème Géométrie dans les réglages.
 // Historique: 2026-09-11 15:10 — retrait du compteur JSON de l’ancien entraînement ; réglages existants compatibles.
@@ -37,21 +38,21 @@ import 'package:flutter/material.dart';
 
 /// Schéma de couleurs pour les pièces
 enum PieceColorScheme {
-  classic,    // Couleurs vives classiques
-  pastel,     // Couleurs pastel douces
-  neon,       // Couleurs néon éclatantes
+  classic, // Couleurs vives classiques
+  pastel, // Couleurs pastel douces
+  neon, // Couleurs néon éclatantes
   monochrome, // Nuances de gris
-  rainbow,    // Arc-en-ciel
-  custom,     // Couleurs personnalisées
+  rainbow, // Arc-en-ciel
+  custom, // Couleurs personnalisées
 }
 
 /// Durée de partie Duel prédéfinie
 enum DuelDuration {
-  short,    // 1 minute
-  normal,   // 3 minutes (défaut)
-  long,     // 5 minutes
+  short, // 1 minute
+  normal, // 3 minutes (défaut)
+  long, // 5 minutes
   marathon, // 10 minutes
-  custom,   // Durée personnalisée
+  custom, // Durée personnalisée
 }
 
 extension DuelDurationExtension on DuelDuration {
@@ -110,7 +111,7 @@ extension DuelDurationExtension on DuelDuration {
 /// les clés disparues sont ignorées à la relecture, aucune migration.
 class UISettings {
   final PieceColorScheme colorScheme;
-  final List<Color> customColors;   // Couleurs personnalisées (12 pièces)
+  final List<Color> customColors; // Couleurs personnalisées (12 pièces)
 
   const UISettings({
     this.colorScheme = PieceColorScheme.classic,
@@ -152,6 +153,7 @@ class UISettings {
     }
     return customColors[(pieceId - 1) % customColors.length];
   }
+
   Color _getClassicColor(int pieceId) {
     const colors = [
       Color(0xFFE57373), // Rouge
@@ -246,13 +248,16 @@ class UISettings {
   Map<String, dynamic> toJson() {
     return {
       'colorScheme': colorScheme.index,
-      'customColors': customColors.map((c) => c.value).toList(), // ignore: deprecated_member_use
+      'customColors': customColors
+          .map((c) => c.value)
+          .toList(), // ignore: deprecated_member_use
     };
   }
 
   factory UISettings.fromJson(Map<String, dynamic> json) {
     final customColorValues = json['customColors'] as List<dynamic>?;
-    final customColors = customColorValues?.map((v) => Color(v as int)).toList() ?? [];
+    final customColors =
+        customColorValues?.map((v) => Color(v as int)).toList() ?? [];
 
     return UISettings(
       colorScheme: PieceColorScheme.values[json['colorScheme'] ?? 0],
@@ -266,9 +271,9 @@ class UISettings {
 /// et celle du chrono (l'un et l'autre s'affichent toujours). JSON → aucune migration.
 class GameSettings {
   final GeometryRules geometryRules;
-  final bool showSolutionCounter;   // Afficher le compteur de solutions
-  final bool enableHaptics;         // Activer le retour haptique
-  final int longPressDuration;      // Durée du long press en ms
+  final bool showSolutionCounter; // Afficher le compteur de solutions
+  final bool enableHaptics; // Activer le retour haptique
+  final int longPressDuration; // Durée du long press en ms
 
   /// Afficher les compteurs **isométries** et **fautes** dans la barre du jeu (retour de Paul,
   /// 2026-09-09). Défaut `false`. Indépendant du bandeau debug (`kShowLiveCounters`).
@@ -292,15 +297,22 @@ class GameSettings {
   /// plateau. L'aperçu coloré à l'emplacement visé reste toujours visible. Défaut `false`.
   final bool showDragFeedback;
 
+  /// Remplace les aplats de couleur par les fragments d'une image sur tous les plateaux.
+  /// Expérimental et désactivé par défaut.
+  final bool showIllustratedPieces;
+
   const GameSettings({
     this.geometryRules = const GeometryRules(),
     this.showSolutionCounter = true,
     this.enableHaptics = true,
-    this.longPressDuration = 100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
+    this.longPressDuration =
+        100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
     this.showCounters = false,
-    this.rackCellRatio = 0.46, // figé par Paul le 2026-09-10 après calibrage device
+    this.rackCellRatio =
+        0.46, // figé par Paul le 2026-09-10 après calibrage device
     this.showPieceNumbers = true,
     this.showDragFeedback = false,
+    this.showIllustratedPieces = false,
   });
 
   GameSettings copyWith({
@@ -312,6 +324,7 @@ class GameSettings {
     double? rackCellRatio,
     bool? showPieceNumbers,
     bool? showDragFeedback,
+    bool? showIllustratedPieces,
   }) {
     return GameSettings(
       geometryRules: geometryRules ?? this.geometryRules,
@@ -322,6 +335,8 @@ class GameSettings {
       rackCellRatio: rackCellRatio ?? this.rackCellRatio,
       showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
       showDragFeedback: showDragFeedback ?? this.showDragFeedback,
+      showIllustratedPieces:
+          showIllustratedPieces ?? this.showIllustratedPieces,
     );
   }
 
@@ -335,12 +350,17 @@ class GameSettings {
       'rackCellRatio': rackCellRatio,
       'showPieceNumbers': showPieceNumbers,
       'showDragFeedback': showDragFeedback,
+      'showIllustratedPieces': showIllustratedPieces,
     };
   }
 
   factory GameSettings.fromJson(Map<String, dynamic> json) {
     return GameSettings(
-      geometryRules: GeometryRules.fromJson(json['geometryRules'] is Map<String, dynamic> ? json['geometryRules'] : {}),
+      geometryRules: GeometryRules.fromJson(
+        json['geometryRules'] is Map<String, dynamic>
+            ? json['geometryRules']
+            : {},
+      ),
       showSolutionCounter: json['showSolutionCounter'] ?? true,
       enableHaptics: json['enableHaptics'] ?? true,
       longPressDuration: json['longPressDuration'] ?? 100,
@@ -348,6 +368,7 @@ class GameSettings {
       rackCellRatio: (json['rackCellRatio'] as num?)?.toDouble() ?? 0.46,
       showPieceNumbers: json['showPieceNumbers'] ?? true,
       showDragFeedback: json['showDragFeedback'] ?? false,
+      showIllustratedPieces: json['showIllustratedPieces'] ?? false,
     );
   }
 }
@@ -362,18 +383,19 @@ class DuelSettings {
   final int customDurationSeconds; // Utilisé si duration == custom (60-1800)
 
   // === Affichage ===
-  final bool showSolutionGuide;     // Afficher le guide (couleurs atténuées)
-  final double guideOpacity;        // Opacité du guide (0.1 - 0.5)
-  final bool showPieceNumbers;      // Afficher les numéros sur le guide
+  final bool showSolutionGuide; // Afficher le guide (couleurs atténuées)
+  final double guideOpacity; // Opacité du guide (0.1 - 0.5)
+  final bool showPieceNumbers; // Afficher les numéros sur le guide
 
   // === Feedback ===
-  final bool enableSounds;          // Sons de placement/victoire
-  final bool enableVibration;       // Vibrations
+  final bool enableSounds; // Sons de placement/victoire
+  final bool enableVibration; // Vibrations
 
   // === Affichage adversaire ===
-  final bool showOpponentProgress;  // Voir les pièces de l'adversaire en temps réel
-  final bool showHatchOnOpponent;   // Hachures sur pièces adversaire
-  final double hatchOpacity;        // Opacité des hachures (0.2 - 0.6)
+  final bool
+  showOpponentProgress; // Voir les pièces de l'adversaire en temps réel
+  final bool showHatchOnOpponent; // Hachures sur pièces adversaire
+  final double hatchOpacity; // Opacité des hachures (0.2 - 0.6)
 
   // === Statistiques ===
   final int totalGamesPlayed;
@@ -451,7 +473,8 @@ class DuelSettings {
     return DuelSettings(
       playerName: clearPlayerName ? null : (playerName ?? this.playerName),
       duration: duration ?? this.duration,
-      customDurationSeconds: customDurationSeconds ?? this.customDurationSeconds,
+      customDurationSeconds:
+          customDurationSeconds ?? this.customDurationSeconds,
       showSolutionGuide: showSolutionGuide ?? this.showSolutionGuide,
       guideOpacity: guideOpacity ?? this.guideOpacity,
       showPieceNumbers: showPieceNumbers ?? this.showPieceNumbers,
@@ -597,7 +620,8 @@ class AppSettings {
       playerId: clearPlayerId ? null : (playerId ?? this.playerId),
       localeCode: clearLocaleCode ? null : (localeCode ?? this.localeCode),
       shareScoresOptIn: shareScoresOptIn ?? this.shareScoresOptIn,
-      challengeConsentAsked: challengeConsentAsked ?? this.challengeConsentAsked,
+      challengeConsentAsked:
+          challengeConsentAsked ?? this.challengeConsentAsked,
     );
   }
 

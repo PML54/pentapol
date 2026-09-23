@@ -1,4 +1,7 @@
-// Modified: 2026-09-22 19:09 — transmettre le double-tap du plateau au mode Game.
+// Modified: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
+// Historique: 2026-09-23 05:32 — découper l'image selon la solution fixée pour la partie.
+// Historique: 2026-09-23 05:13 — rendre les fragments illustrés sur le plateau 6×10.
+// Historique: 2026-09-22 19:09 — transmettre le double-tap du plateau au mode Game.
 // Historique: 2026-09-22 16:31 — afficher la pièce déplacée hors plateau pour éviter toute zone aveugle.
 // Historique: 2026-09-22 07:29 — superposer le cadre sans réduire la grille ni laisser de jour en bas.
 // Historique: 2026-09-22 06:06 — masquer aussi la miniature des pièces déjà posées selon le réglage.
@@ -56,6 +59,7 @@ import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/point.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
+import 'package:pentapol/pentoscope/widgets/illustrated_piece_cells.dart';
 
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/piece_border_calculator.dart';
@@ -90,6 +94,16 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
+    final illustratedLayout =
+        state.isIllustratedMode &&
+            state.puzzle != null &&
+            state.illustratedSolution != null
+        ? IllustratedPuzzleLayout.fromSolution(
+            state.illustratedSolution!,
+            boardWidth: state.puzzle!.size.width,
+            boardHeight: state.puzzle!.size.height,
+          )
+        : null;
 
     // Informe le provider APRÈS le build (sinon Riverpod assertion).
     // ✅ Ne PAS modifier le provider pendant le build.
@@ -356,6 +370,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                         widget.isLandscape,
                         cellSize,
                         labelCells,
+                        illustratedLayout,
                       );
                     },
                   ),
@@ -387,6 +402,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     bool isLandscape,
     double cellSize,
     Set<Point> labelCells,
+    IllustratedPuzzleLayout? illustratedLayout,
   ) {
     // 1️⃣ RÉCUPÉRER LES DONNÉES DE BASE
     final plateauCellValue = state.plateau.getCell(logicalX, logicalY);
@@ -499,6 +515,18 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     );
 
     // 7️⃣ CRÉER LE WIDGET DE CELLULE
+    final illustratedSourceCell = illustratedLayout == null
+        ? null
+        : _illustratedSourceCell(
+            state,
+            illustratedLayout,
+            logicalX,
+            logicalY,
+            cellValue,
+            showSelectedPiece,
+            previewInfo.isPreview,
+          );
+
     Widget cellWidget = Container(
       decoration: BoxDecoration(
         color: cellColor,
@@ -513,36 +541,52 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               ]
             : null,
       ),
-      child: Center(
-        child: Text(
-          cellText,
-          style: TextStyle(
-            color: _getTextColor(
-              previewInfo.isPreview,
-              showSelectedPiece,
-              previewInfo.isPreviewValid,
-              previewInfo.isSnappedPreview,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (illustratedSourceCell != null)
+            IllustratedPuzzleCell(
+              sourceCell: illustratedSourceCell,
+              cellSize: cellSize,
+              boardWidth: illustratedLayout!.boardWidth,
+              boardHeight: illustratedLayout.boardHeight,
+              quarterTurns: isLandscape ? 1 : 0,
+              opacity: previewInfo.isPreview && !previewInfo.isPreviewValid
+                  ? 0.35
+                  : 1,
             ),
-            fontWeight: _getTextWeight(
-              previewInfo.isPreview,
-              showSelectedPiece,
-            ),
-            // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
-            // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
-            // leur petite taille pour ne pas se chevaucher.
-            fontSize: _getTextSize(
-              showSelectedPiece,
-              previewInfo.isPreview,
-              cellSize,
-              isSinglePastille:
-                  cellValue > 0 &&
-                  !isSolutionCell &&
-                  !showSelectedPiece &&
-                  !previewInfo.isPreview &&
-                  isPieceLabelCell,
+          Center(
+            child: Text(
+              cellText,
+              style: TextStyle(
+                color: _getTextColor(
+                  previewInfo.isPreview,
+                  showSelectedPiece,
+                  previewInfo.isPreviewValid,
+                  previewInfo.isSnappedPreview,
+                ),
+                fontWeight: _getTextWeight(
+                  previewInfo.isPreview,
+                  showSelectedPiece,
+                ),
+                // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
+                // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
+                // leur petite taille pour ne pas se chevaucher.
+                fontSize: _getTextSize(
+                  showSelectedPiece,
+                  previewInfo.isPreview,
+                  cellSize,
+                  isSinglePastille:
+                      cellValue > 0 &&
+                      !isSolutionCell &&
+                      !showSelectedPiece &&
+                      !previewInfo.isPreview &&
+                      isPieceLabelCell,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
 
@@ -583,6 +627,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             cellSize: cellSize * settings.game.rackCellRatio,
             getPieceColor: (id) => settings.ui.getPieceColor(id),
             showOverBoard: settings.game.showDragFeedback,
+            illustratedSourceCells: illustratedLayout?.cellsForPiece(
+              state.selectedPiece!.id,
+            ),
+            illustratedBoardWidth: illustratedLayout?.boardWidth,
+            illustratedBoardHeight: illustratedLayout?.boardHeight,
           ),
         ),
         childWhenDragging: previewInfo.isPreview ? cellWidget : emptyCell,
@@ -634,6 +683,66 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       onDoubleTap: widget.onDoubleTap,
       child: cellWidget,
     );
+  }
+
+  Point? _illustratedSourceCell(
+    PentoscopeState state,
+    IllustratedPuzzleLayout layout,
+    int logicalX,
+    int logicalY,
+    int cellValue,
+    bool showSelectedPiece,
+    bool isPreview,
+  ) {
+    final piece = isPreview ? state.selectedPiece : null;
+    if (piece != null && state.previewX != null && state.previewY != null) {
+      final position = piece.orientations[state.selectedPositionIndex];
+      final minOffset = _getMinOffset(position);
+      for (int index = 0; index < position.length; index++) {
+        final cellNum = position[index];
+        final x = state.previewX! + (cellNum - 1) % 5 - minOffset.$1;
+        final y = state.previewY! + (cellNum - 1) ~/ 5 - minOffset.$2;
+        if (x == logicalX && y == logicalY) {
+          return _sourceCellForIdentity(layout, piece.id, index);
+        }
+      }
+    }
+
+    if (showSelectedPiece && state.selectedPlacedPiece != null) {
+      final selected = state.selectedPlacedPiece!;
+      final position = selected.piece.orientations[state.selectedPositionIndex];
+      final minOffset = _getMinOffset(position);
+      for (int index = 0; index < position.length; index++) {
+        final cellNum = position[index];
+        final x = selected.gridX + (cellNum - 1) % 5 - minOffset.$1;
+        final y = selected.gridY + (cellNum - 1) ~/ 5 - minOffset.$2;
+        if (x == logicalX && y == logicalY) {
+          return _sourceCellForIdentity(layout, selected.piece.id, index);
+        }
+      }
+    }
+
+    if (cellValue <= 0) return null;
+    for (final placed in state.placedPieces) {
+      if (placed.piece.id != cellValue) continue;
+      final cells = placed.absoluteCells.toList(growable: false);
+      for (int index = 0; index < cells.length; index++) {
+        if (cells[index] == Point(logicalX, logicalY)) {
+          return _sourceCellForIdentity(layout, placed.piece.id, index);
+        }
+      }
+    }
+    return null;
+  }
+
+  Point? _sourceCellForIdentity(
+    IllustratedPuzzleLayout layout,
+    int pieceId,
+    int identityIndex,
+  ) {
+    final cells = layout.cellsForPiece(pieceId);
+    if (cells == null || identityIndex >= cells.length) return null;
+    return cells[identityIndex];
   }
 
   /// Détermine la bordure à afficher

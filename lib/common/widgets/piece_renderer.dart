@@ -7,6 +7,7 @@
 // Historique: 2026-08-30 13:30 — étape 1 : cellSize devient un paramètre (défaut 22.0), additif.
 // Historique: 2026-08-29 13:43 — déménagé de l'ancien dossier du mode classique vers
 //             lib/common/widgets/ : partagé par Pentoscope et le multijoueur.
+// Modified: 2026-09-23 05:13 — accepter un fragment d'image optionnel pour chaque cellule.
 // Widget pour afficher visuellement une pièce de pentomino
 
 import 'package:flutter/material.dart';
@@ -14,7 +15,7 @@ import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/game_colors.dart';
 
 /// Widget qui affiche une pièce de pentomino
-/// 
+///
 /// Utilisé dans :
 /// - Le slider de pièces
 /// - Le feedback de drag
@@ -36,6 +37,10 @@ class PieceRenderer extends StatelessWidget {
   /// et le duel. L'écran d'accueil le met à `false` (pièces nues — PLAN_ECRAN_ACCUEIL §1).
   final bool showLabel;
 
+  /// Fond optionnel d'une cellule, identifié par son index géométrique stable.
+  /// `null` conserve intégralement le rendu coloré historique.
+  final Widget Function(int cellIndex, double cellSize)? cellBackgroundBuilder;
+
   const PieceRenderer({
     super.key,
     required this.piece,
@@ -45,6 +50,7 @@ class PieceRenderer extends StatelessWidget {
     required this.getPieceColor,
     this.cellSize = 22.0,
     this.showLabel = true,
+    this.cellBackgroundBuilder,
   });
 
   @override
@@ -93,10 +99,10 @@ class PieceRenderer extends StatelessWidget {
       child: Stack(
         children: [
           // Les 5 carrés de la pièce
-          for (final coord in coords)
+          for (int index = 0; index < coords.length; index++)
             Positioned(
-              left: (coord['x']! - minX) * cellSize + 4,
-              top: (coord['y']! - minY) * cellSize + 4,
+              left: (coords[index]['x']! - minX) * cellSize + 4,
+              top: (coords[index]['y']! - minY) * cellSize + 4,
               child: Container(
                 width: cellSize,
                 height: cellSize,
@@ -104,7 +110,10 @@ class PieceRenderer extends StatelessWidget {
                   color: invalidPlacement
                       ? getPieceColor(piece.id).withValues(alpha: 0.55)
                       : getPieceColor(piece.id),
-                  border: Border.all(color: GameColors.pieceInnerBorderColor, width: 1.5),
+                  border: Border.all(
+                    color: GameColors.pieceInnerBorderColor,
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.circular(3),
                   boxShadow: [
                     BoxShadow(
@@ -115,31 +124,43 @@ class PieceRenderer extends StatelessWidget {
                   ],
                 ),
                 // Numéro de la pièce sur le premier carré (masquable : accueil sans numéros)
-                child: (showLabel && coord == coords.first)
-                    ? Center(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (cellBackgroundBuilder != null)
+                      Opacity(
+                        opacity: invalidPlacement ? 0.55 : 1,
+                        child: cellBackgroundBuilder!(index, cellSize),
+                      ),
+                    if (showLabel && index == 0)
+                      Center(
                         child: Text(
                           piece.id.toString(),
                           style: TextStyle(
                             color: GameColors.pieceTextColor,
-                            // Badge proportionnel à la case (§4e) ; ≈ 12 au défaut cellSize 22.
                             fontSize: cellSize * 0.55,
                             fontWeight: FontWeight.bold,
                             shadows: const [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 2,
-                              ),
+                              Shadow(color: Colors.black87, blurRadius: 3),
                             ],
                           ),
                         ),
-                      )
-                    : null,
+                      ),
+                  ],
+                ),
               ),
             ),
           if (invalidPlacement)
-            Positioned.fill(child: IgnorePointer(child: CustomPaint(
-              painter: _InvalidOutline(position: position, cellSize: cellSize),
-            ))),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _InvalidOutline(
+                    position: position,
+                    cellSize: cellSize,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -163,14 +184,38 @@ class _InvalidOutline extends CustomPainter {
       final top = 4 + (y - minY) * cellSize;
       final right = left + cellSize;
       final bottom = top + cellSize;
-      if (!cells.contains((x, y - 1))) { path.moveTo(left, top); path.lineTo(right, top); }
-      if (!cells.contains((x, y + 1))) { path.moveTo(left, bottom); path.lineTo(right, bottom); }
-      if (!cells.contains((x - 1, y))) { path.moveTo(left, top); path.lineTo(left, bottom); }
-      if (!cells.contains((x + 1, y))) { path.moveTo(right, top); path.lineTo(right, bottom); }
+      if (!cells.contains((x, y - 1))) {
+        path.moveTo(left, top);
+        path.lineTo(right, top);
+      }
+      if (!cells.contains((x, y + 1))) {
+        path.moveTo(left, bottom);
+        path.lineTo(right, bottom);
+      }
+      if (!cells.contains((x - 1, y))) {
+        path.moveTo(left, top);
+        path.lineTo(left, bottom);
+      }
+      if (!cells.contains((x + 1, y))) {
+        path.moveTo(right, top);
+        path.lineTo(right, bottom);
+      }
     }
     // Sous-trait blanc : contour lisible aussi sur les pièces rouges et les fonds sombres.
-    canvas.drawPath(path, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 5);
-    canvas.drawPath(path, Paint()..color = Colors.red.shade700..style = PaintingStyle.stroke..strokeWidth = 3);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.red.shade700
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
   }
 
   @override

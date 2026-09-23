@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 16:31 — vérifier le relais visuel hors plateau quand la copie est masquée.
+// Modified: 2026-09-23 05:13 — vérifier le réglage et le découpage des pièces illustrées.
+// Historique: 2026-09-22 16:31 — vérifier le relais visuel hors plateau quand la copie est masquée.
 // Historique: 2026-09-22 06:06 — vérifier le défaut masqué, la persistance et le feedback optionnel.
 // test/drag_feedback_setting_test.dart
 
@@ -8,10 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
 import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
+import 'package:pentapol/pentoscope/widgets/illustrated_piece_cells.dart';
 
 void main() {
   test('la miniature de drag est masquée par défaut et sérialisée', () {
@@ -22,6 +25,38 @@ void main() {
       jsonDecode(jsonEncode(settings.toJson())) as Map<String, dynamic>,
     );
     expect(restored.game.showDragFeedback, isTrue);
+  });
+
+  test('les pièces illustrées sont désactivées par défaut et sérialisées', () {
+    expect(const GameSettings().showIllustratedPieces, isFalse);
+
+    const settings = AppSettings(
+      game: GameSettings(showIllustratedPieces: true),
+    );
+    final restored = AppSettings.fromJson(
+      jsonDecode(jsonEncode(settings.toJson())) as Map<String, dynamic>,
+    );
+    expect(restored.game.showIllustratedPieces, isTrue);
+  });
+
+  test('le découpage conserve les cinq identités de cellule', () {
+    final placed = PlacedPiece(
+      piece: pentominos.first,
+      positionIndex: 0,
+      gridX: 2,
+      gridY: 3,
+    );
+    final layout = IllustratedPuzzleLayout.fromSolution(
+      [placed],
+      boardWidth: 6,
+      boardHeight: 10,
+    );
+
+    expect(
+      layout.cellsForPiece(placed.piece.id),
+      placed.absoluteCells.toList(growable: false),
+    );
+    expect(layout.cellsForPiece(placed.piece.id), hasLength(5));
   });
 
   for (final visible in [false, true]) {

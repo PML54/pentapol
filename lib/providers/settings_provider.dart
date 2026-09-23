@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 06:06 — persister l'affichage optionnel de la miniature de drag.
+// Modified: 2026-09-23 05:13 — persister le prototype de pièces illustrées 6×10.
+// Historique: 2026-09-22 06:06 — persister l'affichage optionnel de la miniature de drag.
 // Historique: 2026-09-12 10:58 — sauvegarde fiable du barème pour les prochaines parties.
 // Historique: 2026-09-12 07:25 — enregistrement du barème pour les prochaines parties solo.
 // Historique: 2026-09-11 15:10 — retrait de l’enregistrement des exercices du mode supprimé.
@@ -80,7 +81,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> setGeometryRules(GeometryRules rules) async {
     await ensureLoaded();
-    final next = state.copyWith(game: state.game.copyWith(geometryRules: rules));
+    final next = state.copyWith(
+      game: state.game.copyWith(geometryRules: rules),
+    );
     await _db.setSetting(_storageKey, jsonEncode(next.toJson()));
     state = state.copyWith(game: state.game.copyWith(geometryRules: rules));
   }
@@ -147,9 +150,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Enregistrer le résultat d'une partie (isWin: true=victoire, false=défaite, null=égalité)
   Future<void> recordDuelGame({required bool? isWin}) async {
-    state = state.copyWith(
-      duel: state.duel.recordGame(isWin: isWin),
-    );
+    state = state.copyWith(duel: state.duel.recordGame(isWin: isWin));
     await _saveSettings();
   }
 
@@ -157,10 +158,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> resetDuelSettings() async {
     final currentName = state.duel.playerName;
     final currentStats = (
-    totalGamesPlayed: state.duel.totalGamesPlayed,
-    totalWins: state.duel.totalWins,
-    totalLosses: state.duel.totalLosses,
-    totalDraws: state.duel.totalDraws,
+      totalGamesPlayed: state.duel.totalGamesPlayed,
+      totalWins: state.duel.totalWins,
+      totalLosses: state.duel.totalLosses,
+      totalDraws: state.duel.totalDraws,
     );
 
     state = state.copyWith(
@@ -179,9 +180,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Réinitialiser les statistiques Duel
   Future<void> resetDuelStats() async {
-    state = state.copyWith(
-      duel: state.duel.resetStats(),
-    );
+    state = state.copyWith(duel: state.duel.resetStats());
     await _saveSettings();
   }
 
@@ -193,9 +192,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Change le schéma de couleurs des pièces
   Future<void> setColorScheme(PieceColorScheme scheme) async {
-    state = state.copyWith(
-      ui: state.ui.copyWith(colorScheme: scheme),
-    );
+    state = state.copyWith(ui: state.ui.copyWith(colorScheme: scheme));
     await _saveSettings();
   }
 
@@ -223,9 +220,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Définir la durée de partie
   Future<void> setDuelDuration(DuelDuration duration) async {
-    state = state.copyWith(
-      duel: state.duel.copyWith(duration: duration),
-    );
+    state = state.copyWith(duel: state.duel.copyWith(duration: duration));
     await _saveSettings();
   }
 
@@ -247,21 +242,15 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
-
-
   /// Définir le nom du joueur
   Future<void> setDuelPlayerName(String? name) async {
-    state = state.copyWith(
-      duel: state.duel.copyWith(playerName: name),
-    );
+    state = state.copyWith(duel: state.duel.copyWith(playerName: name));
     await _saveSettings();
   }
 
   /// Activer/désactiver le guide de solution
   Future<void> setDuelShowGuide(bool show) async {
-    state = state.copyWith(
-      duel: state.duel.copyWith(showSolutionGuide: show),
-    );
+    state = state.copyWith(duel: state.duel.copyWith(showSolutionGuide: show));
     await _saveSettings();
   }
 
@@ -285,24 +274,20 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Activer/désactiver les numéros sur le guide
   Future<void> setDuelShowPieceNumbers(bool show) async {
-    state = state.copyWith(
-      duel: state.duel.copyWith(showPieceNumbers: show),
-    );
+    state = state.copyWith(duel: state.duel.copyWith(showPieceNumbers: show));
     await _saveSettings();
   }
 
   /// Activer/désactiver les sons
   Future<void> setDuelSounds(bool enable) async {
-    state = state.copyWith(
-      duel: state.duel.copyWith(enableSounds: enable),
-    );
+    state = state.copyWith(duel: state.duel.copyWith(enableSounds: enable));
     await _saveSettings();
   }
 
   // ============================================================
-// MÉTHODES À AJOUTER DANS settings_provider.dart
-// Dans la classe SettingsNotifier, ajouter ces méthodes :
-// ============================================================
+  // MÉTHODES À AJOUTER DANS settings_provider.dart
+  // Dans la classe SettingsNotifier, ajouter ces méthodes :
+  // ============================================================
 
   // ============================================================
   // DUEL SETTINGS
@@ -310,17 +295,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Activer/désactiver les vibrations
   Future<void> setDuelVibration(bool enable) async {
-    state = state.copyWith(
-      duel: state.duel.copyWith(enableVibration: enable),
-    );
+    state = state.copyWith(duel: state.duel.copyWith(enableVibration: enable));
     await _saveSettings();
   }
 
   /// Active/désactive le retour haptique
   Future<void> setEnableHaptics(bool enable) async {
-    state = state.copyWith(
-      game: state.game.copyWith(enableHaptics: enable),
-    );
+    state = state.copyWith(game: state.game.copyWith(enableHaptics: enable));
     await _saveSettings();
   }
 
@@ -341,6 +322,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// Afficher/masquer la miniature qui suit le doigt ; l'aperçu du plateau reste actif.
   Future<void> setShowDragFeedback(bool value) async {
     state = state.copyWith(game: state.game.copyWith(showDragFeedback: value));
+    await _saveSettings();
+  }
+
+  /// Active/désactive le prototype d'image découpée sur toutes les tailles.
+  Future<void> setShowIllustratedPieces(bool value) async {
+    state = state.copyWith(
+      game: state.game.copyWith(showIllustratedPieces: value),
+    );
     await _saveSettings();
   }
 
@@ -392,8 +381,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     }
   }
 
-// ============================================================
-// N'OUBLIE PAS D'IMPORTER DuelDuration si nécessaire :
-// import 'package:pentapol/models/app_settings.dart';
-// ============================================================
+  // ============================================================
+  // N'OUBLIE PAS D'IMPORTER DuelDuration si nécessaire :
+  // import 'package:pentapol/models/app_settings.dart';
+  // ============================================================
 }

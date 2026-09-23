@@ -94,6 +94,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show a copy of the piece under your finger.';
 
   @override
+  String get showIllustratedPieces => 'Illustrated pieces (experimental)';
+
+  @override
+  String get showIllustratedPiecesSub =>
+      'Split an image across the pieces of every board size.';
+
+  @override
   String get showCounters => 'Show counters';
 
   @override

@@ -95,6 +95,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher une copie de la pièce sous le doigt.';
 
   @override
+  String get showIllustratedPieces => 'Pièces illustrées (expérimental)';
+
+  @override
+  String get showIllustratedPiecesSub =>
+      'Découper une image sur les pièces de tous les plateaux.';
+
+  @override
   String get showCounters => 'Afficher les compteurs';
 
   @override
