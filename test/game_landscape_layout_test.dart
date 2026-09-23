@@ -1,4 +1,5 @@
-// Modified: 2026-09-11 16:00 — vérifier les barres paysage, le plateau fixe et les emplacements de transformation.
+// Modified: 2026-09-22 07:29 — vérifier que la grille remplit exactement son cadre.
+// Historique: 2026-09-11 16:00 — vérifier les barres paysage, le plateau fixe et les emplacements de transformation.
 // test/game_landscape_layout_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,6 +98,10 @@ void main() {
           matching: find.byType(GridView),
         );
         final boardRect = tester.getRect(grid);
+        final frameRect = tester.getRect(
+          find.byKey(const ValueKey('board-grid-frame')),
+        );
+        expect(boardRect, frameRect);
         final home = find.byIcon(Icons.home_outlined);
         final homeRect = tester.getRect(home);
         final glyphs = [

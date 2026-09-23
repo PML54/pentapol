@@ -1,5 +1,3 @@
-// Modified: 2026-09-22 07:07 — ajouter le message de relance du Game au tap.
-// lib/l10n/app_localizations.dart
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -1213,7 +1211,7 @@ abstract class AppLocalizations {
   /// No description provided for @gameTapNewGame.
   ///
   /// In en, this message translates to:
-  /// **'Tap for a new game.'**
+  /// **'Double tap for a new game.'**
   String get gameTapNewGame;
 
   /// No description provided for @geometryTitle.

@@ -1,13 +1,17 @@
-// Modified: 2026-09-22 06:06 — vérifier le défaut masqué, la persistance et le feedback optionnel.
+// Modified: 2026-09-22 16:31 — vérifier le relais visuel hors plateau quand la copie est masquée.
+// Historique: 2026-09-22 06:06 — vérifier le défaut masqué, la persistance et le feedback optionnel.
 // test/drag_feedback_setting_test.dart
 
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/models/app_settings.dart';
+import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
 
 void main() {
   test('la miniature de drag est masquée par défaut et sérialisée', () {
@@ -52,4 +56,33 @@ void main() {
       }
     });
   }
+
+  testWidgets(
+    'copie masquée sur le plateau mais visible dans la zone intermédiaire',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: PieceDragFeedback(
+              piece: pentominos.first,
+              positionIndex: 0,
+              cellSize: 20,
+              getPieceColor: (_) => Colors.blue,
+              showOverBoard: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(PieceRenderer), findsOneWidget);
+
+      final context = tester.element(find.byType(PieceDragFeedback));
+      final container = ProviderScope.containerOf(context);
+      container.read(dragOverBoardProvider.notifier).update(true);
+      await tester.pump();
+
+      expect(find.byType(PieceRenderer), findsNothing);
+      expect(find.byType(PieceDragFeedback), findsOneWidget);
+    },
+  );
 }

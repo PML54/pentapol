@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 06:24 — vérifier le bilan Game dans l'AppBar et la relance au tap.
+// Modified: 2026-09-23 05:00 — vérifier le bilan Game et sa relance au double-tap.
+// Historique: 2026-09-22 06:24 — vérifier le bilan Game dans l'AppBar et la relance au tap.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,14 +100,16 @@ void main() {
           label,
           contains(
             lang == 'fr'
-                ? 'Tap pour une nouvelle partie.'
-                : 'Tap for a new game.',
+                ? 'Double tap pour une nouvelle partie.'
+                : 'Double tap for a new game.',
           ),
         );
         expect(find.text('Acuité'), findsNothing);
         expect(find.byKey(const ValueKey('game-continue')), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('game-continue')));
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.byKey(const ValueKey('game-continue')));
+        await tester.pump(const Duration(milliseconds: 100));
         expect(game.starts, 1);
         expect(game.startedSize, PentoscopeSize.size3x5);
         expect(tester.takeException(), isNull);

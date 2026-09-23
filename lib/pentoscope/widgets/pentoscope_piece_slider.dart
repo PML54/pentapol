@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 06:06 — respecter le réglage de visibilité de la miniature de drag.
+// Modified: 2026-09-22 16:31 — afficher la pièce hors plateau pour supprimer la zone aveugle au-dessus du tiroir.
+// Historique: 2026-09-22 06:06 — respecter le réglage de visibilité de la miniature de drag.
 // Historique: 2026-09-10 10:13 — pièce visible dès la prise du rack, contour rouge tant que le dépôt est interdit.
 // Historique: 2026-09-10 06:00 — ergonomie (bloc 3, C6) : fondu de bord du rack SENSIBLE au défilement.
 //           Fondu de tête seulement si on a défilé (offset > 0) → la 1re pièce n'est jamais rognée
@@ -52,7 +53,8 @@ class PentoscopePieceSlider extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<PentoscopePieceSlider> createState() => _PentoscopePieceSliderState();
+  ConsumerState<PentoscopePieceSlider> createState() =>
+      _PentoscopePieceSliderState();
 
   // Méthode statique pour accéder au state depuis l'extérieur
   static _PentoscopePieceSliderState? of(BuildContext context) {
@@ -101,7 +103,6 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
-    
 
     final pieces = state.availablePieces;
 
@@ -109,7 +110,9 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       return const SizedBox.shrink();
     }
 
-    final scrollDirection = widget.isLandscape ? Axis.vertical : Axis.horizontal;
+    final scrollDirection = widget.isLandscape
+        ? Axis.vertical
+        : Axis.horizontal;
     final padding = widget.isLandscape
         ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8)
         : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
@@ -125,7 +128,13 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       itemBuilder: (context, index) {
         final piece = pieces[index];
 
-        return _buildDraggablePiece(piece, notifier, state, settings, widget.isLandscape);
+        return _buildDraggablePiece(
+          piece,
+          notifier,
+          state,
+          settings,
+          widget.isLandscape,
+        );
       },
     );
 
@@ -166,7 +175,11 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   }
 
   /// Convertit positionIndex interne en displayPositionIndex pour l'affichage
-  int _getDisplayPositionIndex(int positionIndex, Pento piece, bool isLandscape) {
+  int _getDisplayPositionIndex(
+    int positionIndex,
+    Pento piece,
+    bool isLandscape,
+  ) {
     return positionIndex; // ✅ plus de -1 / modulo
   }
 
@@ -197,7 +210,12 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   /// local dans la boîte du widget (côté [box.width] = fixedSize), la pièce étant centrée et rendue
   /// par PieceRenderer (case = pieceCellSize, +4 de marge interne). Renvoie la cellule réelle la
   /// plus proche (le toucher peut tomber sur un creux de la forme). null si la pièce n'a pas de case.
-  Point? _grabbedCell(Pento piece, int positionIndex, Offset localGrab, Size box) {
+  Point? _grabbedCell(
+    Pento piece,
+    int positionIndex,
+    Offset localGrab,
+    Size box,
+  ) {
     final cellSize = widget.pieceCellSize;
     final cells = piece.orientations[positionIndex]
         .map((n) => Point((n - 1) % 5, (n - 1) ~/ 5))
@@ -229,14 +247,13 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     return best;
   }
 
-
   Widget _buildDraggablePiece(
-      Pento piece,
-      PentoscopeNotifier notifier,
-      PentoscopeState state,
-      settings,
-      bool isLandscape,
-      ) {
+    Pento piece,
+    PentoscopeNotifier notifier,
+    PentoscopeState state,
+    settings,
+    bool isLandscape,
+  ) {
     // Emplacement serré (C6, retour de Paul sur le 3×5) : au lieu d'une boîte carrée de 5 cases
     // pour tout le monde, la boîte fait la **dimension max de la pièce sur toutes ses orientations**
     // (3 à 5 cases). Carrée → n'importe quelle orientation y tient, donc **aucun reflow à la
@@ -253,7 +270,11 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
         : state.getPiecePositionIndex(piece.id);
 
     // Convertir pour l'affichage
-    int displayPositionIndex = _getDisplayPositionIndex(positionIndex, piece, isLandscape);
+    int displayPositionIndex = _getDisplayPositionIndex(
+      positionIndex,
+      piece,
+      isLandscape,
+    );
 
     final isSelected = state.selectedPiece?.id == piece.id;
 
@@ -267,9 +288,15 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             piece: piece,
             positionIndex: displayPositionIndex,
             isSelected: isSelected,
-            selectedPositionIndex: isSelected ? displayPositionIndex : state.selectedPositionIndex,
-            longPressDuration: Duration(milliseconds: settings.game.longPressDuration),
-            showDragFeedback: settings.game.showDragFeedback,
+            selectedPositionIndex: isSelected
+                ? displayPositionIndex
+                : state.selectedPositionIndex,
+            longPressDuration: Duration(
+              milliseconds: settings.game.longPressDuration,
+            ),
+            // Le feedback existe toujours hors plateau, où aucun fantôme de pose ne prend le relais.
+            // Le réglage décide seulement s'il reste visible une fois entré sur le plateau.
+            showDragFeedback: true,
             // Toute la boîte de la case répond au doigt : le « I » (1 case) s'attrape comme le reste.
             // Carrée (côté = maxDim) → _grabbedCell centre correctement.
             hitBoxSize: pieceBox,
@@ -287,11 +314,19 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
               if (settings.game.enableHaptics) {
                 HapticFeedback.selectionClick();
               }
-              final cell =
-                  _grabbedCell(piece, displayPositionIndex, localGrab, box);
+              final cell = _grabbedCell(
+                piece,
+                displayPositionIndex,
+                localGrab,
+                box,
+              );
               // grabLocal (px du toucher dans la boîte) : le plateau reconstruit le doigt réel
               // (details.offset + localGrab) → ancre à la bonne échelle (fin de l'erreur ~1 case).
-              notifier.selectPiece(piece, grabbedCell: cell, grabLocal: localGrab);
+              notifier.selectPiece(
+                piece,
+                grabbedCell: cell,
+                grabLocal: localGrab,
+              );
             },
             onCycle: () {},
             onCancel: () {
@@ -312,9 +347,13 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
               );
               // Visible dès la prise, rouge hors plateau ou si le placement est interdit.
               if (isDragging) {
-                return PieceDragFeedback(piece: piece, positionIndex: displayPositionIndex,
+                return PieceDragFeedback(
+                  piece: piece,
+                  positionIndex: displayPositionIndex,
                   cellSize: widget.pieceCellSize,
-                  getPieceColor: (id) => settings.ui.getPieceColor(id));
+                  getPieceColor: (id) => settings.ui.getPieceColor(id),
+                  showOverBoard: settings.game.showDragFeedback,
+                );
               }
               // Halo au repos seulement (pièce sélectionnée, immobile).
               if (!isSelected) return renderer;

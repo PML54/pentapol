@@ -339,7 +339,7 @@
   "recreationalPlaced": "That’s right!",
   "recreationalTapAgain": "Tap to restart with Training 1. Double tap to play.",
   "recreationalTapTraining2": "Tap for Training 2. Double tap to play.",
-  "gameTapNewGame": "Tap for a new game.",
+  "gameTapNewGame": "Double tap for a new game.",
   "@guidedChoose": {
     "placeholders": {
       "number": {

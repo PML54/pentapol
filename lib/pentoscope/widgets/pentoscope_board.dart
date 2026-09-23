@@ -1,4 +1,7 @@
-// Modified: 2026-09-22 06:06 — masquer aussi la miniature des pièces déjà posées selon le réglage.
+// Modified: 2026-09-22 19:09 — transmettre le double-tap du plateau au mode Game.
+// Historique: 2026-09-22 16:31 — afficher la pièce déplacée hors plateau pour éviter toute zone aveugle.
+// Historique: 2026-09-22 07:29 — superposer le cadre sans réduire la grille ni laisser de jour en bas.
+// Historique: 2026-09-22 06:06 — masquer aussi la miniature des pièces déjà posées selon le réglage.
 // Historique: 2026-09-21 14:31 — effacer l'aperçu quand une translation se termine hors cible.
 // Historique: 2026-09-21 10:55 — masquer toute empreinte source d'une pièce pendant sa translation.
 // Historique: 2026-09-21 10:28 — neutraliser la bordure du plateau sous une pièce déplacée.
@@ -63,8 +66,13 @@ import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
 
 class PentoscopeBoard extends ConsumerStatefulWidget {
   final bool isLandscape;
+  final VoidCallback? onDoubleTap;
 
-  const PentoscopeBoard({super.key, required this.isLandscape});
+  const PentoscopeBoard({
+    super.key,
+    required this.isLandscape,
+    this.onDoubleTap,
+  });
 
   @override
   ConsumerState<PentoscopeBoard> createState() => _PentoscopeBoardState();
@@ -126,11 +134,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             : constraints.maxWidth - 2 * kBoardSideMargin;
         // Plafond de hauteur ET plafond partagé (proportionnel à l'écran, kMaxBoardCellFactor) :
         // atténue la « falaise » des petits plateaux sans les rapetisser sur une grande tablette.
-        final maxCell = MediaQuery.of(context).size.shortestSide * kMaxBoardCellFactor;
+        final maxCell =
+            MediaQuery.of(context).size.shortestSide * kMaxBoardCellFactor;
         final heightCap = constraints.maxHeight / visualRows;
         final upperCap = heightCap < maxCell ? heightCap : maxCell;
-        final cellSize =
-            (availableWidth / visualCols).clamp(0.0, upperCap).toDouble();
+        final cellSize = (availableWidth / visualCols)
+            .clamp(0.0, upperCap)
+            .toDouble();
 
         final gridWidth = cellSize * visualCols;
         final gridHeight = cellSize * visualRows;
@@ -171,8 +181,14 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             final plateauX = localOffset.dx + grab.dx - offsetX;
             final plateauY = localOffset.dy + grab.dy - offsetY;
 
-            ref.read(dragOverBoardProvider.notifier).update(
-              plateauX >= 0 && plateauX < gridWidth && plateauY >= 0 && plateauY < gridHeight);
+            ref
+                .read(dragOverBoardProvider.notifier)
+                .update(
+                  plateauX >= 0 &&
+                      plateauX < gridWidth &&
+                      plateauY >= 0 &&
+                      plateauY < gridHeight,
+                );
 
             // TEST: Agrandir drastiquement la zone pour device réel
             const double margin = 100.0; // Marge GIGANTESQUE pour test
@@ -180,14 +196,20 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                 plateauX >= gridWidth + margin ||
                 plateauY < -margin ||
                 plateauY >= gridHeight + margin) {
-              debugPrint('❌ LOIN du plateau: plateau=(${plateauX.toInt()},${plateauY.toInt()})');
+              debugPrint(
+                '❌ LOIN du plateau: plateau=(${plateauX.toInt()},${plateauY.toInt()})',
+              );
               return;
             }
 
             // Debug seulement si on est proche des bords (pour éviter spam)
-            if (plateauX < 20 || plateauX > gridWidth - 20 ||
-                plateauY < 20 || plateauY > gridHeight - 20) {
-              debugPrint('🎯 Drag près bord: plateau=(${plateauX.toInt()},${plateauY.toInt()}) gridSize=${gridWidth}x${gridHeight}');
+            if (plateauX < 20 ||
+                plateauX > gridWidth - 20 ||
+                plateauY < 20 ||
+                plateauY > gridHeight - 20) {
+              debugPrint(
+                '🎯 Drag près bord: plateau=(${plateauX.toInt()},${plateauY.toInt()}) gridSize=${gridWidth}x${gridHeight}',
+              );
             }
 
             final visualX = (plateauX / cellSize).floor().clamp(
@@ -209,8 +231,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             }
 
             // Log pour pièce 12 verticale seulement (pour éviter spam)
-            if (state.selectedPiece?.id == 12 && state.selectedPositionIndex == 0) {
-              debugPrint('🎯 Drag pièce 12 verticale: plateau=(${plateauX.toInt()},${plateauY.toInt()}) visual=(${visualX},${visualY}) logical=(${logicalX},${logicalY})');
+            if (state.selectedPiece?.id == 12 &&
+                state.selectedPositionIndex == 0) {
+              debugPrint(
+                '🎯 Drag pièce 12 verticale: plateau=(${plateauX.toInt()},${plateauY.toInt()}) visual=(${visualX},${visualY}) logical=(${logicalX},${logicalY})',
+              );
             }
 
             notifier.updatePreview(logicalX, logicalY);
@@ -241,13 +266,15 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
             // déjà snappée et validée) au lieu de reconstruire un faux doigt puis de re-dériver
             // — c'est cette re-dérivation qui replaçait la pièce `−minY` plus haut au relâcher.
             // Ce que l'aperçu montre est exactement ce qui se pose.
-            final success = notifier.tryPlaceAtAnchor(state.previewX!, state.previewY!);
+            final success = notifier.tryPlaceAtAnchor(
+              state.previewX!,
+              state.previewY!,
+            );
 
             if (success) {
               HapticFeedback.mediumImpact();
               final newState = ref.read(pentoscopeProvider);
-              if (newState.isComplete) {
-              }
+              if (newState.isComplete) {}
             } else {
               HapticFeedback.heavyImpact();
             }
@@ -261,9 +288,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               // se groupe avec la barre de pièces, tout le rab vertical passe en haut,
               // sous la barre d'icônes (lu comme respiration d'en-tête) plutôt que réparti
               // en deux marges qui font « flotter » le plateau.
-              alignment:
-                  widget.isLandscape ? Alignment.topCenter : Alignment.bottomCenter,
+              alignment: widget.isLandscape
+                  ? Alignment.topCenter
+                  : Alignment.bottomCenter,
               child: Container(
+                key: const ValueKey('board-grid-frame'),
                 width: gridWidth,
                 height: gridHeight,
                 decoration: BoxDecoration(
@@ -271,10 +300,6 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [Colors.grey.shade50, Colors.grey.shade100],
-                  ),
-                  border: Border.all(
-                    color: Colors.grey.shade700,
-                    width: 3,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -286,9 +311,17 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                   ],
                   borderRadius: BorderRadius.circular(16),
                 ),
+                // Le cadre est peint au-dessus de la grille. Placé dans `decoration`, il ajoutait
+                // 3 px de padding sur chaque bord : sur un plateau non carré, le GridView calculait
+                // ses cases depuis la largeur réduite et laissait quelques pixels libres en bas.
+                foregroundDecoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade700, width: 3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: GridView.builder(
+                    key: const ValueKey('board-grid'),
                     padding: EdgeInsets.zero,
                     physics: const NeverScrollableScrollPhysics(),
                     shrinkWrap: true,
@@ -344,17 +377,17 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   // ============================================================================
 
   Widget _buildCell(
-      BuildContext context,
-      WidgetRef ref,
-      PentoscopeState state,
-      PentoscopeNotifier notifier,
-      settings,
-      int logicalX,
-      int logicalY,
-      bool isLandscape,
-      double cellSize,
-      Set<Point> labelCells,
-      ) {
+    BuildContext context,
+    WidgetRef ref,
+    PentoscopeState state,
+    PentoscopeNotifier notifier,
+    settings,
+    int logicalX,
+    int logicalY,
+    bool isLandscape,
+    double cellSize,
+    Set<Point> labelCells,
+  ) {
     // 1️⃣ RÉCUPÉRER LES DONNÉES DE BASE
     final plateauCellValue = state.plateau.getCell(logicalX, logicalY);
     final selectedPieceId = state.selectedPlacedPiece?.piece.id;
@@ -398,7 +431,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       // Chercher position locale pour comparer
       final selectedPiece = state.selectedPlacedPiece!;
       final position =
-      selectedPiece.piece.orientations[state.selectedPositionIndex];
+          selectedPiece.piece.orientations[state.selectedPositionIndex];
       final minOffset = _getMinOffset(position);
 
       for (final cellNum in position) {
@@ -409,7 +442,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
         if (pieceX == logicalX && pieceY == logicalY) {
           isReferenceCell =
-          (localX == state.selectedCellInPiece!.x &&
+              (localX == state.selectedCellInPiece!.x &&
               localY == state.selectedCellInPiece!.y);
           break;
         }
@@ -433,9 +466,16 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     // 5️⃣ DÉTERMINER LE TEXTE
     // C8 : pour une pièce posée, le numéro n'apparaît que sur sa case étiquette (pastille unique)
     // et seulement si le réglage `showPieceNumbers` est actif.
-    final bool isPieceLabelCell = labelCells.contains(Point(logicalX, logicalY));
-    String cellText = _getCellText(cellValue, isSolutionCell, solutionPieceId,
-        isPieceLabelCell, settings.game.showPieceNumbers);
+    final bool isPieceLabelCell = labelCells.contains(
+      Point(logicalX, logicalY),
+    );
+    String cellText = _getCellText(
+      cellValue,
+      isSolutionCell,
+      solutionPieceId,
+      isPieceLabelCell,
+      settings.game.showPieceNumbers,
+    );
 
     if (showSelectedPiece && selectedInfo.selectedText != null) {
       cellText = selectedInfo.selectedText!;
@@ -465,12 +505,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         border: border,
         boxShadow: previewInfo.isSnappedPreview && previewInfo.isPreviewValid
             ? [
-          BoxShadow(
-            color: Colors.cyan.withValues(alpha: 0.3),
-            blurRadius: 4,
-            spreadRadius: 1,
-          ),
-        ]
+                BoxShadow(
+                  color: Colors.cyan.withValues(alpha: 0.3),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ]
             : null,
       ),
       child: Center(
@@ -483,7 +523,10 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               previewInfo.isPreviewValid,
               previewInfo.isSnappedPreview,
             ),
-            fontWeight: _getTextWeight(previewInfo.isPreview, showSelectedPiece),
+            fontWeight: _getTextWeight(
+              previewInfo.isPreview,
+              showSelectedPiece,
+            ),
             // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
             // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
             // leur petite taille pour ne pas se chevaucher.
@@ -491,7 +534,8 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               showSelectedPiece,
               previewInfo.isPreview,
               cellSize,
-              isSinglePastille: cellValue > 0 &&
+              isSinglePastille:
+                  cellValue > 0 &&
                   !isSolutionCell &&
                   !showSelectedPiece &&
                   !previewInfo.isPreview &&
@@ -527,18 +571,20 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           }
           notifier.setDragging(false);
         },
-        feedback: settings.game.showDragFeedback
-            ? Material(
-                color: Colors.transparent,
-                child: PieceDragFeedback(
-                  piece: state.selectedPiece!,
-                  positionIndex: _getDisplayPositionIndex(
-                    state.selectedPositionIndex, state.selectedPiece!, isLandscape),
-                  cellSize: cellSize * settings.game.rackCellRatio,
-                  getPieceColor: (id) => settings.ui.getPieceColor(id),
-                ),
-              )
-            : const SizedBox.shrink(),
+        feedback: Material(
+          color: Colors.transparent,
+          child: PieceDragFeedback(
+            piece: state.selectedPiece!,
+            positionIndex: _getDisplayPositionIndex(
+              state.selectedPositionIndex,
+              state.selectedPiece!,
+              isLandscape,
+            ),
+            cellSize: cellSize * settings.game.rackCellRatio,
+            getPieceColor: (id) => settings.ui.getPieceColor(id),
+            showOverBoard: settings.game.showDragFeedback,
+          ),
+        ),
         childWhenDragging: previewInfo.isPreview ? cellWidget : emptyCell,
         child: state.isDragging
             ? (previewInfo.isPreview ? cellWidget : emptyCell)
@@ -551,10 +597,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                     logicalY,
                   );
                 },
-                onDoubleTap: () {
-                  HapticFeedback.selectionClick();
-                  notifier.applyIsometryRotationTW();
-                },
+                onDoubleTap: widget.onDoubleTap == null
+                    ? () {
+                        HapticFeedback.selectionClick();
+                        notifier.applyIsometryRotationTW();
+                      }
+                    : null,
                 child: cellWidget,
               ),
       );
@@ -580,22 +628,27 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       );
     }
 
-    return cellWidget;
+    if (widget.onDoubleTap == null) return cellWidget;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onDoubleTap: widget.onDoubleTap,
+      child: cellWidget,
+    );
   }
 
   /// Détermine la bordure à afficher
   Border _calculateBorder(
-      PentoscopeState state, // ✅ AJOUTER
-      bool isReferenceCell,
-      bool isPreview,
-      bool isSelected,
-      bool hideSelectedSourceBorder,
-      bool isSnappedPreview,
-      bool isPreviewValid,
-      int logicalX,
-      int logicalY,
-      bool isLandscape,
-      ) {
+    PentoscopeState state, // ✅ AJOUTER
+    bool isReferenceCell,
+    bool isPreview,
+    bool isSelected,
+    bool hideSelectedSourceBorder,
+    bool isSnappedPreview,
+    bool isPreviewValid,
+    int logicalX,
+    int logicalY,
+    bool isLandscape,
+  ) {
     // Mastercase
     if (isReferenceCell) return Border.all(color: Colors.red, width: 4);
 
@@ -631,29 +684,29 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
   /// Détecte si une preview est à cette cellule
   ({
-  bool isPreview,
-  Color? previewColor,
-  String? previewText,
-  bool isSnappedPreview,
-  bool isPreviewValid,
+    bool isPreview,
+    Color? previewColor,
+    String? previewText,
+    bool isSnappedPreview,
+    bool isPreviewValid,
   })
   _detectPreview(
-      PentoscopeState state,
-      int logicalX,
-      int logicalY,
-      bool isSelected,
-      dynamic settings,
-      ) {
+    PentoscopeState state,
+    int logicalX,
+    int logicalY,
+    bool isSelected,
+    dynamic settings,
+  ) {
     if (isSelected ||
         state.selectedPiece == null ||
         state.previewX == null ||
         state.previewY == null) {
       return (
-      isPreview: false,
-      previewColor: null,
-      previewText: null,
-      isSnappedPreview: false,
-      isPreviewValid: false,
+        isPreview: false,
+        previewColor: null,
+        previewText: null,
+        isSnappedPreview: false,
+        isPreviewValid: false,
       );
     }
 
@@ -686,39 +739,40 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         }
 
         return (
-        isPreview: true,
-        previewColor: previewColor,
-        previewText: piece.id.toString(),
-        isSnappedPreview: isSnappedPreview,
-        isPreviewValid: state.isPreviewValid,
+          isPreview: true,
+          previewColor: previewColor,
+          previewText: piece.id.toString(),
+          isSnappedPreview: isSnappedPreview,
+          isPreviewValid: state.isPreviewValid,
         );
       }
     }
 
     return (
-    isPreview: false,
-    previewColor: null,
-    previewText: null,
-    isSnappedPreview: false,
-    isPreviewValid: false,
+      isPreview: false,
+      previewColor: null,
+      previewText: null,
+      isSnappedPreview: false,
+      isPreviewValid: false,
     );
   }
 
   /// Détecte si une pièce placée est sélectionnée à cette cellule
   ({bool isSelected, Color? selectedColor, String? selectedText})
   _detectSelectedPlacedPiece(
-      PentoscopeState state,
-      int logicalX,
-      int logicalY,
-      int cellValue,
-      dynamic settings,
-      ) {
+    PentoscopeState state,
+    int logicalX,
+    int logicalY,
+    int cellValue,
+    dynamic settings,
+  ) {
     if (state.selectedPlacedPiece == null) {
       return (isSelected: false, selectedColor: null, selectedText: null);
     }
 
     final selectedPiece = state.selectedPlacedPiece!;
-    final position = selectedPiece.piece.orientations[state.selectedPositionIndex];
+    final position =
+        selectedPiece.piece.orientations[state.selectedPositionIndex];
     final minOffset = _getMinOffset(position);
 
     for (final cellNum in position) {
@@ -735,9 +789,9 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         }
 
         return (
-        isSelected: true,
-        selectedColor: selectedColor,
-        selectedText: selectedPiece.piece.id.toString(),
+          isSelected: true,
+          selectedColor: selectedColor,
+          selectedText: selectedPiece.piece.id.toString(),
         );
       }
     }
@@ -747,11 +801,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
   /// Détermine la couleur de base de la cellule
   Color _getBaseCellColor(
-      int cellValue,
-      bool isSolution,
-      int? solutionPieceId,
-      dynamic settings,
-      ) {
+    int cellValue,
+    bool isSolution,
+    int? solutionPieceId,
+    dynamic settings,
+  ) {
     // Bordure de plateau
     if (cellValue == -1) return Colors.grey.shade800;
 
@@ -769,8 +823,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   }
 
   /// Texte à afficher dans la cellule
-  String _getCellText(int cellValue, bool isSolution, int? solutionPieceId,
-      bool isPieceLabelCell, bool showPieceNumbers) {
+  String _getCellText(
+    int cellValue,
+    bool isSolution,
+    int? solutionPieceId,
+    bool isPieceLabelCell,
+    bool showPieceNumbers,
+  ) {
     // Solution: afficher numéro de pièce (vue réponse, hors périmètre C8 — inchangée).
     if (isSolution && solutionPieceId != null) {
       return solutionPieceId.toString();
@@ -786,12 +845,13 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   }
 
   int _getDisplayPositionIndex(
-      int positionIndex,
-      Pento piece,
-      bool isLandscape,
-      ) {
+    int positionIndex,
+    Pento piece,
+    bool isLandscape,
+  ) {
     if (isLandscape) {
-      return (positionIndex - 1 + piece.numOrientations) % piece.numOrientations;
+      return (positionIndex - 1 + piece.numOrientations) %
+          piece.numOrientations;
     }
     return positionIndex;
   }
@@ -810,10 +870,10 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
   /// Récupère le numéro de pièce solution à une cellule donnée
   int? _getSolutionPieceIdAt(
-      PentoscopeState state,
-      int logicalX,
-      int logicalY,
-      ) {
+    PentoscopeState state,
+    int logicalX,
+    int logicalY,
+  ) {
     if (state.currentSolution == null) return null;
 
     for (final placement in state.currentSolution!) {
@@ -846,11 +906,11 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
 
   /// Couleur du texte selon le contexte
   Color _getTextColor(
-      bool isPreview,
-      bool isSelected,
-      bool isPreviewValid,
-      bool isSnappedPreview,
-      ) {
+    bool isPreview,
+    bool isSelected,
+    bool isPreviewValid,
+    bool isSnappedPreview,
+  ) {
     if (isPreview) {
       if (isPreviewValid) {
         return isSnappedPreview ? Colors.cyan.shade900 : Colors.green.shade900;
@@ -864,8 +924,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
   /// Taille du numéro sur une case, proportionnelle à la case (§4e) au lieu de 14/16 fixes :
   /// sur iPad la case est 2× plus grande, le texte doit suivre. Ratios calés pour reproduire
   /// ≈ 14/16 sur iPhone (case ≈ 76) et grandir ensuite ; plancher pour rester lisible.
-  double _getTextSize(bool isSelected, bool isPreview, double cellSize,
-      {bool isSinglePastille = false}) {
+  double _getTextSize(
+    bool isSelected,
+    bool isPreview,
+    double cellSize, {
+    bool isSinglePastille = false,
+  }) {
     // Pastille unique d'une pièce posée (C8) : seule sur la pièce → grosse (≈ 0,5 case).
     if (isSinglePastille) return (cellSize * 0.5).clamp(16.0, 60.0);
     final ratio = (isSelected || isPreview) ? 0.21 : 0.18;

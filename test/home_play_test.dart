@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
+// Modified: 2026-09-22 19:09 — vérifier le double-tap Game : relance, taille suivante et cycle.
+// Historique: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
 //           deux pièces ; le double-tap vers Game reste prioritaire.
 // Historique: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
 //           conservé pour enchaîner l'entraînement.
@@ -41,6 +42,8 @@ class _AutoGame extends _Game {
   int recreationalStarts = 0;
   int? lastMissingPieceCount;
   int gameStarts = 0;
+  PentoscopeSize? lastGameSize;
+  bool? lastGameIsProgression;
 
   @override
   Future<void> startPuzzle(
@@ -50,6 +53,8 @@ class _AutoGame extends _Game {
     bool isProgression = false,
   }) async {
     gameStarts++;
+    lastGameSize = size;
+    lastGameIsProgression = isProgression;
     final piece = pentominos.first;
     load(
       PentoscopeState.initial().copyWith(
@@ -153,6 +158,86 @@ class _Settings extends SettingsNotifier {
 }
 
 void main() {
+  testWidgets(
+    'Game sans + : double-tap relance ou change cycliquement la taille',
+    (tester) async {
+      final game = _AutoGame();
+      final container = ProviderContainer(
+        overrides: [
+          pentoscopeProvider.overrideWith(() => game),
+          settingsProvider.overrideWith(_Settings.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(pentoscopeProvider);
+
+      void load(PentoscopeSize size, {bool occupied = false}) {
+        final piece = pentominos.first;
+        game.load(
+          PentoscopeState.initial().copyWith(
+            puzzle: PentoscopePuzzle(
+              size: size,
+              pieceIds: [piece.id],
+              solutionCount: 1,
+            ),
+            plateau: Plateau.allVisible(size.width, size.height),
+            availablePieces: [piece],
+            placedPieces: occupied
+                ? [
+                    PlacedPiece(
+                      piece: piece,
+                      positionIndex: 0,
+                      gridX: 0,
+                      gridY: 0,
+                    ),
+                  ]
+                : const [],
+            piecePositionIndices: {piece.id: 0},
+            solutionsCount: 1,
+            isProgression: occupied,
+          ),
+        );
+      }
+
+      load(PentoscopeSize.size5x5, occupied: true);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            locale: const Locale('fr'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const PentoscopeGameScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      Future<void> doubleTapBoard() async {
+        await tester.tap(find.byType(PentoscopeBoard));
+        await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byType(PentoscopeBoard));
+      await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.byIcon(Icons.add_circle_outline), findsNothing);
+      await doubleTapBoard();
+      expect(game.lastGameSize, PentoscopeSize.size5x5);
+      expect(game.lastGameIsProgression, isTrue);
+
+      load(PentoscopeSize.size5x5);
+      await tester.pump();
+      await doubleTapBoard();
+      expect(game.lastGameSize, PentoscopeSize.size6x5);
+      expect(game.lastGameIsProgression, isFalse);
+
+      load(PentoscopeSize.size6x10);
+      await tester.pump();
+      await doubleTapBoard();
+      expect(game.lastGameSize, PentoscopeSize.size3x5);
+    },
+  );
+
   testWidgets('le démarrage ouvre directement le Game récréatif', (
     tester,
   ) async {

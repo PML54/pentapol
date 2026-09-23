@@ -13,7 +13,16 @@
 
 ---
 
-## §ÉTAT — au 2026-09-22
+## §ÉTAT — au 2026-09-23
+
+### Prototype d'image pour les pièces (2026-09-23)
+
+Première étape volontairement sans modification du moteur ni du rendu : ajout de
+`assets/images/puzzle_landscape_01.png`, une illustration originale verticale au ratio 3:5
+(`971×1619`), conçue avec de grandes zones colorées et des raccords continus pour un futur découpage
+par pentominos. L'asset est déclaré dans `pubspec.yaml`, mais aucun écran ne le consomme encore.
+`flutter pub get` valide la déclaration. La validation finale de la version compte **219/219 tests**
+et une analyse sans erreur ni avertissement.
 
 ### L'application
 
@@ -90,6 +99,19 @@ intercepte naturellement les gestes tant qu'il est ouvert.
 **Vérifications : 216/216 tests complets**, dont le bilan en français et en anglais sur petit
 portrait et paysage, avec contrôle du nouveau tirage au tap. Analyse : **0 erreur / 0 avertissement /
 116 infos**.
+
+### Game — interface simplifiée par double-tap du plateau (2026-09-22)
+
+Le bouton `+` est retiré du mode Game. Le plateau devient l'unique commande de renouvellement : un
+double-tap avec au moins une pièce posée lance un nouveau tirage de même taille ; sur un plateau vide,
+il passe à la taille suivante dans l'ordre de progression. Après le 6×10, le cycle revient au 3×5.
+Le changement manuel de taille quitte le parcours de progression, comme l'ancien choix de taille.
+
+La règle s'applique aussi au plateau terminé, dont le simple tap est remplacé par un double-tap. Les
+autres modes conservent leurs gestes et leur bouton de nouvelle partie. Le message de fin est aligné
+en français et en anglais. Le plateau terminé est explicitement traité comme non vide, y compris
+dans les états synthétiques de test. **Vérifications : 219/219 tests complets**, dont les trois
+branches du geste et le bilan FR/EN ; analyse **0 erreur / 0 avertissement / 116 infos**.
 
 ### Training — deux niveaux progressifs, bandeau déplaçable et quatre états (2026-09-22)
 
@@ -209,6 +231,18 @@ reste disponible en activant l'interrupteur.
 **Vérifications : 216/216 tests complets**, analyse **0 erreur / 0 avertissement / 116 infos**.
 Les tests couvrent le défaut masqué, la sérialisation JSON, les deux rendus du feedback et le glissé
 historique complet avec l'option explicitement active.
+
+### Game et Training — suppression de la zone aveugle du glissé (2026-09-22)
+
+Quand « Pièce pendant le déplacement » était désactivé, le fantôme du plateau rendait le geste
+lisible une fois au-dessus de la grille, mais aucun visuel ne prenait le relais dans la rangée de
+commandes entre le tiroir et le plateau. Cette bande est particulièrement haute sur iPad. La pièce
+reste désormais visible sous le doigt tant qu'elle est hors du plateau ; le réglage conserve son
+rôle sur le plateau, où il choisit entre la copie sous le doigt et le seul fantôme de placement.
+
+Le même relais est appliqué aux pièces prises depuis le tiroir et aux pièces déjà posées. Un test
+widget vérifie la transition hors plateau → plateau avec le réglage désactivé. Les tests ciblés de
+feedback et de glissé paysage téléphone/tablette passent ; analyse sans erreur ni avertissement.
 
 ### Géométrie — barème paramétrable (2026-09-12)
 
@@ -1208,19 +1242,16 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
 
-**2026-09-22 (17) — CLI : cadre du plateau sans jour inférieur.**
-La bordure extérieure est maintenant superposée à la grille au lieu de réduire son espace de 3 px
-sur chaque côté. La grille remplit exactement son cadre sur les 12 combinaisons écran/plateau du test.
+**2026-09-23 (20) — CLI : image prototype 3:5 ajoutée aux assets.**
+Ajout et déclaration de `puzzle_landscape_01.png`, sans branchement au rendu ni au moteur du jeu.
 
-**2026-09-22 (16) — CLI : suppression des derniers fichiers Dart orphelins.**
-Retrait de cinq fichiers sans appelant : ancien cluster de layout (provider + manager), géométrie
-historique, formateur de temps inutilisé et visionneuse de solutions dont l'accès avait été retiré.
-Documentation active et pages techniques générées mises en cohérence.
+**2026-09-22 (19) — CLI : Game piloté par double-tap du plateau.**
+Suppression du bouton `+` en Game. Double-tap non vide : nouveau tirage de même taille ; double-tap
+vide : taille suivante, avec cycle 6×10 → 3×5. Training, Défi et autres modes restent inchangés.
 
-**2026-09-22 (15) — CLI : bilan Game dans l'AppBar et nouvelle partie au tap.**
-À la réussite d'un Game, le bilan défile désormais dans la barre et laisse le plateau entièrement
-visible. Un tap plein cadre lance un nouveau tirage de même taille, ou le niveau débloqué dans le
-parcours de progression ; le bouton `+` reste disponible. Défi et autres modes conservent leur carte.
-Testé en FR/EN, portrait/paysage, avec contrôle de la relance.
+**2026-09-22 (18) — CLI : continuité visuelle du glissé au-dessus du tiroir.**
+Même lorsque la copie de déplacement est masquée dans les réglages, la pièce reste visible sous le
+doigt hors du plateau, où aucun fantôme ne prend le relais. La bande de commandes ne forme donc plus
+une zone aveugle, notamment sur iPad.
 
 *(Les passations antérieures restent dans `git log` ; leurs règles vivent dans les documents de référence.)*

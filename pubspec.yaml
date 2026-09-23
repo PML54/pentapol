@@ -51,3 +51,4 @@ flutter:
     - assets/data/solutions_6x10_normalisees.bin
     - assets/data/subset_counts.bin
     - assets/data/solutions_corpus.bin
+    - assets/images/puzzle_landscape_01.png

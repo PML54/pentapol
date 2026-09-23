@@ -1,4 +1,6 @@
-// Modified: 2026-09-22 06:24 — afficher le bilan Game dans l'AppBar et relancer au tap.
+// Modified: 2026-09-23 05:00 — traiter tout plateau Game terminé comme non vide au double-tap.
+// Historique: 2026-09-22 19:09 — Game simplifié : double-tap du plateau pour relancer ou changer de taille.
+// Historique: 2026-09-22 06:24 — afficher le bilan Game dans l'AppBar et relancer au tap.
 // Historique: 2026-09-22 05:35 — enchaîner le Training 1 avec un Training 2 à deux pièces
 //           voisines, puis recommencer le cycle ; double-tap vers Game conservé.
 // Historique: 2026-09-22 05:14 — training terminé : double-tap plein cadre vers le mode Game,
@@ -515,7 +517,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 child: GestureDetector(
                   key: const ValueKey('game-continue'),
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => _startNextGame(state, notifier),
+                  onDoubleTap: () => _handleGameBoardDoubleTap(state, notifier),
                 ),
               ),
 
@@ -619,17 +621,24 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
   }
 
-  Future<void> _startNextGame(
+  Future<void> _handleGameBoardDoubleTap(
     PentoscopeState state,
     PentoscopeNotifier notifier,
   ) async {
     final puzzle = state.puzzle;
     if (puzzle == null) return;
     HapticFeedback.selectionClick();
-    final size = state.isProgression
-        ? sizeForLevel(ref.read(settingsProvider).currentLevel)
-        : puzzle.size;
-    await notifier.startPuzzle(size, isProgression: state.isProgression);
+    if (state.placedPieces.isNotEmpty || state.isComplete) {
+      await notifier.startPuzzle(
+        puzzle.size,
+        isProgression: state.isProgression,
+      );
+      return;
+    }
+
+    final sizes = PentoscopeSize.values;
+    final nextSize = sizes[(sizes.indexOf(puzzle.size) + 1) % sizes.length];
+    await notifier.startPuzzle(nextSize);
   }
 
   // ============================================================================
@@ -1340,13 +1349,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     if (widget.mode == PentoscopeMode.game && state.isComplete) {
       return [
         homeButton,
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline),
-          iconSize: iconSize,
-          color: Colors.blue,
-          onPressed: () => _showNewGameDialog(context, ref),
-          tooltip: l10n.newGame,
-        ),
         Expanded(child: _buildGameCompletionBar(state, notifier)),
       ];
     }
@@ -1359,13 +1361,14 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
     final items = <Widget>[
       homeButton,
-      IconButton(
-        icon: const Icon(Icons.add_circle_outline),
-        iconSize: iconSize,
-        color: Colors.blue,
-        onPressed: () => _showNewGameDialog(context, ref),
-        tooltip: l10n.newGame,
-      ),
+      if (widget.mode != PentoscopeMode.game)
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          iconSize: iconSize,
+          color: Colors.blue,
+          onPressed: () => _showNewGameDialog(context, ref),
+          tooltip: l10n.newGame,
+        ),
       // Icône « person » (reset « recommencer ») retirée le 2026-09-07 (choix de Paul) : la remise à
       // zéro reste accessible par « Nouvelle partie » (add_circle) et par la carte de bilan.
       if (!state.isComplete && state.availablePieces.isNotEmpty)
@@ -1612,7 +1615,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         return Column(
           children: [
             // Plateau de jeu
-            const Expanded(flex: 3, child: PentoscopeBoard(isLandscape: false)),
+            Expanded(
+              flex: 3,
+              child: PentoscopeBoard(
+                isLandscape: false,
+                onDoubleTap: widget.mode == PentoscopeMode.game
+                    ? () => _handleGameBoardDoubleTap(state, notifier)
+                    : null,
+              ),
+            ),
 
             // Rangée d'isométrie réservée (permanente, grisée au repos) — juste au-dessus du rack.
             _buildReservedIsometryRow(state, notifier),
@@ -1684,7 +1695,14 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                   ),
 
                   // Plateau de jeu — au milieu
-                  const Expanded(child: PentoscopeBoard(isLandscape: true)),
+                  Expanded(
+                    child: PentoscopeBoard(
+                      isLandscape: true,
+                      onDoubleTap: widget.mode == PentoscopeMode.game
+                          ? () => _handleGameBoardDoubleTap(state, notifier)
+                          : null,
+                    ),
+                  ),
 
                   // Slider de pièces vertical — à droite
                   _buildSliderWithDragTarget(

@@ -1,5 +1,3 @@
-// Modified: 2026-09-22 07:07 — générer le message anglais de relance du Game au tap.
-// lib/l10n/app_localizations_en.dart
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -666,7 +664,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap for Training 2. Double tap to play.';
 
   @override
-  String get gameTapNewGame => 'Tap for a new game.';
+  String get gameTapNewGame => 'Double tap for a new game.';
 
   @override
   String get geometryTitle => 'Score tuning';
