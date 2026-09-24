@@ -45,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get homeChallenge => 'Challenge';
+  String get homeChallenge => 'Daily Challenges';
 
   @override
   String get homeRecords => 'My records';
@@ -222,7 +222,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get leaderboardEmpty => 'No score this week\n(or server unreachable).';
+  String get leaderboardEmpty => 'No score today\n(or server unreachable).';
 
   @override
   String get solutionsTitle => 'Solutions';
@@ -234,11 +234,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get next => 'Next';
 
   @override
-  String get challengeTitle => 'Weekly challenge';
+  String get challengeTitle => 'Daily challenge';
 
   @override
   String get challengeIntro =>
-      'Pick a size. The setup is the same for everyone this week, and hints are disabled (ranked mode).';
+      'Everyone gets the same setup today. Complete a board to unlock the next one; hints are disabled.';
 
   @override
   String piecesCount(int count) {
@@ -255,6 +255,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rankingTooltip => 'Ranking';
 
   @override
+  String get periodDay => 'Day';
+
+  @override
+  String get periodWeek => 'Week';
+
+  @override
+  String get periodMonth => 'Month';
+
+  @override
   String get congrats => 'Well done! 🎉';
 
   @override
@@ -262,6 +271,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourName => 'Your name';
+
+  @override
+  String get playerNameRules =>
+      '3 to 20 characters · letters, numbers, spaces, apostrophes and hyphens';
+
+  @override
+  String get playerNameInvalid =>
+      'Choose a name with 3 to 20 characters and at least one letter.';
 
   @override
   String get validate => 'Confirm';

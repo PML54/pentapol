@@ -1,42 +1,31 @@
--- Schéma D1 du service de classement du défi de la semaine (Pentapol, CDC §7).
--- Appliquer : wrangler d1 execute pentapol-defi --file=schema.sql   (voir README.md).
---
--- Deux tables :
---   challenges — la DÉFINITION d'un défi (composable à la main, autorité serveur, §7 Acté 1).
---   scores     — un essai par (joueur, défi), trois maillots (§7 Acté 4-5, refonte « A »).
+-- Schema D1 du defi quotidien. En developpement, supprimer les anciennes tables avant application.
+DROP TABLE IF EXISTS scores;
+DROP TABLE IF EXISTS challenges;
 
--- Définition d'un défi : (taille, masque, rack). Clé (version, semaine, taille).
--- Alimentée par l'admin (composition à la main) ou par un job qui téléverse la dérivation Dart.
-CREATE TABLE IF NOT EXISTS challenges (
-  version INTEGER NOT NULL,
-  week    INTEGER NOT NULL,
-  size    INTEGER NOT NULL,        -- index de PentoscopeSize
-  mask    INTEGER NOT NULL,        -- masque 12 bits des pièces
-  rack    TEXT    NOT NULL,        -- JSON {"pieceId": orientation, ...}
-  PRIMARY KEY (version, week, size)
+CREATE TABLE challenges (
+  version        INTEGER NOT NULL,
+  day            TEXT    NOT NULL,
+  size           INTEGER NOT NULL,
+  mask           INTEGER NOT NULL,
+  rack           TEXT    NOT NULL,
+  solution_count INTEGER NOT NULL,
+  PRIMARY KEY (version, day, size)
 );
 
--- Un score par joueur et par défi (§7.1 : premier essai, insertion unique — la clé primaire
--- refuse un second essai). Trois maillots (refonte « A ») : acuité (minIso+isoCount bruts,
--- plafonnée à 100 % côté client/serveur, §7.6), FAUTES (culs-de-sac jaune→rouge, absorbe l'ancien
--- Help), temps. La grille est conservée pour l'AUDIT hors ligne (modèle confiance : le serveur
--- ne recalcule pas minIso ; cf. README « Vérification »).
-CREATE TABLE IF NOT EXISTS scores (
+CREATE TABLE scores (
   version    INTEGER NOT NULL,
-  week       INTEGER NOT NULL,
+  day        TEXT    NOT NULL,
   size       INTEGER NOT NULL,
-  player_id  TEXT    NOT NULL,     -- identité 128 bits (§7.4), clé primaire du joueur
-  pseudo     TEXT    NOT NULL,     -- étiquette d'affichage (non unique)
-  min_iso    INTEGER NOT NULL,     -- 🟡 acuité = (min_iso+1)/(iso_count+1), plafonnée à 1.0
-  iso_count  INTEGER NOT NULL,     -- 🟡
-  faults     INTEGER NOT NULL,     -- 🔴 fautes (culs-de-sac jaune→rouge)
-  time_ms    INTEGER NOT NULL,     -- 🟢 temps
-  grid       TEXT    NOT NULL,     -- grille terminée (audit) : ids de pièces par case
-  created_at INTEGER NOT NULL,     -- epoch ms de la soumission
-  PRIMARY KEY (version, week, size, player_id)
+  player_id  TEXT    NOT NULL,
+  pseudo     TEXT    NOT NULL,
+  min_iso    INTEGER NOT NULL,
+  iso_count  INTEGER NOT NULL,
+  moves      INTEGER NOT NULL,
+  faults     INTEGER NOT NULL,
+  time_ms    INTEGER NOT NULL,
+  grid       TEXT    NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (version, day, size, player_id)
 );
 
--- Un index de localité de partition suffit à cette échelle (une app payante à petite population) :
--- chaque classement lit la partition (version, week, size) puis trie en requête sur le maillot
--- demandé. Ajouter des index par maillot si une partition devient volumineuse.
-CREATE INDEX IF NOT EXISTS scores_partition ON scores (version, week, size);
+CREATE INDEX scores_partition ON scores (version, day, size);

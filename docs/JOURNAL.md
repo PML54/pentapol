@@ -13,7 +13,21 @@
 
 ---
 
-## §ÉTAT — au 2026-09-23
+## §ÉTAT — au 2026-09-24
+
+### Defi quotidien progressif (2026-09-24)
+
+Le defi hebdomadaire est remplace par une serie quotidienne commune a tous les joueurs. Les neuf
+tailles sont proposees du 3x5 au 6x10 et se deverrouillent dans cet ordre apres chaque victoire.
+La definition est derivee de la date UTC, de la version et de la taille ; l'ecran annonce aussi le
+nombre exact de solutions. La progression du jour est conservee dans `AppSettings` et remise a zero
+au changement de date. La lampe reste neutralisee par le mode classe.
+
+Le score en ligne porte maintenant `day` et `moves` ; les classements visibles sont temps, acuite et
+coups. Le schema D1 est volontairement neuf (`version, day, size, player_id`) puisque les donnees de
+developpement precedentes ont ete purgees. Les vues semaine et mois additionnent les points relatifs
+des tailles terminees et retiennent respectivement les 5 et 20 meilleurs jours. Le cadrage complet
+est fixe dans `defi.md`.
 
 ### Prototype d'image pour les pièces (2026-09-23)
 
@@ -53,7 +67,7 @@ géométriques historiques.
 La rotation paysage conserve désormais la continuité de l'illustration : les fragments pivotent de
 90° vers la gauche, dans le même sens que la grille, au lieu de pivoter en sens inverse.
 
-La version interne affichée dans Paramètres est **1.0.8 (build 202609231048)**. Elle est portée par
+La version interne affichée dans Paramètres est **1.0.9 (build 202609240656)**. Elle est portée par
 `lib/config/build_info.dart` ; la version de packaging de `pubspec.yaml` reste volontairement
 inchangée jusqu'à la préparation d'une soumission aux stores.
 
@@ -83,6 +97,18 @@ Les glyphes d'isométrie de la démo mesurent 42 px pour rester immédiatement l
 La boucle dure environ 16,5 secondes. Chaque pose montre désormais quatre temps distincts : sélection
 encadrée de la pièce dans le tiroir, mise en évidence de l'icône choisie, transformation, puis
 déplacement vers le plateau.
+
+La chorégraphie d'accueil est désormais encore plus explicite et dure environ 21 secondes. Chaque
+pièce suit cinq temps visuellement séparés : sélection, choix de l'icône, transformation, apparition
+de la cible grise, puis glissé. Une boucle emploie successivement les quatre isométries (deux
+rotations et deux symétries réelles). Après chaque départ, les pièces restantes se resserrent au
+centre du tiroir ; la pièce active reste pleinement colorée et les autres sont temporairement
+atténuées. Les huit solutions demeurent distinctes et leur ordre de pose est varié à la préparation.
+
+La hiérarchie des destinations place maintenant **Jeu Solo** et **Défis du jour** côte à côte sur
+la première ligne, avec le même traitement de bouton principal. **Jeu Duo** rejoint Training et
+Réglages sur la seconde ligne compacte. Les libellés principaux se réduisent uniquement si la
+largeur disponible l'exige, afin de rester lisibles sur les petits téléphones et en anglais.
 
 ### L'application
 

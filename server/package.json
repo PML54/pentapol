@@ -2,7 +2,7 @@
   "name": "pentapol-defi",
   "private": true,
   "version": "0.1.0",
-  "description": "Worker Cloudflare — classement du défi de la semaine de Pentapol (CDC §7).",
+  "description": "Worker Cloudflare — classement du défi quotidien de Pentapol.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

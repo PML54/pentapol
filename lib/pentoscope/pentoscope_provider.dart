@@ -463,8 +463,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     // 💾 Un indice peut compléter le puzzle : même traitement que pour un placement.
     if (isComplete) {
       _saveCompletionRecord();
-      if (state.isRanked)
+      if (state.isRanked) {
+        _recordDailyChallengeCompletion();
         _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
+      }
       if (!_isMultiplayer && !state.isRanked)
         _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {
@@ -1232,16 +1234,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  /// 🎽 Démarre le défi `(semaine, size)` : dérive le masque + rack (via les masques solubles triés
-  /// du générateur) puis [startChallenge]. `week` par défaut = la semaine courante.
-  Future<void> startWeeklyChallenge(PentoscopeSize size, {int? week}) async {
-    final w = week ?? weeksSinceEpoch(DateTime.now());
-    // Composition à la main : le serveur fait autorité (§7 Acté 1). On tente sa définition ; à
-    // défaut (404 non composé, ou hors ligne) on dérive localement — le défaut algorithmique,
-    // identique au serveur tant qu'une semaine n'est pas composée à la main.
+  /// Demarre le defi quotidien de cette taille. Le serveur peut imposer une definition ; hors
+  /// ligne, la meme definition est derivee localement depuis la date UTC.
+  Future<void> startDailyChallenge(
+    PentoscopeSize size, {
+    DateTime? date,
+  }) async {
+    final selectedDate = (date ?? DateTime.now()).toUtc();
+    final day = challengeDay(selectedDate);
     final fetched = await _challengeApi.fetchChallenge(
       version: kChallengeVersion,
-      week: w,
+      day: day,
       size: size,
     );
     if (fetched != null) {
@@ -1250,7 +1253,26 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
     final masks = await _generator.solubleMasksFor(size);
     await startChallenge(
-      deriveChallenge(week: w, size: size, solubleMasks: masks),
+      deriveChallenge(
+        date: selectedDate,
+        size: size,
+        solubleMasks: masks,
+        solutionCountForMask: _generator.countOfMask,
+      ),
+    );
+  }
+
+  Future<ChallengeDefinition> dailyChallengeDefinition(
+    PentoscopeSize size, {
+    DateTime? date,
+  }) async {
+    final selectedDate = (date ?? DateTime.now()).toUtc();
+    final masks = await _generator.solubleMasksFor(size);
+    return deriveChallenge(
+      date: selectedDate,
+      size: size,
+      solubleMasks: masks,
+      solutionCountForMask: _generator.countOfMask,
     );
   }
 
@@ -1336,8 +1358,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// **Conformité V1** : ne fait **rien** sans `shareScoresOptIn` (envoi désactivé par défaut, §8) —
   /// c'est aussi ce qui garantit qu'aucun `playerId` n'est généré tant que le joueur n'a pas consenti.
   Future<void> _submitChallengeScore() async {
-    if (!ref.read(settingsProvider).shareScoresOptIn)
+    if (!ref.read(settingsProvider).shareScoresOptIn) {
       return; // consentement requis (§8)
+    }
     final ch = _activeChallenge;
     final metrics = computeCompletionMetrics();
     if (ch == null || metrics == null) return;
@@ -1348,7 +1371,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       final pseudo = ref.read(settingsProvider).userName ?? 'Joueur';
       await _challengeApi.submitScore(
         version: kChallengeVersion,
-        week: ch.week,
+        day: ch.day,
         size: ch.size.index,
         playerId: playerId,
         pseudo: pseudo,
@@ -1356,11 +1379,20 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         isoCount: metrics.isometryCount,
         faults: metrics.faults,
         timeMs: metrics.timeSeconds * 1000,
+        moves: ch.size.numPieces + state.translationCount + state.deleteCount,
         grid: _gridString(),
       );
     } catch (e) {
       debugPrint('❌ Soumission du score de défi échouée: $e');
     }
+  }
+
+  void _recordDailyChallengeCompletion() {
+    final challenge = _activeChallenge;
+    if (challenge == null) return;
+    ref
+        .read(settingsProvider.notifier)
+        .completeDailyChallengeSize(challenge.day, challenge.size.index);
   }
 
   /// Grille terminée sérialisée (id de pièce par case, ligne par ligne) — conservée côté serveur
@@ -1722,8 +1754,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     //    persister l'avancement (no-op en multijoueur, où _isMultiplayer est vrai).
     if (isComplete) {
       _saveCompletionRecord();
-      if (state.isRanked)
+      if (state.isRanked) {
+        _recordDailyChallengeCompletion();
         _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
+      }
       if (!_isMultiplayer && !state.isRanked)
         _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
     } else {

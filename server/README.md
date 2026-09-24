@@ -1,6 +1,6 @@
-# Serveur du défi de la semaine — Pentapol (Phase 4)
+# Serveur du défi quotidien — Pentapol
 
-Worker Cloudflare + base D1 pour le **classement du défi de la semaine** (CDC §7). Asynchrone :
+Worker Cloudflare + base D1 pour le **classement du défi quotidien**. Asynchrone :
 **POST d'un score**, **GET d'un tableau**. Rien à voir avec le worker duel (WebSocket + Durable
 Objects) ; ici aucun Durable Object.
 
@@ -46,8 +46,9 @@ Base URL = l'URL du worker déployé.
 
 - **`POST /score`** — enregistre l'essai (unique par joueur/défi, §7.1). Corps JSON :
   ```json
-  { "version": 1, "week": 35, "size": 1, "playerId": "<32 hex>", "pseudo": "Paul",
-    "minIso": 4, "isoCount": 5, "faults": 2, "timeMs": 92000, "grid": "<ids par case>" }
+  { "version": 2, "day": "2026-09-24", "size": 1, "playerId": "<32 hex>", "pseudo": "Paul",
+    "minIso": 4, "isoCount": 5, "moves": 7, "faults": 2, "timeMs": 92000,
+    "grid": "<ids par case>" }
   ```
   `201` si enregistré ; `409` si un essai existe déjà (premier essai seulement) ; `400` si invalide.
 
@@ -57,14 +58,16 @@ Base URL = l'URL du worker déployé.
   (même modèle de confiance que `POST /score`). Appelé par le bouton « Supprimer mes données de
   classement » des Réglages.
 
-- **`GET /leaderboard?version=&week=&size=&maillot=&limit=`** — tableau trié.
-  `maillot` ∈ `jaune` (acuité ↓, plafonnée à 100 %), `pois` (fautes ↑), `vert` (temps ↑).
-  Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, min_iso, iso_count, faults, time_ms }, ... ] }`.
+- **`GET /leaderboard?version=&day=&size=&maillot=&limit=`** — tableau trié.
+  `maillot` vaut `temps`, `acuite` ou `coups`.
+  Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, min_iso, iso_count, moves, faults, time_ms }, ... ] }`.
+  Ajouter `period=week` ou `period=month` retourne les points agrégés sur les 5 ou 20 meilleurs
+  jours ; `period=day` est la valeur par défaut.
 
-- **`GET /challenge?version=&week=&size=`** — définition composée à la main : `{ mask, rack }`, ou
+- **`GET /challenge?version=&day=&size=`** — définition composée : `{ mask, rack, solutionCount }`, ou
   `404` si non définie (le client retombe alors sur sa dérivation locale).
 
-- **`POST /challenge`** — sème/compose une définition (`{version, week, size, mask, rack}`).
+- **`POST /challenge`** — sème une définition (`{version, day, size, mask, rack, solutionCount}`).
   `INSERT OR IGNORE` (idempotent, premier semeur gagne). **Exige `Authorization: Bearer <SEED_TOKEN>`**
   si le secret est défini.
 
@@ -90,14 +93,13 @@ Choix retenu ici : **`POST /challenge` est gardé par `SEED_TOKEN`.** Conséquen
 - **Phase 5 (UI)** : `LeaderboardScreen` — quatre classements (onglets), joueur courant surligné,
   dégradation gracieuse (§7.8).
 
-## Semer les défis d'une semaine
+## Semer les défis d'une journée
 
-Pour remplir les semaines **non composées à la main** (le serveur a alors le rack pour l'audit, et
-tout est cohérent avec ce que le client dérive), un semeur Dart dérive les six défis et les POST :
+Le semeur Dart dérive les neuf tailles du jour et les envoie au Worker :
 
 ```bash
 # depuis la racine du dépôt (pas server/)
-dart run tools/seed_challenges.dart --dry-run --week=35      # aperçu, ne POST pas
+dart run tools/seed_challenges.dart --dry-run --day=2026-09-24
 
 # sème la semaine courante — le token vient de --token OU de l'environnement :
 export SEED_TOKEN=…                                          # (recommandé : hors ligne de commande)
@@ -111,5 +113,5 @@ dart run tools/seed_challenges.dart --token=<SEED_TOKEN>
 Le token est lu depuis `--token` en priorité, sinon depuis la **variable d'environnement
 `SEED_TOKEN`** — préférer l'environnement pour ne pas l'exposer sur la ligne de commande. Le semeur
 **auto-contrôle** sa dérivation contre le digest gelé du test (refuse de tourner s'il a divergé
-de `lib/challenge.dart`). Pour **composer à la main** une semaine, POST ta propre définition
-`{version, week, size, mask, rack}` avec le même en-tête `Authorization: Bearer <SEED_TOKEN>`.
+de `lib/challenge.dart`). Pour **composer à la main** une journée, POST ta propre définition avec
+le même en-tête `Authorization: Bearer <SEED_TOKEN>`.

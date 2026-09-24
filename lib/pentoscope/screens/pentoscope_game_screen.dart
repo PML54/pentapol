@@ -165,6 +165,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
+import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/providers/settings_provider.dart';
@@ -352,6 +353,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// Dialogue de saisie du nom au 1ᵉʳ puzzle réussi.
   Future<void> _promptUserName(BuildContext context) async {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final name = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -364,21 +366,37 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             children: [
               Text(l10n.firstPuzzlePrompt),
               const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: l10n.yourName,
-                  border: const OutlineInputBorder(),
+              Form(
+                key: formKey,
+                child: TextFormField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLength: 20,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: l10n.yourName,
+                    helperText: l10n.playerNameRules,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) => validatePlayerName(value ?? '') == null
+                      ? null
+                      : l10n.playerNameInvalid,
+                  onFieldSubmitted: (_) {
+                    if (formKey.currentState!.validate()) {
+                      Navigator.pop(ctx, normalizePlayerName(controller.text));
+                    }
+                  },
                 ),
-                onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(ctx, normalizePlayerName(controller.text));
+                }
+              },
               child: Text(l10n.validate),
             ),
           ],
@@ -1172,7 +1190,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                     ref,
                     submitAfterOptIn: true,
                     builder: () => LeaderboardScreen(
-                      week: challenge.week,
+                      day: challenge.day,
                       size: challenge.size,
                     ),
                   ),

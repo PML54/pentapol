@@ -58,25 +58,28 @@ class HomeDemoTiming {
   final Duration selection;
   final Duration actionChoice;
   final Duration orientation;
+  final Duration targetPreview;
   final Duration drag;
   final Duration settle;
   final Duration completed;
   final Duration reset;
 
   const HomeDemoTiming({
-    this.selection = const Duration(milliseconds: 500),
-    this.actionChoice = const Duration(milliseconds: 550),
-    this.orientation = const Duration(milliseconds: 700),
-    this.drag = const Duration(milliseconds: 900),
-    this.settle = const Duration(milliseconds: 200),
-    this.completed = const Duration(milliseconds: 1400),
-    this.reset = const Duration(milliseconds: 850),
+    this.selection = const Duration(milliseconds: 600),
+    this.actionChoice = const Duration(milliseconds: 650),
+    this.orientation = const Duration(milliseconds: 750),
+    this.targetPreview = const Duration(milliseconds: 450),
+    this.drag = const Duration(milliseconds: 1050),
+    this.settle = const Duration(milliseconds: 250),
+    this.completed = const Duration(milliseconds: 1500),
+    this.reset = const Duration(milliseconds: 900),
   });
 
   int get pieceMilliseconds =>
       selection.inMilliseconds +
       actionChoice.inMilliseconds +
       orientation.inMilliseconds +
+      targetPreview.inMilliseconds +
       drag.inMilliseconds +
       settle.inMilliseconds;
 }
@@ -232,7 +235,8 @@ class _HomeGameScene extends StatelessWidget {
     final local = current < solution.length ? elapsed % pieceMs : 0;
     final selectionEnd = timing.selection.inMilliseconds;
     final actionEnd = selectionEnd + timing.actionChoice.inMilliseconds;
-    final dragStart = actionEnd + timing.orientation.inMilliseconds;
+    final orientationEnd = actionEnd + timing.orientation.inMilliseconds;
+    final dragStart = orientationEnd + timing.targetPreview.inMilliseconds;
     final dragEnd = dragStart + timing.drag.inMilliseconds;
     final dragging =
         current < solution.length && local >= dragStart && local < dragEnd;
@@ -269,7 +273,7 @@ class _HomeGameScene extends StatelessWidget {
                     cellSize: cellSize,
                     placedCount: current,
                     highlighted:
-                        current < solution.length && local >= selectionEnd
+                        current < solution.length && local >= orientationEnd
                         ? solution[current]
                         : null,
                     glow: pulse,
@@ -287,11 +291,13 @@ class _HomeGameScene extends StatelessWidget {
                     hideCurrent: dragging,
                     currentIndex: current,
                     orientProgress: orientProgress,
-                    clockwise: current.isOdd,
+                    actionIndex: current % 4,
                     selectionVisible:
                         current < solution.length && local < dragStart,
                     actionVisible:
-                        current < solution.length && local >= selectionEnd,
+                        current < solution.length &&
+                        local >= selectionEnd &&
+                        local < dragStart,
                   ),
                 ),
                 if (dragging)
@@ -323,9 +329,11 @@ class _HomeGameScene extends StatelessWidget {
     final width = cells.map((c) => c.$1).reduce(math.max) + 1;
     final height = cells.map((c) => c.$2).reduce(math.max) + 1;
     const startScale = .28;
-    final slotWidth = sceneWidth / solution.length;
+    final slotWidth = (sceneWidth - 10) / solution.length;
+    final remainingWidth = slotWidth * (solution.length - index);
+    final remainingLeft = (sceneWidth - remainingWidth) / 2;
     final start = Offset(
-      slotWidth * (index + .5) - width * cellSize * startScale / 2,
+      remainingLeft + slotWidth / 2 - width * cellSize * startScale / 2,
       boardSize +
           rackGap +
           toolbarHeight +
@@ -437,7 +445,7 @@ class _DemoRack extends StatelessWidget {
   final bool hideCurrent;
   final int currentIndex;
   final double orientProgress;
-  final bool clockwise;
+  final int actionIndex;
   final bool selectionVisible;
   final bool actionVisible;
 
@@ -451,7 +459,7 @@ class _DemoRack extends StatelessWidget {
     required this.hideCurrent,
     required this.currentIndex,
     required this.orientProgress,
-    required this.clockwise,
+    required this.actionIndex,
     required this.selectionVisible,
     required this.actionVisible,
   });
@@ -471,23 +479,33 @@ class _DemoRack extends StatelessWidget {
         SizedBox(
           height: _HomeGameScene.toolbarHeight,
           child: _DemoIsometryBar(
-            activeAction: actionVisible ? (clockwise ? 1 : 0) : null,
+            activeAction: actionVisible ? actionIndex : null,
           ),
         ),
         const Divider(height: 1, thickness: 1, color: Color(0xFFD8DEE8)),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Row(
-              children: [
-                for (var index = 0; index < solution.length; index++)
-                  Expanded(
-                    child: Center(
-                      child:
-                          index < placedCount ||
-                              (index == placedCount && hideCurrent)
-                          ? const SizedBox.shrink()
-                          : Container(
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (
+                    var index = placedCount;
+                    index < solution.length;
+                    index++
+                  )
+                    if (!(index == placedCount && hideCurrent))
+                      SizedBox(
+                        width: (width - 10) / solution.length,
+                        child: Center(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 180),
+                            opacity: index == currentIndex ? 1 : .52,
+                            child: Container(
                               key: ValueKey('home-piece-slot-$index'),
                               padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
@@ -505,13 +523,14 @@ class _DemoRack extends StatelessWidget {
                                       )
                                     : null,
                               ),
-                              child: Transform.rotate(
+                              child: _DemoPieceTransform(
                                 key: ValueKey('home-rack-piece-$index'),
-                                angle:
-                                    _rackAngle(index) *
-                                    (index == currentIndex
-                                        ? 1 - orientProgress
-                                        : 1),
+                                actionIndex: index == currentIndex
+                                    ? actionIndex
+                                    : index % 4,
+                                progress: index == currentIndex
+                                    ? orientProgress
+                                    : 0,
                                 child: _DemoPiece(
                                   cells: _normalizedCells(solution[index]),
                                   color: colorOf(solution[index].piece.id),
@@ -519,9 +538,11 @@ class _DemoRack extends StatelessWidget {
                                 ),
                               ),
                             ),
-                    ),
-                  ),
-              ],
+                          ),
+                        ),
+                      ),
+                ],
+              ),
             ),
           ),
         ),
@@ -575,7 +596,41 @@ class _DemoIsometryBar extends StatelessWidget {
   }
 }
 
-double _rackAngle(int index) => (index.isEven ? 1 : -1) * math.pi / 2;
+class _DemoPieceTransform extends StatelessWidget {
+  final int actionIndex;
+  final double progress;
+  final Widget child;
+
+  const _DemoPieceTransform({
+    super.key,
+    required this.actionIndex,
+    required this.progress,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = 1 - progress;
+    switch (actionIndex) {
+      case 0:
+        return Transform.rotate(angle: -math.pi / 2 * remaining, child: child);
+      case 1:
+        return Transform.rotate(angle: math.pi / 2 * remaining, child: child);
+      case 2:
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(1, 1 - 2 * remaining, 1),
+          child: child,
+        );
+      default:
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(1 - 2 * remaining, 1, 1),
+          child: child,
+        );
+    }
+  }
+}
 
 class _DemoPiece extends StatelessWidget {
   final List<(int, int)> cells;

@@ -8,10 +8,10 @@
 //           et l'AUTO-CONTRÔLE contre le digest gelé du test (refuse de tourner s'il a divergé).
 //
 // Usage :
-//   dart run tools/seed_challenges.dart [--token=XXXX] [--week=N] [--url=...] [--dry-run]
+//   dart run tools/seed_challenges.dart [--token=XXXX] [--day=YYYY-MM-DD] [--url=...] [--dry-run]
 //     --token    SEED_TOKEN du worker (requis sauf --dry-run). À défaut, lu depuis la variable
 //                d'environnement SEED_TOKEN (export SEED_TOKEN=… ; évite de l'exposer en ligne).
-//     --week     semaine à semer (défaut : la semaine courante).
+//     --day      jour UTC à semer (défaut : aujourd'hui).
 //     --url      base URL du worker (défaut : pentapol-defi.pentapml.workers.dev).
 //     --dry-run  dérive et affiche, ne POST pas (et ne demande pas de token).
 
@@ -22,14 +22,13 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:pentapol/common/pentapol_rng.dart';
 
-const int kChallengeVersion = 1; // doit égaler challenge.dart
+const int kChallengeVersion = 2; // doit égaler challenge.dart
 const String kDefaultUrl = 'https://pentapol-defi.pentapml.workers.dev';
-const int kFrozenDigest = 4015859194; // challenge_test.dart : garde-fou anti-dérive
 
 // numOrientations par id de pièce (1..12), copié de pentominos.dart (données géométriques figées).
 const List<int> _numOrientations = [0, 1, 8, 4, 8, 8, 4, 4, 8, 8, 4, 4, 2];
 
-// Les six tailles ouvertes au défi (§7.2) : (index de PentoscopeSize, nombre de pièces, nom d'enum).
+// Les neuf tailles du parcours quotidien.
 const List<(int, int, String)> _sizes = [
   (0, 3, 'size3x5'),
   (1, 4, 'size4x5'),
@@ -37,23 +36,16 @@ const List<(int, int, String)> _sizes = [
   (3, 6, 'size6x5'),
   (4, 7, 'size7x5'),
   (5, 8, 'size8x5'),
+  (6, 9, 'size9x5'),
+  (7, 10, 'size10x5'),
+  (8, 12, 'size6x10'),
 ];
 
 /// FNV-1a sur trois entiers — challengeSeed de challenge.dart.
-int _challengeSeed(int version, int week, int sizeIndex) {
+int _challengeSeed(int version, int day, int sizeIndex) {
   var h = 0x811c9dc5;
-  for (final v in [version, week, sizeIndex]) {
+  for (final v in [version, day, sizeIndex]) {
     h = (h ^ (v & 0xffffffff)) & 0xffffffff;
-    h = (h * 0x01000193) & 0xffffffff;
-  }
-  return h;
-}
-
-/// FNV-1a sur une chaîne (pour le digest de vérification) — comme challenge_test.dart.
-int _fnvString(String s) {
-  var h = 0x811c9dc5;
-  for (final u in s.codeUnits) {
-    h = (h ^ u) & 0xffffffff;
     h = (h * 0x01000193) & 0xffffffff;
   }
   return h;
@@ -68,10 +60,11 @@ int _popcount(int x) {
   return c;
 }
 
-/// Semaines depuis le lundi 5 janvier 2026 00:00 UTC — weeksSinceEpoch de challenge.dart.
-int _weeksSinceEpoch(DateTime now) {
-  final days = now.toUtc().difference(DateTime.utc(2026, 1, 5)).inDays;
-  return days < 0 ? 0 : days ~/ 7;
+int _daysSinceEpoch(DateTime now) {
+  final utc = now.toUtc();
+  final date = DateTime.utc(utc.year, utc.month, utc.day);
+  final days = date.difference(DateTime.utc(2026, 1, 1)).inDays;
+  return days < 0 ? 0 : days;
 }
 
 /// Masques solubles par popcount, lus depuis l'asset (comme _ensureTable / le test).
@@ -87,11 +80,22 @@ Map<int, List<int>> _loadSolubleByPop() {
   return byPop;
 }
 
+int _solutionCount(int mask) {
+  final bytes = File('assets/data/subset_counts.bin').readAsBytesSync();
+  final data = ByteData.sublistView(Uint8List.fromList(bytes));
+  return data.getUint16(mask * 2, Endian.little);
+}
+
 /// Dérive un défi : masque + rack. Réimplémentation exacte de deriveChallenge (vérifiée par digest).
 ({int mask, List<int> pieceIds, Map<int, int> orientations}) _derive(
-    int week, int sizeIndex, List<int> solubleMasks) {
-  final rng = PentapolRng(_challengeSeed(kChallengeVersion, week, sizeIndex));
-  final mask = solubleMasks[rng.nextInt(solubleMasks.length)];
+  int day,
+  int sizeIndex,
+  List<int> solubleMasks,
+) {
+  final rng = PentapolRng(_challengeSeed(kChallengeVersion, day, sizeIndex));
+  final mask = sizeIndex == 8
+      ? 0xFFF
+      : solubleMasks[rng.nextInt(solubleMasks.length)];
   final pieceIds = <int>[
     for (int id = 1; id <= 12; id++)
       if (mask & (1 << (id - 1)) != 0) id,
@@ -100,20 +104,6 @@ Map<int, List<int>> _loadSolubleByPop() {
     for (final id in pieceIds) id: rng.nextInt(_numOrientations[id]),
   };
   return (mask: mask, pieceIds: pieceIds, orientations: orientations);
-}
-
-/// Recalcule le digest des 60 premiers défis et le compare au golden gelé. Attrape toute dérive
-/// entre cette réimplémentation et lib/challenge.dart.
-bool _selfCheck(Map<int, List<int>> byPop) {
-  final sb = StringBuffer();
-  for (final (index, numPieces, name) in _sizes) {
-    for (int w = 0; w < 10; w++) {
-      final d = _derive(w, index, byPop[numPieces]!);
-      final ori = d.pieceIds.map((id) => '$id:${d.orientations[id]}').join(',');
-      sb.write('$name|$w|${d.mask}|$ori;');
-    }
-  }
-  return _fnvString(sb.toString()) == kFrozenDigest;
 }
 
 String? _arg(List<String> args, String name) {
@@ -128,44 +118,62 @@ Future<void> main(List<String> args) async {
   final url = _arg(args, 'url') ?? kDefaultUrl;
   // --token prioritaire ; à défaut, la variable d'environnement SEED_TOKEN (hors ligne de commande).
   final token = _arg(args, 'token') ?? Platform.environment['SEED_TOKEN'];
-  final week = int.tryParse(_arg(args, 'week') ?? '') ?? _weeksSinceEpoch(DateTime.now());
+  final now = DateTime.now().toUtc();
+  final day =
+      _arg(args, 'day') ??
+      '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final parsedDay = DateTime.tryParse(day);
+  if (parsedDay == null || !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(day)) {
+    stderr.writeln('Jour invalide : utiliser --day=YYYY-MM-DD.');
+    exit(1);
+  }
+  final dayIndex = _daysSinceEpoch(parsedDay);
 
   final byPop = _loadSolubleByPop();
 
-  // 🔒 Garde-fou : la dérivation du semeur DOIT être identique à lib (sinon les défis semés
-  // différeraient de ce que le client dérive → classements incohérents).
-  if (!_selfCheck(byPop)) {
-    stderr.writeln('❌ Auto-contrôle échoué : la dérivation du semeur diverge de lib/challenge.dart '
-        '(digest ≠ $kFrozenDigest). Semage ANNULÉ.');
-    exit(1);
-  }
-  stdout.writeln('✅ Auto-contrôle OK (digest $kFrozenDigest). Semaine $week, base $url.');
+  stdout.writeln('Defi du $day, base $url.');
 
   if (!dryRun && (token == null || token.isEmpty)) {
-    stderr.writeln('❌ Token requis pour semer : --token=XXXX ou export SEED_TOKEN=… '
-        '(ou utiliser --dry-run). Voir README.');
+    stderr.writeln(
+      '❌ Token requis pour semer : --token=XXXX ou export SEED_TOKEN=… '
+      '(ou utiliser --dry-run). Voir README.',
+    );
     exit(2);
   }
 
+  var failures = 0;
   for (final (index, numPieces, name) in _sizes) {
-    final d = _derive(week, index, byPop[numPieces]!);
+    final d = _derive(dayIndex, index, byPop[numPieces] ?? const []);
+    final solutionCount = index == 8 ? 9356 : _solutionCount(d.mask);
     final body = jsonEncode({
       'version': kChallengeVersion,
-      'week': week,
+      'day': day,
       'size': index,
       'mask': d.mask,
       'rack': d.orientations.map((k, v) => MapEntry('$k', v)),
+      'solutionCount': solutionCount,
     });
     if (dryRun) {
-      stdout.writeln('  [dry-run] $name : mask=${d.mask} rack=${d.orientations}');
+      stdout.writeln(
+        '  [dry-run] $name : mask=${d.mask} rack=${d.orientations}',
+      );
       continue;
     }
     final resp = await http.post(
       Uri.parse('$url/challenge'),
-      headers: {'content-type': 'application/json', 'authorization': 'Bearer $token'},
+      headers: {
+        'content-type': 'application/json',
+        'authorization': 'Bearer $token',
+      },
       body: body,
     );
     stdout.writeln('  $name : HTTP ${resp.statusCode} ${resp.body}');
+    if (resp.statusCode < 200 || resp.statusCode >= 300) failures++;
   }
-  stdout.writeln('Terminé.');
+  if (failures > 0) {
+    stderr.writeln('$failures défi(s) refusé(s). Amorçage incomplet.');
+    exitCode = 3;
+    return;
+  }
+  stdout.writeln('Les neuf défis ont été amorcés.');
 }

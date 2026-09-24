@@ -12,7 +12,7 @@
   "languageSystem": "System",
   "languageFrench": "Français",
   "languageEnglish": "English",
-  "homeChallenge": "Challenge",
+  "homeChallenge": "Daily Challenges",
   "homeRecords": "My records",
   "homeSettings": "Settings",
   "homeSolo": "Solo Game",
@@ -107,12 +107,12 @@
       }
     }
   },
-  "leaderboardEmpty": "No score this week\n(or server unreachable).",
+  "leaderboardEmpty": "No score today\n(or server unreachable).",
   "solutionsTitle": "Solutions",
   "previous": "Previous",
   "next": "Next",
-  "challengeTitle": "Weekly challenge",
-  "challengeIntro": "Pick a size. The setup is the same for everyone this week, and hints are disabled (ranked mode).",
+  "challengeTitle": "Daily challenge",
+  "challengeIntro": "Everyone gets the same setup today. Complete a board to unlock the next one; hints are disabled.",
   "piecesCount": "{count, plural, one{{count} piece} other{{count} pieces}}",
   "@piecesCount": {
     "placeholders": {
@@ -122,9 +122,14 @@
     }
   },
   "rankingTooltip": "Ranking",
+  "periodDay": "Day",
+  "periodWeek": "Week",
+  "periodMonth": "Month",
   "congrats": "Well done! 🎉",
   "firstPuzzlePrompt": "First puzzle solved. What's your name?",
   "yourName": "Your name",
+  "playerNameRules": "3 to 20 characters · letters, numbers, spaces, apostrophes and hyphens",
+  "playerNameInvalid": "Choose a name with 3 to 20 characters and at least one letter.",
   "validate": "Confirm",
   "noPuzzle": "No puzzle",
   "homeTooltip": "Home",

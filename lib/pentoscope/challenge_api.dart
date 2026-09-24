@@ -21,7 +21,9 @@ import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 const String kChallengeBaseUrl = 'https://pentapol-defi.pentapml.workers.dev';
 
 /// Les trois maillots, tels que l'API les nomme (paramètre `maillot`).
-enum Maillot { jaune, pois, vert }
+enum Maillot { temps, acuite, coups }
+
+enum LeaderboardPeriod { day, week, month }
 
 /// Une ligne de classement renvoyée par `GET /leaderboard`.
 class LeaderboardEntry {
@@ -31,6 +33,9 @@ class LeaderboardEntry {
   final int isoCount;
   final int faults;
   final int timeMs;
+  final int moves;
+  final double points;
+  final int days;
 
   const LeaderboardEntry({
     required this.playerId,
@@ -39,19 +44,25 @@ class LeaderboardEntry {
     required this.isoCount,
     required this.faults,
     required this.timeMs,
+    required this.moves,
+    this.points = 0,
+    this.days = 0,
   });
 
   /// Acuité en % (§4.2), plafonnée à 100, pour l'affichage du maillot jaune. Règle unique score_rules.
   int get acuityPercent => rules.acuityPercent(minIso, isoCount);
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> j) => LeaderboardEntry(
-        playerId: j['player_id'] as String? ?? '',
-        pseudo: j['pseudo'] as String? ?? '',
-        minIso: (j['min_iso'] as num?)?.toInt() ?? 0,
-        isoCount: (j['iso_count'] as num?)?.toInt() ?? 0,
-        faults: (j['faults'] as num?)?.toInt() ?? 0,
-        timeMs: (j['time_ms'] as num?)?.toInt() ?? 0,
-      );
+    playerId: j['player_id'] as String? ?? '',
+    pseudo: j['pseudo'] as String? ?? '',
+    minIso: (j['min_iso'] as num?)?.toInt() ?? 0,
+    isoCount: (j['iso_count'] as num?)?.toInt() ?? 0,
+    faults: (j['faults'] as num?)?.toInt() ?? 0,
+    timeMs: (j['time_ms'] as num?)?.toInt() ?? 0,
+    moves: (j['moves'] as num?)?.toInt() ?? 0,
+    points: (j['points'] as num?)?.toDouble() ?? 0,
+    days: (j['days'] as num?)?.toInt() ?? 0,
+  );
 }
 
 /// Client du service de classement. Toutes les méthodes **échouent en silence** (retour `false`/
@@ -61,13 +72,13 @@ class ChallengeApi {
   final http.Client _client;
 
   ChallengeApi({this.baseUrl = kChallengeBaseUrl, http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   /// Envoie le score d'un défi terminé. `true` si accepté (201). Un `409` (déjà soumis) ou une
   /// panne renvoient `false` sans lever d'exception. `timeout` court pour ne pas figer le bilan.
   Future<bool> submitScore({
     required int version,
-    required int week,
+    required String day,
     required int size,
     required String playerId,
     required String pseudo,
@@ -75,6 +86,7 @@ class ChallengeApi {
     required int isoCount,
     required int faults,
     required int timeMs,
+    required int moves,
     required String grid,
   }) async {
     try {
@@ -84,7 +96,7 @@ class ChallengeApi {
             headers: {'content-type': 'application/json'},
             body: jsonEncode({
               'version': version,
-              'week': week,
+              'day': day,
               'size': size,
               'playerId': playerId,
               'pseudo': pseudo,
@@ -92,6 +104,7 @@ class ChallengeApi {
               'isoCount': isoCount,
               'faults': faults,
               'timeMs': timeMs,
+              'moves': moves,
               'grid': grid,
             }),
           )
@@ -108,27 +121,39 @@ class ChallengeApi {
   /// `ChallengeDefinition` depuis `{mask, rack}`.
   Future<ChallengeDefinition?> fetchChallenge({
     required int version,
-    required int week,
+    required String day,
     required PentoscopeSize size,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/challenge').replace(queryParameters: {
-        'version': '$version',
-        'week': '$week',
-        'size': '${size.index}',
-      });
+      final uri = Uri.parse('$baseUrl/challenge').replace(
+        queryParameters: {
+          'version': '$version',
+          'day': day,
+          'size': '${size.index}',
+        },
+      );
       final resp = await _client.get(uri).timeout(const Duration(seconds: 6));
-      if (resp.statusCode != 200) return null; // 404 = non composé → dériver localement
+      if (resp.statusCode != 200) {
+        return null; // 404 = non composé → dériver localement
+      }
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
       final mask = (data['mask'] as num).toInt();
-      final rack = (data['rack'] as Map<String, dynamic>)
-          .map((k, v) => MapEntry(int.parse(k), (v as num).toInt()));
+      final rack = (data['rack'] as Map<String, dynamic>).map(
+        (k, v) => MapEntry(int.parse(k), (v as num).toInt()),
+      );
       final pieceIds = <int>[
         for (int id = 1; id <= 12; id++)
           if (mask & (1 << (id - 1)) != 0) id,
       ];
       return ChallengeDefinition(
-          week: week, size: size, mask: mask, pieceIds: pieceIds, orientations: rack);
+        day: day,
+        dayIndex: daysSinceEpoch(DateTime.parse('${day}T00:00:00Z')),
+        size: size,
+        mask: mask,
+        solutionCount: (data['solutionCount'] as num?)?.toInt() ?? 0,
+        pieceIds: pieceIds,
+        orientations: rack,
+      );
     } catch (e) {
       debugPrint('❌ fetchChallenge échoué: $e');
       return null;
@@ -140,9 +165,12 @@ class ChallengeApi {
   /// déployé) → `false` sans exception : le local est nettoyé par l'appelant quoi qu'il arrive.
   Future<bool> deleteMyScores({required String playerId}) async {
     try {
-      final uri = Uri.parse('$baseUrl/score')
-          .replace(queryParameters: {'playerId': playerId});
-      final resp = await _client.delete(uri).timeout(const Duration(seconds: 6));
+      final uri = Uri.parse(
+        '$baseUrl/score',
+      ).replace(queryParameters: {'playerId': playerId});
+      final resp = await _client
+          .delete(uri)
+          .timeout(const Duration(seconds: 6));
       return resp.statusCode == 200;
     } catch (e) {
       debugPrint('❌ deleteMyScores échoué: $e');
@@ -153,19 +181,23 @@ class ChallengeApi {
   /// Le classement d'un défi pour un maillot. Liste vide en cas de panne.
   Future<List<LeaderboardEntry>> leaderboard({
     required int version,
-    required int week,
+    required String day,
     required int size,
     required Maillot maillot,
+    LeaderboardPeriod period = LeaderboardPeriod.day,
     int limit = 100,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/leaderboard').replace(queryParameters: {
-        'version': '$version',
-        'week': '$week',
-        'size': '$size',
-        'maillot': maillot.name,
-        'limit': '$limit',
-      });
+      final uri = Uri.parse('$baseUrl/leaderboard').replace(
+        queryParameters: {
+          'version': '$version',
+          'day': day,
+          'size': '$size',
+          'maillot': maillot.name,
+          'period': period.name,
+          'limit': '$limit',
+        },
+      );
       final resp = await _client.get(uri).timeout(const Duration(seconds: 8));
       if (resp.statusCode != 200) return const [];
       final data = jsonDecode(resp.body) as Map<String, dynamic>;

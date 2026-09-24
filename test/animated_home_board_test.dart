@@ -43,9 +43,9 @@ void main() {
     await tester.pumpWidget(
       app(solutions: [firstSolution, firstSolution.reversed.toList()]),
     );
-    await tester.pump(const Duration(milliseconds: 16450));
-    await tester.pump(const Duration(milliseconds: 260));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 21140));
+    await tester.pump(const Duration(milliseconds: 30));
+    await tester.pump(const Duration(milliseconds: 2050));
 
     expect(cellColor(tester, 0, 4), const Color(0xFFD9E0E8));
   });
@@ -66,7 +66,10 @@ void main() {
     final frameDecoration = frame.decoration! as BoxDecoration;
     expect(frameDecoration.border!.top.width, 4);
     final initialTurn = tester.widget<Transform>(
-      find.byKey(const ValueKey('home-rack-piece-0')),
+      find.descendant(
+        of: find.byKey(const ValueKey('home-rack-piece-0')),
+        matching: find.byType(Transform),
+      ),
     );
     final selectedSlot = tester.widget<Container>(
       find.byKey(const ValueKey('home-piece-slot-0')),
@@ -78,31 +81,50 @@ void main() {
     expect((initialAction.decoration! as BoxDecoration).border, isNull);
     expect(cellColor(tester, 0, 0), const Color(0xFFF3F5F8));
 
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 650));
     final chosenAction = tester.widget<Container>(
       find.byKey(const ValueKey('home-isometry-action-0')),
     );
     expect((chosenAction.decoration! as BoxDecoration).border!.top.width, 2);
-    expect(cellColor(tester, 0, 0), const Color(0xFFD9E0E8));
+    expect(cellColor(tester, 0, 0), const Color(0xFFF3F5F8));
 
     await tester.pump(const Duration(milliseconds: 700));
     final oriented = tester.widget<Transform>(
-      find.byKey(const ValueKey('home-rack-piece-0')),
+      find.descendant(
+        of: find.byKey(const ValueKey('home-rack-piece-0')),
+        matching: find.byType(Transform),
+      ),
     );
     expect(oriented.transform, isNot(initialTurn.transform));
+
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(cellColor(tester, 0, 0), const Color(0xFFD9E0E8));
 
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const ValueKey('home-moving-piece')), findsOneWidget);
     expect(cellColor(tester, 0, 0), const Color(0xFFD9E0E8));
 
-    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pump(const Duration(milliseconds: 1200));
     expect(cellColor(tester, 0, 0), const Color(0xFFCCCCCC));
     expect(cellColor(tester, 0, 1), const Color(0xFFF3F5F8));
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 2050));
     expect(cellColor(tester, 0, 1), const Color(0xFFD9E0E8));
 
     await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('les quatre isometries sont montrees pendant une boucle', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    for (var action = 0; action < 4; action++) {
+      await tester.pump(Duration(milliseconds: action == 0 ? 650 : 3750));
+      final button = tester.widget<Container>(
+        find.byKey(ValueKey('home-isometry-action-$action')),
+      );
+      expect((button.decoration! as BoxDecoration).border, isNotNull);
+    }
   });
 
   testWidgets(

@@ -45,7 +45,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get homeChallenge => 'Défi';
+  String get homeChallenge => 'Défis du jour';
 
   @override
   String get homeRecords => 'Mes records';
@@ -224,7 +224,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get leaderboardEmpty =>
-      'Aucun score cette semaine\n(ou serveur injoignable).';
+      'Aucun score aujourd\'hui\n(ou serveur injoignable).';
 
   @override
   String get solutionsTitle => 'Solutions';
@@ -236,11 +236,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get next => 'Suivante';
 
   @override
-  String get challengeTitle => 'Défi de la semaine';
+  String get challengeTitle => 'Défi du jour';
 
   @override
   String get challengeIntro =>
-      'Choisis une taille. La configuration est la même pour tous cette semaine, et l\'indice est désactivé (mode classé).';
+      'La configuration est la même pour tous aujourd\'hui. Termine un plateau pour ouvrir le suivant ; l\'indice est désactivé.';
 
   @override
   String piecesCount(int count) {
@@ -257,6 +257,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rankingTooltip => 'Classement';
 
   @override
+  String get periodDay => 'Jour';
+
+  @override
+  String get periodWeek => 'Semaine';
+
+  @override
+  String get periodMonth => 'Mois';
+
+  @override
   String get congrats => 'Bravo ! 🎉';
 
   @override
@@ -265,6 +274,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get yourName => 'Ton nom';
+
+  @override
+  String get playerNameRules =>
+      '3 à 20 caractères · lettres, chiffres, espaces, apostrophes et tirets';
+
+  @override
+  String get playerNameInvalid =>
+      'Choisis un nom de 3 à 20 caractères contenant au moins une lettre.';
 
   @override
   String get validate => 'Valider';

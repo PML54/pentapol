@@ -1,106 +1,179 @@
-// Modified: 2026-09-21 08:49 — ouvrir l'écran de jeu avec le mode défi explicite.
-// Historique: 2026-09-07 07:17 — conformité défi V1 : l'icône classement passe par
-//           openLeaderboardWithConsent (opt-in requis, §4.5) au lieu d'un Navigator.push direct.
-// Historique: 2026-09-06 04:50 — i18n : chaînes visibles passées par AppLocalizations (titre, intro,
-//           compte de pièces au pluriel, tooltip classement).
-// Historique: 2026-09-05 00:20 — Phase 5 : icône « classement » par taille → LeaderboardScreen.
-// lib/pentoscope/screens/challenge_screen.dart
-// Historique: 2026-09-04 07:05 — création : écran « Défi de la semaine » (CDC §7, Phase 2). Choix
-//           d'une des six tailles ; lance le défi dérivé (mode classé) puis l'écran de jeu. HORS V1.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
-import 'package:pentapol/pentoscope/pentoscope_provider.dart';
-import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_consent.dart';
-import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
+import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
+import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
+import 'package:pentapol/providers/settings_provider.dart';
 
-/// Écran de sélection du défi de la semaine : le joueur choisit une dimension de plateau, tout le
-/// reste (masque + rack) est dérivé de la semaine courante (CDC §7.1). Mode classé.
-class ChallengeScreen extends ConsumerWidget {
+class ChallengeScreen extends ConsumerStatefulWidget {
   const ChallengeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChallengeScreen> createState() => _ChallengeScreenState();
+}
+
+class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
+  late Future<List<ChallengeDefinition>> _definitions;
+
+  @override
+  void initState() {
+    super.initState();
+    _definitions = _loadDefinitions();
+    Future.microtask(
+      () => ref.read(settingsProvider.notifier).dailyChallengeCompletions(),
+    );
+  }
+
+  Future<List<ChallengeDefinition>> _loadDefinitions() async {
+    final notifier = ref.read(pentoscopeProvider.notifier);
+    return Future.wait([
+      for (final size in kChallengeSizes)
+        notifier.dailyChallengeDefinition(size),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final week = weeksSinceEpoch(DateTime.now());
+    final settings = ref.watch(settingsProvider);
+    final day = challengeDay();
+    final completed = settings.dailyChallengeDay == day
+        ? settings.completedDailyChallengeSizes.toSet()
+        : <int>{};
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.challengeTitle)),
+      appBar: AppBar(
+        title: Text(l10n.challengeTitle),
+        actions: [
+          IconButton(
+            tooltip: l10n.rankingTooltip,
+            icon: const Icon(Icons.leaderboard_outlined),
+            onPressed: () => openLeaderboardWithConsent(
+              context,
+              ref,
+              builder: () =>
+                  LeaderboardScreen(day: day, size: kChallengeSizes.first),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              l10n.challengeWeekLabel(week.toString()),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.challengeIntro,
-              style: TextStyle(color: Theme.of(context).hintColor),
-            ),
-            const SizedBox(height: 16),
-            for (final size in kChallengeSizes)
-              Card(
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.flag_outlined,
-                    color: Color(0xFF2E9E5B),
-                  ),
-                  title: Text(
-                    '${size.width}×${size.height}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+        child: FutureBuilder<List<ChallengeDefinition>>(
+          future: _definitions,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final definitions = snapshot.data!;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              children: [
+                Text(
+                  day,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.challengeIntro,
+                  style: TextStyle(color: Theme.of(context).hintColor),
+                ),
+                const SizedBox(height: 12),
+                for (int index = 0; index < definitions.length; index++)
+                  _ChallengeTile(
+                    definition: definitions[index],
+                    completed: completed.contains(index),
+                    unlocked: index == 0 || completed.contains(index - 1),
+                    piecesLabel: l10n.piecesCount(
+                      definitions[index].size.numPieces,
+                    ),
+                    rankingLabel: l10n.rankingTooltip,
+                    onPlay: () => _launch(definitions[index]),
+                    onRanking: () => openLeaderboardWithConsent(
+                      context,
+                      ref,
+                      builder: () => LeaderboardScreen(
+                        day: day,
+                        size: definitions[index].size,
+                      ),
                     ),
                   ),
-                  subtitle: Text(l10n.piecesCount(size.numPieces)),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.leaderboard_outlined),
-                        tooltip: l10n.rankingTooltip,
-                        onPressed: () => openLeaderboardWithConsent(
-                          context,
-                          ref,
-                          builder: () => LeaderboardScreen(
-                            week: weeksSinceEpoch(DateTime.now()),
-                            size: size,
-                          ),
-                        ),
-                      ),
-                      const Icon(Icons.play_arrow),
-                    ],
-                  ),
-                  onTap: () => _launch(context, ref, size),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Future<void> _launch(
-    BuildContext context,
-    WidgetRef ref,
-    PentoscopeSize size,
-  ) async {
-    await ref.read(pentoscopeProvider.notifier).startWeeklyChallenge(size);
-    if (!context.mounted) return;
-    Navigator.pushReplacement(
+  Future<void> _launch(ChallengeDefinition definition) async {
+    await ref
+        .read(pentoscopeProvider.notifier)
+        .startDailyChallenge(definition.size);
+    if (!mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) =>
             const PentoscopeGameScreen(mode: PentoscopeMode.challenge),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+}
+
+class _ChallengeTile extends StatelessWidget {
+  final ChallengeDefinition definition;
+  final bool completed;
+  final bool unlocked;
+  final String piecesLabel;
+  final String rankingLabel;
+  final VoidCallback onPlay;
+  final VoidCallback onRanking;
+
+  const _ChallengeTile({
+    required this.definition,
+    required this.completed,
+    required this.unlocked,
+    required this.piecesLabel,
+    required this.rankingLabel,
+    required this.onPlay,
+    required this.onRanking,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = definition.size;
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      child: ListTile(
+        enabled: unlocked && !completed,
+        leading: Icon(
+          completed
+              ? Icons.check_circle
+              : unlocked
+              ? Icons.flag_outlined
+              : Icons.lock_outline,
+          color: completed ? const Color(0xFF2E9E5B) : null,
+        ),
+        title: Text(
+          '${size.width}×${size.height}',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text('$piecesLabel · ${definition.solutionCount} solutions'),
+        trailing: completed
+            ? IconButton(
+                tooltip: rankingLabel,
+                icon: const Icon(Icons.leaderboard_outlined),
+                onPressed: onRanking,
+              )
+            : Icon(unlocked ? Icons.play_arrow : Icons.lock_outline),
+        onTap: unlocked && !completed ? onPlay : null,
       ),
     );
   }

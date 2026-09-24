@@ -42,7 +42,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/models/app_settings.dart';
+import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/pentoscope/challenge_api.dart';
+import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart' show kMaxLevel;
 
 /// Génère une identité 128 bits (32 hex) via `Random.secure()` — clé primaire du joueur côté
@@ -90,7 +92,17 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   /// Progression solo : nom du joueur (saisi au 1er puzzle réussi).
   Future<void> setUserName(String? name) async {
-    state = state.copyWith(userName: name, clearUserName: name == null);
+    if (name == null) {
+      state = state.copyWith(clearUserName: true);
+      await _saveSettings();
+      return;
+    }
+    final normalized = normalizePlayerName(name);
+    final error = validatePlayerName(normalized);
+    if (error != null) {
+      throw ArgumentError.value(name, 'name', error.name);
+    }
+    state = state.copyWith(userName: normalized);
     await _saveSettings();
   }
 
@@ -120,6 +132,34 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setChallengeConsentAsked(bool value) async {
     if (state.challengeConsentAsked == value) return;
     state = state.copyWith(challengeConsentAsked: value);
+    await _saveSettings();
+  }
+
+  /// Normalise puis retourne les tailles terminees pour la journee UTC courante.
+  Future<Set<int>> dailyChallengeCompletions([DateTime? now]) async {
+    await ensureLoaded();
+    final day = challengeDay(now);
+    if (state.dailyChallengeDay != day) {
+      state = state.copyWith(
+        dailyChallengeDay: day,
+        completedDailyChallengeSizes: const [],
+      );
+      await _saveSettings();
+    }
+    return state.completedDailyChallengeSizes.toSet();
+  }
+
+  Future<void> completeDailyChallengeSize(String day, int sizeIndex) async {
+    await ensureLoaded();
+    final completed = state.dailyChallengeDay == day
+        ? state.completedDailyChallengeSizes.toSet()
+        : <int>{};
+    if (!completed.add(sizeIndex) && state.dailyChallengeDay == day) return;
+    final sorted = completed.toList()..sort();
+    state = state.copyWith(
+      dailyChallengeDay: day,
+      completedDailyChallengeSizes: sorted,
+    );
     await _saveSettings();
   }
 

@@ -34,6 +34,7 @@ import 'package:pentapol/screens/geometry_settings_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
+import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/custom_colors_screen.dart';
 import 'package:pentapol/config/build_info.dart';
@@ -99,217 +100,238 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: ListView(
-        children: [
-          // === SECTION UI ===
-          _buildSectionHeader(l10n.sectionInterface),
+          children: [
+            // === SECTION UI ===
+            _buildSectionHeader(l10n.sectionInterface),
 
-          // Langue de l'interface (Système = suit l'appareil)
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: Text(l10n.settingsLanguage),
-            subtitle: Text(_languageName(l10n, settings.localeCode)),
-            onTap: () => _showLanguageDialog(context, notifier, settings.localeCode),
-          ),
-
-          // Schéma de couleurs
-          ListTile(
-            leading: const Icon(Icons.palette),
-            title: Text(l10n.pieceColors),
-            subtitle: Text(_colorSchemeName(l10n, settings.ui.colorScheme)),
-            onTap: () => _showColorSchemeDialog(context, notifier, settings.ui.colorScheme),
-          ),
-
-          // Personnaliser les couleurs (visible si schéma custom)
-          if (settings.ui.colorScheme == PieceColorScheme.custom)
+            // Langue de l'interface (Système = suit l'appareil)
             ListTile(
-              leading: const Icon(Icons.color_lens),
-              title: Text(l10n.customizeColors),
-              subtitle: Text(l10n.customizeColorsSub),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
+              leading: const Icon(Icons.language),
+              title: Text(l10n.settingsLanguage),
+              subtitle: Text(_languageName(l10n, settings.localeCode)),
+              onTap: () =>
+                  _showLanguageDialog(context, notifier, settings.localeCode),
+            ),
+
+            // Schéma de couleurs
+            ListTile(
+              leading: const Icon(Icons.palette),
+              title: Text(l10n.pieceColors),
+              subtitle: Text(_colorSchemeName(l10n, settings.ui.colorScheme)),
+              onTap: () => _showColorSchemeDialog(
+                context,
+                notifier,
+                settings.ui.colorScheme,
+              ),
+            ),
+
+            // Personnaliser les couleurs (visible si schéma custom)
+            if (settings.ui.colorScheme == PieceColorScheme.custom)
+              ListTile(
+                leading: const Icon(Icons.color_lens),
+                title: Text(l10n.customizeColors),
+                subtitle: Text(l10n.customizeColorsSub),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CustomColorsScreen(),
+                    ),
+                  );
+                },
+              ),
+
+            const Divider(),
+
+            // === SECTION JEU ===
+            _buildSectionHeader(l10n.sectionGame),
+
+            if (kGeometryTuningEnabled)
+              ListTile(
+                key: const ValueKey('geometry-settings'),
+                leading: const Icon(Icons.tune),
+                title: Text(l10n.geometryTitle),
+                subtitle: Text(l10n.geometrySettingsSub),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CustomColorsScreen()),
-                );
-              },
+                  MaterialPageRoute<void>(
+                    builder: (_) => const GeometrySettingsScreen(),
+                  ),
+                ),
+              ),
+
+            // Compteur de solutions
+            SwitchListTile(
+              secondary: const Icon(Icons.emoji_events),
+              title: Text(l10n.solutionCounter),
+              subtitle: Text(l10n.solutionCounterSub),
+              value: settings.game.showSolutionCounter,
+              onChanged: (value) => notifier.setShowSolutionCounter(value),
             ),
 
-          const Divider(),
+            // Numéro des pièces posées (C8, décision 7) : une pastille par pièce, optionnel.
+            SwitchListTile(
+              secondary: const Icon(Icons.tag_faces_outlined),
+              title: Text(l10n.showPieceNumbers),
+              subtitle: Text(l10n.showPieceNumbersSub),
+              value: settings.game.showPieceNumbers,
+              onChanged: (value) => notifier.setShowPieceNumbers(value),
+            ),
 
-          // === SECTION JEU ===
-          _buildSectionHeader(l10n.sectionGame),
+            // Retour haptique
+            SwitchListTile(
+              secondary: const Icon(Icons.vibration),
+              title: Text(l10n.haptics),
+              subtitle: Text(l10n.hapticsSub),
+              value: settings.game.enableHaptics,
+              onChanged: (value) => notifier.setEnableHaptics(value),
+            ),
 
-          if (kGeometryTuningEnabled)
+            SwitchListTile(
+              key: const ValueKey('show-drag-feedback'),
+              secondary: const Icon(Icons.touch_app_outlined),
+              title: Text(l10n.showDragFeedback),
+              subtitle: Text(l10n.showDragFeedbackSub),
+              value: settings.game.showDragFeedback,
+              onChanged: notifier.setShowDragFeedback,
+            ),
+
+            SwitchListTile(
+              key: const ValueKey('show-illustrated-pieces'),
+              secondary: const Icon(Icons.image_outlined),
+              title: Text(l10n.showIllustratedPieces),
+              subtitle: Text(l10n.showIllustratedPiecesSub),
+              value: settings.game.showIllustratedPieces,
+              onChanged: notifier.setShowIllustratedPieces,
+            ),
+
+            // Compteurs isométries + fautes dans la barre du jeu
+            SwitchListTile(
+              secondary: const Icon(Icons.tag),
+              title: Text(l10n.showCounters),
+              subtitle: Text(l10n.showCountersSub),
+              value: settings.game.showCounters,
+              onChanged: (value) => notifier.setShowCounters(value),
+            ),
+
+            // Durée du long press
             ListTile(
-              key: const ValueKey('geometry-settings'),
-              leading: const Icon(Icons.tune),
-              title: Text(l10n.geometryTitle),
-              subtitle: Text(l10n.geometrySettingsSub),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(context, MaterialPageRoute<void>(
-                builder: (_) => const GeometrySettingsScreen())),
+              leading: const Icon(Icons.touch_app),
+              title: Text(l10n.dragSensitivity),
+              subtitle: Text(l10n.dragMs(settings.game.longPressDuration)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: settings.game.longPressDuration > 50
+                        ? () => notifier.setLongPressDuration(
+                            settings.game.longPressDuration - 50,
+                          )
+                        : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: settings.game.longPressDuration < 200
+                        ? () => notifier.setLongPressDuration(
+                            settings.game.longPressDuration + 50,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
             ),
 
-          // Compteur de solutions
-          SwitchListTile(
-            secondary: const Icon(Icons.emoji_events),
-            title: Text(l10n.solutionCounter),
-            subtitle: Text(l10n.solutionCounterSub),
-            value: settings.game.showSolutionCounter,
-            onChanged: (value) => notifier.setShowSolutionCounter(value),
-          ),
-
-          // Numéro des pièces posées (C8, décision 7) : une pastille par pièce, optionnel.
-          SwitchListTile(
-            secondary: const Icon(Icons.tag_faces_outlined),
-            title: Text(l10n.showPieceNumbers),
-            subtitle: Text(l10n.showPieceNumbersSub),
-            value: settings.game.showPieceNumbers,
-            onChanged: (value) => notifier.setShowPieceNumbers(value),
-          ),
-
-          // Retour haptique
-          SwitchListTile(
-            secondary: const Icon(Icons.vibration),
-            title: Text(l10n.haptics),
-            subtitle: Text(l10n.hapticsSub),
-            value: settings.game.enableHaptics,
-            onChanged: (value) => notifier.setEnableHaptics(value),
-          ),
-
-          SwitchListTile(
-            key: const ValueKey('show-drag-feedback'),
-            secondary: const Icon(Icons.touch_app_outlined),
-            title: Text(l10n.showDragFeedback),
-            subtitle: Text(l10n.showDragFeedbackSub),
-            value: settings.game.showDragFeedback,
-            onChanged: notifier.setShowDragFeedback,
-          ),
-
-          SwitchListTile(
-            key: const ValueKey('show-illustrated-pieces'),
-            secondary: const Icon(Icons.image_outlined),
-            title: Text(l10n.showIllustratedPieces),
-            subtitle: Text(l10n.showIllustratedPiecesSub),
-            value: settings.game.showIllustratedPieces,
-            onChanged: notifier.setShowIllustratedPieces,
-          ),
-
-          // Compteurs isométries + fautes dans la barre du jeu
-          SwitchListTile(
-            secondary: const Icon(Icons.tag),
-            title: Text(l10n.showCounters),
-            subtitle: Text(l10n.showCountersSub),
-            value: settings.game.showCounters,
-            onChanged: (value) => notifier.setShowCounters(value),
-          ),
-
-          // Durée du long press
-          ListTile(
-            leading: const Icon(Icons.touch_app),
-            title: Text(l10n.dragSensitivity),
-            subtitle: Text(l10n.dragMs(settings.game.longPressDuration)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: settings.game.longPressDuration > 50
-                      ? () => notifier.setLongPressDuration(settings.game.longPressDuration - 50)
-                      : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: settings.game.longPressDuration < 200
-                      ? () => notifier.setLongPressDuration(settings.game.longPressDuration + 50)
-                      : null,
-                ),
-              ],
+            // Taille des pièces du rack (rapport à la case du plateau, décision 6). Réglage de
+            // calibrage — à revoir avant l'App Store (CHECKLIST_APPSTORE).
+            ListTile(
+              leading: const Icon(Icons.grid_view),
+              title: Text(l10n.rackSize),
+              subtitle: Text(settings.game.rackCellRatio.toStringAsFixed(2)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: settings.game.rackCellRatio > 0.30
+                        ? () => notifier.setRackCellRatio(
+                            settings.game.rackCellRatio - 0.02,
+                          )
+                        : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: settings.game.rackCellRatio < 0.60
+                        ? () => notifier.setRackCellRatio(
+                            settings.game.rackCellRatio + 0.02,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // Taille des pièces du rack (rapport à la case du plateau, décision 6). Réglage de
-          // calibrage — à revoir avant l'App Store (CHECKLIST_APPSTORE).
-          ListTile(
-            leading: const Icon(Icons.grid_view),
-            title: Text(l10n.rackSize),
-            subtitle: Text(settings.game.rackCellRatio.toStringAsFixed(2)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: settings.game.rackCellRatio > 0.30
-                      ? () => notifier.setRackCellRatio(settings.game.rackCellRatio - 0.02)
-                      : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: settings.game.rackCellRatio < 0.60
-                      ? () => notifier.setRackCellRatio(settings.game.rackCellRatio + 0.02)
-                      : null,
-                ),
-              ],
+            const Divider(),
+
+            // === SECTION CLASSEMENT EN LIGNE ===
+            _buildSectionHeader(l10n.sectionRanking),
+
+            // Nom affiché au classement (= settings.userName, nom canonique). Exposé ICI, là où on
+            // l'attend, en plus de la tuile Duel qui écrit le même champ (le pseudo est partagé
+            // classement + duel). Édition par un dialogue simple → setUserName.
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(l10n.displayName),
+              subtitle: Text(
+                settings.userName?.isNotEmpty == true
+                    ? settings.userName!
+                    : l10n.notDefined,
+              ),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () => _editDisplayName(context, ref),
             ),
-          ),
 
-          const Divider(),
+            // Opt-in à l'envoi de score (§8 : désactivé par défaut, activé par geste explicite).
+            SwitchListTile(
+              secondary: const Icon(Icons.leaderboard_outlined),
+              title: Text(l10n.shareScores),
+              subtitle: Text(l10n.shareScoresSub),
+              value: settings.shareScoresOptIn,
+              onChanged: (value) => notifier.setShareScoresOptIn(value),
+            ),
 
-          // === SECTION CLASSEMENT EN LIGNE ===
-          _buildSectionHeader(l10n.sectionRanking),
+            // Suppression RGPD (§7.4) : efface les scores serveur + l'identité locale. Inactif tant
+            // qu'aucune identité n'a été créée (rien à supprimer).
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l10n.deleteOnlineData),
+              subtitle: Text(l10n.deleteOnlineDataSub),
+              enabled: settings.playerId != null,
+              onTap: settings.playerId == null
+                  ? null
+                  : () => _confirmDeleteOnlineData(context, ref),
+            ),
 
-          // Nom affiché au classement (= settings.userName, nom canonique). Exposé ICI, là où on
-          // l'attend, en plus de la tuile Duel qui écrit le même champ (le pseudo est partagé
-          // classement + duel). Édition par un dialogue simple → setUserName.
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: Text(l10n.displayName),
-            subtitle: Text(settings.userName?.isNotEmpty == true
-                ? settings.userName!
-                : l10n.notDefined),
-            trailing: const Icon(Icons.edit_outlined),
-            onTap: () => _editDisplayName(context, ref),
-          ),
+            const Divider(),
 
-          // Opt-in à l'envoi de score (§8 : désactivé par défaut, activé par geste explicite).
-          SwitchListTile(
-            secondary: const Icon(Icons.leaderboard_outlined),
-            title: Text(l10n.shareScores),
-            subtitle: Text(l10n.shareScoresSub),
-            value: settings.shareScoresOptIn,
-            onChanged: (value) => notifier.setShareScoresOptIn(value),
-          ),
+            // === SECTION DUEL ===
+            _buildSectionHeader(l10n.sectionDuel),
 
-          // Suppression RGPD (§7.4) : efface les scores serveur + l'identité locale. Inactif tant
-          // qu'aucune identité n'a été créée (rien à supprimer).
-          ListTile(
-            leading: const Icon(Icons.delete_outline),
-            title: Text(l10n.deleteOnlineData),
-            subtitle: Text(l10n.deleteOnlineDataSub),
-            enabled: settings.playerId != null,
-            onTap: settings.playerId == null
-                ? null
-                : () => _confirmDeleteOnlineData(context, ref),
-          ),
+            // Tile pour accéder aux paramètres Duel
+            _buildDuelSettingsTile(context, ref, settings),
 
-          const Divider(),
+            const Divider(),
 
-          // === SECTION DUEL ===
-          _buildSectionHeader(l10n.sectionDuel),
+            // === SECTION À PROPOS ===
+            _buildSectionHeader(l10n.sectionAbout),
 
-          // Tile pour accéder aux paramètres Duel
-          _buildDuelSettingsTile(context, ref, settings),
+            // Version de l'app
+            _buildVersionTile(context),
 
-          const Divider(),
-
-          // === SECTION À PROPOS ===
-          _buildSectionHeader(l10n.sectionAbout),
-
-          // Version de l'app
-          _buildVersionTile(context),
-
-          const SizedBox(height: 32),
-        ],
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
@@ -319,27 +341,40 @@ class SettingsScreen extends ConsumerWidget {
   /// Écrit le même champ canonique que la tuile Duel (le pseudo est partagé classement + duel).
   Future<void> _editDisplayName(BuildContext context, WidgetRef ref) async {
     final notifier = ref.read(settingsProvider.notifier);
-    final controller =
-        TextEditingController(text: ref.read(settingsProvider).userName ?? '');
+    final controller = TextEditingController(
+      text: ref.read(settingsProvider).userName ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) {
         final l10n = AppLocalizations.of(ctx);
         return AlertDialog(
           title: Text(l10n.displayName),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLength: 20,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintText: l10n.duelNicknameHint,
-              prefixIcon: const Icon(Icons.person_outline),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              autofocus: true,
+              maxLength: 20,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                hintText: l10n.duelNicknameHint,
+                helperText: l10n.playerNameRules,
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
+              validator: (value) => validatePlayerName(value ?? '') == null
+                  ? null
+                  : l10n.playerNameInvalid,
+              onFieldSubmitted: (_) {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(ctx, normalizePlayerName(controller.text));
+                }
+              },
             ),
-            onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
           ),
           actions: [
             TextButton(
@@ -347,7 +382,11 @@ class SettingsScreen extends ConsumerWidget {
               child: Text(l10n.cancel),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(ctx, normalizePlayerName(controller.text));
+                }
+              },
               child: Text(l10n.save),
             ),
           ],
@@ -355,11 +394,14 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
     if (name == null) return; // annulé
-    await notifier.setUserName(name.isEmpty ? null : name);
+    await notifier.setUserName(name);
   }
 
   /// Confirme puis supprime les données de classement (RGPD §7.4) : scores serveur + identité locale.
-  Future<void> _confirmDeleteOnlineData(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmDeleteOnlineData(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
@@ -387,12 +429,19 @@ class SettingsScreen extends ConsumerWidget {
 
   // === WIDGETS DUEL ===
 
-  Widget _buildDuelSettingsTile(BuildContext context, WidgetRef ref, AppSettings settings) {
+  Widget _buildDuelSettingsTile(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) {
     final l10n = AppLocalizations.of(context);
     final playerName = settings.userName ?? l10n.notDefined;
     final duration = settings.duel.durationFormatted;
-    final stats = l10n.duelStatsSummary(settings.duel.totalWins,
-        settings.duel.totalLosses, settings.duel.totalDraws);
+    final stats = l10n.duelStatsSummary(
+      settings.duel.totalWins,
+      settings.duel.totalLosses,
+      settings.duel.totalDraws,
+    );
 
     return ListTile(
       leading: Container(
@@ -416,6 +465,7 @@ class SettingsScreen extends ConsumerWidget {
 
     // Controllers
     final nameController = TextEditingController(text: settings.userName ?? '');
+    String? nameError;
     DuelDuration selectedDuration = settings.duel.duration;
 
     showModalBottomSheet(
@@ -428,159 +478,214 @@ class SettingsScreen extends ConsumerWidget {
         builder: (ctx, setModalState) {
           final l10n = AppLocalizations.of(ctx);
           return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  children: [
-                    const Icon(Icons.sports_esports, color: Colors.deepPurple, size: 28),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.duelSettings,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.sports_esports,
+                        color: Colors.deepPurple,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.duelSettings,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
 
-                // Nom du joueur
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.duelPlayerName,
-                    hintText: l10n.duelNicknameHint,
-                    prefixIcon: const Icon(Icons.person_outline),
-                    border: OutlineInputBorder(
+                  // Nom du joueur
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.duelPlayerName,
+                      hintText: l10n.duelNicknameHint,
+                      helperText: l10n.playerNameRules,
+                      errorText: nameError,
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    maxLength: 20,
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) {
+                      if (nameError != null) {
+                        setModalState(() => nameError = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Durée de partie
+                  Text(
+                    l10n.gameDuration,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: DuelDuration.values
+                        .where((d) => d != DuelDuration.custom)
+                        .map((duration) {
+                          final isSelected = selectedDuration == duration;
+                          return ChoiceChip(
+                            label: Text('${duration.icon} ${duration.label}'),
+                            selected: isSelected,
+                            selectedColor: Colors.deepPurple.shade100,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setModalState(
+                                  () => selectedDuration = duration,
+                                );
+                              }
+                            },
+                          );
+                        })
+                        .toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Statistiques
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.statsHeader,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatColumn(
+                              l10n.statGames,
+                              '${settings.duel.totalGamesPlayed}',
+                              Icons.sports_esports,
+                            ),
+                            _buildStatColumn(
+                              l10n.statWins,
+                              '${settings.duel.totalWins}',
+                              Icons.emoji_events,
+                              Colors.green,
+                            ),
+                            _buildStatColumn(
+                              l10n.statLosses,
+                              '${settings.duel.totalLosses}',
+                              Icons.close,
+                              Colors.red,
+                            ),
+                            _buildStatColumn(
+                              l10n.statDraws,
+                              '${settings.duel.totalDraws}',
+                              Icons.handshake,
+                              Colors.orange,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            l10n.winRate(
+                              settings.duel.winRate.toStringAsFixed(1),
+                            ),
+                            style: TextStyle(color: Colors.grey.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  maxLength: 20,
-                  textCapitalization: TextCapitalization.words,
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                // Durée de partie
-                Text(
-                  l10n.gameDuration,
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: DuelDuration.values.where((d) => d != DuelDuration.custom).map((duration) {
-                    final isSelected = selectedDuration == duration;
-                    return ChoiceChip(
-                      label: Text('${duration.icon} ${duration.label}'),
-                      selected: isSelected,
-                      selectedColor: Colors.deepPurple.shade100,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setModalState(() => selectedDuration = duration);
-                        }
-                      },
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-
-                // Statistiques
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Boutons
+                  Row(
                     children: [
-                      Text(
-                        l10n.statsHeader,
-                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            _confirmResetDuelStats(ctx, notifier);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(l10n.duelResetStats),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatColumn(l10n.statGames, '${settings.duel.totalGamesPlayed}', Icons.sports_esports),
-                          _buildStatColumn(l10n.statWins, '${settings.duel.totalWins}', Icons.emoji_events, Colors.green),
-                          _buildStatColumn(l10n.statLosses, '${settings.duel.totalLosses}', Icons.close, Colors.red),
-                          _buildStatColumn(l10n.statDraws, '${settings.duel.totalDraws}', Icons.handshake, Colors.orange),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          l10n.winRate(settings.duel.winRate.toStringAsFixed(1)),
-                          style: TextStyle(color: Colors.grey.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final name = nameController.text.trim();
+                            if (validatePlayerName(name) != null) {
+                              setModalState(
+                                () => nameError = l10n.playerNameInvalid,
+                              );
+                              return;
+                            }
+                            await notifier.setUserName(name);
+                            await notifier.setDuelDuration(selectedDuration);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(l10n.save),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 20),
-
-                // Boutons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          _confirmResetDuelStats(ctx, notifier);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(l10n.duelResetStats),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final name = nameController.text.trim();
-                          if (name.isNotEmpty) {
-                            await notifier.setUserName(name);
-                          }
-                          await notifier.setDuelDuration(selectedDuration);
-                          if (ctx.mounted) Navigator.pop(ctx);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurple,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(l10n.save),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           );
         },
       ),
     );
   }
 
-  Widget _buildStatColumn(String label, String value, IconData icon, [Color? color]) {
+  Widget _buildStatColumn(
+    String label,
+    String value,
+    IconData icon, [
+    Color? color,
+  ]) {
     return Column(
       children: [
         Icon(icon, color: color ?? Colors.deepPurple, size: 24),
@@ -607,22 +712,22 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) {
         final l10n = AppLocalizations.of(ctx);
         return AlertDialog(
-        title: Text(l10n.clearStatsTitle),
-        content: Text(l10n.clearStatsBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              await notifier.resetDuelStats();
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(l10n.clearAction),
-          ),
-        ],
+          title: Text(l10n.clearStatsTitle),
+          content: Text(l10n.clearStatsBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () async {
+                await notifier.resetDuelStats();
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(l10n.clearAction),
+            ),
+          ],
         );
       },
     );
@@ -655,44 +760,41 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) {
         final l10n = AppLocalizations.of(ctx);
         return AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.extension, color: Colors.deepPurple.shade400),
-            const SizedBox(width: 12),
-            const Text(BuildInfo.appName),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildAboutRow(l10n.version, BuildInfo.fullVersion),
-            _buildAboutRow(l10n.buildLabel, BuildInfo.buildDateFormatted),
-            _buildAboutRow(l10n.aboutAuthor, BuildInfo.author),
-            const Divider(height: 24),
-            Text(
-              BuildInfo.description,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '© ${BuildInfo.copyrightYear} ${BuildInfo.author}',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.close),
+          title: Row(
+            children: [
+              Icon(Icons.extension, color: Colors.deepPurple.shade400),
+              const SizedBox(width: 12),
+              const Text(BuildInfo.appName),
+            ],
           ),
-        ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAboutRow(l10n.version, BuildInfo.fullVersion),
+              _buildAboutRow(l10n.buildLabel, BuildInfo.buildDateFormatted),
+              _buildAboutRow(l10n.aboutAuthor, BuildInfo.author),
+              const Divider(height: 24),
+              Text(
+                BuildInfo.description,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '© ${BuildInfo.copyrightYear} ${BuildInfo.author}',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.close),
+            ),
+          ],
         );
       },
     );
@@ -757,7 +859,10 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showLanguageDialog(
-      BuildContext context, SettingsNotifier notifier, String? current) {
+    BuildContext context,
+    SettingsNotifier notifier,
+    String? current,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -786,35 +891,34 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showColorSchemeDialog(
-      BuildContext context,
-      SettingsNotifier notifier,
-      PieceColorScheme current,
-      ) {
+    BuildContext context,
+    SettingsNotifier notifier,
+    PieceColorScheme current,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         final l10n = AppLocalizations.of(context);
         return AlertDialog(
-        title: Text(l10n.pieceColors),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: PieceColorScheme.values.map((scheme) {
-            return RadioListTile<PieceColorScheme>(
-              title: Text(_colorSchemeName(l10n, scheme)),
-              value: scheme,
-              groupValue: current,
-              onChanged: (value) {
-                if (value != null) {
-                  notifier.setColorScheme(value);
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
-        ),
+          title: Text(l10n.pieceColors),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: PieceColorScheme.values.map((scheme) {
+              return RadioListTile<PieceColorScheme>(
+                title: Text(_colorSchemeName(l10n, scheme)),
+                value: scheme,
+                groupValue: current,
+                onChanged: (value) {
+                  if (value != null) {
+                    notifier.setColorScheme(value);
+                    Navigator.pop(context);
+                  }
+                },
+              );
+            }).toList(),
+          ),
         );
       },
     );
   }
-
 }

@@ -173,7 +173,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeChallenge.
   ///
   /// In en, this message translates to:
-  /// **'Challenge'**
+  /// **'Daily Challenges'**
   String get homeChallenge;
 
   /// No description provided for @homeRecords.
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @leaderboardEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No score this week\n(or server unreachable).'**
+  /// **'No score today\n(or server unreachable).'**
   String get leaderboardEmpty;
 
   /// No description provided for @solutionsTitle.
@@ -521,13 +521,13 @@ abstract class AppLocalizations {
   /// No description provided for @challengeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Weekly challenge'**
+  /// **'Daily challenge'**
   String get challengeTitle;
 
   /// No description provided for @challengeIntro.
   ///
   /// In en, this message translates to:
-  /// **'Pick a size. The setup is the same for everyone this week, and hints are disabled (ranked mode).'**
+  /// **'Everyone gets the same setup today. Complete a board to unlock the next one; hints are disabled.'**
   String get challengeIntro;
 
   /// No description provided for @piecesCount.
@@ -541,6 +541,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ranking'**
   String get rankingTooltip;
+
+  /// No description provided for @periodDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get periodDay;
+
+  /// No description provided for @periodWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get periodWeek;
+
+  /// No description provided for @periodMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get periodMonth;
 
   /// No description provided for @congrats.
   ///
@@ -559,6 +577,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your name'**
   String get yourName;
+
+  /// No description provided for @playerNameRules.
+  ///
+  /// In en, this message translates to:
+  /// **'3 to 20 characters · letters, numbers, spaces, apostrophes and hyphens'**
+  String get playerNameRules;
+
+  /// No description provided for @playerNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a name with 3 to 20 characters and at least one letter.'**
+  String get playerNameInvalid;
 
   /// No description provided for @validate.
   ///

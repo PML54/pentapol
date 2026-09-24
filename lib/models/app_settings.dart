@@ -585,6 +585,10 @@ class AppSettings {
   /// activer plus tard via les Réglages ou en ouvrant le classement (geste explicite).
   final bool challengeConsentAsked;
 
+  /// Progression du defi quotidien. La date UTC rend la remise a zero deterministe.
+  final String? dailyChallengeDay;
+  final List<int> completedDailyChallengeSizes;
+
   const AppSettings({
     this.ui = const UISettings(),
     this.game = const GameSettings(),
@@ -595,6 +599,8 @@ class AppSettings {
     this.localeCode,
     this.shareScoresOptIn = false,
     this.challengeConsentAsked = false,
+    this.dailyChallengeDay,
+    this.completedDailyChallengeSizes = const [],
   });
 
   AppSettings copyWith({
@@ -610,6 +616,9 @@ class AppSettings {
     bool clearLocaleCode = false,
     bool? shareScoresOptIn,
     bool? challengeConsentAsked,
+    String? dailyChallengeDay,
+    bool clearDailyChallengeDay = false,
+    List<int>? completedDailyChallengeSizes,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -622,6 +631,11 @@ class AppSettings {
       shareScoresOptIn: shareScoresOptIn ?? this.shareScoresOptIn,
       challengeConsentAsked:
           challengeConsentAsked ?? this.challengeConsentAsked,
+      dailyChallengeDay: clearDailyChallengeDay
+          ? null
+          : (dailyChallengeDay ?? this.dailyChallengeDay),
+      completedDailyChallengeSizes:
+          completedDailyChallengeSizes ?? this.completedDailyChallengeSizes,
     );
   }
 
@@ -636,6 +650,8 @@ class AppSettings {
       'localeCode': localeCode,
       'shareScoresOptIn': shareScoresOptIn,
       'challengeConsentAsked': challengeConsentAsked,
+      'dailyChallengeDay': dailyChallengeDay,
+      'completedDailyChallengeSizes': completedDailyChallengeSizes,
     };
   }
 
@@ -652,6 +668,11 @@ class AppSettings {
       localeCode: json['localeCode'] as String?,
       shareScoresOptIn: json['shareScoresOptIn'] as bool? ?? false,
       challengeConsentAsked: json['challengeConsentAsked'] as bool? ?? false,
+      dailyChallengeDay: json['dailyChallengeDay'] as String?,
+      completedDailyChallengeSizes:
+          (json['completedDailyChallengeSizes'] as List? ?? const [])
+              .map((value) => (value as num).toInt())
+              .toList(),
     );
   }
 }

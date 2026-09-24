@@ -271,7 +271,10 @@ class _HomeActions extends StatelessWidget {
                 key: const ValueKey('home-play'),
                 onPressed: onSolo,
                 icon: const Icon(Icons.play_arrow_rounded),
-                label: Text(l10n.homeSolo),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(l10n.homeSolo),
+                ),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF3768C5),
                   foregroundColor: Colors.white,
@@ -289,14 +292,17 @@ class _HomeActions extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: OutlinedButton.icon(
-                key: const ValueKey('home-multiplayer'),
-                onPressed: onDuo,
-                icon: const Icon(Icons.people_outline),
-                label: Text(l10n.homeDuo),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF3768C5),
-                  side: const BorderSide(color: Color(0xFF9BB8E8)),
+              child: FilledButton.icon(
+                key: const ValueKey('home-challenge'),
+                onPressed: onChallenge,
+                icon: const Icon(Icons.flag_outlined),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(l10n.homeChallenge),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF3768C5),
+                  foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(46),
                   visualDensity: VisualDensity.compact,
                   shape: RoundedRectangleBorder(
@@ -316,10 +322,10 @@ class _HomeActions extends StatelessWidget {
           children: [
             Expanded(
               child: _HomeDestination(
-                key: const ValueKey('home-challenge'),
-                icon: Icons.flag_outlined,
-                label: l10n.homeChallenge,
-                onTap: onChallenge,
+                key: const ValueKey('home-multiplayer'),
+                icon: Icons.people_outline,
+                label: l10n.homeDuo,
+                onTap: onDuo,
               ),
             ),
             const SizedBox(width: 8),
