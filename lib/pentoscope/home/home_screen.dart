@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 16:40 — maximiser la démo et compacter les actions inférieures.
+// Modified: 2026-09-25 02:30 — agrandir la démonstration et les actions sur tablette.
+// Historique: 2026-09-23 16:40 — maximiser la démo et compacter les actions inférieures.
 // Historique: 2026-09-21 09:04 — ne pas relancer le training après un retour à l'accueil.
 // Historique: 2026-09-21 08:49 — ouvrir le parcours initial avec le mode training explicite.
 // Historique: 2026-09-12 06:30 — transmettre le réglage des vibrations à l’accueil guidé.
@@ -120,19 +121,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final landscape = constraints.maxWidth > constraints.maxHeight;
-        final demoHeight = (constraints.maxHeight - (landscape ? 12 : 130))
-            .clamp(250.0, 380.0);
-        final heightCellSize =
-            (demoHeight - AnimatedHomeBoard.chromeHeight) / 5;
+        final tablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+        final demoHeight =
+            (constraints.maxHeight - (landscape ? 12 : (tablet ? 175 : 130)))
+                .clamp(250.0, tablet ? 700.0 : 380.0);
         final contentWidth = math.min(
           constraints.maxWidth - 16,
-          landscape ? 720.0 : 520.0,
+          landscape ? (tablet ? 1040.0 : 720.0) : (tablet ? 720.0 : 520.0),
         );
-        final demoWidth = landscape ? contentWidth - 24 - 320 : contentWidth;
+        final actionsWidth = tablet ? 380.0 : 320.0;
+        final demoWidth = landscape
+            ? contentWidth - 24 - actionsWidth
+            : contentWidth;
         final widthCellSize = demoWidth / 6.4;
+        final heightCellSize =
+            (demoHeight -
+                AnimatedHomeBoard.chromeHeightForCell(widthCellSize)) /
+            5;
         final demoCellSize = math.min(heightCellSize, widthCellSize);
         final resolvedDemoHeight =
-            demoCellSize * 5 + AnimatedHomeBoard.chromeHeight;
+            demoCellSize * 5 +
+            AnimatedHomeBoard.chromeHeightForCell(demoCellSize);
         final resolvedDemoWidth = demoCellSize * 6.4;
         final demo = ref.watch(homeDemoSolutionsProvider);
         final board = demo.when(
@@ -160,6 +169,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         );
         final actions = _HomeActions(
+          expanded: tablet,
           onSolo: () => _play(context, level),
           onDuo: () => Navigator.push(
             context,
@@ -183,14 +193,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               vertical: landscape ? 6 : 8,
             ),
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: landscape ? 720 : 520),
+              constraints: BoxConstraints(
+                maxWidth: landscape
+                    ? (tablet ? 1040 : 720)
+                    : (tablet ? 720 : 520),
+              ),
               child: landscape
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         board,
                         const SizedBox(width: 24),
-                        SizedBox(width: 320, child: actions),
+                        SizedBox(width: actionsWidth, child: actions),
                       ],
                     )
                   : Column(
@@ -243,6 +257,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _HomeActions extends StatelessWidget {
+  final bool expanded;
   final VoidCallback onSolo;
   final VoidCallback onDuo;
   final VoidCallback onChallenge;
@@ -250,6 +265,7 @@ class _HomeActions extends StatelessWidget {
   final VoidCallback onSettings;
 
   const _HomeActions({
+    required this.expanded,
     required this.onSolo,
     required this.onDuo,
     required this.onChallenge,
@@ -278,13 +294,13 @@ class _HomeActions extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF3768C5),
                   foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(46),
+                  minimumSize: Size.fromHeight(expanded ? 58 : 46),
                   visualDensity: VisualDensity.compact,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
+                  textStyle: TextStyle(
+                    fontSize: expanded ? 19 : 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -303,13 +319,13 @@ class _HomeActions extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF3768C5),
                   foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(46),
+                  minimumSize: Size.fromHeight(expanded ? 58 : 46),
                   visualDensity: VisualDensity.compact,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
+                  textStyle: TextStyle(
+                    fontSize: expanded ? 19 : 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -325,6 +341,7 @@ class _HomeActions extends StatelessWidget {
                 key: const ValueKey('home-multiplayer'),
                 icon: Icons.people_outline,
                 label: l10n.homeDuo,
+                expanded: expanded,
                 onTap: onDuo,
               ),
             ),
@@ -334,6 +351,7 @@ class _HomeActions extends StatelessWidget {
                 key: const ValueKey('home-training'),
                 icon: Icons.school_outlined,
                 label: l10n.guidedAnother,
+                expanded: expanded,
                 onTap: onTraining,
               ),
             ),
@@ -343,6 +361,7 @@ class _HomeActions extends StatelessWidget {
                 key: const ValueKey('home-settings'),
                 icon: Icons.tune,
                 label: l10n.homeSettings,
+                expanded: expanded,
                 onTap: onSettings,
               ),
             ),
@@ -357,12 +376,14 @@ class _HomeDestination extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool expanded;
 
   const _HomeDestination({
     super.key,
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.expanded,
   });
 
   @override
@@ -376,20 +397,27 @@ class _HomeDestination extends StatelessWidget {
     child: InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: EdgeInsets.symmetric(
+          horizontal: 4,
+          vertical: expanded ? 10 : 6,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF52657D), size: 20),
+            Icon(
+              icon,
+              color: const Color(0xFF52657D),
+              size: expanded ? 27 : 20,
+            ),
             const SizedBox(height: 3),
             Text(
               label,
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFF27364A),
-                fontSize: 11.5,
+                fontSize: expanded ? 14 : 11.5,
                 height: 1.05,
                 fontWeight: FontWeight.w700,
               ),

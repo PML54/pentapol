@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 17:45 — montrer sélection, choix d'icône puis transformation.
+// Modified: 2026-09-25 02:30 — adapter les proportions de la démonstration aux grands écrans.
+// Historique: 2026-09-23 17:45 — montrer sélection, choix d'icône puis transformation.
 // lib/pentoscope/home/animated_home_board.dart
 
 import 'dart:math' as math;
@@ -85,7 +86,9 @@ class HomeDemoTiming {
 }
 
 class AnimatedHomeBoard extends StatefulWidget {
-  static const double chromeHeight = 132;
+  static double chromeHeightForCell(double cellSize) =>
+      _HomeGameScene.rackGapFor(cellSize) +
+      _HomeGameScene.rackHeightFor(cellSize);
 
   final List<List<PlacedPiece>> solutions;
   final Color Function(int pieceId) colorOf;
@@ -193,9 +196,12 @@ class _AnimatedHomeBoardState extends State<AnimatedHomeBoard>
 }
 
 class _HomeGameScene extends StatelessWidget {
-  static const rackGap = 12.0;
-  static const rackHeight = 120.0;
-  static const toolbarHeight = 54.0;
+  static double rackGapFor(double cellSize) =>
+      (cellSize * .18).clamp(12.0, 18.0);
+  static double rackHeightFor(double cellSize) =>
+      (cellSize * 1.65).clamp(120.0, 176.0);
+  static double toolbarHeightFor(double cellSize) =>
+      (cellSize * .72).clamp(54.0, 76.0);
   final List<PlacedPiece> solution;
   final Color Function(int pieceId) colorOf;
   final double cellSize;
@@ -213,6 +219,9 @@ class _HomeGameScene extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final boardSize = cellSize * 5;
+    final rackGap = rackGapFor(cellSize);
+    final rackHeight = rackHeightFor(cellSize);
+    final toolbarHeight = toolbarHeightFor(cellSize);
     final sceneWidth = math.max(boardSize, cellSize * 6.4);
     final boardLeft = (sceneWidth - boardSize) / 2;
     final pieceMs = timing.pieceMilliseconds;
@@ -286,7 +295,8 @@ class _HomeGameScene extends StatelessWidget {
                     colorOf: colorOf,
                     width: sceneWidth,
                     height: rackHeight,
-                    cellSize: cellSize * .32,
+                    cellSize: cellSize * .25,
+                    toolbarHeight: toolbarHeight,
                     placedCount: current,
                     hideCurrent: dragging,
                     currentIndex: current,
@@ -326,6 +336,9 @@ class _HomeGameScene extends StatelessWidget {
     double progress,
   ) {
     final cells = _normalizedCells(piece);
+    final rackGap = rackGapFor(cellSize);
+    final rackHeight = rackHeightFor(cellSize);
+    final toolbarHeight = toolbarHeightFor(cellSize);
     final width = cells.map((c) => c.$1).reduce(math.max) + 1;
     final height = cells.map((c) => c.$2).reduce(math.max) + 1;
     const startScale = .28;
@@ -441,6 +454,7 @@ class _DemoRack extends StatelessWidget {
   final double width;
   final double height;
   final double cellSize;
+  final double toolbarHeight;
   final int placedCount;
   final bool hideCurrent;
   final int currentIndex;
@@ -455,6 +469,7 @@ class _DemoRack extends StatelessWidget {
     required this.width,
     required this.height,
     required this.cellSize,
+    required this.toolbarHeight,
     required this.placedCount,
     required this.hideCurrent,
     required this.currentIndex,
@@ -477,9 +492,10 @@ class _DemoRack extends StatelessWidget {
     child: Column(
       children: [
         SizedBox(
-          height: _HomeGameScene.toolbarHeight,
+          height: toolbarHeight,
           child: _DemoIsometryBar(
             activeAction: actionVisible ? actionIndex : null,
+            size: (toolbarHeight - 4).clamp(50.0, 72.0),
           ),
         ),
         const Divider(height: 1, thickness: 1, color: Color(0xFFD8DEE8)),
@@ -553,8 +569,9 @@ class _DemoRack extends StatelessWidget {
 
 class _DemoIsometryBar extends StatelessWidget {
   final int? activeAction;
+  final double size;
 
-  const _DemoIsometryBar({required this.activeAction});
+  const _DemoIsometryBar({required this.activeAction, required this.size});
 
   @override
   Widget build(BuildContext context) {
@@ -571,8 +588,8 @@ class _DemoIsometryBar extends StatelessWidget {
         for (var index = 0; index < actions.length; index++)
           Container(
             key: ValueKey('home-isometry-action-$index'),
-            width: 50,
-            height: 50,
+            width: size,
+            height: size,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: index == activeAction
@@ -585,7 +602,7 @@ class _DemoIsometryBar extends StatelessWidget {
             ),
             child: Icon(
               actions[index].icon,
-              size: 42,
+              size: size * .84,
               color: index == activeAction
                   ? actions[index].color
                   : actions[index].color.withValues(alpha: .48),

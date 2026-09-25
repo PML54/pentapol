@@ -13,7 +13,15 @@
 
 ---
 
-## §ÉTAT — au 2026-09-24
+## §ÉTAT — au 2026-09-25
+
+### Relâcher rack → tiroir sans pièce fantôme (2026-09-25)
+
+Le tiroir distingue désormais un relâcher dans sa profondeur d'un relâcher au bord du plateau. Le
+premier annule la sélection et l'ancien aperçu ; le second conserve la pose de secours nécessaire à
+la ligne basse. La mesure utilise le contexte du `DragTarget` déjà construit et la position réelle
+du doigt : aucune clé dynamique n'est ajoutée au tiroir, car sa recréation pendant un changement
+d'état interrompait la sélection des pièces déjà posées.
 
 ### Defi quotidien progressif (2026-09-24)
 
@@ -28,6 +36,12 @@ coups. Le schema D1 est volontairement neuf (`version, day, size, player_id`) pu
 developpement precedentes ont ete purgees. Les vues semaine et mois additionnent les points relatifs
 des tailles terminees et retiennent respectivement les 5 et 20 meilleurs jours. Le cadrage complet
 est fixe dans `defi.md`.
+
+L'ecran est intitule **Defis du Jour** et rappelle le jour courant sous la forme **Defi du Lundi**.
+Les tailles terminees ont un fond vert pale. Pendant une partie classee, un badge vert **Mode Defi**
+avec drapeau reste visible dans la barre en portrait comme en paysage ; le bouton de nouvelle partie
+est absent. Apres la resolution et les eventuelles demandes de nom ou de consentement, le jeu revient
+automatiquement a la liste afin de montrer la taille suivante deverrouillee.
 
 ### Prototype d'image pour les pièces (2026-09-23)
 
@@ -67,7 +81,7 @@ géométriques historiques.
 La rotation paysage conserve désormais la continuité de l'illustration : les fragments pivotent de
 90° vers la gauche, dans le même sens que la grille, au lieu de pivoter en sens inverse.
 
-La version interne affichée dans Paramètres est **1.0.9 (build 202609240656)**. Elle est portée par
+La version interne affichée dans Paramètres est **1.0.10 (build 202609250231)**. Elle est portée par
 `lib/config/build_info.dart` ; la version de packaging de `pubspec.yaml` reste volontairement
 inchangée jusqu'à la préparation d'une soumission aux stores.
 
@@ -1327,6 +1341,15 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-25 (28) — CLI : version interne 1.0.10.**
+Mise à jour de la version et du build affichés dans Paramètres après validation du correctif de drag.
+La version de packaging de `pubspec.yaml` reste volontairement inchangée.
+
+**2026-09-25 (27) — CLI : retour d'une pièce du rack dans le tiroir.**
+Le relâcher profond annule maintenant la sélection au lieu de poser l'ancien aperçu sur le plateau ;
+la bande proche du plateau garde la pose de secours de la ligne basse. Après retrait du `GlobalKey`
+recréé à chaque build, les pièces posées restent sélectionnables. Suites ciblées : 12 tests passés.
 
 **2026-09-23 (26) — CLI : accueil visuel et pédagogique.**
 Remplacement du panneau Niveau/Jouer/Training par une mini-partie 5×5 automatique : vraie solution

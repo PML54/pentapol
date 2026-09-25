@@ -1,3 +1,4 @@
+// Modified: 2026-09-25 02:30 — générer les libellés du défi quotidien et du mode Défi.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -521,8 +522,62 @@ abstract class AppLocalizations {
   /// No description provided for @challengeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Daily challenge'**
+  /// **'Daily Challenges'**
   String get challengeTitle;
+
+  /// No description provided for @challengeOfDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{day} Challenge'**
+  String challengeOfDay(String day);
+
+  /// No description provided for @weekdayMonday.
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get weekdayMonday;
+
+  /// No description provided for @weekdayTuesday.
+  ///
+  /// In en, this message translates to:
+  /// **'Tuesday'**
+  String get weekdayTuesday;
+
+  /// No description provided for @weekdayWednesday.
+  ///
+  /// In en, this message translates to:
+  /// **'Wednesday'**
+  String get weekdayWednesday;
+
+  /// No description provided for @weekdayThursday.
+  ///
+  /// In en, this message translates to:
+  /// **'Thursday'**
+  String get weekdayThursday;
+
+  /// No description provided for @weekdayFriday.
+  ///
+  /// In en, this message translates to:
+  /// **'Friday'**
+  String get weekdayFriday;
+
+  /// No description provided for @weekdaySaturday.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get weekdaySaturday;
+
+  /// No description provided for @weekdaySunday.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get weekdaySunday;
+
+  /// No description provided for @challengeModeBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge Mode'**
+  String get challengeModeBadge;
 
   /// No description provided for @challengeIntro.
   ///

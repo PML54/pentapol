@@ -1,26 +1,27 @@
+// Modified: 2026-09-25 02:30 — afficher la version interne 1.0.10 dans Paramètres.
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
-// Dernière génération : 24/09/2026 à 06:56
+// Dernière génération : 25/09/2026 à 02:31
 
 /// Informations de build de l'application
 class BuildInfo {
   /// Version de l'application (format semver)
-  static const String version = '1.0.9';
+  static const String version = '1.0.10';
 
   /// Numéro de build (format YYYYMMDDHHMM)
-  static const int buildNumber = 202609240656;
+  static const int buildNumber = 202609250231;
 
   /// Date et heure du build (ISO 8601)
-  static const String buildDate = '2026-09-24T06:56:00';
+  static const String buildDate = '2026-09-25T02:31:05';
 
   /// Date formatée pour affichage
   static String get buildDateFormatted {
     final dt = DateTime.parse(buildDate);
     return '${dt.day.toString().padLeft(2, '0')}/'
-           '${dt.month.toString().padLeft(2, '0')}/'
-           '${dt.year} à '
-           '${dt.hour.toString().padLeft(2, '0')}:'
-           '${dt.minute.toString().padLeft(2, '0')}';
+        '${dt.month.toString().padLeft(2, '0')}/'
+        '${dt.year} à '
+        '${dt.hour.toString().padLeft(2, '0')}:'
+        '${dt.minute.toString().padLeft(2, '0')}';
   }
 
   /// Version complète pour affichage

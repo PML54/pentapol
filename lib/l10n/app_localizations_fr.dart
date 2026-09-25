@@ -1,3 +1,4 @@
+// Modified: 2026-09-25 02:30 — générer les traductions françaises du défi quotidien.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -45,7 +46,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get homeChallenge => 'Défis du jour';
+  String get homeChallenge => 'Défis du Jour';
 
   @override
   String get homeRecords => 'Mes records';
@@ -236,7 +237,36 @@ class AppLocalizationsFr extends AppLocalizations {
   String get next => 'Suivante';
 
   @override
-  String get challengeTitle => 'Défi du jour';
+  String get challengeTitle => 'Défis du Jour';
+
+  @override
+  String challengeOfDay(String day) {
+    return 'Défi du $day';
+  }
+
+  @override
+  String get weekdayMonday => 'Lundi';
+
+  @override
+  String get weekdayTuesday => 'Mardi';
+
+  @override
+  String get weekdayWednesday => 'Mercredi';
+
+  @override
+  String get weekdayThursday => 'Jeudi';
+
+  @override
+  String get weekdayFriday => 'Vendredi';
+
+  @override
+  String get weekdaySaturday => 'Samedi';
+
+  @override
+  String get weekdaySunday => 'Dimanche';
+
+  @override
+  String get challengeModeBadge => 'Mode Défi';
 
   @override
   String get challengeIntro =>

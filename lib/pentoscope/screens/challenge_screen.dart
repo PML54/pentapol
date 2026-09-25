@@ -1,3 +1,4 @@
+// Modified: 2026-09-25 02:30 — afficher le jour courant et distinguer les défis terminés.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -41,13 +42,14 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(settingsProvider);
     final day = challengeDay();
+    final weekday = _weekdayLabel(l10n, DateTime.now().toUtc().weekday);
     final completed = settings.dailyChallengeDay == day
         ? settings.completedDailyChallengeSizes.toSet()
         : <int>{};
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.challengeTitle),
+        title: Text(l10n.challengeOfDay(weekday)),
         actions: [
           IconButton(
             tooltip: l10n.rankingTooltip,
@@ -72,12 +74,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
-                Text(
-                  day,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
+                Text(day, style: TextStyle(color: Theme.of(context).hintColor)),
                 const SizedBox(height: 4),
                 Text(
                   l10n.challengeIntro,
@@ -151,6 +148,8 @@ class _ChallengeTile extends StatelessWidget {
     final size = definition.size;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 5),
+      color: completed ? const Color(0xFFEAF7EF) : null,
+      surfaceTintColor: Colors.transparent,
       child: ListTile(
         enabled: unlocked && !completed,
         leading: Icon(
@@ -176,5 +175,24 @@ class _ChallengeTile extends StatelessWidget {
         onTap: unlocked && !completed ? onPlay : null,
       ),
     );
+  }
+}
+
+String _weekdayLabel(AppLocalizations l10n, int weekday) {
+  switch (weekday) {
+    case DateTime.monday:
+      return l10n.weekdayMonday;
+    case DateTime.tuesday:
+      return l10n.weekdayTuesday;
+    case DateTime.wednesday:
+      return l10n.weekdayWednesday;
+    case DateTime.thursday:
+      return l10n.weekdayThursday;
+    case DateTime.friday:
+      return l10n.weekdayFriday;
+    case DateTime.saturday:
+      return l10n.weekdaySaturday;
+    default:
+      return l10n.weekdaySunday;
   }
 }

@@ -1,3 +1,4 @@
+// Modified: 2026-09-25 02:30 — générer les traductions anglaises du défi quotidien.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -234,7 +235,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get next => 'Next';
 
   @override
-  String get challengeTitle => 'Daily challenge';
+  String get challengeTitle => 'Daily Challenges';
+
+  @override
+  String challengeOfDay(String day) {
+    return '$day Challenge';
+  }
+
+  @override
+  String get weekdayMonday => 'Monday';
+
+  @override
+  String get weekdayTuesday => 'Tuesday';
+
+  @override
+  String get weekdayWednesday => 'Wednesday';
+
+  @override
+  String get weekdayThursday => 'Thursday';
+
+  @override
+  String get weekdayFriday => 'Friday';
+
+  @override
+  String get weekdaySaturday => 'Saturday';
+
+  @override
+  String get weekdaySunday => 'Sunday';
+
+  @override
+  String get challengeModeBadge => 'Challenge Mode';
 
   @override
   String get challengeIntro =>

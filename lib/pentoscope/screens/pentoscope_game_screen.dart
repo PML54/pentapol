@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 05:00 — traiter tout plateau Game terminé comme non vide au double-tap.
+// Modified: 2026-09-25 02:17 — distinguer le bord du tiroir sans recréer son sous-arbre pendant le drag.
+// Historique: 2026-09-23 05:00 — traiter tout plateau Game terminé comme non vide au double-tap.
 // Historique: 2026-09-22 19:09 — Game simplifié : double-tap du plateau pour relancer ou changer de taille.
 // Historique: 2026-09-22 06:24 — afficher le bilan Game dans l'AppBar et relancer au tap.
 // Historique: 2026-09-22 05:35 — enchaîner le Training 1 avec un Training 2 à deux pièces
@@ -345,6 +346,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         if (needName) await _promptUserName(this.context);
         if (rankedCompletion && mounted) {
           await maybeProposeConsentOnChallengeCompletion(this.context, ref);
+          await Future<void>.delayed(const Duration(milliseconds: 650));
+          if (mounted) Navigator.of(this.context).pop();
         }
       });
     }
@@ -429,8 +432,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     // tous les démarrages sans avoir à le faire dans chaque handler.
     if (!state.isComplete) {
       if (_bilanFerme) _bilanFerme = false;
-      if (_bilanOffset != Offset.zero)
+      if (_bilanOffset != Offset.zero) {
         _bilanOffset = Offset.zero; // recentrer au prochain bilan
+      }
     }
 
     if (state.puzzle == null) {
@@ -1236,6 +1240,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         state.previewX != null &&
         state.previewY != null &&
         state.isPreviewValid;
+    BuildContext? rackTargetContext;
+
+    bool isNearBoardEdge(DragTargetDetails<Pento> details) {
+      final renderBox = rackTargetContext?.findRenderObject() as RenderBox?;
+      if (renderBox == null) return false;
+
+      // details.offset suit le coin du feedback. Revenir au doigt réel permet de
+      // mesurer le relâcher dans le tiroir, quelle que soit la case empoignée.
+      final pointer = details.offset + (notifier.dragGrabLocal ?? Offset.zero);
+      final local = renderBox.globalToLocal(pointer);
+      final extent = isLandscape ? renderBox.size.width : renderBox.size.height;
+      final edgeBand = math.min(72.0, math.max(24.0, extent * 0.35));
+      return isLandscape ? local.dx <= edgeBand : local.dy <= edgeBand;
+    }
 
     return DragTarget<Pento>(
       onWillAcceptWithDetails: (details) {
@@ -1248,6 +1266,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
           HapticFeedback.mediumImpact();
           notifier.removePlacedPiece(state.selectedPlacedPiece!);
         } else if (hasPendingPlacement) {
+          if (!isNearBoardEdge(details)) {
+            notifier.cancelSelection();
+            return;
+          }
           // Poser la pièce du rack à l'ancre de l'aperçu (relâché au ras du rack, ligne du bas).
           final success = notifier.tryPlaceAtAnchor(
             state.previewX!,
@@ -1259,6 +1281,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         }
       },
       builder: (context, candidateData, rejectedData) {
+        rackTargetContext = context;
         // Le rouge/poubelle ne concerne QUE le retrait (pièce placée), pas la pose d'une pièce du rack.
         final isRemoving =
             candidateData.isNotEmpty && state.selectedPlacedPiece != null;
@@ -1379,7 +1402,8 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
     final items = <Widget>[
       homeButton,
-      if (widget.mode != PentoscopeMode.game)
+      if (state.isRanked) _buildChallengeModeBadge(context),
+      if (widget.mode != PentoscopeMode.game && !state.isRanked)
         IconButton(
           icon: const Icon(Icons.add_circle_outline),
           iconSize: iconSize,
@@ -1438,6 +1462,34 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       items.insert(items.length ~/ 2, _buildChrono(context, state));
     }
     return items;
+  }
+
+  Widget _buildChallengeModeBadge(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      key: const ValueKey('challenge-mode-badge'),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7EF),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF2E9E5B)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.flag_outlined, size: 18, color: Color(0xFF237A46)),
+          const SizedBox(width: 4),
+          Text(
+            l10n.challengeModeBadge,
+            style: const TextStyle(
+              color: Color(0xFF1F6A3D),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildGameCompletionBar(

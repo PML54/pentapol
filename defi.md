@@ -81,8 +81,14 @@ de jeu hebdomadaire ou mensuel.
 
 - L'ecran affiche la date, les neuf tailles, leur nombre de solutions et leur etat
   (a jouer, en cours, verrouille ou termine).
+- Le titre rappelle le jour de la semaine (`Defi du Lundi`) et une carte terminee recoit un fond
+  vert pale.
 - Les tailles se deverrouillent uniquement dans l'ordre.
 - La lampe ne produit aucune action en mode defi.
+- L'ecran de jeu porte un badge permanent `Mode Defi` avec un drapeau et ne propose pas de bouton
+  de nouvelle partie.
+- Apres une victoire et les eventuelles demandes de nom ou de consentement, l'app revient
+  automatiquement a la liste des defis du jour.
 - Une partie quittee est reprise, et une partie terminee est non rejouable le meme jour.
 - Le score termine est envoye avec la date et le nombre de coups.
 - Le Worker expose les classements quotidiens temps, acuite et coups ainsi que les agregats semaine
