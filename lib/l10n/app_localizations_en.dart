@@ -879,4 +879,55 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpDescLampRed =>
       'The board has no solution left: you have reached a dead end. Tapping the red lamp removes the last placed piece to step back. You can tap again, until a solution becomes possible — the lamp then turns yellow.';
+
+  @override
+  String get aboutDeveloperTitle => 'About the developer';
+
+  @override
+  String get aboutDeveloperHeading => 'Paul Marie Larivière';
+
+  @override
+  String get aboutDeveloperOriginsTitle => 'The origins of Pentapol';
+
+  @override
+  String get aboutDeveloperOrigins1 =>
+      'In the late 1970s, at Citroën, Paul de Casteljau trained me in curves and surfaces. At Citroën, we called them ‘curves and surfaces with poles’; they later became famous as Bézier curves and surfaces. Paul de Casteljau spoke of this development with humor tinged with disappointment. He also introduced me to the game of ‘pentaminos’, as we called them then.';
+
+  @override
+  String get aboutDeveloperOrigins2 =>
+      'In a solution to the 6 × 10 rectangle, he liked to look for groups of two or three pieces with axes of symmetry, or groups that could be rearranged in several ways. Starting with a single layout, these groups could generate many more solutions.';
+
+  @override
+  String get aboutDeveloperComputingTitle =>
+      'From one computing generation to another';
+
+  @override
+  String get aboutDeveloperComputing1 =>
+      'At the time, we submitted overnight jobs to IBM mainframes and obtained only a handful of solutions by morning. Today, using a Python program on my iPhone, I have calculated all 9,356 solutions to the 6 × 10 rectangle in advance.';
+
+  @override
+  String get aboutDeveloperComputing2 =>
+      'These precomputed solutions are stored using a compact 6-bit encoding. The twelve piece codes form a Sperner antichain: no code can be mistaken for another during binary operations. Pentapol can therefore query them with almost instantaneous response times.';
+
+  @override
+  String get aboutDeveloperComputing3 =>
+      'Artificial intelligence, particularly ChatGPT, also accompanied me in developing Pentapol. This new stage reminds me of the major transitions I have experienced: from assembly language to more accessible languages such as BASIC, and then to object-oriented languages. AI replaces neither the developer\'s experience nor judgement, but it profoundly changes the way software is designed, verified and evolved.';
+
+  @override
+  String get aboutDeveloperTributeTitle => 'A tribute';
+
+  @override
+  String get aboutDeveloperTribute =>
+      'More than forty-five years later, my career as a systems engineer and developer has enabled me to continue that introduction through Pentapol, in tribute to Paul de Casteljau.';
+
+  @override
+  String get aboutDeveloperThanksTitle => 'Acknowledgements';
+
+  @override
+  String get aboutDeveloperThanks1 =>
+      'My thanks to my wife Francine, a tester as attentive as she is demanding. Her formidable ‘Nobody understands this!’ and ‘This isn\'t clear!’ accompanied Pentapol\'s development and often brought me back to what matters most.';
+
+  @override
+  String get aboutDeveloperThanks2 =>
+      'The days when users apologized for not knowing how to use an application are over: today, it is the developer\'s responsibility to make an application understandable. Francine reminded me of that whenever necessary.';
 }

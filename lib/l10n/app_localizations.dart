@@ -1609,6 +1609,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The board has no solution left: you have reached a dead end. Tapping the red lamp removes the last placed piece to step back. You can tap again, until a solution becomes possible — the lamp then turns yellow.'**
   String get helpDescLampRed;
+
+  /// No description provided for @aboutDeveloperTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About the developer'**
+  String get aboutDeveloperTitle;
+
+  /// No description provided for @aboutDeveloperHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Paul Marie Larivière'**
+  String get aboutDeveloperHeading;
+
+  /// No description provided for @aboutDeveloperOriginsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The origins of Pentapol'**
+  String get aboutDeveloperOriginsTitle;
+
+  /// No description provided for @aboutDeveloperOrigins1.
+  ///
+  /// In en, this message translates to:
+  /// **'In the late 1970s, at Citroën, Paul de Casteljau trained me in curves and surfaces. At Citroën, we called them ‘curves and surfaces with poles’; they later became famous as Bézier curves and surfaces. Paul de Casteljau spoke of this development with humor tinged with disappointment. He also introduced me to the game of ‘pentaminos’, as we called them then.'**
+  String get aboutDeveloperOrigins1;
+
+  /// No description provided for @aboutDeveloperOrigins2.
+  ///
+  /// In en, this message translates to:
+  /// **'In a solution to the 6 × 10 rectangle, he liked to look for groups of two or three pieces with axes of symmetry, or groups that could be rearranged in several ways. Starting with a single layout, these groups could generate many more solutions.'**
+  String get aboutDeveloperOrigins2;
+
+  /// No description provided for @aboutDeveloperComputingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'From one computing generation to another'**
+  String get aboutDeveloperComputingTitle;
+
+  /// No description provided for @aboutDeveloperComputing1.
+  ///
+  /// In en, this message translates to:
+  /// **'At the time, we submitted overnight jobs to IBM mainframes and obtained only a handful of solutions by morning. Today, using a Python program on my iPhone, I have calculated all 9,356 solutions to the 6 × 10 rectangle in advance.'**
+  String get aboutDeveloperComputing1;
+
+  /// No description provided for @aboutDeveloperComputing2.
+  ///
+  /// In en, this message translates to:
+  /// **'These precomputed solutions are stored using a compact 6-bit encoding. The twelve piece codes form a Sperner antichain: no code can be mistaken for another during binary operations. Pentapol can therefore query them with almost instantaneous response times.'**
+  String get aboutDeveloperComputing2;
+
+  /// No description provided for @aboutDeveloperComputing3.
+  ///
+  /// In en, this message translates to:
+  /// **'Artificial intelligence, particularly ChatGPT, also accompanied me in developing Pentapol. This new stage reminds me of the major transitions I have experienced: from assembly language to more accessible languages such as BASIC, and then to object-oriented languages. AI replaces neither the developer\'s experience nor judgement, but it profoundly changes the way software is designed, verified and evolved.'**
+  String get aboutDeveloperComputing3;
+
+  /// No description provided for @aboutDeveloperTributeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A tribute'**
+  String get aboutDeveloperTributeTitle;
+
+  /// No description provided for @aboutDeveloperTribute.
+  ///
+  /// In en, this message translates to:
+  /// **'More than forty-five years later, my career as a systems engineer and developer has enabled me to continue that introduction through Pentapol, in tribute to Paul de Casteljau.'**
+  String get aboutDeveloperTribute;
+
+  /// No description provided for @aboutDeveloperThanksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Acknowledgements'**
+  String get aboutDeveloperThanksTitle;
+
+  /// No description provided for @aboutDeveloperThanks1.
+  ///
+  /// In en, this message translates to:
+  /// **'My thanks to my wife Francine, a tester as attentive as she is demanding. Her formidable ‘Nobody understands this!’ and ‘This isn\'t clear!’ accompanied Pentapol\'s development and often brought me back to what matters most.'**
+  String get aboutDeveloperThanks1;
+
+  /// No description provided for @aboutDeveloperThanks2.
+  ///
+  /// In en, this message translates to:
+  /// **'The days when users apologized for not knowing how to use an application are over: today, it is the developer\'s responsibility to make an application understandable. Francine reminded me of that whenever necessary.'**
+  String get aboutDeveloperThanks2;
 }
 
 class _AppLocalizationsDelegate

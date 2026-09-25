@@ -1,4 +1,6 @@
-// Modified: 2026-09-25 02:56 — tuile « Aide » (section À propos, avant la version) → HelpScreen.
+// Modified: 2026-09-25 07:48 — retrait de la tuile « Aide » (déplacée en icône dans le header
+//           de l'accueil).
+// Historique: 2026-09-25 02:56 — tuile « Aide » (section À propos, avant la version) → HelpScreen.
 // Historique: 2026-09-22 06:06 — interrupteur de visibilité de la miniature pendant le drag.
 // Historique: 2026-09-12 10:58 — accès au réglage du barème avant déploiement.
 // Historique: 2026-09-10 06:38 — réglage « Numéro des pièces » (SwitchListTile → setShowPieceNumbers, C8) :
@@ -38,7 +40,6 @@ import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/custom_colors_screen.dart';
-import 'package:pentapol/screens/help_screen.dart';
 import 'package:pentapol/config/build_info.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -328,9 +329,6 @@ class SettingsScreen extends ConsumerWidget {
 
             // === SECTION À PROPOS ===
             _buildSectionHeader(l10n.sectionAbout),
-
-            // Aide : signification des icônes du jeu
-            _buildHelpTile(context),
 
             // Version de l'app
             _buildVersionTile(context),
@@ -739,29 +737,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   // === WIDGET VERSION ===
-
-  /// Tuile « Aide » : ouvre l'écran décrivant les icônes du jeu. Même patron que les autres
-  /// tuiles de navigation de la section (puce colorée + titre + sous-titre + chevron).
-  Widget _buildHelpTile(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.amber.shade50,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.help_outline, color: Colors.amber),
-      ),
-      title: Text(l10n.helpTile),
-      subtitle: Text(l10n.helpTileSub),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const HelpScreen()),
-      ),
-    );
-  }
 
   Widget _buildVersionTile(BuildContext context) {
     return ListTile(

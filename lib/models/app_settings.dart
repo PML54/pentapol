@@ -306,7 +306,7 @@ class GameSettings {
     this.showSolutionCounter = true,
     this.enableHaptics = true,
     this.longPressDuration =
-        100, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
+        50, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
     this.showCounters = false,
     this.rackCellRatio =
         0.46, // figé par Paul le 2026-09-10 après calibrage device

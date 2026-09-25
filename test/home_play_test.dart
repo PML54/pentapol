@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 15:10 — vérifier l'accueil compact et le chargement Training asynchrone.
+// Modified: 2026-09-25 15:00 — vérifier Réglages dans le header et le retrait de Records.
+// Historique: 2026-09-23 15:10 — vérifier l'accueil compact et le chargement Training asynchrone.
 // Historique: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
 //           deux pièces ; le double-tap vers Game reste prioritaire.
 // Historique: 2026-09-22 05:14 — fin training : double-tap plein cadre vers Game, tap simple
@@ -295,8 +296,9 @@ void main() {
     expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-challenge')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-multiplayer')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-records')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-settings')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-records')), findsNothing);
+    expect(find.byKey(const ValueKey('home-header-settings')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-settings')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('home-training')));
     await tester.pump();
@@ -386,8 +388,7 @@ void main() {
           for (final key in [
             'home-challenge',
             'home-multiplayer',
-            'home-records',
-            'home-settings',
+            'home-header-settings',
           ]) {
             expect(find.byKey(ValueKey(key)), findsOneWidget);
           }

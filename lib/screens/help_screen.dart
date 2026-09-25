@@ -1,5 +1,7 @@
-// Modified: 2026-09-25 03:14 — lampe scindée en deux entrées (rouge, jaune) placées en tête
-//           de l'aide : leur compréhension est prioritaire.
+// Modified: 2026-09-25 15:10 — retirer rotation simple, compteur et nouvelle partie de l'aide.
+// Historique: 2026-09-25 15:06 — retirer quatre commandes obsolètes ou dupliquées de l'aide.
+// Historique: 2026-09-25 03:14 — lampe scindée en deux entrées (rouge, jaune) placées en tête
+//             de l'aide : leur compréhension est prioritaire.
 // lib/screens/help_screen.dart
 // Historique: 2026-09-25 03:11 — icônes sur fond clair : les deux icônes quasi-blanches
 //           (settings, undo) foncées pour rester lisibles ; couleurs saturées inchangées.
@@ -12,11 +14,10 @@ import 'package:pentapol/l10n/app_localizations.dart';
 
 /// Écran d'Aide : liste « icône + libellé + description » de toutes les icônes du jeu.
 ///
-/// Les 13 icônes cataloguées viennent de [GameIcons.getIconsForMode] (mode normal +
-/// isométries, dédupliquées : `settings` est commun aux deux). Trois icônes de la barre
-/// d'action du plateau ne sont pas dans le registre `GameIcons` (posées en dur dans
-/// `pentoscope_game_screen.dart`) et sont ajoutées à la main : retour à l'accueil, nouvelle
-/// partie et la lampe (indice / retour en arrière).
+/// Les icônes cataloguées viennent de [GameIcons.getIconsForMode] (mode normal +
+/// isométries), dédupliquées et filtrées pour écarter les commandes obsolètes. Le retour à
+/// l'accueil et la lampe (indice / retour en arrière), absents du registre `GameIcons`, sont
+/// ajoutés à la main.
 ///
 /// Tous les textes passent par [AppLocalizations] (EN/FR). Les libellés/descriptions figés
 /// dans `game_icons_config.dart` restent une source de vérité provisoire, non consommée ici.
@@ -91,79 +92,78 @@ class HelpScreen extends StatelessWidget {
     for (final config in configs) {
       if (seen.any((c) => identical(c, config))) continue;
       seen.add(config);
+      if (_isHidden(config)) continue;
       entries.add(_entryFor(config, l10n));
     }
 
-    // Autres icônes hors `GameIcons`, posées en dur dans pentoscope_game_screen.dart
-    // (la lampe, également hors registre, est déjà traitée en tête).
-    entries.addAll([
+    // Retour à l'accueil, posé en dur dans pentoscope_game_screen.dart.
+    entries.add(
       _HelpEntry(
         Icons.home_outlined,
         Colors.blueGrey,
         l10n.homeTooltip,
         l10n.helpDescHome,
       ),
-      _HelpEntry(
-        Icons.add_circle_outline,
-        Colors.blue,
-        l10n.newGame,
-        l10n.helpDescNewGame,
-      ),
-    ]);
+    );
 
     return entries;
   }
 
+  bool _isHidden(GameIconConfig config) =>
+      identical(config, GameIcons.enterIsometries) ||
+      identical(config, GameIcons.viewSolutions) ||
+      identical(config, GameIcons.undo) ||
+      identical(config, GameIcons.isometryDelete) ||
+      identical(config, GameIcons.solutionsCounter) ||
+      identical(config, GameIcons.rotatePiece);
+
   /// Associe une entrée `GameIcons` à ses textes localisés, par identité de la constante.
   _HelpEntry _entryFor(GameIconConfig c, AppLocalizations l10n) {
     if (identical(c, GameIcons.settings)) {
-      return _HelpEntry(c.icon, c.color, l10n.settingsTitle, l10n.helpDescSettings);
-    }
-    if (identical(c, GameIcons.enterIsometries)) {
-      return _HelpEntry(c.icon, c.color, l10n.helpLabelEnterIso, l10n.helpDescEnterIso);
+      return _HelpEntry(
+        c.icon,
+        c.color,
+        l10n.settingsTitle,
+        l10n.helpDescSettings,
+      );
     }
     if (identical(c, GameIcons.exitIsometries)) {
-      return _HelpEntry(c.icon, c.color, l10n.helpLabelExitIso, l10n.helpDescExitIso);
-    }
-    if (identical(c, GameIcons.viewSolutions)) {
       return _HelpEntry(
         c.icon,
         c.color,
-        l10n.helpLabelViewSolutions,
-        l10n.helpDescViewSolutions,
+        l10n.helpLabelExitIso,
+        l10n.helpDescExitIso,
       );
-    }
-    if (identical(c, GameIcons.solutionsCounter)) {
-      return _HelpEntry(
-        c.icon,
-        c.color,
-        l10n.helpLabelSolutionsCounter,
-        l10n.helpDescSolutionsCounter,
-      );
-    }
-    if (identical(c, GameIcons.rotatePiece)) {
-      return _HelpEntry(c.icon, c.color, l10n.helpLabelRotate, l10n.helpDescRotate);
     }
     if (identical(c, GameIcons.removePiece)) {
-      return _HelpEntry(c.icon, c.color, l10n.helpLabelRemove, l10n.helpDescRemove);
-    }
-    if (identical(c, GameIcons.undo)) {
-      return _HelpEntry(c.icon, c.color, l10n.helpLabelUndo, l10n.helpDescUndo);
+      return _HelpEntry(
+        c.icon,
+        c.color,
+        l10n.helpLabelRemove,
+        l10n.helpDescRemove,
+      );
     }
     if (identical(c, GameIcons.isometryRotationTW)) {
-      return _HelpEntry(c.icon, c.color, l10n.isoRotateTW, l10n.helpDescIsoRotateTW);
+      return _HelpEntry(
+        c.icon,
+        c.color,
+        l10n.isoRotateTW,
+        l10n.helpDescIsoRotateTW,
+      );
     }
     if (identical(c, GameIcons.isometryRotationCW)) {
-      return _HelpEntry(c.icon, c.color, l10n.isoRotateCW, l10n.helpDescIsoRotateCW);
+      return _HelpEntry(
+        c.icon,
+        c.color,
+        l10n.isoRotateCW,
+        l10n.helpDescIsoRotateCW,
+      );
     }
     if (identical(c, GameIcons.isometrySymmetryH)) {
       return _HelpEntry(c.icon, c.color, l10n.isoSymH, l10n.helpDescIsoSymH);
     }
     if (identical(c, GameIcons.isometrySymmetryV)) {
       return _HelpEntry(c.icon, c.color, l10n.isoSymV, l10n.helpDescIsoSymV);
-    }
-    if (identical(c, GameIcons.isometryDelete)) {
-      return _HelpEntry(c.icon, c.color, l10n.isoRemove, l10n.helpDescIsoDelete);
     }
     // Filet de sécurité : une icône ajoutée au registre sans entrée d'aide reste visible,
     // avec au moins son libellé figé (provisoire) plutôt qu'une ligne vide.

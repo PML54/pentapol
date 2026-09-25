@@ -15,6 +15,26 @@
 
 ## §ÉTAT — au 2026-09-25
 
+### À propos du développeur (2026-09-25)
+
+L'accueil donne désormais accès, par une icône dédiée dans son en-tête, à une présentation de
+Paul Marie Larivière. Elle raconte sa formation à la fin des années 1970 chez Citroën par Paul de
+Casteljau, les « courbes et surfaces à pôles », son initiation aux pentaminos et la recherche de
+symétries dans les solutions 6×10. Le texte rapproche les jobs de nuit sur ordinateurs centraux IBM
+du calcul préalable des 9 356 solutions en Python sur iPhone, puis présente leur stockage compact
+sur 6 bits et l'antichaîne de Sperner. Une conclusion rend hommage à Paul de Casteljau et remercie
+Francine pour ses tests exigeants. Le parcours informatique évoque aussi l'IA et ChatGPT comme une
+nouvelle transition après l'assembleur, BASIC et les langages orientés objet, sans substituer l'outil
+à l'expérience ni au jugement du développeur. L'écran est intégralement localisé en français et en
+anglais.
+
+Le header de l'accueil emploie maintenant une rangée stable (titre flexible + trois boutons) afin
+que les accès Développeur, Aide et Réglages ne recouvrent pas le titre sur les petits écrans. La
+croix colorée précédant Pentapol et l'accès Records ont été retirés ; Records sera replacé dans le
+module Jeu Solo si un emplacement satisfaisant est trouvé. Les trois icônes du header sont portées
+à 30 px, avec leur zone tactile standard conservée. Le bouton Réglages de la rangée inférieure a
+été retiré : l'icône du header est désormais l'unique accès aux paramètres depuis l'accueil.
+
 ### Écran d'Aide — icônes du jeu (2026-09-25, cowork)
 
 Paul demande un écran d'Aide décrivant les icônes. Périmètre tranché : **icônes de jeu
@@ -50,7 +70,10 @@ liste `icône + libellé + description`), **17 lignes** : les **deux états de l
 (lampe rouge = impasse, un appui retire la dernière pièce posée / lampe jaune = indice, pose
 automatique d'une pièce correcte) — leur compréhension étant prioritaire (retour de Paul) ; puis
 13 entrées issues de `GameIcons.getIconsForMode` (normal + isométries, dédupliquées par identité —
-`settings` commun) ; puis `home_outlined` et `add_circle_outline`. Accès par une tuile « Aide » en
+`settings` commun) ; puis `home_outlined` et `add_circle_outline`. La liste visible a ensuite été
+ramenée à 10 lignes : « Mode Isométries », « Voir les solutions », « Annuler », la première
+« Rotation », « Nombre de solutions » et « Nouvelle partie » ont été retirés car ils ne sont plus
+utilisés, ainsi que le second « Retirer » redondant. Accès par une tuile « Aide » en
 section À propos de `settings_screen.dart`, avant la version. Icônes affichées **sur fond clair** :
 les deux icônes quasi-blanches (`settings`, `undo`) sont foncées (seuil de luminance) pour rester
 lisibles ; couleurs saturées (bleu/vert/violet/rouge/ambre) inchangées. Textes dans
@@ -58,7 +81,7 @@ lisibles ; couleurs saturées (bleu/vert/violet/rouge/ambre) inchangées. Textes
 quand ils existaient ; nouvelles clés `helpLampRedLabel`/`helpLampAmberLabel` +
 `helpDescLampRed`/`helpDescLampAmber`). `game_icons_config.dart` **non modifié** : ses
 `tooltip`/`description` restent source de vérité provisoire (option retenue). Icônes de symétrie
-inchangées (C4). Test `test/help_screen_test.dart` (FR/EN, 17 lignes) vert ; `flutter analyze`
+inchangées (C4). Test `test/help_screen_test.dart` (FR/EN, 10 lignes) vert ; `flutter analyze`
 0 erreur.
 
 ### Relâcher rack → tiroir sans pièce fantôme (2026-09-25)
@@ -1395,6 +1418,13 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-25 (31) — CLI : présentation du développeur depuis l'accueil.**
+Nouvel écran localisé FR/EN : souvenir de Paul de Casteljau chez Citroën, pentaminos, évolution des
+calculs, encodage 6 bits et antichaîne de Sperner, hommage et remerciements à Francine. Une icône
+`person_outline` l'ouvre depuis le header de l'accueil, réorganisé pour rester lisible à 320 px.
+La marque en croix a ensuite été retirée du titre et Records remplacé par un accès direct aux
+Réglages ; l'accès Records est réservé à un futur emplacement dans Jeu Solo.
 
 **2026-09-25 (30) — CLI : relâcher dans la zone entre plateau et tiroir.**
 Le corps du jeu nettoie après `PointerUp`/`PointerCancel` une preview encore associée à une pièce du

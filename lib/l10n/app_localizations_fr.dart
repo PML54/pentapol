@@ -888,4 +888,55 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get helpDescLampRed =>
       'Le plateau n\'a plus de solution : la partie est dans une impasse. Appuyer sur la lampe rouge retire la dernière pièce posée pour revenir en arrière. On peut appuyer plusieurs fois, jusqu\'à ce qu\'une solution redevienne possible — la lampe repasse alors au jaune.';
+
+  @override
+  String get aboutDeveloperTitle => 'À propos du développeur';
+
+  @override
+  String get aboutDeveloperHeading => 'Paul Marie Larivière';
+
+  @override
+  String get aboutDeveloperOriginsTitle => 'Aux origines de Pentapol';
+
+  @override
+  String get aboutDeveloperOrigins1 =>
+      'À la fin des années 1970, chez Citroën, j\'ai été formé par Paul de Casteljau aux courbes et aux surfaces. Chez Citroën, nous les appelions alors « courbes et surfaces à pôles » ; elles sont depuis devenues célèbres sous le nom de courbes et surfaces de Bézier. Paul de Casteljau évoquait cette évolution avec un humour teinté de déception. C\'est également lui qui m\'a initié au jeu des « pentaminos », comme nous les appelions alors.';
+
+  @override
+  String get aboutDeveloperOrigins2 =>
+      'Sur une solution du rectangle 6 × 10, il aimait rechercher des groupes de deux ou trois pièces présentant des axes de symétrie ou pouvant être réorganisés de plusieurs façons. À partir d\'une seule disposition, ces groupes permettaient ainsi de construire de nombreuses autres solutions.';
+
+  @override
+  String get aboutDeveloperComputingTitle =>
+      'D\'une génération informatique à l\'autre';
+
+  @override
+  String get aboutDeveloperComputing1 =>
+      'À l\'époque, nous lancions des jobs pendant la nuit sur les ordinateurs centraux IBM pour n\'obtenir qu\'une poignée de solutions au matin. Aujourd\'hui, j\'ai calculé au préalable, avec un programme écrit en Python sur mon iPhone, les 9 356 solutions du rectangle 6 × 10.';
+
+  @override
+  String get aboutDeveloperComputing2 =>
+      'Ces solutions précalculées sont stockées grâce à un codage compact sur 6 bits. Les douze codes des pièces forment une antichaîne de Sperner : aucun code ne peut être confondu avec un autre lors des opérations binaires. Pentapol peut ainsi les interroger avec des temps de réponse presque instantanés.';
+
+  @override
+  String get aboutDeveloperComputing3 =>
+      'L\'intelligence artificielle, notamment ChatGPT, m\'a également accompagné dans le développement de Pentapol. Cette nouvelle étape me rappelle les grandes transitions que j\'ai connues : de l\'assembleur aux langages plus accessibles, comme BASIC, puis aux langages orientés objet. L\'IA ne remplace ni l\'expérience ni le jugement du développeur, mais elle transforme profondément sa manière de concevoir, de vérifier et de faire évoluer un logiciel.';
+
+  @override
+  String get aboutDeveloperTributeTitle => 'Un hommage';
+
+  @override
+  String get aboutDeveloperTribute =>
+      'Plus de quarante-cinq ans après, mon parcours d\'ingénieur système et de développeur m\'a permis de prolonger cette initiation avec Pentapol, en hommage à Paul de Casteljau.';
+
+  @override
+  String get aboutDeveloperThanksTitle => 'Remerciements';
+
+  @override
+  String get aboutDeveloperThanks1 =>
+      'Merci à mon épouse Francine, testeuse aussi attentive qu\'exigeante. Ses redoutables « On ne comprend rien ! » et « Ce n\'est pas clair ! » ont accompagné l\'évolution de Pentapol et m\'ont souvent ramené à l\'essentiel.';
+
+  @override
+  String get aboutDeveloperThanks2 =>
+      'Le temps où l\'utilisateur s\'excusait de ne pas savoir utiliser une application est révolu : aujourd\'hui, c\'est au développeur de rendre son application compréhensible. Francine a su me le rappeler chaque fois que cela était nécessaire.';
 }

@@ -1,4 +1,10 @@
-// Modified: 2026-09-25 02:30 — agrandir la démonstration et les actions sur tablette.
+// Modified: 2026-09-25 15:26 — retirer le bouton Réglages redondant de la rangée basse.
+// Historique: 2026-09-25 15:00 — simplifier le header et agrandir ses icônes à 30 px ;
+//             retirer la marque et remplacer Records par Réglages.
+// Historique: 2026-09-25 14:43 — ajouter l'accès « À propos du développeur » dans le header.
+// Historique: 2026-09-25 07:48 — accueil : icône Help dans le header, couleur par module et
+//             Solo/Défi agrandis.
+// Historique: 2026-09-25 02:30 — agrandir la démonstration et les actions sur tablette.
 // Historique: 2026-09-23 16:40 — maximiser la démo et compacter les actions inférieures.
 // Historique: 2026-09-21 09:04 — ne pas relancer le training après un retour à l'accueil.
 // Historique: 2026-09-21 08:49 — ouvrir le parcours initial avec le mode training explicite.
@@ -14,9 +20,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/providers/settings_provider.dart';
+import 'package:pentapol/screens/about_developer_screen.dart';
+import 'package:pentapol/screens/help_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
-import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
@@ -77,38 +84,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFE4E7EC))),
       ),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _PentapolMark(size: 28),
-              const SizedBox(width: 12),
-              Text(
-                l10n.appTitle,
-                style: const TextStyle(
-                  color: Color(0xFF27364A),
-                  fontSize: 25,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
+          Expanded(
+            child: Text(
+              l10n.appTitle,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF27364A),
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
               ),
-            ],
+            ),
           ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              key: const ValueKey('home-records'),
-              tooltip: l10n.homeRecords,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RecordsScreen()),
-              ),
-              icon: const Icon(
-                Icons.emoji_events_outlined,
-                color: Color(0xFF52657D),
-              ),
+          IconButton(
+            key: const ValueKey('home-about-developer'),
+            tooltip: l10n.aboutDeveloperTitle,
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutDeveloperScreen()),
+            ),
+            icon: const Icon(
+              Icons.person_outline,
+              color: Color(0xFF52657D),
+              size: 30,
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('home-help'),
+            tooltip: l10n.helpTile,
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HelpScreen()),
+            ),
+            icon: const Icon(
+              Icons.help_outline,
+              color: Color(0xFF52657D),
+              size: 30,
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('home-header-settings'),
+            tooltip: l10n.settingsTitle,
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: Color(0xFF52657D),
+              size: 30,
             ),
           ),
         ],
@@ -180,10 +205,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             MaterialPageRoute(builder: (_) => const ChallengeScreen()),
           ),
           onTraining: _playRecreational,
-          onSettings: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-          ),
         );
 
         return Center(
@@ -262,7 +283,6 @@ class _HomeActions extends StatelessWidget {
   final VoidCallback onDuo;
   final VoidCallback onChallenge;
   final VoidCallback onTraining;
-  final VoidCallback onSettings;
 
   const _HomeActions({
     required this.expanded,
@@ -270,8 +290,13 @@ class _HomeActions extends StatelessWidget {
     required this.onDuo,
     required this.onChallenge,
     required this.onTraining,
-    required this.onSettings,
   });
+
+  // Une couleur distincte par module (accès), pour les distinguer d'un coup d'œil.
+  static const Color _soloColor = Color(0xFF3768C5); // bleu
+  static const Color _challengeColor = Color(0xFFF57C00); // orange
+  static const Color _duoColor = Color(0xFF00897B); // turquoise
+  static const Color _trainingColor = Color(0xFF8E24AA); // violet
 
   @override
   Widget build(BuildContext context) {
@@ -280,55 +305,26 @@ class _HomeActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Rangée principale, volontairement plus grande : Solo et Défi.
         Row(
           children: [
             Expanded(
-              child: FilledButton.icon(
+              child: _buildPrimary(
                 key: const ValueKey('home-play'),
+                icon: Icons.play_arrow_rounded,
+                label: l10n.homeSolo,
+                color: _soloColor,
                 onPressed: onSolo,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(l10n.homeSolo),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF3768C5),
-                  foregroundColor: Colors.white,
-                  minimumSize: Size.fromHeight(expanded ? 58 : 46),
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  textStyle: TextStyle(
-                    fontSize: expanded ? 19 : 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: FilledButton.icon(
+              child: _buildPrimary(
                 key: const ValueKey('home-challenge'),
+                icon: Icons.flag_outlined,
+                label: l10n.homeChallenge,
+                color: _challengeColor,
                 onPressed: onChallenge,
-                icon: const Icon(Icons.flag_outlined),
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(l10n.homeChallenge),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF3768C5),
-                  foregroundColor: Colors.white,
-                  minimumSize: Size.fromHeight(expanded ? 58 : 46),
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  textStyle: TextStyle(
-                    fontSize: expanded ? 19 : 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
               ),
             ),
           ],
@@ -341,6 +337,7 @@ class _HomeActions extends StatelessWidget {
                 key: const ValueKey('home-multiplayer'),
                 icon: Icons.people_outline,
                 label: l10n.homeDuo,
+                color: _duoColor,
                 expanded: expanded,
                 onTap: onDuo,
               ),
@@ -351,18 +348,9 @@ class _HomeActions extends StatelessWidget {
                 key: const ValueKey('home-training'),
                 icon: Icons.school_outlined,
                 label: l10n.guidedAnother,
+                color: _trainingColor,
                 expanded: expanded,
                 onTap: onTraining,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _HomeDestination(
-                key: const ValueKey('home-settings'),
-                icon: Icons.tune,
-                label: l10n.homeSettings,
-                expanded: expanded,
-                onTap: onSettings,
               ),
             ),
           ],
@@ -370,11 +358,39 @@ class _HomeActions extends StatelessWidget {
       ],
     );
   }
+
+  /// Grand bouton plein (Solo, Défi) : plus haut et police plus grande que les accès
+  /// secondaires, chacun avec sa couleur de module.
+  Widget _buildPrimary({
+    required Key key,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return FilledButton.icon(
+      key: key,
+      onPressed: onPressed,
+      icon: Icon(icon, size: expanded ? 32 : 27),
+      label: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
+      style: FilledButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        minimumSize: Size.fromHeight(expanded ? 82 : 64),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: TextStyle(
+          fontSize: expanded ? 26 : 21,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
 }
 
 class _HomeDestination extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color color;
   final VoidCallback onTap;
   final bool expanded;
 
@@ -382,16 +398,19 @@ class _HomeDestination extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
+    required this.color,
     required this.onTap,
     required this.expanded,
   });
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    // Fond teinté clair + bord et icône dans la couleur du module : distingue les accès
+    // sans écraser la lisibilité du libellé (qui reste en encre sombre).
+    color: color.withValues(alpha: 0.10),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
-      side: const BorderSide(color: Color(0xFFE0E4EA)),
+      side: BorderSide(color: color.withValues(alpha: 0.35)),
     ),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
@@ -404,11 +423,7 @@ class _HomeDestination extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: const Color(0xFF52657D),
-              size: expanded ? 27 : 20,
-            ),
+            Icon(icon, color: color, size: expanded ? 27 : 20),
             const SizedBox(height: 3),
             Text(
               label,
@@ -416,7 +431,7 @@ class _HomeDestination extends StatelessWidget {
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Color(0xFF27364A),
+                color: const Color(0xFF27364A),
                 fontSize: expanded ? 14 : 11.5,
                 height: 1.05,
                 fontWeight: FontWeight.w700,
@@ -425,65 +440,6 @@ class _HomeDestination extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
-}
-
-class _PentapolMark extends StatelessWidget {
-  final double size;
-
-  const _PentapolMark({required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    const colors = [
-      Color(0xFF4D9DF7),
-      Color(0xFFFFD052),
-      Color(0xFFE84A5F),
-      Color(0xFF4DB6AC),
-      Color(0xFFBA68C8),
-    ];
-    final cell = size / 3;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        children: [
-          for (var i = 0; i < 3; i++)
-            Positioned(
-              left: i * cell,
-              top: cell,
-              child: _MarkCell(size: cell, color: colors[i]),
-            ),
-          Positioned(
-            left: cell,
-            top: 0,
-            child: _MarkCell(size: cell, color: colors[3]),
-          ),
-          Positioned(
-            left: cell,
-            top: cell * 2,
-            child: _MarkCell(size: cell, color: colors[4]),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MarkCell extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _MarkCell({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      color: color,
-      border: Border.all(color: Colors.white, width: size > 20 ? 2 : 1),
     ),
   );
 }
