@@ -1,4 +1,3 @@
-// Modified: 2026-09-25 02:30 — générer les traductions françaises du défi quotidien.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -790,4 +789,103 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get geometryLegacy => 'Barème du défi';
+
+  @override
+  String get helpTitle => 'Aide — icônes du jeu';
+
+  @override
+  String get helpTile => 'Aide';
+
+  @override
+  String get helpTileSub => 'Signification des icônes du jeu';
+
+  @override
+  String get helpLabelEnterIso => 'Mode Isométries';
+
+  @override
+  String get helpLabelExitIso => 'Retour au jeu';
+
+  @override
+  String get helpLabelViewSolutions => 'Voir les solutions';
+
+  @override
+  String get helpLabelSolutionsCounter => 'Nombre de solutions';
+
+  @override
+  String get helpLabelRotate => 'Rotation';
+
+  @override
+  String get helpLabelRemove => 'Retirer';
+
+  @override
+  String get helpLabelUndo => 'Annuler';
+
+  @override
+  String get helpDescSettings => 'Ouvre l\'écran des paramètres.';
+
+  @override
+  String get helpDescEnterIso =>
+      'Passe en mode isométries en sauvegardant l\'état actuel du plateau.';
+
+  @override
+  String get helpDescExitIso =>
+      'Quitte le mode isométries et restaure l\'état du jeu.';
+
+  @override
+  String get helpDescViewSolutions =>
+      'Affiche les solutions compatibles avec l\'état actuel du plateau.';
+
+  @override
+  String get helpDescSolutionsCounter =>
+      'Indique le nombre de solutions encore possibles.';
+
+  @override
+  String get helpDescRotate =>
+      'Fait pivoter la pièce sélectionnée (mode normal).';
+
+  @override
+  String get helpDescRemove => 'Retire du plateau la pièce sélectionnée.';
+
+  @override
+  String get helpDescUndo => 'Annule le dernier placement de pièce.';
+
+  @override
+  String get helpDescIsoRotateTW =>
+      'Rotation de 90° dans le sens anti-horaire (trigonométrique).';
+
+  @override
+  String get helpDescIsoRotateCW => 'Rotation de 90° dans le sens horaire.';
+
+  @override
+  String get helpDescIsoSymH =>
+      'Miroir haut ↔ bas (symétrie d\'axe horizontal).';
+
+  @override
+  String get helpDescIsoSymV =>
+      'Miroir gauche ↔ droite (symétrie d\'axe vertical).';
+
+  @override
+  String get helpDescIsoDelete =>
+      'Retire du plateau la pièce sélectionnée (mode isométries).';
+
+  @override
+  String get helpDescHome => 'Revient à l\'écran d\'accueil.';
+
+  @override
+  String get helpDescNewGame =>
+      'Démarre une nouvelle partie avec un nouveau tirage.';
+
+  @override
+  String get helpLampAmberLabel => 'Lampe jaune';
+
+  @override
+  String get helpLampRedLabel => 'Lampe rouge';
+
+  @override
+  String get helpDescLampAmber =>
+      'Le plateau a encore au moins une solution. Appuyer sur la lampe jaune donne un indice : une pièce correcte est posée automatiquement.';
+
+  @override
+  String get helpDescLampRed =>
+      'Le plateau n\'a plus de solution : la partie est dans une impasse. Appuyer sur la lampe rouge retire la dernière pièce posée pour revenir en arrière. On peut appuyer plusieurs fois, jusqu\'à ce qu\'une solution redevienne possible — la lampe repasse alors au jaune.';
 }

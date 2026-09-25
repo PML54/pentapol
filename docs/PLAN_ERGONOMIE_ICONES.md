@@ -69,6 +69,15 @@ au confort de jeu.
 | C8 | Le numéro de pièce est répété **sur les cinq cases** d'une pièce posée, mais une seule fois en pastille au rack : deux conventions pour la même information | `piece5`, `piece9` |
 | C9 | Le bandeau de debug **recouvre** le haut du plateau (déjà point 22 de la checklist) | `piece5` |
 
+> **Retour de Paul sur C4 (2026-09-25, cowork) — désaccord tranché, pas de correction prévue.**
+> À l'occasion d'une demande d'écran d'Aide décrivant les icônes du jeu, Paul a confirmé vouloir
+> garder `swap_vert`/`swap_horiz` tels quels sur les boutons de symétrie : les flèches haut/bas
+> lui paraissent justement lisibles comme « la pièce s'inverse de haut en bas », ce qui est le
+> sens voulu pour la symétrie d'axe horizontal — le sens Material (« réordonner une liste ») ne
+> s'applique pas à sa lecture du jeu. **C4 est donc classé « ressenti, pas un bug » : les vignettes
+> de résultat proposées au §3.2 restent une option ouverte, pas une correction requise.** Un futur
+> écran d'Aide documente ces icônes telles qu'elles sont aujourd'hui, sans attendre de refonte.
+
 ---
 
 ## 2. Invariant — le plateau reste toujours légal

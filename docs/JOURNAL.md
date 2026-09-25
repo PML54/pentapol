@@ -15,6 +15,52 @@
 
 ## §ÉTAT — au 2026-09-25
 
+### Écran d'Aide — icônes du jeu (2026-09-25, cowork)
+
+Paul demande un écran d'Aide décrivant les icônes. Périmètre tranché : **icônes de jeu
+uniquement** (les 13 entrées de `GameIcons`), pas les 124 usages d'`Icons.xxx` ailleurs dans
+l'appli (réglages, classement, multijoueur, défis) qui ne sont pas catalogués et resteraient
+hors périmètre pour l'instant.
+
+Deux faits qui changent le coût du travail :
+- `GameIconConfig` porte déjà `tooltip` et `description` pour chaque icône (15 occurrences) —
+  mais aucun des deux champs n'est consommé nulle part dans l'UI (vérifié par grep : seuls
+  `.icon` et `.color` sont lus dans les écrans de jeu). Le contenu texte existe, l'écran n'existe
+  pas.
+- Ces `tooltip`/`description` sont des littéraux français en dur, hors du système `AppLocalizations`
+  (fr/en) déjà en place ailleurs dans l'appli. Un écran d'Aide qui les affiche tel quel montrerait
+  du français même en langue Anglais — à traiter dans le même chantier, pas après.
+
+Désaccord C4 de `PLAN_ERGONOMIE_ICONES.md` (icônes de symétrie jugées sémantiquement fausses)
+tranché par Paul : conservées telles quelles, voir note ajoutée dans ce document.
+
+**Correction du périmètre (2026-09-25, cowork, relance de Paul sur la lampe).** `GameIcons` ne
+couvre pas la barre d'action du plateau : `home_outlined`, `add_circle_outline` (nouvelle partie)
+et surtout la lampe (`Icons.lightbulb`, `pentoscope_game_screen.dart` ~l. 1418) sont posées en dur
+dans l'écran de jeu, hors registre. La lampe est le cas le plus net : une seule icône, deux
+comportements selon sa couleur — ambre = indice (`applyHint`), rouge = le même appui retire la
+dernière pièce posée (`removePlacedPiece`), sans libellé visible en permanence. Périmètre du Help
+étendu à ces trois icônes en plus des 13 de `GameIcons`. Les autres icônes croisées dans ce fichier
+(`casino_outlined`, `refresh`, `leaderboard_outlined`, `info`) portent toutes un libellé texte
+visible et restent hors périmètre. Contrairement à `GameIconConfig`, la lampe est déjà localisée
+via `l10n.hint` / `l10n.noSolutionBack` — pas de dette i18n sur celle-ci.
+
+**Implémenté (2026-09-25, CLI).** Nouvel écran `lib/screens/help_screen.dart` (StatelessWidget,
+liste `icône + libellé + description`), **17 lignes** : les **deux états de la lampe en tête**
+(lampe rouge = impasse, un appui retire la dernière pièce posée / lampe jaune = indice, pose
+automatique d'une pièce correcte) — leur compréhension étant prioritaire (retour de Paul) ; puis
+13 entrées issues de `GameIcons.getIconsForMode` (normal + isométries, dédupliquées par identité —
+`settings` commun) ; puis `home_outlined` et `add_circle_outline`. Accès par une tuile « Aide » en
+section À propos de `settings_screen.dart`, avant la version. Icônes affichées **sur fond clair** :
+les deux icônes quasi-blanches (`settings`, `undo`) sont foncées (seuil de luminance) pour rester
+lisibles ; couleurs saturées (bleu/vert/violet/rouge/ambre) inchangées. Textes dans
+`app_fr.arb`/`app_en.arb` (libellés réutilisant `settingsTitle`, `iso*`, `homeTooltip`, `newGame`
+quand ils existaient ; nouvelles clés `helpLampRedLabel`/`helpLampAmberLabel` +
+`helpDescLampRed`/`helpDescLampAmber`). `game_icons_config.dart` **non modifié** : ses
+`tooltip`/`description` restent source de vérité provisoire (option retenue). Icônes de symétrie
+inchangées (C4). Test `test/help_screen_test.dart` (FR/EN, 17 lignes) vert ; `flutter analyze`
+0 erreur.
+
 ### Relâcher rack → tiroir sans pièce fantôme (2026-09-25)
 
 Le tiroir distingue désormais un relâcher dans sa profondeur d'un relâcher au bord du plateau. Le
@@ -1341,6 +1387,13 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-25 (29) — CLI : écran d'Aide des icônes du jeu.**
+Nouvel `help_screen.dart` (17 lignes) ouvert par les deux états de la lampe (rouge = impasse/retour,
+jaune = indice), puis les 13 icônes de `GameIcons` (dédupliquées), puis accueil et nouvelle partie.
+Icônes sur fond clair, les deux quasi-blanches foncées pour rester lisibles. Accès par une tuile
+« Aide » en section À propos des Paramètres. Chaînes localisées EN/FR ajoutées aux ARB ;
+`game_icons_config.dart` laissé intact. Test FR/EN (17 lignes) vert, `flutter analyze` 0 erreur.
 
 **2026-09-25 (28) — CLI : version interne 1.0.10.**
 Mise à jour de la version et du build affichés dans Paramètres après validation du correctif de drag.

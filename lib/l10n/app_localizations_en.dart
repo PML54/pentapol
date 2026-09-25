@@ -1,4 +1,3 @@
-// Modified: 2026-09-25 02:30 — générer les traductions anglaises du défi quotidien.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -784,4 +783,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get geometryLegacy => 'Challenge scoring';
+
+  @override
+  String get helpTitle => 'Help — game icons';
+
+  @override
+  String get helpTile => 'Help';
+
+  @override
+  String get helpTileSub => 'What the game icons mean';
+
+  @override
+  String get helpLabelEnterIso => 'Isometries mode';
+
+  @override
+  String get helpLabelExitIso => 'Back to game';
+
+  @override
+  String get helpLabelViewSolutions => 'View solutions';
+
+  @override
+  String get helpLabelSolutionsCounter => 'Solution count';
+
+  @override
+  String get helpLabelRotate => 'Rotate';
+
+  @override
+  String get helpLabelRemove => 'Remove';
+
+  @override
+  String get helpLabelUndo => 'Undo';
+
+  @override
+  String get helpDescSettings => 'Opens the settings screen.';
+
+  @override
+  String get helpDescEnterIso =>
+      'Switches to isometries mode, saving the current board state.';
+
+  @override
+  String get helpDescExitIso =>
+      'Leaves isometries mode and restores the game state.';
+
+  @override
+  String get helpDescViewSolutions =>
+      'Shows the solutions that still fit the current board.';
+
+  @override
+  String get helpDescSolutionsCounter =>
+      'Shows how many solutions are still possible.';
+
+  @override
+  String get helpDescRotate => 'Rotates the selected piece (normal mode).';
+
+  @override
+  String get helpDescRemove => 'Removes the selected piece from the board.';
+
+  @override
+  String get helpDescUndo => 'Undoes the last piece placement.';
+
+  @override
+  String get helpDescIsoRotateTW => 'Rotates the piece 90° counter-clockwise.';
+
+  @override
+  String get helpDescIsoRotateCW => 'Rotates the piece 90° clockwise.';
+
+  @override
+  String get helpDescIsoSymH =>
+      'Flips the piece top ↔ bottom (mirror across the horizontal axis).';
+
+  @override
+  String get helpDescIsoSymV =>
+      'Flips the piece left ↔ right (mirror across the vertical axis).';
+
+  @override
+  String get helpDescIsoDelete =>
+      'Removes the selected piece from the board (isometries mode).';
+
+  @override
+  String get helpDescHome => 'Returns to the home screen.';
+
+  @override
+  String get helpDescNewGame => 'Starts a new game with a fresh draw.';
+
+  @override
+  String get helpLampAmberLabel => 'Yellow lamp';
+
+  @override
+  String get helpLampRedLabel => 'Red lamp';
+
+  @override
+  String get helpDescLampAmber =>
+      'The board still has at least one solution. Tapping the yellow lamp gives a hint: a correct piece is placed automatically.';
+
+  @override
+  String get helpDescLampRed =>
+      'The board has no solution left: you have reached a dead end. Tapping the red lamp removes the last placed piece to step back. You can tap again, until a solution becomes possible — the lamp then turns yellow.';
 }

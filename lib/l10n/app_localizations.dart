@@ -1,4 +1,3 @@
-// Modified: 2026-09-25 02:30 — générer les libellés du défi quotidien et du mode Défi.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -1436,6 +1435,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Challenge scoring'**
   String get geometryLegacy;
+
+  /// No description provided for @helpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help — game icons'**
+  String get helpTitle;
+
+  /// No description provided for @helpTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get helpTile;
+
+  /// No description provided for @helpTileSub.
+  ///
+  /// In en, this message translates to:
+  /// **'What the game icons mean'**
+  String get helpTileSub;
+
+  /// No description provided for @helpLabelEnterIso.
+  ///
+  /// In en, this message translates to:
+  /// **'Isometries mode'**
+  String get helpLabelEnterIso;
+
+  /// No description provided for @helpLabelExitIso.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to game'**
+  String get helpLabelExitIso;
+
+  /// No description provided for @helpLabelViewSolutions.
+  ///
+  /// In en, this message translates to:
+  /// **'View solutions'**
+  String get helpLabelViewSolutions;
+
+  /// No description provided for @helpLabelSolutionsCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'Solution count'**
+  String get helpLabelSolutionsCounter;
+
+  /// No description provided for @helpLabelRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate'**
+  String get helpLabelRotate;
+
+  /// No description provided for @helpLabelRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get helpLabelRemove;
+
+  /// No description provided for @helpLabelUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get helpLabelUndo;
+
+  /// No description provided for @helpDescSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the settings screen.'**
+  String get helpDescSettings;
+
+  /// No description provided for @helpDescEnterIso.
+  ///
+  /// In en, this message translates to:
+  /// **'Switches to isometries mode, saving the current board state.'**
+  String get helpDescEnterIso;
+
+  /// No description provided for @helpDescExitIso.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaves isometries mode and restores the game state.'**
+  String get helpDescExitIso;
+
+  /// No description provided for @helpDescViewSolutions.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows the solutions that still fit the current board.'**
+  String get helpDescViewSolutions;
+
+  /// No description provided for @helpDescSolutionsCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows how many solutions are still possible.'**
+  String get helpDescSolutionsCounter;
+
+  /// No description provided for @helpDescRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotates the selected piece (normal mode).'**
+  String get helpDescRotate;
+
+  /// No description provided for @helpDescRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes the selected piece from the board.'**
+  String get helpDescRemove;
+
+  /// No description provided for @helpDescUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undoes the last piece placement.'**
+  String get helpDescUndo;
+
+  /// No description provided for @helpDescIsoRotateTW.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotates the piece 90° counter-clockwise.'**
+  String get helpDescIsoRotateTW;
+
+  /// No description provided for @helpDescIsoRotateCW.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotates the piece 90° clockwise.'**
+  String get helpDescIsoRotateCW;
+
+  /// No description provided for @helpDescIsoSymH.
+  ///
+  /// In en, this message translates to:
+  /// **'Flips the piece top ↔ bottom (mirror across the horizontal axis).'**
+  String get helpDescIsoSymH;
+
+  /// No description provided for @helpDescIsoSymV.
+  ///
+  /// In en, this message translates to:
+  /// **'Flips the piece left ↔ right (mirror across the vertical axis).'**
+  String get helpDescIsoSymV;
+
+  /// No description provided for @helpDescIsoDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes the selected piece from the board (isometries mode).'**
+  String get helpDescIsoDelete;
+
+  /// No description provided for @helpDescHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Returns to the home screen.'**
+  String get helpDescHome;
+
+  /// No description provided for @helpDescNewGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts a new game with a fresh draw.'**
+  String get helpDescNewGame;
+
+  /// No description provided for @helpLampAmberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow lamp'**
+  String get helpLampAmberLabel;
+
+  /// No description provided for @helpLampRedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Red lamp'**
+  String get helpLampRedLabel;
+
+  /// No description provided for @helpDescLampAmber.
+  ///
+  /// In en, this message translates to:
+  /// **'The board still has at least one solution. Tapping the yellow lamp gives a hint: a correct piece is placed automatically.'**
+  String get helpDescLampAmber;
+
+  /// No description provided for @helpDescLampRed.
+  ///
+  /// In en, this message translates to:
+  /// **'The board has no solution left: you have reached a dead end. Tapping the red lamp removes the last placed piece to step back. You can tap again, until a solution becomes possible — the lamp then turns yellow.'**
+  String get helpDescLampRed;
 }
 
 class _AppLocalizationsDelegate
