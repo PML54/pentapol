@@ -236,6 +236,9 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - `docs/ACCUEIL_GUIDE.md` — parcours 3×5, dépôt assisté, validation et distinction avec l'entraînement
 - `docs/I18N.md` — bilinguisme EN/FR : mécanisme (ARB, `gen-l10n`, `localeCode`), procédure
   pour ajouter une chaîne, pièges (`const`/helpers/dialogues) et littéraux gardés
+- `docs/ENV_CLOUD.md` — exécution en session cloud (Claude Code on the web) : SDK Flutter non
+  préinstallé, script de setup avec version épinglée sur le poste, piège du `.g.dart` Drift à
+  générer par `build_runner`, hôtes réseau requis
 > Les plans **appliqués et testés sont supprimés**, pas archivés — `git log` les conserve.
 > Cinq l'ont été le 2026-08-31 (démo, unification, suppression classical, bilan, ergonomie).
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
