@@ -69,6 +69,14 @@ la ligne basse. La mesure utilise le contexte du `DragTarget` déjà construit e
 du doigt : aucune clé dynamique n'est ajoutée au tiroir, car sa recréation pendant un changement
 d'état interrompait la sélection des pièces déjà posées.
 
+Précision décisive de Paul : le défaut apparaît au relâcher **à l'approche du tiroir**, pas lors
+d'un relâcher bien dans le plateau. La rangée d'isométries et ses bords forment une troisième zone,
+hors des `DragTarget` du plateau et du tiroir ; le dernier aperçu, rouge ou valide, pouvait donc
+survivre avec la pièce encore sélectionnée. Le corps de l'écran écoute désormais `PointerUp` et
+`PointerCancel`, attend la fin des callbacks de drag, puis annule uniquement l'état impossible
+« pièce du rack sélectionnée + preview encore présente ». Les pièces déjà posées et les dépôts
+réussis ne satisfont pas cette condition.
+
 ### Defi quotidien progressif (2026-09-24)
 
 Le defi hebdomadaire est remplace par une serie quotidienne commune a tous les joueurs. Les neuf
@@ -1387,6 +1395,11 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-25 (30) — CLI : relâcher dans la zone entre plateau et tiroir.**
+Le corps du jeu nettoie après `PointerUp`/`PointerCancel` une preview encore associée à une pièce du
+rack. Cela couvre la rangée d'isométries, qui n'appartient à aucun des deux `DragTarget`, sans toucher
+aux dépôts réussis dans le plateau ni aux déplacements de pièces posées. Douze tests ciblés verts.
 
 **2026-09-25 (29) — CLI : écran d'Aide des icônes du jeu.**
 Nouvel `help_screen.dart` (17 lignes) ouvert par les deux états de la lampe (rouge = impasse/retour,

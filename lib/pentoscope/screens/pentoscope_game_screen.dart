@@ -1,4 +1,5 @@
-// Modified: 2026-09-25 02:17 — distinguer le bord du tiroir sans recréer son sous-arbre pendant le drag.
+// Modified: 2026-09-25 06:53 — nettoyer l'aperçu si le doigt est relâché entre plateau et tiroir.
+// Historique: 2026-09-25 02:17 — distinguer le bord du tiroir sans recréer son sous-arbre pendant le drag.
 // Historique: 2026-09-23 05:00 — traiter tout plateau Game terminé comme non vide au double-tap.
 // Historique: 2026-09-22 19:09 — Game simplifié : double-tap du plateau pour relancer ou changer de taille.
 // Historique: 2026-09-22 06:24 — afficher le bilan Game dans l'AppBar et relancer au tap.
@@ -412,6 +413,23 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     }
   }
 
+  void _handlePointerEnd(PointerEvent event) {
+    // Le relâcher peut tomber dans la rangée d'isométries, entre les DragTarget du
+    // plateau et du tiroir. Attendre la fin des callbacks de drag, puis supprimer
+    // uniquement l'état impossible laissé par une pièce venant du rack.
+    Future<void>.delayed(Duration.zero, () {
+      if (!mounted) return;
+      final current = ref.read(pentoscopeProvider);
+      final hasStaleRackPreview =
+          current.selectedPlacedPiece == null &&
+          current.selectedPiece != null &&
+          (current.previewX != null || current.previewY != null);
+      if (!hasStaleRackPreview) return;
+
+      ref.read(pentoscopeProvider.notifier).cancelSelection();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(pentoscopeProvider);
@@ -479,97 +497,103 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       // l'indicateur d'accueil (portrait). SafeArea par défaut couvre TOUS les bords — donc les
       // deux sens de rotation, sans padding directionnel en dur. Le LayoutBuilder interne voit
       // alors les contraintes réduites, et le plateau se recalcule sur la place restante.
-      body: SafeArea(
-        child: Stack(
-          key: const ValueKey('game-body-stack'),
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isLandscape =
-                    constraints.maxWidth > constraints.maxHeight;
+      body: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerUp: _handlePointerEnd,
+        onPointerCancel: _handlePointerEnd,
+        child: SafeArea(
+          child: Stack(
+            key: const ValueKey('game-body-stack'),
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isLandscape =
+                      constraints.maxWidth > constraints.maxHeight;
 
-                if (isLandscape) {
-                  return _buildLandscapeLayout(
-                    context,
-                    ref,
-                    state,
-                    notifier,
-                    settings,
-                    isSliderPieceSelected,
-                    isPlacedPieceSelected,
-                  );
-                } else {
-                  return _buildPortraitLayout(
-                    context,
-                    ref,
-                    state,
-                    notifier,
-                    isSliderPieceSelected,
-                    isPlacedPieceSelected,
-                  );
-                }
-              },
-            ),
-
-            // 🔄⚫ Récap utilisateur (réglage showCounters) : isométries + fautes, haut-gauche.
-            if (settings.game.showCounters) _statsOverlay(state),
-
-            // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
-            // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
-            // Masqué si le récap utilisateur est actif (même coin) — les deux s'excluent.
-            if (kShowLiveCounters && !settings.game.showCounters)
-              _debugIndicatorsOverlay(state),
-
-            // Fin de training : tap simple pour continuer l'entraînement, double-tap pour passer
-            // immédiatement au vrai module Game.
-            if (widget.mode == PentoscopeMode.training && state.isComplete)
-              Positioned.fill(
-                child: GestureDetector(
-                  key: const ValueKey('training-continue'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _startNextTraining(notifier),
-                  onDoubleTap: () => _openGameFromTraining(notifier),
-                ),
+                  if (isLandscape) {
+                    return _buildLandscapeLayout(
+                      context,
+                      ref,
+                      state,
+                      notifier,
+                      settings,
+                      isSliderPieceSelected,
+                      isPlacedPieceSelected,
+                    );
+                  } else {
+                    return _buildPortraitLayout(
+                      context,
+                      ref,
+                      state,
+                      notifier,
+                      isSliderPieceSelected,
+                      isPlacedPieceSelected,
+                    );
+                  }
+                },
               ),
 
-            // Fin du Game : comme dans le Training, le plateau résolu reste visible et un tap
-            // plein cadre enchaîne directement sur un nouveau tirage dans le même parcours.
-            if (widget.mode == PentoscopeMode.game && state.isComplete)
-              Positioned.fill(
-                child: GestureDetector(
-                  key: const ValueKey('game-continue'),
-                  behavior: HitTestBehavior.opaque,
-                  onDoubleTap: () => _handleGameBoardDoubleTap(state, notifier),
+              // 🔄⚫ Récap utilisateur (réglage showCounters) : isométries + fautes, haut-gauche.
+              if (settings.game.showCounters) _statsOverlay(state),
+
+              // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
+              // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
+              // Masqué si le récap utilisateur est actif (même coin) — les deux s'excluent.
+              if (kShowLiveCounters && !settings.game.showCounters)
+                _debugIndicatorsOverlay(state),
+
+              // Fin de training : tap simple pour continuer l'entraînement, double-tap pour passer
+              // immédiatement au vrai module Game.
+              if (widget.mode == PentoscopeMode.training && state.isComplete)
+                Positioned.fill(
+                  child: GestureDetector(
+                    key: const ValueKey('training-continue'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _startNextTraining(notifier),
+                    onDoubleTap: () => _openGameFromTraining(notifier),
+                  ),
                 ),
-              ),
 
-            // 👁️ Mini-plateau adversaire (overlay)
-            if (_showOpponentOverlay)
-              _buildOpponentOverlay(context, state, settings),
-
-            // 🏁 Bilan fermé : un tap sur le plateau résolu **rouvre** la carte (choix de Paul).
-            // Capteur plein cadre actif uniquement dans cet état (rien d'autre à faire sur le
-            // plateau une fois résolu). N'affecte pas la barre du haut (hors de ce Stack).
-            if (widget.mode != PentoscopeMode.training &&
-                widget.mode != PentoscopeMode.game &&
-                state.isComplete &&
-                _bilanFerme)
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _bilanFerme = false),
+              // Fin du Game : comme dans le Training, le plateau résolu reste visible et un tap
+              // plein cadre enchaîne directement sur un nouveau tirage dans le même parcours.
+              if (widget.mode == PentoscopeMode.game && state.isComplete)
+                Positioned.fill(
+                  child: GestureDetector(
+                    key: const ValueKey('game-continue'),
+                    behavior: HitTestBehavior.opaque,
+                    onDoubleTap: () =>
+                        _handleGameBoardDoubleTap(state, notifier),
+                  ),
                 ),
-              ),
 
-            // 🏁 Bilan de fin — carte flottante non-modale, posée au centre par-dessus le plateau
-            // résolu (visible derrière). Fermable ; ne bloque pas (les zones hors carte laissent
-            // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
-            if (widget.mode != PentoscopeMode.training &&
-                widget.mode != PentoscopeMode.game &&
-                state.isComplete &&
-                !_bilanFerme)
-              _buildBilanCard(context, state, notifier),
-          ],
+              // 👁️ Mini-plateau adversaire (overlay)
+              if (_showOpponentOverlay)
+                _buildOpponentOverlay(context, state, settings),
+
+              // 🏁 Bilan fermé : un tap sur le plateau résolu **rouvre** la carte (choix de Paul).
+              // Capteur plein cadre actif uniquement dans cet état (rien d'autre à faire sur le
+              // plateau une fois résolu). N'affecte pas la barre du haut (hors de ce Stack).
+              if (widget.mode != PentoscopeMode.training &&
+                  widget.mode != PentoscopeMode.game &&
+                  state.isComplete &&
+                  _bilanFerme)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _bilanFerme = false),
+                  ),
+                ),
+
+              // 🏁 Bilan de fin — carte flottante non-modale, posée au centre par-dessus le plateau
+              // résolu (visible derrière). Fermable ; ne bloque pas (les zones hors carte laissent
+              // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
+              if (widget.mode != PentoscopeMode.training &&
+                  widget.mode != PentoscopeMode.game &&
+                  state.isComplete &&
+                  !_bilanFerme)
+                _buildBilanCard(context, state, notifier),
+            ],
+          ),
         ),
       ),
     );
