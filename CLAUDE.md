@@ -239,6 +239,8 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - `docs/ENV_CLOUD.md` — exécution en session cloud (Claude Code on the web) : SDK Flutter non
   préinstallé, script de setup avec version épinglée sur le poste, piège du `.g.dart` Drift à
   générer par `build_runner`, hôtes réseau requis
+- `docs/CLICLOUD.md` — mémo d'usage des sessions cloud : modèle mental (runner CI, pas poste iOS),
+  cycle de vie éphémère, tâches adaptées/inadaptées, risques et bonnes pratiques
 > Les plans **appliqués et testés sont supprimés**, pas archivés — `git log` les conserve.
 > Cinq l'ont été le 2026-08-31 (démo, unification, suppression classical, bilan, ergonomie).
 - `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
