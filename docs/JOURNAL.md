@@ -15,6 +15,26 @@
 
 ## §ÉTAT — au 2026-09-25
 
+### Diagnostic outillage — SDK Flutter absent de l'environnement cloud (2026-09-25, CLI)
+
+Passe de vérification demandée dans l'ordre `flutter --version` ; `flutter pub get` ; `flutter analyze` ;
+`flutter test` ; `date`. **Résultat brut** : les quatre commandes `flutter` échouent avec le **même**
+code retour `127` (« command not found ») ; seule `date` aboutit (`Fri Sep 25 17:37:57 UTC 2026`,
+`exit=0`).
+
+**Cause établie, non supposée** : aucun binaire `flutter` ni `dart` n'est présent dans cet
+environnement d'exécution distant (cloud) — vérifié par `command -v`, par inspection de `/opt`,
+`/usr/local`, `~/`, l'absence de `fvm`, et un `find /` sans résultat. Ce n'est **ni** un problème
+réseau, **ni** un défaut du projet. **Portée du constat : cet environnement cloud uniquement.**
+`analyze`/`test` restent exécutables sur une machine dotée du SDK (poste de Paul, ou un environnement
+dont le script de setup installe Flutter). Aucun diagnostic Flutter n'est donc opposable depuis le
+cloud tant que le SDK n'y est pas provisionné.
+
+Note de protocole : la consigne demandait de consigner en **§DÉCISIONS**, section supprimée le
+2026-08-31 et dont `CLAUDE.md` interdit la recréation. Sur arbitrage de Paul, le résultat est consigné
+ici (§ÉTAT + §PASSATIONS), conformément au protocole entre agents. Aucun fichier `lib/` touché,
+aucun commit.
+
 ### À propos du développeur (2026-09-25)
 
 L'accueil donne désormais accès, par une icône dédiée dans son en-tête, à une présentation de
@@ -1418,6 +1438,12 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-25 (32) — CLI : diagnostic outillage, SDK Flutter absent en cloud.**
+Passe `flutter --version`/`pub get`/`analyze`/`test` : les quatre échouent en `127` (SDK absent de
+l'environnement cloud, vérifié par `find /`) ; `date` OK. Constat propre au cloud, pas un défaut projet
+ni réseau ; `analyze`/`test` restent à faire sur poste avec SDK. Consigné en §ÉTAT + §PASSATIONS
+(et non §DÉCISIONS supprimée) sur arbitrage de Paul. Aucun `lib/` touché, aucun commit.
 
 **2026-09-25 (31) — CLI : présentation du développeur depuis l'accueil.**
 Nouvel écran localisé FR/EN : souvenir de Paul de Casteljau chez Citroën, pentaminos, évolution des
