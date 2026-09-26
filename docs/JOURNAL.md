@@ -13,27 +13,34 @@
 
 ---
 
-## §ÉTAT — au 2026-09-25
+## §ÉTAT — au 2026-09-26
 
-### Diagnostic outillage — SDK Flutter absent de l'environnement cloud (2026-09-25, CLI)
+### Diagnostic outillage — SDK Flutter toujours absent de l'environnement cloud (2026-09-26, CLI)
 
 Passe de vérification demandée dans l'ordre `flutter --version` ; `flutter pub get` ; `flutter analyze` ;
-`flutter test` ; `date`. **Résultat brut** : les quatre commandes `flutter` échouent avec le **même**
-code retour `127` (« command not found ») ; seule `date` aboutit (`Fri Sep 25 17:37:57 UTC 2026`,
-`exit=0`).
+`flutter test` ; `date`. **Résultat brut** (session cloud, `/home/user/pentapol`) :
+
+```
+$ flutter --version   → /bin/bash: line 1: flutter: command not found   (exit=127)
+$ flutter pub get     → /bin/bash: line 4: flutter: command not found   (exit=127)
+$ flutter analyze     → /bin/bash: line 5: flutter: command not found   (exit=127)
+$ flutter test        → /bin/bash: line 6: flutter: command not found   (exit=127)
+$ date                → Sat Sep 26 15:28:35 UTC 2026                     (exit=0)
+```
 
 **Cause établie, non supposée** : aucun binaire `flutter` ni `dart` n'est présent dans cet
-environnement d'exécution distant (cloud) — vérifié par `command -v`, par inspection de `/opt`,
-`/usr/local`, `~/`, l'absence de `fvm`, et un `find /` sans résultat. Ce n'est **ni** un problème
-réseau, **ni** un défaut du projet. **Portée du constat : cet environnement cloud uniquement.**
-`analyze`/`test` restent exécutables sur une machine dotée du SDK (poste de Paul, ou un environnement
-dont le script de setup installe Flutter). Aucun diagnostic Flutter n'est donc opposable depuis le
-cloud tant que le SDK n'y est pas provisionné.
+environnement d'exécution distant (cloud) — vérifié par `command -v flutter dart fvm` (rien), et par
+inspection de `/opt` (maven, gradle, node, ruby, rbenv, pw-browsers… mais **pas de flutter**),
+`/usr/local`, `~/` et `$PATH`. **Reproduction à l'identique du diagnostic du 2026-09-25** (mêmes codes
+`127`). Ce n'est **ni** un problème réseau, **ni** un défaut du projet. **Portée du constat : cet
+environnement cloud uniquement.** `analyze`/`test` restent exécutables sur une machine dotée du SDK
+(poste de Paul, ou un environnement dont le script de setup installe Flutter — voir `docs/ENV_CLOUD.md`).
+Aucun diagnostic Flutter n'est donc opposable depuis le cloud tant que le SDK n'y est pas provisionné.
 
-Note de protocole : la consigne demandait de consigner en **§DÉCISIONS**, section supprimée le
-2026-08-31 et dont `CLAUDE.md` interdit la recréation. Sur arbitrage de Paul, le résultat est consigné
-ici (§ÉTAT + §PASSATIONS), conformément au protocole entre agents. Aucun fichier `lib/` touché,
-aucun commit.
+Note de protocole : la consigne demandait à nouveau de consigner en **§DÉCISIONS**, section supprimée le
+2026-08-31 et dont `CLAUDE.md` interdit la recréation. Comme le 2026-09-25 et sur arbitrage de Paul,
+le résultat est consigné ici (§ÉTAT + §PASSATIONS), conformément au protocole entre agents. Aucun
+fichier `lib/` touché, aucun commit sans demande explicite.
 
 ### À propos du développeur (2026-09-25)
 
@@ -1438,6 +1445,13 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-26 (33) — CLI : re-vérification outillage, SDK Flutter toujours absent en cloud.**
+Reprise de la passe `flutter --version`/`pub get`/`analyze`/`test`/`date` : les quatre `flutter`
+échouent en `127` (SDK absent, `command -v` et `/opt` vides de flutter/dart/fvm), `date` OK
+(`Sat Sep 26 15:28:35 UTC 2026`). Résultat identique au 2026-09-25 ; propre au cloud, ni réseau ni
+défaut projet. Consigné en §ÉTAT + §PASSATIONS (et non §DÉCISIONS supprimée). Aucun `lib/` touché,
+aucun commit.
 
 **2026-09-25 (32) — CLI : diagnostic outillage, SDK Flutter absent en cloud.**
 Passe `flutter --version`/`pub get`/`analyze`/`test` : les quatre échouent en `127` (SDK absent de
