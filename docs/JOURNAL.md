@@ -13,7 +13,29 @@
 
 ---
 
-## §ÉTAT — au 2026-09-25
+## §ÉTAT — au 2026-09-29
+
+### Passe d'audit documentaire — index et dates (2026-09-29, CLI)
+
+Demande de Paul : point sur les docs, obsolescence et bon référencement dans `INDEX_DOCS.md`
+avec leur date de dernière mise à jour. **Constats vérifiés** (par diff renvois↔fichiers et
+`git log`) : (1) l'index n'avait **aucune date** par document ; (2) quatre docs présents étaient
+non référencés — `CLICLOUD.md`, `ENV_CLOUD.md` (pourtant cités dans `CLAUDE.md`),
+`arch-pentapol-claude.md`, `arch-pentapol-chatgpt.md` ; (3) les lignes datées internes des docs
+sont surtout des dates de **création** (« Écrit le », « Établi le »), pas de mise à jour ;
+(4) dix docs partagent la date git `2026-09-09` d'un unique commit transverse `refactor(score)`
+— date de dernier touch, pas de révision de fond.
+
+**Appliqué** : colonne « Dernière révision » dans `INDEX_DOCS.md` (source = date git du dernier
+commit, relevée le 2026-09-29 ; les 10 docs du 2026-09-09 marqués ⚠) ; ajout au référencement de
+`CLICLOUD`, `ENV_CLOUD` et `arch-pentapol-claude` (nouvelle section « Environnement d'exécution ») ;
+ligne `> _Dernière révision : …_` normalisée en tête des 28 docs (sauf `JOURNAL`, daté par §ÉTAT,
+et `INDEX_DOCS`, daté par son en-tête). `arch-pentapol-chatgpt.md` conservé sur disque (arbitrage
+de Paul) mais **hors index**, signalé comme doublon d'architecture non daté/non sourcé à fusionner
+ou supprimer. **Aucun audit de fond ligne à ligne** : la colonne dit *quand le fichier a bougé*,
+pas *si son contenu est juste* — et sans SDK Flutter en cloud (voir ci-dessous) les invariants
+combinatoires ne sont pas vérifiables ici. Reste ouvert : Paul seul peut confirmer la vraie date
+de révision de fond des 10 docs marqués ⚠. Aucun fichier `lib/` touché.
 
 ### Diagnostic outillage — SDK Flutter absent de l'environnement cloud (2026-09-25, CLI)
 
@@ -1438,6 +1460,15 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-29 (33) — CLI : audit de l'index documentaire et dates de révision.**
+`INDEX_DOCS.md` reçoit une colonne « Dernière révision » (date git du dernier commit, relevée le
+2026-09-29) et référence désormais `CLICLOUD`, `ENV_CLOUD` et `arch-pentapol-claude` ; les 28 docs
+portent une ligne `> _Dernière révision…_` en tête (sauf `JOURNAL`/`INDEX_DOCS`, datés autrement).
+Dix docs marqués ⚠ = date du commit transverse `refactor(score)` du 2026-09-09, révision de fond
+antérieure à confirmer par Paul. `arch-pentapol-chatgpt.md` gardé sur disque mais hors index
+(doublon non daté/non sourcé). Pas d'audit de fond : sans SDK Flutter en cloud, les invariants ne
+sont pas vérifiables ici. Aucun `lib/` touché.
 
 **2026-09-25 (32) — CLI : diagnostic outillage, SDK Flutter absent en cloud.**
 Passe `flutter --version`/`pub get`/`analyze`/`test` : les quatre échouent en `127` (SDK absent de

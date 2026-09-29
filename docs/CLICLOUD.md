@@ -1,5 +1,7 @@
 # CLICLOUD — utiliser Claude Code en session cloud
 
+> _Dernière révision : 2026-09-25 (dernier commit git ; audit index 2026-09-29)._
+
 > Mémo d'usage pour Pentapol. Complément de `docs/ENV_CLOUD.md` (qui tient le détail technique du
 > script de setup). Ici : **comment s'en servir, pour quoi, et à quels risques**.
 >

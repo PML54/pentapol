@@ -1,5 +1,7 @@
 # Checklist — avant la première soumission App Store
 
+> _Dernière révision : 2026-09-22 (dernier commit git ; audit index 2026-09-29)._
+
 > Ouverte le 2026-08-30. **Ce fichier s'allonge au fil du travail** : dès qu'une décision
 > crée une dette qui ne doit pas partir en production, elle s'inscrit ici, avec sa raison.
 > C'est le seul endroit où ces dettes sont rassemblées — le journal les disperse.

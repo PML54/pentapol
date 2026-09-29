@@ -1,5 +1,7 @@
 # Accueil et Training 3×5
 
+> _Dernière révision : 2026-09-23 (dernier commit git ; audit index 2026-09-29)._
+
 > Révision du 2026-09-23 : l'application ouvre un menu responsive avec une démo automatique 5×5.
 > Le Training ne démarre plus automatiquement ; son bouton ouvre le vrai écran de jeu en mode
 > `training`, avec une ou deux pièces manquantes et quatre consignes pilotées par le moteur.

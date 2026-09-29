@@ -1,5 +1,7 @@
 # Analyse — stockage des positions (encodage plateau / solutions)
 
+> _Dernière révision : 2026-09-22 (dernier commit git ; audit index 2026-09-29)._
+
 > ⚠️ **Encadré ajouté le 2026-08-29 — document à jour SAUF sur le schéma 4 bits.**
 > Dix identifiants cités ici n'existent plus dans `lib/` : `PlateauCompressor`,
 > `SolutionDatabase`, `SolutionsViewerScreen`, `plateau_compressor`, `solution_database`,

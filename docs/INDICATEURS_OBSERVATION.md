@@ -1,5 +1,7 @@
 # Indicateurs d'observation — le bandeau debug
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > Créé le 2026-09-07. Référence de **tous les indicateurs affichés dans le bandeau debug** du haut-gauche
 > de l'écran de jeu. C'est un outil de **test/observation**, pas une fonctionnalité livrée.
 >

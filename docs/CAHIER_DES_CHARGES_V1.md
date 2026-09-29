@@ -1,5 +1,7 @@
 # Cahier des charges — Pentapol V1
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > Rédigé par cowork le 2026-09-03, à partir du **mémo commercial de Paul** et de l'état réel
 > du dépôt à `de7f576`.
 >

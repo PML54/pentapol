@@ -1,5 +1,7 @@
 # Cloudflare — configuration et fonctionnement (Pentapol)
 
+> _Dernière révision : 2026-09-24 (dernier commit git ; audit index 2026-09-29)._
+
 > Mémo opérationnel : ce qui tourne sur Cloudflare pour Pentapol, la config exacte, le flux de
 > données, et les commandes courantes. Source de vérité : `server/` (worker + schéma + wrangler).
 

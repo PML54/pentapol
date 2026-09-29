@@ -1,5 +1,7 @@
 # Définition des pièces et encodage par bits
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 ## La grille 5×5 de référence
 
 Chaque pentomino est défini sur une **grille de référence 5×5** de 25 cases numérotées de 1 à 25. La numérotation part du **haut gauche**, ligne par ligne de haut en bas :

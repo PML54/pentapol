@@ -1,5 +1,7 @@
 # Présentation App Store — Pentapol (ébauche V1)
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > Réécrite par cowork le 2026-09-03 sur le positionnement du **mémo commercial de Paul**,
 > croisé avec les mesures du dépôt (`de7f576`). Le cahier des charges est dans
 > `CAHIER_DES_CHARGES_V1.md` ; ce document n'est que la vitrine.

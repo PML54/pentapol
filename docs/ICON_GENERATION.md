@@ -1,5 +1,7 @@
 # 🎨 Génération des Icônes - Pentapol
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 **Date de génération** : 1er décembre 2025  
 **Source** : `assets/pentopol.png`  
 **Outil** : flutter_launcher_icons v0.14.4

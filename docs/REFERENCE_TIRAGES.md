@@ -1,5 +1,7 @@
 # Référence — tirages solubles et nombre de solutions, tailles 5×n
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > Établi le 2026-08-31 par énumération exhaustive indépendante (hors dépôt), en réponse à la
 > demande de Paul : précalculer et afficher le nombre de solutions d'un tirage.
 > **Ce fichier est le test d'acceptation** du générateur Dart à écrire : sa sortie doit

@@ -1,5 +1,7 @@
 # Référence — isométries : coût, minimum, et chiralité des tirages
 
+> _Dernière révision : 2026-09-11 (dernier commit git ; audit index 2026-09-29)._
+
 > Établi le 2026-09-03 par calcul direct sur `lib/common/pentominos.dart` et
 > `lib/pentoscope/home/home_tirages_data.dart`. Pendant de `REFERENCE_TIRAGES.md`, pour tout
 > ce qui touche aux **orientations** plutôt qu'aux tirages.

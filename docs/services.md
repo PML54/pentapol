@@ -1,5 +1,7 @@
 # SERVICES — Documentation de `lib/services/`
 
+> _Dernière révision : 2026-09-22 (dernier commit git ; audit index 2026-09-29)._
+
 > **Écrit le 2026-08-27 à partir des sources.** Le fichier précédent portant ce nom
 > était un doublon octet pour octet de `models.md` (même somme MD5) : la documentation
 > des services n'existait pas. Celle-ci la remplace. `models.md` a depuis été supprimé

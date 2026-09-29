@@ -1,5 +1,7 @@
 # BILAN DUEL ISOMÉTRIES - État au 3 décembre 2025
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > ⚠️ **Encadré ajouté le 2026-08-29 — ce document est VIVANT, ne pas le supprimer.**
 > Le « duel isométries » est le mode multijoueur actuel ; le client s'appelle désormais
 > `lib/pentoscope_multiplayer/`. Vérification : même serveur

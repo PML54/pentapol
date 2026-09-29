@@ -1,5 +1,7 @@
 # Environnement cloud — Claude Code on the web
 
+> _Dernière révision : 2026-09-25 (dernier commit git ; audit index 2026-09-29)._
+
 > Ce document décrit l'exécution de Pentapol dans une **session distante** de Claude Code
 > (`claude.ai/code`), c'est-à-dire un **conteneur Linux éphémère** cloné à froid depuis GitHub
 > au démarrage et détruit après inactivité. Il ne concerne **pas** le poste de développement de

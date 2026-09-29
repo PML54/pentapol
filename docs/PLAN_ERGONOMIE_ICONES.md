@@ -1,5 +1,7 @@
 # Plan — Ergonomie : icônes d'isométrie, rangée d'actions, rack
 
+> _Dernière révision : 2026-09-25 (dernier commit git ; audit index 2026-09-29)._
+
 > ✅ **VALIDÉ par Paul le 2026-09-10** — les dix décisions du §9 sont adoptées.
 > **Préalable impératif : voir §0 (pousser l'état actuel avant toute modification).**
 >

@@ -1,5 +1,7 @@
 # Plan — les tables de solutions pré-calculées
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > **Ce qui est fait, et qui n'a plus besoin d'être écrit ici :** le 6×10 existe dans
 > Pentoscope comme taille `size6x10`, adossée à la table des 9356 solutions, avec compteur à
 > l'écran et indice tiré d'une solution compatible au hasard. Le câblage passe par

@@ -1,5 +1,7 @@
 # Pentapol — Documentation fonctionnelle
 
+> _Dernière révision : 2026-09-23 (dernier commit git ; audit index 2026-09-29)._
+
 ## Lecture actuelle — 2026-09-23
 
 L’application démarre sur **HomeScreen**, désormais un menu visuel et non un Training automatique.

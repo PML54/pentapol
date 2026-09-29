@@ -1,5 +1,7 @@
 # Architecture de Pentapol
 
+> _Dernière révision : 2026-09-23 (dernier commit git ; audit index 2026-09-29)._
+
 ## 1. Vue d'ensemble
 
 Pentapol est une application mobile Flutter, destinée à iOS et Android. Son architecture repose sur quatre ensembles principaux :

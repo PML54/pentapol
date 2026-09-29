@@ -1,5 +1,7 @@
 # Modus vivendi — travailler avec Claude Code (CLI) et Claude cowork
 
+> _Dernière révision : 2026-09-11 (dernier commit git ; audit index 2026-09-29)._
+
 > Établi le 2026-08-28 19:33, après une journée de travail à deux agents qui a produit
 > six commits corrects et quatre pannes de coordination. Les règles ci-dessous ne sont
 > pas théoriques : chacune répond à une panne observée, listée en §7.

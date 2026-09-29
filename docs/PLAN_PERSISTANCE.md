@@ -1,5 +1,7 @@
 # Plan — ce que Pentapol garde sur l'appareil
 
+> _Dernière révision : 2026-09-22 (dernier commit git ; audit index 2026-09-29)._
+
 > **État au 2026-09-12 :** le solo expérimente la note Géométrie paramétrable, avec
 > snapshot dans `CurrentGame.geometryState` (schéma 11 destructif, demandé par Paul).
 > Ces parties posent des records acuité/fautes/temps comme les autres (exclusion levée le

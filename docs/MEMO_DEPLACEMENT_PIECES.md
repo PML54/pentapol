@@ -1,5 +1,7 @@
 # Mémo : Gestion des déplacements de pièces dans Pentoscope
 
+> _Dernière révision : 2026-09-11 (dernier commit git ; audit index 2026-09-29)._
+
 ## Comportement actuel — 2026-09-10
 
 Dans le jeu, le doigt détermine l’ancre à partir de la case saisie. Cette ancre est confinée

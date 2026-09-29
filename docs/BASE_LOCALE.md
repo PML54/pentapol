@@ -1,5 +1,7 @@
 # Base locale (sur l'appareil) — ce que Pentapol garde
 
+> _Dernière révision : 2026-09-12 (dernier commit git ; audit index 2026-09-29)._
+
 > Mémo : ce que l'app stocke **sur le téléphone**, dans quelle structure, quand c'est écrit/effacé.
 > Pendant, la base Cloudflare (classement en ligne) est décrite dans `CLOUDFLARE_CONFIG.md`.
 > Source de vérité : `lib/database/settings_database.dart` et `lib/models/app_settings.dart`.

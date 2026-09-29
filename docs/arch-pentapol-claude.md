@@ -1,5 +1,7 @@
 # ARCHITECTURE — Pentapol
 
+> _Dernière révision : 2026-09-23 (dernier commit git ; audit index 2026-09-29)._
+
 > Écrit le 2026-09-22 par Claude cowork à partir des sources (`lib/`, `pubspec.yaml`,
 > `docs/JOURNAL.md` §ÉTAT). Version `1.0.7+7`, ~23 300 lignes Dart hors code généré.
 > Ce document décrit **ce qui est** ; il ne prescrit rien. Vérifier le code avant intervention.

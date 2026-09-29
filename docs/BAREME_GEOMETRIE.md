@@ -1,5 +1,7 @@
 # Géométrie — mise au point du barème
 
+> _Dernière révision : 2026-09-22 (dernier commit git ; audit index 2026-09-29)._
+
 Référence au 2026-09-12. Décision de Paul : réglage sur appareil avant publication,
 remise à zéro des données de développement, aucune conversion des anciennes notes.
 

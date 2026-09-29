@@ -1,5 +1,7 @@
 ================================================================================
 
+> _Dernière révision : 2026-09-09 (dernier commit git = refactor transverse « score » ; révision de fond antérieure, à confirmer). Audit index 2026-09-29._
+
 > ⚠️ **Encadré ajouté le 2026-08-29 — ce document est VIVANT, ne pas le supprimer.**
 > Le « duel isométries » qu'il décrit **est** le mode multijoueur d'aujourd'hui : même
 > serveur `pentapol-duel.pentapml.workers.dev`, même `roomCode`, même WebSocket
