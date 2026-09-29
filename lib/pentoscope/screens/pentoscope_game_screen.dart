@@ -1,4 +1,7 @@
-// Modified: 2026-09-25 06:53 — nettoyer l'aperçu si le doigt est relâché entre plateau et tiroir.
+// Modified: 2026-09-29 05:50 — faire défiler au double-tap les seuls niveaux Solo débloqués.
+// Historique: 2026-09-29 05:36 — neutraliser le double-tap d'un plateau Solo vide.
+// Historique: 2026-09-29 05:14 — réserver le déblocage du niveau Solo aux puzzles terminés sans aide.
+// Historique: 2026-09-25 06:53 — nettoyer l'aperçu si le doigt est relâché entre plateau et tiroir.
 // Historique: 2026-09-25 02:17 — distinguer le bord du tiroir sans recréer son sous-arbre pendant le drag.
 // Historique: 2026-09-23 05:00 — traiter tout plateau Game terminé comme non vide au double-tap.
 // Historique: 2026-09-22 19:09 — Game simplifié : double-tap du plateau pour relancer ou changer de taille.
@@ -279,6 +282,23 @@ int _completionTier(CompletionMetrics? metrics, int hintCount) {
   return 1;
 }
 
+/// Un niveau Solo est débloqué uniquement par le puzzle de progression courant,
+/// terminé sans recours à la lampe jaune.
+bool canAdvanceSoloLevel(PentoscopeState state, int currentLevel) {
+  return state.isProgression &&
+      state.hintCount == 0 &&
+      currentLevel < kMaxLevel &&
+      state.puzzle?.size == sizeForLevel(currentLevel);
+}
+
+/// Le bilan peut proposer le niveau suivant après une réussite Solo propre, sauf au niveau 9.
+bool canOfferNextSoloLevel(PentoscopeState state) {
+  return state.isProgression &&
+      state.hintCount == 0 &&
+      state.puzzle != null &&
+      state.puzzle!.size != sizeForLevel(kMaxLevel);
+}
+
 class PentoscopeGameScreen extends ConsumerStatefulWidget {
   final PentoscopeMode mode;
 
@@ -327,13 +347,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   }
 
   /// Appelé une fois quand le puzzle vient d'être complété (transition via ref.listen).
-  /// Progression : avance le niveau si c'était le puzzle du niveau courant. 1ᵉʳ succès : demande
-  /// le nom du joueur s'il n'est pas encore saisi.
+  /// Progression : avance le niveau si c'était le puzzle courant et qu'aucune aide jaune n'a été
+  /// utilisée. 1ᵉʳ succès : demande le nom du joueur s'il n'est pas encore saisi.
   void _onPuzzleCompleted(BuildContext context, PentoscopeState st) {
     final settings = ref.read(settingsProvider);
-    if (st.isProgression &&
-        st.puzzle != null &&
-        st.puzzle!.size == sizeForLevel(settings.currentLevel)) {
+    if (canAdvanceSoloLevel(st, settings.currentLevel)) {
       ref.read(settingsProvider.notifier).advanceLevel();
     }
     final needName =
@@ -673,18 +691,24 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   ) async {
     final puzzle = state.puzzle;
     if (puzzle == null) return;
-    HapticFeedback.selectionClick();
-    if (state.placedPieces.isNotEmpty || state.isComplete) {
+
+    if (state.placedPieces.isEmpty && !state.isComplete) {
+      final currentLevel = ref.read(settingsProvider).currentLevel;
+      if (currentLevel <= 1) return;
+      final unlockedSizes = PentoscopeSize.values.take(currentLevel).toList();
+      final displayedIndex = unlockedSizes.indexOf(puzzle.size);
+      final nextIndex = displayedIndex < 0
+          ? 0
+          : (displayedIndex + 1) % unlockedSizes.length;
+      HapticFeedback.selectionClick();
       await notifier.startPuzzle(
-        puzzle.size,
-        isProgression: state.isProgression,
+        unlockedSizes[nextIndex],
+        isProgression: nextIndex == currentLevel - 1,
       );
       return;
     }
-
-    final sizes = PentoscopeSize.values;
-    final nextSize = sizes[(sizes.indexOf(puzzle.size) + 1) % sizes.length];
-    await notifier.startPuzzle(nextSize);
+    HapticFeedback.selectionClick();
+    await notifier.startPuzzle(puzzle.size, isProgression: state.isProgression);
   }
 
   // ============================================================================
@@ -1193,12 +1217,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     PentoscopeState state,
     PentoscopeNotifier notifier,
   ) {
-    // « Niveau suivant » proposé si le puzzle terminé est un puzzle de progression qui n'est pas
-    // déjà le niveau maximal. La complétion a déjà avancé currentLevel (via _onPuzzleCompleted).
-    final canNext =
-        state.isProgression &&
-        state.puzzle != null &&
-        state.puzzle!.size != sizeForLevel(kMaxLevel);
+    // « Niveau suivant » n'est proposé qu'après une réussite sans lampe jaune et avant le dernier
+    // niveau. L'avancement effectif contrôle en plus qu'il s'agissait bien du niveau courant.
+    final canNext = canOfferNextSoloLevel(state);
     // Défi : proposer de voir le classement (on vient d'y soumettre son score).
     final challenge = state.isRanked ? notifier.activeChallenge : null;
     return Center(

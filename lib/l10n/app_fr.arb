@@ -16,6 +16,14 @@
   "homeRecords": "Mes records",
   "homeSettings": "Réglages",
   "homeSolo": "Jeu Solo",
+  "homeSoloProgress": "Niveau {level}/9 · {width}×{height}",
+  "@homeSoloProgress": {
+    "placeholders": {
+      "level": {"type": "int"},
+      "width": {"type": "int"},
+      "height": {"type": "int"}
+    }
+  },
   "homeDuo": "Jeu Duo",
   "settingsTitle": "Paramètres",
   "settingsResetConfirm": "Voulez-vous réinitialiser tous les paramètres par défaut ?",
@@ -224,7 +232,16 @@
   "legendCheating": "Triche",
   "geometryAssisted": "Partie aidée",
   "geometryLegacy": "Barème du défi",
-  "helpTitle": "Aide — icônes du jeu",
+  "helpTitle": "Aide",
+  "helpIconsTitle": "Icônes du jeu",
+  "playerProfileTitle": "Profil joueur",
+  "playerProfileLevel": "Niveau {level}/{maxLevel}",
+  "@playerProfileLevel": {
+    "placeholders": {
+      "level": {"type": "int"},
+      "maxLevel": {"type": "int"}
+    }
+  },
   "helpTile": "Aide",
   "helpTileSub": "Signification des icônes du jeu",
   "helpLabelEnterIso": "Mode Isométries",

@@ -1,4 +1,9 @@
-// Modified: 2026-09-25 15:26 — retirer le bouton Réglages redondant de la rangée basse.
+// Modified: 2026-09-29 06:05 — rendre le code couleur du niveau nettement visible dans le header.
+// Historique: 2026-09-29 05:50 — ouvrir le profil joueur par une icône colorée selon le niveau et
+//           agrandir les icônes du header.
+// Historique: 2026-09-29 05:41 — afficher le niveau Solo sous Pentapol dans le header de l'accueil.
+// Historique: 2026-09-29 05:41 — afficher le niveau local et la taille sur le bouton Jeu Solo.
+// Historique: 2026-09-25 15:26 — retirer le bouton Réglages redondant de la rangée basse.
 // Historique: 2026-09-25 15:00 — simplifier le header et agrandir ses icônes à 30 px ;
 //             retirer la marque et remplacer Records par Réglages.
 // Historique: 2026-09-25 14:43 — ajouter l'accès « À propos du développeur » dans le header.
@@ -19,11 +24,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
+import 'package:pentapol/config/player_level_colors.dart';
 import 'package:pentapol/providers/settings_provider.dart';
-import 'package:pentapol/screens/about_developer_screen.dart';
 import 'package:pentapol/screens/help_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
+import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
@@ -62,7 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
+            _buildHeader(context, settings.currentLevel),
             Expanded(
               child: _isLaunchingRecreational
                   ? const Center(child: CircularProgressIndicator())
@@ -74,8 +80,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, int level) {
     final l10n = AppLocalizations.of(context);
+    final size = sizeForLevel(level);
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -87,27 +94,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              l10n.appTitle,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF27364A),
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.appTitle,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF27364A),
+                    fontSize: 25,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.homeSoloProgress(level, size.width, size.height),
+                  key: const ValueKey('home-solo-progress'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: playerLevelColor(level),
+                    fontSize: 12,
+                    height: 1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
           IconButton(
-            key: const ValueKey('home-about-developer'),
-            tooltip: l10n.aboutDeveloperTitle,
+            key: const ValueKey('home-player-profile'),
+            tooltip: l10n.playerProfileTitle,
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AboutDeveloperScreen()),
+              MaterialPageRoute(builder: (_) => const RecordsScreen()),
             ),
-            icon: const Icon(
+            icon: Icon(
               Icons.person_outline,
-              color: Color(0xFF52657D),
-              size: 30,
+              color: playerLevelColor(level),
+              size: 36,
             ),
           ),
           IconButton(
@@ -120,7 +147,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: const Icon(
               Icons.help_outline,
               color: Color(0xFF52657D),
-              size: 30,
+              size: 36,
             ),
           ),
           IconButton(
@@ -133,7 +160,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: const Icon(
               Icons.settings_outlined,
               color: Color(0xFF52657D),
-              size: 30,
+              size: 36,
             ),
           ),
         ],

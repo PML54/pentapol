@@ -1,4 +1,8 @@
-// Modified: 2026-09-25 15:00 — vérifier Réglages dans le header et le retrait de Records.
+// Modified: 2026-09-29 05:50 — vérifier le parcours des seuls niveaux Solo débloqués au double-tap.
+// Historique: 2026-09-29 05:41 — vérifier le niveau et la taille dans le header de l'accueil.
+// Historique: 2026-09-29 05:41 — vérifier le niveau et la taille affichés sur le bouton Jeu Solo.
+// Historique: 2026-09-29 05:36 — vérifier que le double-tap d'un plateau Game vide reste sans effet.
+// Historique: 2026-09-25 15:00 — vérifier Réglages dans le header et le retrait de Records.
 // Historique: 2026-09-23 15:10 — vérifier l'accueil compact et le chargement Training asynchrone.
 // Historique: 2026-09-22 05:35 — après le Training 1, le tap démarre le Training 2 avec
 //           deux pièces ; le double-tap vers Game reste prioritaire.
@@ -171,19 +175,23 @@ class _GestureGame extends _Game {
 }
 
 class _Settings extends SettingsNotifier {
+  final int level;
+
+  _Settings({this.level = 1});
+
   @override
-  AppSettings build() => const AppSettings();
+  AppSettings build() => AppSettings(currentLevel: level);
 }
 
 void main() {
   testWidgets(
-    'Game sans + : double-tap relance ou change cycliquement la taille',
+    'Game sans + : double-tap relance ou parcourt les niveaux débloqués',
     (tester) async {
       final game = _AutoGame();
       final container = ProviderContainer(
         overrides: [
           pentoscopeProvider.overrideWith(() => game),
-          settingsProvider.overrideWith(_Settings.new),
+          settingsProvider.overrideWith(() => _Settings(level: 3)),
         ],
       );
       addTearDown(container.dispose);
@@ -246,13 +254,21 @@ void main() {
       load(PentoscopeSize.size5x5);
       await tester.pump();
       await doubleTapBoard();
-      expect(game.lastGameSize, PentoscopeSize.size6x5);
+      expect(game.gameStarts, 2);
+      expect(game.lastGameSize, PentoscopeSize.size3x5);
       expect(game.lastGameIsProgression, isFalse);
 
-      load(PentoscopeSize.size6x10);
+      load(PentoscopeSize.size3x5);
       await tester.pump();
       await doubleTapBoard();
-      expect(game.lastGameSize, PentoscopeSize.size3x5);
+      expect(game.lastGameSize, PentoscopeSize.size4x5);
+      expect(game.lastGameIsProgression, isFalse);
+
+      load(PentoscopeSize.size4x5);
+      await tester.pump();
+      await doubleTapBoard();
+      expect(game.lastGameSize, PentoscopeSize.size5x5);
+      expect(game.lastGameIsProgression, isTrue);
     },
   );
 
@@ -384,14 +400,32 @@ void main() {
           expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
           final play = find.byKey(const ValueKey('home-play'));
           expect(tester.widget(play), isA<FilledButton>());
+          expect(
+            find.text(lang == 'fr' ? 'Niveau 1/9 · 3×5' : 'Level 1/9 · 3×5'),
+            findsOneWidget,
+          );
           expect(find.byIcon(Icons.person), findsNothing);
           for (final key in [
             'home-challenge',
             'home-multiplayer',
+            'home-player-profile',
             'home-header-settings',
           ]) {
             expect(find.byKey(ValueKey(key)), findsOneWidget);
           }
+          final profileIcon = tester.widget<Icon>(
+            find.descendant(
+              of: find.byKey(const ValueKey('home-player-profile')),
+              matching: find.byIcon(Icons.person_outline),
+            ),
+          );
+          expect(profileIcon.size, 36);
+          expect(profileIcon.color, const Color(0xFF1565C0));
+          expect(tester.widget<Icon>(find.byIcon(Icons.help_outline)).size, 36);
+          expect(
+            tester.widget<Icon>(find.byIcon(Icons.settings_outlined)).size,
+            36,
+          );
           await tester.tap(play);
           await tester.pumpAndSettle();
           expect(find.byType(PentoscopeGameScreen), findsOneWidget);

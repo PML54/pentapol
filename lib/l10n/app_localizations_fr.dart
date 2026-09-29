@@ -57,6 +57,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeSolo => 'Jeu Solo';
 
   @override
+  String homeSoloProgress(int level, int width, int height) {
+    return 'Niveau $level/9 · $width×$height';
+  }
+
+  @override
   String get homeDuo => 'Jeu Duo';
 
   @override
@@ -791,7 +796,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get geometryLegacy => 'Barème du défi';
 
   @override
-  String get helpTitle => 'Aide — icônes du jeu';
+  String get helpTitle => 'Aide';
+
+  @override
+  String get helpIconsTitle => 'Icônes du jeu';
+
+  @override
+  String get playerProfileTitle => 'Profil joueur';
+
+  @override
+  String playerProfileLevel(int level, int maxLevel) {
+    return 'Niveau $level/$maxLevel';
+  }
 
   @override
   String get helpTile => 'Aide';

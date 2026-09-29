@@ -15,6 +15,29 @@
 
 ## §ÉTAT — au 2026-09-29
 
+### Progression Solo — réussite sans lampe jaune (2026-09-29, CLI)
+
+Les neuf niveaux Solo restent associés aux neuf tailles, de 3×5 à 6×10, et `currentLevel` reste
+conservé localement dans `AppSettings`. Une complétion ne débloque désormais le niveau suivant que
+si elle concerne le puzzle de progression courant et si `hintCount == 0`, donc sans utilisation de
+la lampe jaune pour placer une pièce. Une partie aidée reste terminée et comptée dans les records
+locaux, mais le bilan propose « Nouvelle partie » et le niveau demeure inchangé. Le Training, les
+puzzles libres, les Défis et le Duo restent hors progression Solo.
+
+Le double-tap d'un plateau Solo vide parcourt cycliquement les seuls niveaux déjà débloqués. Au
+niveau 3, il fait donc défiler 1 → 2 → 3 → 1 sans ouvrir le niveau 4. Les niveaux antérieurs sont
+rejouables mais seul le niveau courant est marqué comme puzzle de progression. Sur une partie
+commencée ou terminée, le double-tap conserve son comportement de relance dans le même format.
+
+L'accueil affiche sous « Pentapol », dans son header, la progression locale sous la forme compacte
+« Niveau n/9 · L×H » (et son équivalent anglais). Le bouton Jeu Solo reste mono-ligne et la barre du
+jeu n'est pas modifiée.
+
+L'icône personne du header ouvre désormais le profil joueur : niveau persistant, puis records par
+taille avec acuité, impasses et temps. Sa couleur suit une palette de neuf couleurs, une par niveau.
+Les trois icônes du header passent de 30 à 36 px. La présentation de Paul Marie Larivière n'est plus
+liée à cette icône : elle ouvre maintenant l'Aide, avant la section « Icônes du jeu ».
+
 ### Passe d'audit documentaire — index et dates (2026-09-29, CLI)
 
 Demande de Paul : point sur les docs, obsolescence et bon référencement dans `INDEX_DOCS.md`
@@ -200,7 +223,7 @@ géométriques historiques.
 La rotation paysage conserve désormais la continuité de l'illustration : les fragments pivotent de
 90° vers la gauche, dans le même sens que la grille, au lieu de pivoter en sens inverse.
 
-La version interne affichée dans Paramètres est **1.0.10 (build 202609250231)**. Elle est portée par
+La version interne affichée dans Paramètres est **1.0.11 (build 202609290602)**. Elle est portée par
 `lib/config/build_info.dart` ; la version de packaging de `pubspec.yaml` reste volontairement
 inchangée jusqu'à la préparation d'une soumission aux stores.
 
@@ -1460,6 +1483,26 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ## §PASSATIONS
 
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-09-29 (34) — CLI : progression Solo réservée aux réussites sans lampe jaune.**
+Le déblocage des neuf niveaux persistés exige maintenant `hintCount == 0` en plus du puzzle de
+progression courant. Une partie aidée reste complétée et enregistrée, mais n'avance pas le niveau et
+n'affiche pas « Niveau suivant ». Test unitaire dédié aux réussites propres, aidées, libres et au
+niveau maximal.
+Le double-tap d'un plateau Solo vide fait défiler cycliquement les niveaux 1 à `currentLevel`, sans
+accéder aux tailles verrouillées. La relance d'une partie commencée ou terminée dans le même format
+est conservée et couverte par test.
+Le header de l'accueil affiche maintenant, sous Pentapol, le niveau persistant et la taille
+correspondante en français et en anglais ; le bouton Jeu Solo reste simple.
+L'icône personne ouvre le profil joueur existant enrichi du niveau, avec une couleur par niveau ;
+les icônes du header font 36 px. La présentation du développeur précède désormais les icônes dans
+l'écran Aide.
+
+Le code couleur est volontairement saturé et partagé entre l'icône personne, le libellé de niveau
+du header et l'en-tête du profil : bleu, cyan, turquoise, vert, jaune-vert, ambre, orange, rouge et
+violet pour les niveaux 1 à 9.
+La version interne affichée en fin des Paramètres passe à **1.0.11**, build **202609290602** ; le
+`pubspec.yaml` reste inchangé.
 
 **2026-09-29 (33) — CLI : audit de l'index documentaire et dates de révision.**
 `INDEX_DOCS.md` reçoit une colonne « Dernière révision » (date git du dernier commit, relevée le

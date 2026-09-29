@@ -1,4 +1,6 @@
-// Modified: 2026-09-09 05:29 — centralisation score : acuityPercent, agrégation « meilleure acuité »
+// Modified: 2026-09-29 06:05 — appliquer au profil le même code couleur que l'icône de niveau.
+// Historique: 2026-09-29 05:50 — transformer les records en profil joueur avec niveau en tête.
+// Historique: 2026-09-09 05:29 — centralisation score : acuityPercent, agrégation « meilleure acuité »
 //           et hasPerfectVision délèguent à score_rules (formule plafonnée, comparaison et prédicat
 //           uniques). Le % devient plafonné — sans effet visible (records = parties propres, ratio ≤ 1).
 // Historique: 2026-09-06 04:50 — i18n : titre, légende (acuité/fautes/temps), état vide, médaille
@@ -17,6 +19,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
+import 'package:pentapol/config/player_level_colors.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
@@ -24,7 +27,8 @@ import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// Les trois maillots d'une taille, agrégés. Bests nullables : `null` = aucune partie propre.
 class _SizeRecord {
-  final int count; // complétions (pièces tirées) ou solutions distinctes (rectangle)
+  final int
+  count; // complétions (pièces tirées) ou solutions distinctes (rectangle)
   final int? acuityMinIso;
   final int? acuityIsoCount;
   final int? faults;
@@ -59,12 +63,17 @@ _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
   for (final r in rows) {
     if (r.bestAcuityMinIso != null && r.bestAcuityIsoCount != null) {
       if (rules.isBetterAcuity(
-          bestMi, bestIso, r.bestAcuityMinIso!, r.bestAcuityIsoCount!)) {
+        bestMi,
+        bestIso,
+        r.bestAcuityMinIso!,
+        r.bestAcuityIsoCount!,
+      )) {
         bestMi = r.bestAcuityMinIso;
         bestIso = r.bestAcuityIsoCount;
       }
     }
-    if (r.bestFaults != null && (bestFaults == null || r.bestFaults! < bestFaults)) {
+    if (r.bestFaults != null &&
+        (bestFaults == null || r.bestFaults! < bestFaults)) {
       bestFaults = r.bestFaults;
     }
     if (r.bestTimeSeconds != null &&
@@ -81,7 +90,9 @@ _SizeRecord _aggregateSolved(List<SolvedSolution> rows) {
   );
 }
 
-Future<Map<PentoscopeSize, _SizeRecord>> _loadRecords(SettingsDatabase db) async {
+Future<Map<PentoscopeSize, _SizeRecord>> _loadRecords(
+  SettingsDatabase db,
+) async {
   final stats = await db.allPuzzleStats();
   final solved = await db.allSolvedSolutions();
   final byName = {for (final s in stats) s.sizeName: s};
@@ -94,7 +105,9 @@ Future<Map<PentoscopeSize, _SizeRecord>> _loadRecords(SettingsDatabase db) async
   for (final size in PentoscopeSize.values) {
     if (size.table != null) {
       final rows = byBoard['${size.width}x${size.height}'];
-      if (rows != null && rows.isNotEmpty) result[size] = _aggregateSolved(rows);
+      if (rows != null && rows.isNotEmpty) {
+        result[size] = _aggregateSolved(rows);
+      }
     } else {
       final s = byName[size.name];
       if (s != null) {
@@ -118,31 +131,61 @@ class RecordsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.read(settingsDatabaseProvider);
+    final level = ref.watch(settingsProvider.select((s) => s.currentLevel));
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).recordsTitle)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).playerProfileTitle),
+      ),
       body: SafeArea(
-        child: FutureBuilder<Map<PentoscopeSize, _SizeRecord>>(
-          future: _loadRecords(db),
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final records = snap.data!;
-            final sizes =
-                PentoscopeSize.values.where(records.containsKey).toList();
-            if (sizes.isEmpty) {
-              return const _EmptyState();
-            }
-            return ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                const _Legend(),
-                const SizedBox(height: 8),
-                for (final size in sizes)
-                  _RecordCard(size: size, record: records[size]!),
-              ],
-            );
-          },
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 42,
+                    color: playerLevelColor(level),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    ).playerProfileLevel(level, kMaxLevel),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: playerLevelColor(level),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<Map<PentoscopeSize, _SizeRecord>>(
+                future: _loadRecords(db),
+                builder: (context, snap) {
+                  if (!snap.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final records = snap.data!;
+                  final sizes = PentoscopeSize.values
+                      .where(records.containsKey)
+                      .toList();
+                  if (sizes.isEmpty) return const _EmptyState();
+                  return ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      const _Legend(),
+                      const SizedBox(height: 8),
+                      for (final size in sizes)
+                        _RecordCard(size: size, record: records[size]!),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -160,8 +203,11 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.emoji_events_outlined,
-                size: 64, color: Theme.of(context).disabledColor),
+            Icon(
+              Icons.emoji_events_outlined,
+              size: 64,
+              color: Theme.of(context).disabledColor,
+            ),
             const SizedBox(height: 16),
             Text(
               AppLocalizations.of(context).recordsEmpty,
@@ -212,7 +258,9 @@ class _LegendItem extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black26), // léger bord pour détacher la pastille
+            border: Border.all(
+              color: Colors.black26,
+            ), // léger bord pour détacher la pastille
           ),
         ),
         const SizedBox(width: 6),
@@ -248,14 +296,20 @@ class _RecordCard extends StatelessWidget {
               children: [
                 Text(
                   '${size.width}×${size.height}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (record.hasPerfectVision) ...[
                   const SizedBox(width: 6),
                   Tooltip(
                     message: AppLocalizations.of(context).perfectVisionMsg,
-                    child: const Icon(Icons.military_tech,
-                        color: Color(0xFFF2B705), size: 22),
+                    child: const Icon(
+                      Icons.military_tech,
+                      color: Color(0xFFF2B705),
+                      size: 22,
+                    ),
                   ),
                 ],
                 const SizedBox(width: 8),
@@ -264,7 +318,10 @@ class _RecordCard extends StatelessWidget {
                   style: TextStyle(color: Theme.of(context).hintColor),
                 ),
                 const Spacer(),
-                Text(countLabel, style: TextStyle(color: Theme.of(context).hintColor)),
+                Text(
+                  countLabel,
+                  style: TextStyle(color: Theme.of(context).hintColor),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -314,7 +371,9 @@ class _MaillotValue extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black26), // léger bord pour détacher la pastille
+            border: Border.all(
+              color: Colors.black26,
+            ), // léger bord pour détacher la pastille
           ),
         ),
         const SizedBox(width: 6),

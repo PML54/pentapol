@@ -43,7 +43,7 @@ Champs de `AppSettings` (voir `app_settings.dart`) :
 |---|---|
 | `ui`, `game`, `duel` | préférences (affichage, jeu, duel) |
 | `userName` | pseudo du joueur (saisi au 1er succès) |
-| `currentLevel` | niveau de progression solo (1..9) |
+| `currentLevel` | niveau de progression solo (1..9), avancé uniquement par une réussite sans lampe jaune |
 | `playerId` | **identité 128 bits** (32 hex) — clé du joueur pour le classement en ligne, distincte du pseudo. Générée à la 1re soumission de défi. |
 
 ### `CurrentGame` — la partie en cours (une seule ligne, `id = 0`, écrasée)

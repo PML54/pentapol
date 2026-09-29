@@ -1,4 +1,5 @@
-// Modified: 2026-09-25 15:10 — retirer rotation simple, compteur et nouvelle partie de l'aide.
+// Modified: 2026-09-29 05:50 — placer la présentation du développeur avant l'aide des icônes.
+// Historique: 2026-09-25 15:10 — retirer rotation simple, compteur et nouvelle partie de l'aide.
 // Historique: 2026-09-25 15:06 — retirer quatre commandes obsolètes ou dupliquées de l'aide.
 // Historique: 2026-09-25 03:14 — lampe scindée en deux entrées (rouge, jaune) placées en tête
 //             de l'aide : leur compréhension est prioritaire.
@@ -11,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
+import 'package:pentapol/screens/about_developer_screen.dart';
 
 /// Écran d'Aide : liste « icône + libellé + description » de toutes les icônes du jeu.
 ///
@@ -32,11 +34,25 @@ class HelpScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.helpTitle)),
       body: SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: entries.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) => _buildRow(entries[index]),
+        child: ListView(
+          children: [
+            const DeveloperAboutContent(compact: true),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text(
+                l10n.helpIconsTitle,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            for (var index = 0; index < entries.length; index++) ...[
+              _buildRow(entries[index]),
+              if (index != entries.length - 1) const Divider(height: 1),
+            ],
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );

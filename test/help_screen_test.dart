@@ -1,4 +1,5 @@
-// Modified: 2026-09-25 15:10 — vérifier les 10 lignes utiles après le second nettoyage.
+// Modified: 2026-09-29 05:50 — vérifier la présentation du développeur avant les icônes.
+// Historique: 2026-09-25 15:10 — vérifier les 10 lignes utiles après le second nettoyage.
 // Historique: 2026-09-25 15:06 — vérifier les 13 lignes utiles et l'absence des commandes retirées.
 // Historique: 2026-09-25 03:14 — 17 lignes : lampe rouge et lampe jaune comptées séparément.
 // Historique: 2026-09-25 02:56 — l'écran d'Aide s'ouvre et liste les 16 icônes du jeu (FR/EN).
@@ -14,7 +15,7 @@ void main() {
     ) async {
       // Viewport assez haut pour que toutes les lignes du ListView soient construites.
       tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(600, 2600);
+      tester.view.physicalSize = const Size(600, 4200);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
@@ -28,6 +29,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Paul Marie Larivière'), findsOneWidget);
+      expect(
+        find.text(lang == 'fr' ? 'Icônes du jeu' : 'Game icons'),
+        findsOneWidget,
+      );
       // lampe rouge + lampe jaune + 7 icônes utiles de GameIcons + home.
       expect(find.byType(ListTile), findsNWidgets(10));
       if (lang == 'fr') {

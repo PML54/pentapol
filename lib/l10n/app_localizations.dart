@@ -194,6 +194,12 @@ abstract class AppLocalizations {
   /// **'Solo Game'**
   String get homeSolo;
 
+  /// No description provided for @homeSoloProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level}/9 · {width}×{height}'**
+  String homeSoloProgress(int level, int width, int height);
+
   /// No description provided for @homeDuo.
   ///
   /// In en, this message translates to:
@@ -1439,8 +1445,26 @@ abstract class AppLocalizations {
   /// No description provided for @helpTitle.
   ///
   /// In en, this message translates to:
-  /// **'Help — game icons'**
+  /// **'Help'**
   String get helpTitle;
+
+  /// No description provided for @helpIconsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game icons'**
+  String get helpIconsTitle;
+
+  /// No description provided for @playerProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Player profile'**
+  String get playerProfileTitle;
+
+  /// No description provided for @playerProfileLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level}/{maxLevel}'**
+  String playerProfileLevel(int level, int maxLevel);
 
   /// No description provided for @helpTile.
   ///

@@ -16,6 +16,14 @@
   "homeRecords": "My records",
   "homeSettings": "Settings",
   "homeSolo": "Solo Game",
+  "homeSoloProgress": "Level {level}/9 · {width}×{height}",
+  "@homeSoloProgress": {
+    "placeholders": {
+      "level": {"type": "int"},
+      "width": {"type": "int"},
+      "height": {"type": "int"}
+    }
+  },
   "homeDuo": "Duo Game",
   "settingsTitle": "Settings",
   "settingsResetConfirm": "Reset all settings to their defaults?",
@@ -399,7 +407,16 @@
   "legendCheating": "Cheating",
   "geometryAssisted": "Assisted game",
   "geometryLegacy": "Challenge scoring",
-  "helpTitle": "Help — game icons",
+  "helpTitle": "Help",
+  "helpIconsTitle": "Game icons",
+  "playerProfileTitle": "Player profile",
+  "playerProfileLevel": "Level {level}/{maxLevel}",
+  "@playerProfileLevel": {
+    "placeholders": {
+      "level": {"type": "int"},
+      "maxLevel": {"type": "int"}
+    }
+  },
   "helpTile": "Help",
   "helpTileSub": "What the game icons mean",
   "helpLabelEnterIso": "Isometries mode",
