@@ -1,4 +1,8 @@
-// Modified: 2026-09-23 05:13 — réglage expérimental des pièces illustrées 6×10.
+// Modified: 2026-09-30 07:27 — exprimer l'acuité par pièce en pourcentage tronqué.
+// Historique: 2026-09-30 07:10 — conserver un historique borné des tentatives du bilan personnel.
+// Historique: 2026-09-29 07:49 — exprimer l'acuité par pentomino en note entière sur 1000.
+// Historique: 2026-09-29 06:10 — persister les cumuls d'acuité par pentomino dans AppSettings.
+// Historique: 2026-09-23 05:13 — réglage expérimental des pièces illustrées 6×10.
 // Historique: 2026-09-22 06:06 — réglage showDragFeedback (défaut false) pour masquer
 //           la miniature qui suit le doigt, sans masquer l'aperçu du plateau.
 // Historique: 2026-09-12 10:58 — sauvegarde JSON du barème Géométrie dans les réglages.
@@ -553,6 +557,113 @@ class DuelSettings {
   static const DuelSettings defaults = DuelSettings();
 }
 
+class PieceAcuityTotals {
+  final int placements;
+  final int theoretical;
+  final int actual;
+
+  const PieceAcuityTotals({
+    this.placements = 0,
+    this.theoretical = 0,
+    this.actual = 0,
+  });
+
+  int get percent {
+    if (placements == 0) return 0;
+    if (actual == 0) return 100;
+    return ((theoretical * 100) ~/ actual).clamp(0, 100);
+  }
+
+  Map<String, dynamic> toJson() => {
+    'placements': placements,
+    'theoretical': theoretical,
+    'actual': actual,
+  };
+
+  factory PieceAcuityTotals.fromJson(Map<String, dynamic> json) =>
+      PieceAcuityTotals(
+        placements: (json['placements'] as num?)?.toInt() ?? 0,
+        theoretical: (json['theoretical'] as num?)?.toInt() ?? 0,
+        actual: (json['actual'] as num?)?.toInt() ?? 0,
+      );
+}
+
+const int kAttemptHistoryPerSize = 20;
+
+/// Résumé local d'une tentative Solo. Une tentative abandonnée reste exploitable pour les
+/// indicateurs qui ne dépendent pas de la victoire (premier placement, impasses, gestes, aide).
+class PlayerAttemptSummary {
+  final String sizeName;
+  final bool completed;
+  final int elapsedSeconds;
+  final int faults;
+  final int isometries;
+  final int translations;
+  final int removals;
+  final int hints;
+  final int placedPieces;
+  final int? firstPieceId;
+  final bool? firstPlacementSolvable;
+  final bool firstPlacementAssisted;
+  final String? firstPlacementFaultKind;
+  final String endedAt;
+
+  const PlayerAttemptSummary({
+    required this.sizeName,
+    required this.completed,
+    required this.elapsedSeconds,
+    required this.faults,
+    required this.isometries,
+    required this.translations,
+    required this.removals,
+    required this.hints,
+    required this.placedPieces,
+    required this.endedAt,
+    this.firstPieceId,
+    this.firstPlacementSolvable,
+    this.firstPlacementAssisted = false,
+    this.firstPlacementFaultKind,
+  });
+
+  bool get clean => hints == 0;
+
+  Map<String, dynamic> toJson() => {
+    'sizeName': sizeName,
+    'completed': completed,
+    'elapsedSeconds': elapsedSeconds,
+    'faults': faults,
+    'isometries': isometries,
+    'translations': translations,
+    'removals': removals,
+    'hints': hints,
+    'placedPieces': placedPieces,
+    'firstPieceId': firstPieceId,
+    'firstPlacementSolvable': firstPlacementSolvable,
+    'firstPlacementAssisted': firstPlacementAssisted,
+    'firstPlacementFaultKind': firstPlacementFaultKind,
+    'endedAt': endedAt,
+  };
+
+  factory PlayerAttemptSummary.fromJson(Map<String, dynamic> json) =>
+      PlayerAttemptSummary(
+        sizeName: json['sizeName'] as String? ?? '',
+        completed: json['completed'] as bool? ?? false,
+        elapsedSeconds: (json['elapsedSeconds'] as num?)?.toInt() ?? 0,
+        faults: (json['faults'] as num?)?.toInt() ?? 0,
+        isometries: (json['isometries'] as num?)?.toInt() ?? 0,
+        translations: (json['translations'] as num?)?.toInt() ?? 0,
+        removals: (json['removals'] as num?)?.toInt() ?? 0,
+        hints: (json['hints'] as num?)?.toInt() ?? 0,
+        placedPieces: (json['placedPieces'] as num?)?.toInt() ?? 0,
+        firstPieceId: (json['firstPieceId'] as num?)?.toInt(),
+        firstPlacementSolvable: json['firstPlacementSolvable'] as bool?,
+        firstPlacementAssisted:
+            json['firstPlacementAssisted'] as bool? ?? false,
+        firstPlacementFaultKind: json['firstPlacementFaultKind'] as String?,
+        endedAt: json['endedAt'] as String? ?? '',
+      );
+}
+
 /// Paramètres globaux de l'application
 class AppSettings {
   final UISettings ui;
@@ -564,6 +675,8 @@ class AppSettings {
 
   /// Niveau de progression solo courant (1..kMaxLevel, 1 = size3x5, 3 pièces).
   final int currentLevel;
+  final Map<int, PieceAcuityTotals> pieceAcuityTotals;
+  final List<PlayerAttemptSummary> attemptHistory;
 
   /// Identité 128 bits (32 hex), **distincte du pseudo** (CDC §7.4) : clé primaire côté serveur du
   /// classement. Générée à la première ouverture, persistée. null tant que non générée. Le pseudo
@@ -595,6 +708,8 @@ class AppSettings {
     this.duel = DuelSettings.defaults,
     this.userName,
     this.currentLevel = 1,
+    this.pieceAcuityTotals = const {},
+    this.attemptHistory = const [],
     this.playerId,
     this.localeCode,
     this.shareScoresOptIn = false,
@@ -610,6 +725,8 @@ class AppSettings {
     String? userName,
     bool clearUserName = false,
     int? currentLevel,
+    Map<int, PieceAcuityTotals>? pieceAcuityTotals,
+    List<PlayerAttemptSummary>? attemptHistory,
     String? playerId,
     bool clearPlayerId = false,
     String? localeCode,
@@ -626,6 +743,8 @@ class AppSettings {
       duel: duel ?? this.duel,
       userName: clearUserName ? null : (userName ?? this.userName),
       currentLevel: currentLevel ?? this.currentLevel,
+      pieceAcuityTotals: pieceAcuityTotals ?? this.pieceAcuityTotals,
+      attemptHistory: attemptHistory ?? this.attemptHistory,
       playerId: clearPlayerId ? null : (playerId ?? this.playerId),
       localeCode: clearLocaleCode ? null : (localeCode ?? this.localeCode),
       shareScoresOptIn: shareScoresOptIn ?? this.shareScoresOptIn,
@@ -646,6 +765,12 @@ class AppSettings {
       'duel': duel.toJson(),
       'userName': userName,
       'currentLevel': currentLevel,
+      'pieceAcuityTotals': pieceAcuityTotals.map(
+        (key, value) => MapEntry(key.toString(), value.toJson()),
+      ),
+      'attemptHistory': attemptHistory
+          .map((attempt) => attempt.toJson())
+          .toList(),
       'playerId': playerId,
       'localeCode': localeCode,
       'shareScoresOptIn': shareScoresOptIn,
@@ -664,6 +789,18 @@ class AppSettings {
           : DuelSettings.defaults,
       userName: json['userName'] as String?,
       currentLevel: (json['currentLevel'] as int?) ?? 1,
+      pieceAcuityTotals:
+          (json['pieceAcuityTotals'] as Map<String, dynamic>? ?? const {}).map(
+            (key, value) => MapEntry(
+              int.parse(key),
+              PieceAcuityTotals.fromJson(value as Map<String, dynamic>),
+            ),
+          ),
+      attemptHistory: (json['attemptHistory'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(PlayerAttemptSummary.fromJson)
+          .where((attempt) => attempt.sizeName.isNotEmpty)
+          .toList(),
       playerId: json['playerId'] as String?,
       localeCode: json['localeCode'] as String?,
       shareScoresOptIn: json['shareScoresOptIn'] as bool? ?? false,

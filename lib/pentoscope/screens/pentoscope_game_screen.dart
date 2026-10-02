@@ -1,4 +1,10 @@
-// Modified: 2026-09-29 05:50 — faire défiler au double-tap les seuls niveaux Solo débloqués.
+// Modified: 2026-10-02 07:17 — afficher toutes les durées en minutes et secondes, avec ou sans aide.
+// Historique: 2026-10-02 07:15 — masquer Acuité avec Triche et afficher le temps en secondes.
+// Historique: 2026-10-02 07:09 — afficher Acuité en pourcentage inférieur, sans Résolu ni étoiles.
+// Historique: 2026-10-02 07:03 — afficher Triche en pourcentage arrondi au supérieur.
+// Historique: 2026-10-02 06:49 — choisir parmi les niveaux débloqués à chaque nouvelle partie Solo.
+// Historique: 2026-09-30 07:53 — neutraliser silencieusement les lampes en mode Défi.
+// Historique: 2026-09-29 05:50 — faire défiler au double-tap les seuls niveaux Solo débloqués.
 // Historique: 2026-09-29 05:36 — neutraliser le double-tap d'un plateau Solo vide.
 // Historique: 2026-09-29 05:14 — réserver le déblocage du niveau Solo aux puzzles terminés sans aide.
 // Historique: 2026-09-25 06:53 — nettoyer l'aperçu si le doigt est relâché entre plateau et tiroir.
@@ -163,13 +169,13 @@
 // CHANGEMENTS: (1) dialogue de bilan, (2) rangées déplacements et suppressions ajoutées
 
 import 'dart:math' as math;
-import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
+import 'package:pentapol/pentoscope/solo_level_dialog.dart';
 import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/pentominos.dart';
@@ -180,6 +186,7 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
+import 'package:pentapol/pentoscope/score_rules.dart';
 import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/fault_analysis.dart';
 import 'package:pentapol/pentoscope/home/guided_scrolling_message.dart';
@@ -260,26 +267,10 @@ const double _kChronoFactor = 1.4;
 /// Marge de la barre de pièces autour de la boîte (épaisseur de barre = `5 × cell + marge`).
 const double _kSliderPad = 20.0;
 
-/// ⏱️ Formate le temps en `m:ss` (C7, décision 8 du PLAN_ERGONOMIE_ICONES) : les
-/// secondes brutes (`106s`, `203s`) ne se lisent pas comme une durée. Chaîne
-/// purement numérique — pas d'i18n (comme les libellés numériques de durée du duel).
+/// Durée en minutes et secondes, indépendamment de l'aide utilisée.
 String _formatTime(int seconds) {
   final total = seconds < 0 ? 0 : seconds;
-  final m = total ~/ 60;
-  final s = total % 60;
-  return '$m:${s.toString().padLeft(2, '0')}';
-}
-
-int _completionTier(CompletionMetrics? metrics, int hintCount) {
-  if (metrics == null || hintCount > 0) return 1;
-  if (metrics.geometry != null) {
-    final ratio =
-        metrics.geometry!.value / metrics.geometry!.rules.initialScore;
-    return metrics.faults == 0 ? 3 : (ratio >= .8 ? 2 : 1);
-  }
-  if (metrics.faults == 0 && metrics.perfectVision) return 3;
-  if (metrics.faults == 0) return 2;
-  return 1;
+  return '${total ~/ 60}:${(total % 60).toString().padLeft(2, '0')}';
 }
 
 /// Un niveau Solo est débloqué uniquement par le puzzle de progression courant,
@@ -676,8 +667,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   Future<void> _openGameFromTraining(PentoscopeNotifier notifier) async {
     HapticFeedback.mediumImpact();
-    final level = ref.read(settingsProvider).currentLevel;
-    await notifier.startPuzzle(sizeForLevel(level), isProgression: true);
+    if (!await _startChosenSoloLevel(notifier)) return;
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -689,26 +679,22 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     PentoscopeState state,
     PentoscopeNotifier notifier,
   ) async {
-    final puzzle = state.puzzle;
-    if (puzzle == null) return;
-
-    if (state.placedPieces.isEmpty && !state.isComplete) {
-      final currentLevel = ref.read(settingsProvider).currentLevel;
-      if (currentLevel <= 1) return;
-      final unlockedSizes = PentoscopeSize.values.take(currentLevel).toList();
-      final displayedIndex = unlockedSizes.indexOf(puzzle.size);
-      final nextIndex = displayedIndex < 0
-          ? 0
-          : (displayedIndex + 1) % unlockedSizes.length;
-      HapticFeedback.selectionClick();
-      await notifier.startPuzzle(
-        unlockedSizes[nextIndex],
-        isProgression: nextIndex == currentLevel - 1,
-      );
-      return;
-    }
+    if (state.puzzle == null) return;
     HapticFeedback.selectionClick();
-    await notifier.startPuzzle(puzzle.size, isProgression: state.isProgression);
+    await _startChosenSoloLevel(notifier);
+  }
+
+  Future<bool> _startChosenSoloLevel(PentoscopeNotifier notifier) async {
+    final level = await showSoloLevelDialog(
+      context,
+      unlockedLevel: ref.read(settingsProvider).currentLevel,
+    );
+    if (level == null || !mounted) return false;
+    await notifier.startPuzzle(
+      sizeForLevel(level),
+      isProgression: level == ref.read(settingsProvider).currentLevel,
+    );
+    return true;
   }
 
   // ============================================================================
@@ -1232,6 +1218,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             metrics: notifier
                 .computeCompletionMetrics(), // trois maillots (CDC §4.5)
             hintCount: state.hintCount,
+            pieceCount: state.puzzle?.pieceIds.length ?? 0,
             onLeaderboard: challenge == null
                 ? null
                 : () => openLeaderboardWithConsent(
@@ -1246,16 +1233,16 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             onClose: () => setState(() => _bilanFerme = true),
             onNewGame: () {
               HapticFeedback.mediumImpact();
-              notifier.reset();
+              if (widget.mode == PentoscopeMode.game && !state.isRanked) {
+                _startChosenSoloLevel(notifier);
+              } else {
+                notifier.reset();
+              }
             },
             onNextLevel: canNext
                 ? () {
                     HapticFeedback.mediumImpact();
-                    final level = ref.read(settingsProvider).currentLevel;
-                    notifier.startPuzzle(
-                      sizeForLevel(level),
-                      isProgression: true,
-                    );
+                    _startChosenSoloLevel(notifier);
                   }
                 : null,
           ),
@@ -1469,14 +1456,6 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             // Mode classé (défi, §4.8) : l'appui est neutralisé. La couleur reste (elle sort du
             // même calcul que le compteur). Le retrait passe par sélection + poubelle.
             if (state.isRanked) {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.hintDisabledChallenge),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
               return;
             }
             if (state.hasPossibleSolution) {
@@ -1543,18 +1522,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   ) {
     final l10n = AppLocalizations.of(context);
     final metrics = notifier.computeCompletionMetrics();
-    final tier = _completionTier(metrics, state.hintCount);
-    final stars = [
-      ...List.filled(tier, '★'),
-      ...List.filled(3 - tier, '☆'),
-    ].join();
     final parts = <String>[
-      l10n.solved,
-      stars,
-      if (metrics?.geometry != null)
-        '${l10n.legendGeometry} ${NumberFormat('0.#', l10n.localeName).format(metrics!.geometry!.value)}/${NumberFormat('0.#', l10n.localeName).format(metrics.geometry!.rules.initialScore)}',
+      if (metrics != null && state.hintCount == 0)
+        '${l10n.legendAcuity} ${metrics.displayAcuityPercent} %',
       '${l10n.legendFaults} ${metrics?.faults ?? state.faultCount}',
-      '${l10n.legendCheating} ${state.hintCount}',
+      '${l10n.legendCheating} ${cheatingPercent(state.hintCount, state.puzzle?.pieceIds.length ?? 0)} %',
       '${l10n.legendTime} ${_formatTime(metrics?.timeSeconds ?? state.elapsedSeconds)}',
       l10n.gameTapNewGame,
     ];
@@ -1598,8 +1570,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// (`kShowLiveCounters`, 3 lignes) : les deux s'excluent (voir le Stack du build).
   Widget _statsOverlay(PentoscopeState state) {
     final l10n = AppLocalizations.of(context);
-    final geometry = state.geometry;
-    final format = NumberFormat('0.#', l10n.localeName);
+    final metrics = ref
+        .read(pentoscopeProvider.notifier)
+        .computeCompletionMetrics();
     const base = TextStyle(
       color: Colors.white,
       fontSize: 18,
@@ -1623,13 +1596,16 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             spacing: 12,
             runSpacing: 4,
             children: [
-              if (geometry != null)
+              if (metrics != null && state.hintCount == 0)
                 Text(
-                  '${l10n.legendGeometry} ${format.format(geometry.value)}/${format.format(geometry.rules.initialScore)}',
+                  '${l10n.legendAcuity} ${metrics.displayAcuityPercent} %',
                   style: base,
                 ),
               Text('${l10n.legendFaults} ${state.faultCount}', style: base),
-              Text('${l10n.legendCheating} ${state.hintCount}', style: base),
+              Text(
+                '${l10n.legendCheating} ${cheatingPercent(state.hintCount, state.puzzle?.pieceIds.length ?? 0)} %',
+                style: base,
+              ),
             ],
           ),
         ),
@@ -1990,6 +1966,7 @@ class _BilanCard extends StatefulWidget {
 
   /// Aides utilisées : si > 0, la partie n'est pas « propre » (hors record, §4.8).
   final int hintCount;
+  final int pieceCount;
 
   /// Défi : ouvrir le classement (on vient d'y soumettre son score). null hors défi.
   final VoidCallback? onLeaderboard;
@@ -2003,6 +1980,7 @@ class _BilanCard extends StatefulWidget {
   const _BilanCard({
     required this.metrics,
     required this.hintCount,
+    required this.pieceCount,
     this.onLeaderboard,
     required this.onClose,
     required this.onNewGame,
@@ -2015,18 +1993,6 @@ class _BilanCard extends StatefulWidget {
 
 class _BilanCardState extends State<_BilanCard> {
   bool _showInfo = false;
-
-  static String _mmss(int seconds) {
-    final mm = (seconds ~/ 60).toString().padLeft(2, '0');
-    final ss = (seconds % 60).toString().padLeft(2, '0');
-    return '$mm:$ss';
-  }
-
-  /// Palier de réussite (nombre d'étoiles) selon fautes + acuité (retour de Paul, 2026-09-10) :
-  /// 3 = parfait (acuité 100 % ET 0 faute, sans aide), 2 = propre (0 faute), 1 = résolu / avec aide.
-  int _tier() {
-    return _completionTier(widget.metrics, widget.hintCount);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -2051,26 +2017,14 @@ class _BilanCardState extends State<_BilanCard> {
     final List<Widget> detail = [];
     if (m != null) {
       final geometry = m.geometry;
-      final format = NumberFormat('0.#', l10n.localeName);
-      if (geometry != null) {
-        detail.add(
-          _MaillotLine(
-            color: const Color(0xFFF2B705),
-            label: l10n.legendGeometry,
-            value:
-                '${format.format(geometry.value)}/${format.format(geometry.rules.initialScore)}',
-          ),
-        );
-      } else if (!assisted) {
+      if (!assisted)
         detail.add(
           _MaillotLine(
             color: const Color(0xFFF2B705),
             label: l10n.legendAcuity,
-            value: '${m.acuityPercent} %',
-            detail: l10n.geometryLegacy,
+            value: '${m.displayAcuityPercent} %',
           ),
         );
-      }
       detail.addAll([
         _MaillotLine(
           color: const Color(0xFFD64545),
@@ -2080,12 +2034,12 @@ class _BilanCardState extends State<_BilanCard> {
         _MaillotLine(
           color: Colors.orange,
           label: l10n.legendCheating,
-          value: '${widget.hintCount}',
+          value: '${cheatingPercent(widget.hintCount, widget.pieceCount)} %',
         ),
         _MaillotLine(
           color: const Color(0xFF2E9E5B),
           label: l10n.legendTime,
-          value: _mmss(m.timeSeconds),
+          value: _formatTime(m.timeSeconds),
         ),
         if (assisted) Text(l10n.geometryAssisted),
         if (geometry?.experimental == true) Text(l10n.geometryExperimental),
@@ -2116,8 +2070,6 @@ class _BilanCardState extends State<_BilanCard> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                // Animation de réussite : 1 à 3 étoiles selon le palier.
-                _SuccessStars(tier: _tier()),
                 // Détail repliable (bouton infos). Largeur pleine même replié → la carte ne
                 // change pas de largeur en ouvrant le détail.
                 AnimatedSize(
@@ -2178,86 +2130,17 @@ class _BilanCardState extends State<_BilanCard> {
   }
 }
 
-/// Animation de réussite : 1 à 3 étoiles pleines (selon le palier), pop décalé à l'ouverture de la
-/// carte de fin (retour de Paul, 2026-09-10). Les étoiles manquantes restent en contour discret.
-class _SuccessStars extends StatefulWidget {
-  final int tier; // 1..3
-  const _SuccessStars({required this.tier});
-
-  @override
-  State<_SuccessStars> createState() => _SuccessStarsState();
-}
-
-class _SuccessStarsState extends State<_SuccessStars>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const filled = Color(0xFFF2B705);
-    final empty = Colors.grey.shade400;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (i) {
-        final isFilled = i < widget.tier;
-        final star = Icon(
-          isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-          color: isFilled ? filled : empty,
-          size: 54,
-        );
-        if (!isFilled) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: star,
-          );
-        }
-        // Pop décalé (elasticOut) : chaque étoile pleine apparaît à son tour.
-        final start = (i * 0.22).clamp(0.0, 0.5);
-        final anim = CurvedAnimation(
-          parent: _c,
-          curve: Interval(
-            start,
-            (start + 0.5).clamp(0.0, 1.0),
-            curve: Curves.elasticOut,
-          ),
-        );
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: ScaleTransition(scale: anim, child: star),
-        );
-      }),
-    );
-  }
-}
-
 /// Une ligne de maillot dans la carte de bilan : pastille colorée + libellé, valeur brute à
 /// droite (§4.5), détail (minimums, isométries) en petit dessous.
 class _MaillotLine extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
-  final String? detail;
 
   const _MaillotLine({
     required this.color,
     required this.label,
     required this.value,
-    this.detail,
   });
 
   @override
@@ -2297,14 +2180,6 @@ class _MaillotLine extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (detail != null)
-                Text(
-                  detail!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).hintColor,
-                  ),
-                ),
             ],
           ),
         ],

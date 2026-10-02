@@ -1,4 +1,6 @@
-// Modified: 2026-09-29 06:05 — rendre le code couleur du niveau nettement visible dans le header.
+// Modified: 2026-10-02 06:49 — choisir un niveau débloqué au lancement d'une nouvelle partie Solo.
+// Historique: 2026-10-02 06:39 — ajouter une remise à zéro confirmée des résultats locaux à l'accueil.
+// Historique: 2026-09-29 06:05 — rendre le code couleur du niveau nettement visible dans le header.
 // Historique: 2026-09-29 05:50 — ouvrir le profil joueur par une icône colorée selon le niveau et
 //           agrandir les icônes du header.
 // Historique: 2026-09-29 05:41 — afficher le niveau Solo sous Pentapol dans le header de l'accueil.
@@ -33,6 +35,7 @@ import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
+import 'package:pentapol/pentoscope/solo_level_dialog.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart'
     show sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
@@ -85,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final size = sizeForLevel(level);
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.centerLeft,
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -161,6 +164,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Icons.settings_outlined,
               color: Color(0xFF52657D),
               size: 36,
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('home-reset-results'),
+            tooltip: l10n.resetLocalResultsTitle,
+            onPressed: _isLaunchingRecreational ? null : _resetLocalResults,
+            icon: const Icon(
+              Icons.delete_sweep_outlined,
+              color: Color(0xFFB43B43),
+              size: 30,
             ),
           ),
         ],
@@ -273,15 +286,78 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final needFresh =
         st.puzzle == null ||
         st.isComplete ||
+        (level > 1 && st.placedPieces.isEmpty) ||
         !st.isProgression ||
         st.puzzle!.size != size;
     if (needFresh) {
-      await notifier.startPuzzle(size, isProgression: true);
+      final chosen = await showSoloLevelDialog(context, unlockedLevel: level);
+      if (chosen == null || !context.mounted) return;
+      await notifier.startPuzzle(
+        sizeForLevel(chosen),
+        isProgression: chosen == ref.read(settingsProvider).currentLevel,
+      );
     }
     if (!context.mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
+    );
+  }
+
+  Future<void> _resetLocalResults() async {
+    final l10n = AppLocalizations.of(context);
+    var busy = false;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => PopScope(
+          canPop: !busy,
+          child: AlertDialog(
+            title: Text(l10n.resetLocalResultsTitle),
+            content: busy
+                ? const SizedBox(
+                    height: 80,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : Text(l10n.resetLocalResultsConfirm),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.pop(dialogContext),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        setDialogState(() => busy = true);
+                        try {
+                          await ref
+                              .read(settingsProvider.notifier)
+                              .resetLocalResults();
+                          ref
+                              .read(pentoscopeProvider.notifier)
+                              .discardCurrentGameAfterLocalReset();
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(content: Text(l10n.resetLocalResultsDone)),
+                          );
+                        } catch (_) {
+                          if (!dialogContext.mounted) return;
+                          setDialogState(() => busy = false);
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(content: Text(l10n.genericError)),
+                          );
+                        }
+                      },
+                child: Text(l10n.reset),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

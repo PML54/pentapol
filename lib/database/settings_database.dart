@@ -1,4 +1,5 @@
-// Modified: 2026-09-12 10:58 — schéma 11 destructif : snapshot Géométrie dans CurrentGame, remise à zéro autorisée par Paul.
+// Modified: 2026-10-02 06:39 — effacer les résultats locaux et le profil dans une transaction.
+// Historique: 2026-09-12 10:58 — schéma 11 destructif : snapshot Géométrie dans CurrentGame, remise à zéro autorisée par Paul.
 // Historique: 2026-09-09 05:29 — centralisation score : _isBetterAcuity retiré, les deux sites appellent
 //           isBetterAcuity de score_rules (comparaison unique, même produit croisé). Aucun changement
 //           de schéma ni de valeurs stockées.
@@ -170,6 +171,13 @@ class SettingsDatabase extends _$SettingsDatabase {
   Future<void> clearAllSettings() async {
     await delete(settings).go();
   }
+
+  Future<void> resetLocalResults(String settingsJson) => transaction(() async {
+    await delete(currentGame).go();
+    await delete(solvedSolutions).go();
+    await delete(puzzleStats).go();
+    await setSetting('app_settings', settingsJson);
+  });
 
   // ============================================================================
   // RECORDS - SolvedSolutions (rectangles complets) / PuzzleStats (pièces tirées)

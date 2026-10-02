@@ -1,0 +1,337 @@
+% Created: 2026-09-30 04:37 -- Memo mathematique des isometries de Pentapol.
+% docs/MEMO_ISOMETRIES_TERMINALE.tex
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+
+\geometry{margin=2cm}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black}
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.25em}
+\setlist[enumerate]{leftmargin=1.7em,itemsep=0.35em}
+\renewcommand{\arraystretch}{1.25}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Pentapol}
+\rhead{Isom\'etries et exponentielle complexe}
+\cfoot{\thepage}
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\id}{\mathrm{Id}}
+\newcommand{\conj}[1]{\overline{#1}}
+
+\title{\textbf{Visualiser les isom\'etries de Pentapol}\\
+\large M\'emo de math\'ematiques pour un \'el\`eve de Terminale}
+\author{}
+\date{30 septembre 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\fbox{\parbox{0.9\linewidth}{
+\textbf{Id\'ee directrice.} Les rotations de Pentapol sont les puissances d'un quart de tour.
+Dans le plan complexe, elles s'\'ecrivent avec $e^{ik\pi/2}$. Les sym\'etries axiales demandent
+en plus la conjugaison complexe $z\mapsto\conj z$.
+}}
+\end{center}
+
+\section{Les quatre gestes \'el\'ementaires}
+
+Pentapol propose quatre transformations directes d'une pi\`ece :
+
+\begin{itemize}
+  \item une rotation d'un quart de tour dans le sens trigonom\'etrique ;
+  \item une rotation d'un quart de tour dans le sens horaire ;
+  \item une sym\'etrie axiale horizontale ;
+  \item une sym\'etrie axiale verticale.
+\end{itemize}
+
+Nous utilisons le rep\`ere math\'ematique habituel : l'axe des abscisses est dirig\'e vers la
+droite et l'axe des ordonn\'ees vers le haut. L'\'ecran d'un t\'el\'ephone utilise souvent un axe
+vertical dirig\'e vers le bas ; les relations math\'ematiques restent cependant identiques.
+
+\section{Repr\'esenter une pi\`ece par des nombres complexes}
+
+Un point $M(x,y)$ est repr\'esent\'e par le nombre complexe
+\[
+  z=x+iy.
+\]
+On place d'abord le centre $O$ de la transformation \`a l'origine. Si le centre r\'eel a pour
+affixe $c$, la formule compl\`ete s'obtient par
+\[
+  z'=c+T(z-c),
+\]
+o\`u $T$ d\'esigne la transformation effectu\'ee autour de l'origine.
+
+\section{L'exponentielle complexe et les rotations}
+
+La formule d'Euler est
+\[
+  e^{i\theta}=\cos\theta+i\sin\theta.
+\]
+Multiplier $z$ par $e^{i\theta}$ fait tourner le point d'un angle $\theta$ autour de l'origine :
+\[
+  R_{\theta}(z)=e^{i\theta}z.
+\]
+
+Dans Pentapol, les angles sont uniquement des multiples de $\pi/2$. Posons
+\[
+  r=R_{\pi/2},
+  \qquad r(z)=e^{i\pi/2}z=iz.
+\]
+La transformation $r$ est le quart de tour dans le sens trigonom\'etrique. Ses puissances donnent
+toutes les rotations disponibles :
+\[
+  r^k(z)=e^{ik\pi/2}z=i^kz.
+\]
+
+\subsection*{Le cycle des puissances de $i$}
+
+\[
+\begin{array}{ccccc}
+1 & \longrightarrow & i & \longrightarrow & -1\\
+\rotatebox[origin=c]{90}{$\longleftarrow$} &&&& \rotatebox[origin=c]{90}{$\longrightarrow$}\\[-0.4em]
+&& -i &&
+\end{array}
+\qquad\text{puis retour \`a }1.
+\]
+
+\begin{center}
+\begin{tabular}{ccccc}
+\toprule
+Puissance & Exponentielle & Facteur & Angle & $(x,y)\mapsto$\\
+\midrule
+$r^0$ & $e^{0}$ & $1$ & $0$ & $(x,y)$\\
+$r^1$ & $e^{i\pi/2}$ & $i$ & $\pi/2$ & $(-y,x)$\\
+$r^2$ & $e^{i\pi}$ & $-1$ & $\pi$ & $(-x,-y)$\\
+$r^3$ & $e^{i3\pi/2}$ & $-i$ & $3\pi/2$ & $(y,-x)$\\
+$r^4$ & $e^{i2\pi}$ & $1$ & $2\pi$ & $(x,y)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Les exposants sont calcul\'es modulo $4$ :
+\[
+  r^5=r,qquad r^7=r^3,qquad r^{10}=r^2,qquad r^{-1}=r^3.
+\]
+
+\section{La conjugaison et les sym\'etries axiales}
+
+Une multiplication par $e^{i\theta}$ conserve l'orientation : elle produit une rotation, jamais
+une r\'eflexion. Pour obtenir une sym\'etrie, il faut utiliser la conjugaison complexe :
+\[
+  z=x+iy
+  \qquad\Longrightarrow\qquad
+  \conj z=x-iy.
+\]
+
+La transformation
+\[
+  s(z)=\conj z
+\]
+est la sym\'etrie d'axe horizontal. Elle v\'erifie
+\[
+  s^2=\id.
+\]
+
+Plus g\'en\'eralement, la sym\'etrie dont l'axe forme un angle $\varphi$ avec l'axe horizontal
+s'\'ecrit
+\[
+  \boxed{\;S_{\varphi}(z)=e^{2i\varphi}\conj z\;}.
+\]
+
+\section{Les quatre sym\'etries du carr\'e}
+
+Toutes les r\'eflexions s'\'ecrivent sous la forme $r^ks$, avec $k\in\Z$. Par convention, dans
+un produit comme $rs$, l'op\'eration de droite est effectu\'ee la premi\`ere : on applique $s$,
+puis $r$.
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+Notation & Formule complexe & $(x,y)\mapsto$ & Axe\\
+\midrule
+$s$ & $\conj z$ & $(x,-y)$ & horizontal\\
+$rs$ & $i\conj z$ & $(y,x)$ & $y=x$\\
+$r^2s$ & $-\conj z$ & $(-x,y)$ & vertical\\
+$r^3s$ & $-i\conj z$ & $(-y,-x)$ & $y=-x$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Pentapol poss\`ede des boutons directs pour $s$ et $r^2s$. Les sym\'etries d'axes diagonaux $rs$
+et $r^3s$ s'obtiennent en composant une sym\'etrie directe avec un quart de tour.
+
+\section{Les huit isom\'etries de Pentapol}
+
+Le groupe di\'edral du carr\'e, not\'e ici $D_4$, est
+\[
+  \boxed{\;D_4=\{r^k,\ r^ks\mid k\in\Z/4\Z\}\;}.
+\]
+Il contient huit transformations :
+\[
+  D_4=\{\id,r,r^2,r^3,s,rs,r^2s,r^3s\}.
+\]
+
+\begin{center}
+\begin{tabular}{clc}
+\toprule
+Transformation & Interpr\'etation & Minimum de boutons\\
+\midrule
+$\id$ & aucune transformation & $0$\\
+$r$ & quart de tour trigonom\'etrique & $1$\\
+$r^3=r^{-1}$ & quart de tour horaire & $1$\\
+$s$ & sym\'etrie horizontale & $1$\\
+$r^2s$ & sym\'etrie verticale & $1$\\
+$r^2$ & demi-tour & $2$\\
+$rs$ & sym\'etrie d'axe $y=x$ & $2$\\
+$r^3s$ & sym\'etrie d'axe $y=-x$ & $2$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Avec les quatre boutons de Pentapol, toute orientation est donc atteignable en au plus deux
+appuis. Pour une pi\`ece qui poss\`ede ses propres sym\'etries, ce minimum peut encore diminuer.
+
+\section{Calculer les compositions}
+
+\subsection*{Deux rotations}
+
+Les exposants s'additionnent modulo $4$ :
+\[
+  r^ar^b=r^{a+b\pmod 4}.
+\]
+Par exemple,
+\[
+  rr=r^2,qquad rr^3=r^4=\id,qquad r^3r^3=r^6=r^2.
+\]
+
+\subsection*{Rotation et sym\'etrie}
+
+La relation fondamentale est
+\[
+  sr=r^{-1}s=r^3s.
+\]
+Elle implique
+\[
+  \boxed{\;srs=r^{-1}\;}.
+\]
+Une sym\'etrie inverse donc le sens d'une rotation. Visuellement, regarder une rotation dans un
+miroir transforme le sens trigonom\'etrique en sens horaire.
+
+\subsection*{Deux sym\'etries}
+
+Dans Pentapol, la sym\'etrie horizontale est $s$ et la sym\'etrie verticale est $r^2s$. Une
+sym\'etrie horizontale suivie d'une sym\'etrie verticale vaut donc
+\[
+  (r^2s)\circ s=r^2s^2=r^2.
+\]
+Le r\'esultat est une rotation de $\pi$, et non de $\pi/2$.
+
+\section{Exemple num\'erique}
+
+Prenons le point $A(2,1)$, d'affixe $z=2+i$.
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+Transformation & Calcul & Image de $A$\\
+\midrule
+$r$ & $i(2+i)=-1+2i$ & $(-1,2)$\\
+$r^2$ & $-(2+i)$ & $(-2,-1)$\\
+$r^3$ & $-i(2+i)=1-2i$ & $(1,-2)$\\
+$s$ & $\conj{(2+i)}=2-i$ & $(2,-1)$\\
+$rs$ & $i(2-i)=1+2i$ & $(1,2)$\\
+$r^2s$ & $-(2-i)=-2+i$ & $(-2,1)$\\
+$r^3s$ & $-i(2-i)=-1-2i$ & $(-1,-2)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Pour transformer une pi\`ece, on applique la m\^eme formule aux cinq cellules, toutes rep\'er\'ees
+par rapport au m\^eme centre.
+
+\section{Pourquoi aucune rotation de $\pi/4$ n'appara\^it}
+
+Une rotation de $\pi/4$ aurait pour facteur
+\[
+  e^{i\pi/4}=\cos\frac{\pi}{4}+i\sin\frac{\pi}{4}
+  =\frac{1+i}{\sqrt2}.
+\]
+Ce nombre n'appartient pas au cycle $\{1,i,-1,-i\}$. Il introduit g\'en\'eralement des coordonn\'ees
+divis\'ees par $\sqrt2$, qui ne retombent pas sur la grille carr\'ee. Toute composition des
+transformations de $D_4$ reste dans $D_4$ : aucune suite de boutons Pentapol ne peut donc produire
+une rotation de $\pi/4$.
+
+\section{Les pi\`eces n'ont pas toutes huit orientations visibles}
+
+Le groupe $D_4$ contient huit transformations, mais les sym\'etries propres d'une pi\`ece peuvent
+faire co\"incider plusieurs r\'esultats :
+
+\begin{center}
+\begin{tabular}{cc}
+\toprule
+Pi\`eces & Nombre d'orientations visibles\\
+\midrule
+X & $1$\\
+I & $2$\\
+T, U, V, W, Z & $4$\\
+P, F, Y, L, N & $8$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Pentapol calcule donc la distance minimale pour la pi\`ece concern\'ee, et non seulement dans le
+groupe abstrait.
+
+\section{Exercices}
+
+\begin{enumerate}
+  \item Simplifier $r^{11}$.
+  \item Identifier la rotation $e^{i5\pi/2}$.
+  \item Simplifier $r^2r^3$.
+  \item Calculer $s^2$.
+  \item Calculer une sym\'etrie horizontale suivie d'une sym\'etrie verticale.
+  \item Donner la formule complexe de la sym\'etrie d'axe $y=x$.
+  \item Expliquer pourquoi $rs\neq sr$.
+  \item Une suite de boutons Pentapol peut-elle produire $e^{i\pi/4}$ ?
+\end{enumerate}
+
+\subsection*{Corrig\'e}
+
+\begin{enumerate}
+  \item $r^{11}=r^3$, car $11\equiv3\pmod4$.
+  \item $e^{i5\pi/2}=e^{i\pi/2}=i$ : un quart de tour trigonom\'etrique.
+  \item $r^2r^3=r^5=r$.
+  \item $s^2=\id$.
+  \item $(r^2s)s=r^2$ : une rotation de $\pi$.
+  \item $z'=i\conj z$, soit $(x,y)\mapsto(y,x)$.
+  \item L'op\'eration de droite est appliqu\'ee en premier ; changer l'ordre change l'axe diagonal.
+  \item Non, car toute composition reste de la forme $r^k$ ou $r^ks$, avec $k$ modulo $4$.
+\end{enumerate}
+
+\section*{Formulaire final}
+
+\[
+\boxed{
+\begin{aligned}
+r^k(z)&=e^{ik\pi/2}z=i^kz,\\
+S_{\varphi}(z)&=e^{2i\varphi}\conj z,\\
+D_4&=\{r^k,r^ks\mid k\in\Z/4\Z\},\\
+r^4&=\id,\qquad s^2=\id,\qquad srs=r^{-1}.
+\end{aligned}}
+\]
+
+\end{document}

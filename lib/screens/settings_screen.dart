@@ -1,5 +1,5 @@
-// Modified: 2026-09-25 07:48 — retrait de la tuile « Aide » (déplacée en icône dans le header
-//           de l'accueil).
+// Modified: 2026-10-02 07:24 — placer l'accès au développeur en fin de Paramètres.
+// Historique: 2026-09-25 07:48 — retrait de la tuile Aide déplacée dans l'accueil.
 // Historique: 2026-09-25 02:56 — tuile « Aide » (section À propos, avant la version) → HelpScreen.
 // Historique: 2026-09-22 06:06 — interrupteur de visibilité de la miniature pendant le drag.
 // Historique: 2026-09-12 10:58 — accès au réglage du barème avant déploiement.
@@ -19,7 +19,7 @@
 //           de langue (Système/Français/English → settings.localeCode) sous la section Interface.
 // Historique: 2026-09-02 20:37 — pseudo unique : « Nom du joueur » lit/écrit settings.userName (nom
 //           canonique) au lieu de duel.playerName ; setUserName remplace setDuelPlayerName ici.
-// Modified: 2026-09-23 05:13 — exposer le prototype de pièces illustrées 6×10.
+// Historique: 2026-09-23 05:13 — exposer le prototype de pièces illustrées 6×10.
 // lib/screens/settings_screen.dart
 // Historique: 2026-09-01 08:58 — sortie fiable sur iPad : bouton « Fermer » ancré en bas
 //           (bottomNavigationBar) + SafeArea, la flèche retour du haut étant recouverte par les
@@ -41,6 +41,7 @@ import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/custom_colors_screen.dart';
 import 'package:pentapol/config/build_info.dart';
+import 'package:pentapol/screens/about_developer_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -332,6 +333,15 @@ class SettingsScreen extends ConsumerWidget {
 
             // Version de l'app
             _buildVersionTile(context),
+
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(l10n.aboutDeveloperTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AboutDeveloperScreen()),
+              ),
+            ),
 
             const SizedBox(height: 32),
           ],

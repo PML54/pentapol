@@ -13,7 +13,130 @@
 
 ---
 
-## §ÉTAT — au 2026-09-29
+## §ÉTAT — au 2026-10-02
+
+### Validation avant commit (2026-10-02, CLI)
+
+Les 254 tests Flutter passent sur l'ensemble des changements en attente : profil et historique
+Solo, choix du niveau, remise à zéro locale, bilans Acuité/Triche et présentation dans Paramètres.
+L'analyse globale ne relève ni erreur ni avertissement ; 114 diagnostics informatifs.
+Commit et push demandés explicitement par Paul sur `claude/review-docs-index-yeecg5`.
+
+### Présentation du développeur en fin de Paramètres (2026-10-02, CLI)
+
+Une tuile avec icône personne, après la version dans Paramètres, ouvre À propos du développeur.
+La présentation est retirée de l'Aide, qui commence directement par les icônes du jeu.
+
+### Réussites aidées exclues de la sauvegarde locale (2026-10-02, CLI)
+
+Une partie résolue avec au moins un appui sur la lampe jaune n'alimente plus SolvedSolutions,
+PuzzleStats ni l'historique des tentatives. Son bilan reste visible. La sauvegarde d'une partie
+en cours pour reprise est conservée ; aucune purge rétroactive des anciens résultats.
+
+### Acuité masquée avec aide, temps en minutes et secondes (2026-10-02, CLI)
+
+Dès que la Triche est supérieure à 0 %, l'Acuité est masquée dans les compteurs et bilans.
+Sur rectification de Paul, le chronomètre et les bilans présentent toujours le temps en
+minutes et secondes (100 secondes donnent 1:40), quel que soit le pourcentage de Triche.
+
+### Acuité et bilan sans étoiles (2026-10-02, CLI)
+
+Les compteurs et bilans remplacent Géométrie par Acuité : score courant divisé par son maximum,
+en pourcentage entier arrondi au inférieur (92,5/100 donne 92 %). Sans score Géométrie,
+l'acuité isométrique existante est conservée. La mention Résolu et les étoiles sont supprimées.
+
+### Triche en pourcentage (2026-10-02, CLI)
+
+Les compteurs et les bilans affichent `ceil(100 × hintCount / nombre de pièces du puzzle)`,
+borné de 0 à 100 %, sans décimales. Un appui sur trois pièces donne 34 %. Le compteur brut
+reste conservé pour la persistance et les règles de progression.
+
+### Choix du niveau à chaque nouvelle partie Solo (2026-10-02, CLI)
+
+Une liste FR/EN propose les niveaux 1 à `currentLevel` avec leur taille. Elle s'ouvre pour une
+nouvelle partie depuis l'accueil (y compris le plateau vide préparé au lancement), au double-tap
+du Solo, à la sortie du Training vers Solo et aux actions de nouvelle partie du bilan.
+Au niveau 5, seuls les niveaux 1 à 5 sont proposés. Annuler conserve la partie. Au niveau 1,
+le seul choix est lancé directement. Le niveau courant porte `isProgression: true` ; rejouer un
+ancien niveau ne débloque rien et ne modifie pas `currentLevel`. Une partie de progression déjà
+commencée est reprise depuis l'accueil sans nouveau choix. Le choix remplace l'ancien défilement
+cyclique des tailles au double-tap ; aucun changement pour les Défis ni le Duo.
+Validation : les 253 tests Flutter passent ; analyse ciblée sélecteur/accueil/tests sans diagnostic.
+L'analyse globale ne relève aucune erreur de compilation (113 diagnostics informatifs existants).
+
+### Remise à zéro locale depuis l'accueil (2026-10-02, CLI)
+
+L'icône de nettoyage de l'accueil ouvre une confirmation FR/EN. Elle efface `CurrentGame`,
+`SolvedSolutions`, `PuzzleStats`, l'historique des tentatives, les agrégats d'acuité par pièce,
+les statistiques Duo et les tailles de Défi terminées localement. Une transaction conserve
+identité, pseudos, consentement, réglages et niveaux Solo débloqués ; aucun appel Cloudflare.
+Le provider de jeu vide explicitement son état après succès pour empêcher une sauvegarde ultérieure de l'ancienne
+partie. Tests dédiés : persistance et conservation du profil, rollback sur erreur SQLite,
+annulation/confirmation à 320 px.
+Validation : les 251 tests Flutter passent. Analyse ciblée accueil/settings/test sans diagnostic ;
+analyse globale sans erreur de compilation (113 diagnostics informatifs existants).
+
+### Remise à zéro Cloudflare (2026-10-02, CLI)
+
+`docs/CLOUDFLARE_CONFIG.md` détaille la sauvegarde D1, la purge des seuls scores ou des deux
+tables, puis le contrôle des compteurs. Commandes vérifiées contre `server/package.json`,
+`schema.sql`, `wrangler.toml` et la documentation Cloudflare. La recréation destructive du
+schéma est distinguée de la purge des données. Le Duel reste hors périmètre : son stockage
+Durable Objects et son code sont hors dépôt. Aucune commande distante ni suppression exécutée.
+
+### Mémo Terminale sur les isométries (2026-09-30, CLI)
+
+`docs/MEMO_ISOMETRIES_TERMINALE.md` présente les transformations de Pentapol à un élève de
+Terminale avec les deux notations `r^k` et `e^(ikπ/2)`. Il part des complexes, distingue rotation
+et conjugaison, construit les huit éléments `{r^k, r^k s}` de D4, explicite l'ordre des compositions
+et termine par huit exercices corrigés. Le repère mathématique est distingué du repère écran et les
+symétries propres aux douze pentominos sont rappelées. Ce document est pédagogique ; il ne modifie
+ni les règles ni le calcul d'acuité du jeu.
+Une version LaTeX autonome, `docs/MEMO_ISOMETRIES_TERMINALE.tex`, reprend le contenu avec une
+notation mathématique typographiée et devient l'entrée principale de l'index ; le Markdown reste la
+version légère consultable dans le dépôt.
+
+### Spécification exploratoire du bilan personnel (2026-09-29, CLI)
+
+`docs/SPEC_BILAN_PERSONNEL.md` devient le point de départ de la réflexion sur le profil joueur.
+Le document distingue la promesse produit, les aptitudes observables dans Pentapol, les données
+déjà disponibles, celles qui nécessitent un historique local et les limites d'interprétation.
+Il propose un phasage : fiabiliser d'abord les définitions, présenter ensuite l'état actuel, puis
+ajouter les tendances et enfin les aptitudes enrichies. Aucun choix de pondération ni changement de
+base n'est acté. Une divergence doit être tranchée avant implémentation : l'acuité historique emploie
+la formule lissée `(minIso + 1) / (isometryCount + 1)`, tandis que le pourcentage actuel par pièce
+utilise le rapport direct avec traitement particulier de zéro. Tous les pourcentages d'acuité sont
+tronqués à l'entier inférieur : 99,99 % s'affiche 99 %.
+Le 2026-09-30, la perception des compositions isométriques est ajoutée comme aptitude candidate.
+La spécification corrige l'exemple initial : les symétries horizontale puis verticale donnent une
+rotation de π, et `H`/`V` seuls ne produisent jamais π/2. Pentapol reste strictement dans les
+rotations multiples de π/2 ; une symétrie diagonale est seulement le résultat d'une composition,
+pas un bouton. Le document distingue l'efficacité observable en partie d'une perception pure, qui
+demanderait un exercice avec cible.
+La maîtrise des impasses distingue désormais le premier placement : tout premier dépôt qui rend
+immédiatement le plateau insoluble constitue une faute d'anticipation, y compris si la tentative
+est ensuite abandonnée. La mesure pénalise la position choisie, jamais le choix abstrait de la
+pièce, et sépare les poches d'aire non multiple de 5 des impossibilités subtiles. Une note candidate
+d'anticipation initiale et un taux d'erreur par silhouette sont spécifiés, sans double comptage dans
+l'acuité isométrique.
+La rapidité est désormais une aptitude autonome et majeure : elle mesure le temps de remplissage
+complet sans correction liée aux impasses, déplacements, retraits ou isométries. Ces éléments sont
+présentés à côté pour décrire le style de résolution, mais ne diminuent pas la performance
+temporelle. Les parties aidées restent séparées, car la lampe réalise une partie du travail. Le bloc
+de rapidité ne montre que la tendance par taille ; le record, la médiane et le nombre de parties
+observées n'y sont pas affichés.
+Mise en œuvre le même jour : `AppSettings` conserve désormais les 20 dernières tentatives Solo de
+chaque taille, terminées ou abandonnées. Une partie commencée puis volontairement remplacée produit
+un abandon ; un retour à l'accueil ou une suspension conserve la partie courante et n'en produit
+pas. Le profil affiche la tendance de rapidité des réussites sans lampe (médiane 10 contre 10,
+calculée mais non affichée) ainsi que, sur toutes les tentatives, le taux de complétion, l'anticipation du premier
+placement et les impasses moyennes. Les erreurs ne modifient jamais le calcul du temps.
+
+### Lampes silencieuses en Défi (2026-09-30, CLI)
+
+En mode classé, les lampes restent visibles avec leur couleur informative mais leur appui est
+neutralisé silencieusement. Le message « Indice désactivé en mode défi » est supprimé ; le retrait
+d'une pièce continue de passer par sélection puis poubelle.
 
 ### Progression Solo — réussite sans lampe jaune (2026-09-29, CLI)
 
@@ -1482,7 +1605,109 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 ## §PASSATIONS
 
+**2026-10-02 (53) — CLI : validation et livraison des changements en attente.**
+254 tests réussis ; analyse sans erreur ni avertissement. Journal inclus dans le commit demandé.
+
+**2026-10-02 (52) — CLI : accès au développeur en fin de Paramètres.**
+Tuile localisée EN/FR ouvrant l'écran existant ; présentation retirée de l'Aide.
+
+**2026-10-02 (51) — CLI : ne plus enregistrer localement les réussites aidées.**
+Exclusion avant toute écriture de résultat ou d'historique ; test de complétion réelle par aides.
+
+**2026-10-02 (50) — CLI : masquer Acuité avec Triche, temps en minutes:secondes.**
+Acuité conditionnée à l'absence d'appui sur la lampe jaune ; durée toujours en minutes:secondes,
+sur rectification de Paul, quel que soit le pourcentage de Triche.
+
+**2026-10-02 (49) — CLI : Acuité entière dans les compteurs et bilans.**
+Pourcentage arrondi au inférieur ; suppression de Résolu et des étoiles de réussite.
+
+**2026-10-02 (48) — CLI : Triche en pourcentage entier arrondi au supérieur.**
+Calcul partagé pour les compteurs et les bilans, avec plafond 100 %. Tests des bornes,
+des rapports exacts et fractionnaires, et de l'affichage FR/EN.
+
 > Les trois dernières seulement. Au-delà, `git log --oneline` dit la même chose en plus court.
+
+**2026-10-02 (47) — CLI : choix des niveaux Solo débloqués.**
+Sélecteur partagé accueil/jeu/bilan/sortie du Training. Niveaux limités à la progression acquise,
+annulation sans abandon, anciens niveaux rejouables sans avancement. Tests FR/EN à 320 px.
+Aucun commit demandé ni réalisé.
+
+**2026-10-02 (46) — CLI : purge locale à l'accueil.**
+Ajout d'une icône avec confirmation et transaction SQLite ; résultats, partie en cours et historique
+effacés, identité/réglages/niveaux débloqués conservés. Scores Cloudflare inchangés. Aucun commit.
+
+**2026-10-02 (45) — CLI : procédure de purge Cloudflare.**
+Configuration et index actualisés : export préalable, suppression des scores seuls ou de toutes
+les données D1 du Défi, contrôle après purge et distinction avec le Duel et les données locales.
+Aucune donnée distante modifiée ; aucun commit demandé ni réalisé.
+
+**2026-09-30 (44) — CLI : lampes silencieuses en Défi.**
+L'appui sur une lampe jaune ou rouge en mode classé reste neutralisé mais n'affiche plus le SnackBar
+« Indice désactivé en mode défi ». La couleur informative reste visible. Le libellé devenu inutilisé
+est retiré des localisations FR/EN et un test widget couvre l'absence de message.
+
+**2026-09-30 (43) — CLI : rapidité limitée à la tendance.**
+La médiane rejoint le record et le volume parmi les valeurs non affichées dans le bloc de rapidité.
+Les médianes restent calculées en interne pour comparer les dix dernières réussites propres aux dix
+précédentes. Sans vingt réussites comparables, aucune carte de rapidité vide n'est créée.
+
+**2026-09-30 (42) — CLI : bilan de rapidité simplifié.**
+Le bloc « Rapidité de résolution » n'affiche plus ni le record ni le nombre de parties observées.
+Il conserve la médiane récente et la tendance ; les tailles dépourvues d'historique propre n'y
+créent plus de carte vide. Le record reste disponible dans les records par taille.
+
+**2026-09-30 (41) — CLI : pourcentages d'acuité tronqués.**
+L'acuité par pièce abandonne la note sur 1000 au profit d'un pourcentage. L'acuité globale et
+l'acuité par pièce sont toutes deux tronquées à l'entier inférieur, de sorte que 99,99 % reste
+affiché 99 %. Le tri des silhouettes reste croissant. Tests et spécification adaptés ; les 246
+tests Flutter passent, dont une vérification de l'affichage `99 %` dans le profil à 320 px.
+
+**2026-09-30 (40) — CLI : bilan fondé sur les réussites et les tentatives abandonnées.**
+Ajout d'un historique JSON borné à 20 tentatives Solo par taille, sans migration Drift. Une victoire
+ou le remplacement volontaire d'une partie commencée enregistre durée, aide, fautes, gestes et
+diagnostic du premier placement ; quitter ou suspendre l'app ne crée pas d'abandon. Le profil montre
+record, médiane et tendance de rapidité sur les seules réussites sans lampe, puis taux de complétion,
+anticipation initiale et impasses moyennes sur toutes les tentatives. Les Défis, le Training et le
+multijoueur restent exclus. Tests unitaires, intégration moteur et widget ajoutés. Validation finale :
+`flutter test` passe 247 tests, l'analyse ciblée ne relève aucune erreur et le profil passe le test
+widget à 320 px de large sans débordement.
+
+**2026-09-30 (39) — CLI : rapidité brute comme aptitude autonome du bilan.**
+La spécification donne désormais une place majeure au temps de remplissage, indépendamment des
+impasses et des manipulations. Les erreurs restent affichées à côté mais ne corrigent pas le temps.
+Comparaisons, records, médianes et tendances restent séparés par taille ; les parties avec lampe
+jaune forment une catégorie distincte. L'ancienne pondération exploratoire de l'indice global est
+explicitement à revoir. Aucun code modifié.
+
+**2026-09-30 (38) — CLI : anticipation du premier placement dans le bilan personnel.**
+La spécification traite désormais comme faute d'anticipation tout premier dépôt qui fait passer le
+plateau vide de soluble à insoluble, même si la tentative est abandonnée. La position est évaluée,
+pas le choix de la pièce. Les impasses géométriques d'aire non multiple de 5 restent séparées des
+impasses subtiles. Sont proposés un taux brut, une note provisoire sur 1000 et un taux par
+silhouette, avec volume d'observations et sans double pénalité dans l'acuité isométrique. Aucun code
+modifié.
+
+**2026-09-30 (37) — CLI : mémo Terminale sur les isométries de Pentapol.**
+Création de `MEMO_ISOMETRIES_TERMINALE.md`, référencé dans l'index : puissances de `r`, écriture
+complexe exponentielle, conjugaison, huit éléments de D4, compositions, exemple numérique,
+impossibilité de π/4 et exercices corrigés. Ajout ensuite d'une version LaTeX autonome avec notation
+mathématique typographiée et aperçu PDF. Aucun code modifié.
+
+**2026-09-30 (36) — CLI : compositions isométriques dans le bilan personnel.**
+Ajout à `SPEC_BILAN_PERSONNEL.md` des relations de composition de D4, de la correction H puis V =
+rotation de π, du diamètre 2 des quatre boutons et d'une note candidate limitée aux poses dont le
+minimum vaut 2. La mesure en Solo reste une inférence ; un exercice départ/cible serait nécessaire
+pour isoler la perception des compositions. Précision de Paul intégrée : toutes les rotations sont
+des multiples de π/2 ; la symétrie diagonale est un résultat composé, jamais un bouton. Aucun code
+modifié. Les séquences exactes des deux axes diagonaux dans le repère écran de Pentapol sont ensuite
+ajoutées à la spécification ; l'ordre rotation/symétrie distingue les deux diagonales.
+
+**2026-09-29 (35) — CLI : spécification exploratoire du bilan personnel.**
+Création de `SPEC_BILAN_PERSONNEL.md`, référencé dans `INDEX_DOCS.md`. Le document cadre la promesse,
+les aptitudes candidates, les données existantes et manquantes, les seuils de confiance, un
+historique local borné, les objections et un phasage en quatre étapes. Aucune implémentation ni
+pondération n'est décidée. La divergence entre formule d'acuité historique et note par pièce est
+explicitement laissée à arbitrer avant développement.
 
 **2026-09-29 (34) — CLI : progression Solo réservée aux réussites sans lampe jaune.**
 Le déblocage des neuf niveaux persistés exige maintenant `hintCount == 0` en plus du puzzle de
@@ -1501,6 +1726,17 @@ l'écran Aide.
 Le code couleur est volontairement saturé et partagé entre l'icône personne, le libellé de niveau
 du header et l'en-tête du profil : bleu, cyan, turquoise, vert, jaune-vert, ambre, orange, rouge et
 violet pour les niveaux 1 à 9.
+
+Le profil comporte désormais les douze silhouettes de pentominos dans leurs couleurs configurées,
+sans lettre ni numéro : la forme colorée identifie seule chaque pièce.
+Pour chaque pièce, toutes les rotations et symétries sont comptées sans distinction entre tiroir et
+plateau, y compris après retrait puis nouvelle tentative. À la fin d'une partie Solo sans lampe
+jaune, la position finale fournit le minimum théorique via `minIsometriesToReach`; `AppSettings`
+cumule poses, minimums et gestes réels. La note affichée est `théorique / réel × 1000`, arrondie à
+l'entier et plafonnée à 1000 ; `0/0` vaut 1000, une pièce jamais enregistrée affiche « — ».
+Un appui sur une ligne montre les trois cumuls. Le compteur courant est inclus dans le JSON de la
+partie sauvegardée, sans changement de schéma Drift. Les pièces évaluées sont triées de la note la
+plus faible à la plus forte ; les pièces sans donnée restent à la fin, dans l'ordre numérique.
 La version interne affichée en fin des Paramètres passe à **1.0.11**, build **202609290602** ; le
 `pubspec.yaml` reste inchangé.
 

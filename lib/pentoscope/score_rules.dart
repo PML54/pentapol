@@ -1,4 +1,6 @@
-// Modified: 2026-09-09 05:29 — Centralisation des RÈGLES de score (CDC §4.2/§4.6) : l'acuité (ratio
+// Modified: 2026-10-02 07:03 — calculer la Triche en pourcentage entier arrondi au supérieur.
+// Historique: 2026-09-30 07:27 — tronquer les pourcentages d'acuité à l'entier inférieur.
+// Historique: 2026-09-09 05:29 — Centralisation des RÈGLES de score (CDC §4.2/§4.6) : l'acuité (ratio
 //           plafonné à 100 %, pourcentage entier), la comparaison « meilleure acuité » sans flottant,
 //           et la « vision parfaite ». Fonctions pures, SANS dépendance (importables par la couche
 //           drift, l'API, les écrans et completion_metrics) → une seule définition, testable, réutilisée.
@@ -16,9 +18,17 @@ double acuityRatio(int minIso, int isometryCount) {
   return r > 1.0 ? 1.0 : r;
 }
 
-/// Acuité en **pourcentage entier** (0..100), plafonnée. Arrondi identique à l'ancien affichage.
-int acuityPercent(int minIso, int isometryCount) =>
-    (acuityRatio(minIso, isometryCount) * 100).round();
+/// Part des pièces aidées, arrondie au supérieur et plafonnée à 100 %.
+int cheatingPercent(int hintCount, int pieceCount) {
+  if (pieceCount <= 0 || hintCount <= 0) return 0;
+  return ((hintCount * 100 + pieceCount - 1) ~/ pieceCount).clamp(0, 100);
+}
+
+/// Acuité en **pourcentage entier** (0..100), plafonnée et tronquée à l'entier inférieur.
+int acuityPercent(int minIso, int isometryCount) {
+  final percent = ((minIso + 1) * 100) ~/ (isometryCount + 1);
+  return percent.clamp(0, 100);
+}
 
 /// Compare deux acuités par **produit croisé** (sans flottant, donc sans perte). Renvoie `true` si
 /// le candidat `(newMinIso, newIso)` **bat** le meilleur courant, ou s'il n'y a pas encore de best.

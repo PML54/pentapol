@@ -1,8 +1,14 @@
-// Modified: 2026-09-23 05:00 — vérifier le bilan Game et sa relance au double-tap.
+// Modified: 2026-10-02 07:17 — vérifier le temps en minutes:secondes même avec Triche.
+// Historique: 2026-10-02 07:15 — vérifier l'absence d'Acuité avec Triche et le temps en secondes.
+// Historique: 2026-10-02 07:09 — vérifier Acuité entière et absence de Résolu et d'étoiles.
+// Historique: 2026-10-02 07:03 — vérifier le pourcentage Triche dans le bilan FR/EN.
+// Historique: 2026-09-30 07:53 — vérifier que la lampe du Défi reste silencieuse.
+// Historique: 2026-09-23 05:00 — vérifier le bilan Game et sa relance au double-tap.
 // Historique: 2026-09-22 06:24 — vérifier le bilan Game dans l'AppBar et la relance au tap.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
@@ -90,12 +96,14 @@ void main() {
         expect(summary, findsOneWidget);
         final semantics = tester.widget<Semantics>(summary);
         final label = semantics.properties.label!;
-        expect(
-          label,
-          contains(lang == 'fr' ? 'Géométrie 92,5/100' : 'Geometry 92.5/100'),
-        );
+        expect(label, isNot(contains(lang == 'fr' ? 'Acuité' : 'Accuracy')));
+        expect(label, contains('1:40'));
+        expect(label, isNot(contains(lang == 'fr' ? 'Résolu' : 'Solved')));
+        expect(label, isNot(contains('★')));
+        expect(label, isNot(contains('☆')));
+        expect(find.byIcon(Icons.star_rounded), findsNothing);
         expect(label, contains(lang == 'fr' ? 'Impasses 2' : 'Dead ends 2'));
-        expect(label, contains(lang == 'fr' ? 'Triche 1' : 'Cheating 1'));
+        expect(label, contains(lang == 'fr' ? 'Triche 34 %' : 'Cheating 34 %'));
         expect(
           label,
           contains(
@@ -115,5 +123,56 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+  }
+
+  for (final hasPossibleSolution in [true, false]) {
+    final color = hasPossibleSolution ? 'jaune' : 'rouge';
+    testWidgets('la lampe $color du Défi ne montre aucun message', (
+      tester,
+    ) async {
+      final game = _Game();
+      final container = ProviderContainer(
+        overrides: [
+          pentoscopeProvider.overrideWith(() => game),
+          settingsProvider.overrideWith(_Settings.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(pentoscopeProvider);
+      final piece = pentominos.first;
+      game.load(
+        PentoscopeState(
+          plateau: Plateau.allVisible(3, 5),
+          puzzle: const PentoscopePuzzle(
+            size: PentoscopeSize.size3x5,
+            pieceIds: [1],
+            solutionCount: 1,
+          ),
+          availablePieces: [piece],
+          piecePositionIndices: const {1: 0},
+          hasPossibleSolution: hasPossibleSolution,
+          isRanked: true,
+        ),
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            locale: Locale('fr'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: PentoscopeGameScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.lightbulb));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(game.state.hintCount, 0);
+      expect(tester.takeException(), isNull);
+    });
   }
 }

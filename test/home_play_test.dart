@@ -1,4 +1,5 @@
-// Modified: 2026-09-29 05:50 — vérifier le parcours des seuls niveaux Solo débloqués au double-tap.
+// Modified: 2026-10-02 06:49 — vérifier le choix explicite des niveaux Solo au double-tap et à l'accueil.
+// Historique: 2026-09-29 05:50 — vérifier le parcours des seuls niveaux Solo débloqués au double-tap.
 // Historique: 2026-09-29 05:41 — vérifier le niveau et la taille dans le header de l'accueil.
 // Historique: 2026-09-29 05:41 — vérifier le niveau et la taille affichés sur le bouton Jeu Solo.
 // Historique: 2026-09-29 05:36 — vérifier que le double-tap d'un plateau Game vide reste sans effet.
@@ -34,6 +35,7 @@ import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/home/home_screen.dart';
+import 'package:pentapol/pentoscope/home/animated_home_board.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
@@ -185,7 +187,7 @@ class _Settings extends SettingsNotifier {
 
 void main() {
   testWidgets(
-    'Game sans + : double-tap relance ou parcourt les niveaux débloqués',
+    'Game sans + : double-tap propose les niveaux débloqués et annuler conserve la partie',
     (tester) async {
       final game = _AutoGame();
       final container = ProviderContainer(
@@ -244,16 +246,30 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
         await tester.tap(find.byType(PentoscopeBoard));
         await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> chooseLevel(int level) async {
+        await tester.tap(find.byKey(ValueKey('solo-level-$level')));
+        await tester.pumpAndSettle();
       }
 
       expect(find.byIcon(Icons.add_circle_outline), findsNothing);
       await doubleTapBoard();
+      expect(find.byKey(const ValueKey('solo-level-4')), findsNothing);
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      expect(game.gameStarts, 0);
+      expect(container.read(pentoscopeProvider).placedPieces, hasLength(1));
+      await doubleTapBoard();
+      await chooseLevel(3);
       expect(game.lastGameSize, PentoscopeSize.size5x5);
       expect(game.lastGameIsProgression, isTrue);
 
       load(PentoscopeSize.size5x5);
       await tester.pump();
       await doubleTapBoard();
+      await chooseLevel(1);
       expect(game.gameStarts, 2);
       expect(game.lastGameSize, PentoscopeSize.size3x5);
       expect(game.lastGameIsProgression, isFalse);
@@ -261,16 +277,77 @@ void main() {
       load(PentoscopeSize.size3x5);
       await tester.pump();
       await doubleTapBoard();
+      await chooseLevel(2);
       expect(game.lastGameSize, PentoscopeSize.size4x5);
       expect(game.lastGameIsProgression, isFalse);
 
       load(PentoscopeSize.size4x5);
       await tester.pump();
       await doubleTapBoard();
+      await chooseLevel(3);
       expect(game.lastGameSize, PentoscopeSize.size5x5);
       expect(game.lastGameIsProgression, isTrue);
     },
   );
+
+  for (final lang in ['fr', 'en']) {
+    testWidgets(
+      'au niveau 5, accueil et nouvelle partie proposent 1 à 5 ($lang)',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final game = _AutoGame();
+        final container = ProviderContainer(
+          overrides: [
+            pentoscopeProvider.overrideWith(() => game),
+            settingsProvider.overrideWith(() => _Settings(level: 5)),
+            homeDemoSolutionsProvider.overrideWith(
+              (ref) async => throw StateError('Demo unavailable'),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container
+            .read(pentoscopeProvider.notifier)
+            .startPuzzle(sizeForLevel(5), isProgression: true);
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              locale: Locale(lang),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const HomeScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('home-play')));
+        await tester.pumpAndSettle();
+        for (var level = 1; level <= 5; level++) {
+          expect(find.byKey(ValueKey('solo-level-$level')), findsOneWidget);
+        }
+        expect(find.byKey(const ValueKey('solo-level-6')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('solo-level-2')));
+        await tester.pumpAndSettle();
+        expect(game.lastGameSize, sizeForLevel(2));
+        expect(game.lastGameIsProgression, isFalse);
+        expect(container.read(settingsProvider).currentLevel, 5);
+        await tester.tap(find.byType(PentoscopeBoard));
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.byType(PentoscopeBoard));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('solo-level-6')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('solo-level-5')));
+        await tester.pumpAndSettle();
+        expect(game.lastGameSize, sizeForLevel(5));
+        expect(game.lastGameIsProgression, isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('le démarrage affiche le nouvel accueil puis ouvre le Training', (
     tester,

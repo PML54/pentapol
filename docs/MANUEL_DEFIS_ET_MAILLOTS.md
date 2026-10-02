@@ -199,8 +199,8 @@ Cette définition `(taille, masque, rack)` est :
 En défi, la partie est **classée** :
 
 - L'**appui sur l'ampoule** (l'indice qui place une pièce) est **neutralisé** — l'indice n'existe
-  pas en défi. Le **compteur de solutions et la couleur** de la lampe restent, eux, visibles (ils
-  sont identiques pour tous, donc n'avantagent personne).
+  pas en défi et l'appui ne montre aucun message. Le **compteur de solutions et la couleur** de la
+  lampe restent, eux, visibles (ils sont identiques pour tous, donc n'avantagent personne).
 - Le retrait d'une pièce passe par sélection + poubelle (comme d'habitude).
 - Les **fautes** (maillot à pois) restent comptées — c'est justement leur intérêt en classé.
 

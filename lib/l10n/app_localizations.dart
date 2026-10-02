@@ -110,6 +110,36 @@ abstract class AppLocalizations {
   /// **'Loading Pentoscope…'**
   String get loading;
 
+  /// No description provided for @resetLocalResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset local results'**
+  String get resetLocalResultsTitle;
+
+  /// No description provided for @resetLocalResultsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase the current game, records, personal history and local Solo/Duo/Challenge results? This cannot be undone. Your identity, settings and unlocked Solo levels are kept. Online scores are unchanged.'**
+  String get resetLocalResultsConfirm;
+
+  /// No description provided for @resetLocalResultsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Local results have been reset.'**
+  String get resetLocalResultsDone;
+
+  /// No description provided for @chooseSoloLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Solo level'**
+  String get chooseSoloLevel;
+
+  /// No description provided for @soloLevelOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level} · {width}×{height}'**
+  String soloLevelOption(int level, int width, int height);
+
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:
@@ -473,7 +503,7 @@ abstract class AppLocalizations {
   /// No description provided for @legendTime.
   ///
   /// In en, this message translates to:
-  /// **'Time'**
+  /// **'Speed'**
   String get legendTime;
 
   /// No description provided for @recordsEmpty.
@@ -679,12 +709,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restart (same size)'**
   String get restartTooltip;
-
-  /// No description provided for @hintDisabledChallenge.
-  ///
-  /// In en, this message translates to:
-  /// **'Hint disabled in challenge mode'**
-  String get hintDisabledChallenge;
 
   /// No description provided for @noSolutionBack.
   ///
@@ -1465,6 +1489,83 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Level {level}/{maxLevel}'**
   String playerProfileLevel(int level, int maxLevel);
+
+  /// No description provided for @playerPieceAcuityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Isometric acuity by piece'**
+  String get playerPieceAcuityTitle;
+
+  /// No description provided for @playerPieceDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Acuity details'**
+  String get playerPieceDetailTitle;
+
+  /// No description provided for @playerPieceDetailValues.
+  ///
+  /// In en, this message translates to:
+  /// **'Final placements: {placements}\nTheoretical minimum: {theoretical}\nIsometries performed: {actual}\nAcuity: {percent}%'**
+  String playerPieceDetailValues(
+    int placements,
+    int theoretical,
+    int actual,
+    int percent,
+  );
+
+  /// No description provided for @playerSpeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Solving speed'**
+  String get playerSpeedTitle;
+
+  /// No description provided for @playerSpeedInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured on completed games without the yellow lamp. Dead ends and corrections do not change the time.'**
+  String get playerSpeedInfo;
+
+  /// No description provided for @playerSpeedFaster.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% faster'**
+  String playerSpeedFaster(int percent);
+
+  /// No description provided for @playerSpeedSlower.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% slower'**
+  String playerSpeedSlower(int percent);
+
+  /// No description provided for @playerSpeedStable.
+  ///
+  /// In en, this message translates to:
+  /// **'Stable speed'**
+  String get playerSpeedStable;
+
+  /// No description provided for @playerAttemptsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attempt analysis'**
+  String get playerAttemptsTitle;
+
+  /// No description provided for @playerAttemptsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed}/{attempts} completed'**
+  String playerAttemptsCompleted(int completed, int attempts);
+
+  /// No description provided for @playerInitialPlacements.
+  ///
+  /// In en, this message translates to:
+  /// **'First placement: {safe}/{total} viable · {score}/1000'**
+  String playerInitialPlacements(int safe, int total, int score);
+
+  /// No description provided for @playerFaultsPerAttempt.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} dead ends / attempt'**
+  String playerFaultsPerAttempt(String value);
 
   /// No description provided for @helpTile.
   ///

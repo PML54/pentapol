@@ -1,4 +1,8 @@
-// Modified: 2026-09-23 06:42 — figer le mode Image par partie et aligner lampe/victoire.
+// Modified: 2026-10-02 07:22 — exclure les réussites aidées des résultats et de l'historique locaux.
+// Historique: 2026-10-02 06:42 — vider la partie en mémoire après la purge locale des résultats.
+// Historique: 2026-09-30 07:10 — historiser les tentatives Solo et qualifier leur premier placement.
+// Historique: 2026-09-29 06:10 — compter, reprendre et agréger les isométries par pentomino.
+// Historique: 2026-09-23 06:42 — figer le mode Image par partie et aligner lampe/victoire.
 // Historique: 2026-09-22 08:01 — records : une partie de calibrage (geometry.experimental) pose de
 //           nouveau des records — garde de _saveCompletionRecord allégée (option B, décision Paul).
 // Historique: 2026-09-22 05:35 — training 2 : retirer deux pièces voisines, toutes deux
@@ -135,6 +139,7 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/common/pentominos.dart';
@@ -316,6 +321,17 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return PentoscopeState.initial();
   }
 
+  /// Oublie la partie après la purge SQLite, sans enregistrer de tentative abandonnée.
+  void discardCurrentGameAfterLocalReset() {
+    stopTimer();
+    _timerPausedElapsed = null;
+    _isMultiplayer = false;
+    _activeChallenge = null;
+    _isRecreationalSetup = false;
+    _solutions = CorpusSolutionSource.empty();
+    state = PentoscopeState.initial();
+  }
+
   /// Choisit la source de solutions du puzzle, **toujours adossée à une table**
   /// pré-calculée (§8 B) : le 6×10 via son [SolutionMatcher] (BigInt, navigateur),
   /// toute autre taille via le corpus découpé au masque du tirage. Plus de solveur
@@ -405,6 +421,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       return;
     }
     final hintPiece = hint.piece;
+    final isFirstPlacement = state.firstPlacedPieceId == null;
 
     debugPrint(
       '💡 HINT: Placer pièce ${hintPiece.id} à (${hint.gridX}, ${hint.gridY}) pos=${hint.positionIndex}',
@@ -451,6 +468,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isComplete: isComplete,
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount,
+      firstPlacedPieceId: isFirstPlacement ? hintPiece.id : null,
+      firstPlacementSolvable: isFirstPlacement ? hasPossibleSolution : null,
+      firstPlacementAssisted: isFirstPlacement ? true : null,
       elapsedSeconds: isComplete
           ? getElapsedSeconds()
           : null, // fige le temps à la complétion
@@ -514,6 +534,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (missingPieceCount != 1 && missingPieceCount != 2) {
       throw ArgumentError.value(missingPieceCount, 'missingPieceCount');
     }
+    await _recordAbandonedAttemptIfNeeded();
     _isRecreationalSetup = true;
     try {
       List<PlacedPiece>? toRemove;
@@ -831,6 +852,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final puzzle = state.puzzle;
     if (puzzle == null) return;
 
+    await _recordAbandonedAttemptIfNeeded();
+
     _isMultiplayer = false;
     _activeChallenge = null;
     // Générer un nouveau puzzle avec la même taille
@@ -1055,6 +1078,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     bool showSolution = false,
     bool isProgression = false,
   }) async {
+    await _recordAbandonedAttemptIfNeeded();
     _isMultiplayer = false;
     _activeChallenge = null;
     final puzzle = mask != null
@@ -1310,17 +1334,36 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (puzzle == null ||
         _isRecreationalSetup ||
         _isMultiplayer ||
-        state.isRanked) {
+        state.isRanked ||
+        state.hintCount > 0) {
       return;
     }
 
     final metrics = computeCompletionMetrics();
     if (metrics == null) return;
+    final attempt = _currentAttemptSummary(
+      completed: true,
+      elapsedSeconds: metrics.timeSeconds,
+    );
     final clean =
         state.hintCount == 0; // partie sans aide → peut poser un record (§4.8)
     final board = _rebuildPlateau();
     final solutionNumber = _solutions.solutionIndexOf(board);
     final db = ref.read(settingsDatabaseProvider);
+    final perPiece = <int, ({int theoretical, int actual})>{};
+    if (clean) {
+      for (final placed in state.placedPieces) {
+        final initial = state.initialOrientations[placed.piece.id];
+        if (initial == null) continue;
+        perPiece[placed.piece.id] = (
+          theoretical: placed.piece.minIsometriesToReach(
+            initial,
+            placed.positionIndex,
+          ),
+          actual: state.pieceIsometryCounts[placed.piece.id] ?? 0,
+        );
+      }
+    }
 
     try {
       if (solutionNumber != null) {
@@ -1346,7 +1389,67 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     } catch (e) {
       debugPrint('❌ Enregistrement du record échoué: $e');
     }
+    await ref.read(settingsProvider.notifier).recordPlayerAttempt(attempt);
+    if (clean) {
+      await ref.read(settingsProvider.notifier).recordPieceAcuity(perPiece);
+    }
   }
+
+  Future<void> _recordAbandonedAttemptIfNeeded() async {
+    final puzzle = state.puzzle;
+    final hasActivity =
+        state.firstPlacedPieceId != null ||
+        state.isometryCount > 0 ||
+        state.translationCount > 0 ||
+        state.deleteCount > 0 ||
+        state.hintCount > 0;
+    if (puzzle == null ||
+        state.isComplete ||
+        !hasActivity ||
+        _isRecreationalSetup ||
+        _isMultiplayer ||
+        state.isRanked) {
+      return;
+    }
+    await _recordCurrentAttempt(
+      completed: false,
+      elapsedSeconds: isTimerRunning
+          ? getElapsedSeconds()
+          : state.elapsedSeconds,
+    );
+  }
+
+  Future<void> _recordCurrentAttempt({
+    required bool completed,
+    required int elapsedSeconds,
+  }) => ref
+      .read(settingsProvider.notifier)
+      .recordPlayerAttempt(
+        _currentAttemptSummary(
+          completed: completed,
+          elapsedSeconds: elapsedSeconds,
+        ),
+      );
+
+  PlayerAttemptSummary _currentAttemptSummary({
+    required bool completed,
+    required int elapsedSeconds,
+  }) => PlayerAttemptSummary(
+    sizeName: state.puzzle!.size.name,
+    completed: completed,
+    elapsedSeconds: elapsedSeconds,
+    faults: state.faultCount,
+    isometries: state.isometryCount,
+    translations: state.translationCount,
+    removals: state.deleteCount,
+    hints: state.hintCount,
+    placedPieces: state.placedPieces.length,
+    firstPieceId: state.firstPlacedPieceId,
+    firstPlacementSolvable: state.firstPlacementSolvable,
+    firstPlacementAssisted: state.firstPlacementAssisted,
+    firstPlacementFaultKind: state.firstPlacementFaultKind?.name,
+    endedAt: DateTime.now().toUtc().toIso8601String(),
+  );
 
   /// 🎽 POST le score du défi actif au serveur de classement (§7). Public : appelé automatiquement
   /// à la complétion d'un défi ET par le flux de consentement (après activation de l'opt-in au
@@ -1438,6 +1541,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final initialJson = jsonEncode(
       state.initialOrientations.map((k, v) => MapEntry(k.toString(), v)),
     );
+    final pieceIsoJson = state.pieceIsometryCounts.map(
+      (k, v) => MapEntry(k.toString(), v),
+    );
 
     try {
       await ref
@@ -1459,6 +1565,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             geometryState: jsonEncode({
               ...?state.geometry?.toJson(),
               'isIllustratedMode': state.isIllustratedMode,
+              'pieceIsometryCounts': pieceIsoJson,
+              'firstPlacedPieceId': state.firstPlacedPieceId,
+              'firstPlacementSolvable': state.firstPlacementSolvable,
+              'firstPlacementAssisted': state.firstPlacementAssisted,
+              'firstPlacementFaultKind': state.firstPlacementFaultKind?.name,
             }),
           );
     } catch (e) {
@@ -1534,7 +1645,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
     final geometryJson = jsonDecode(row.geometryState) as Map<String, dynamic>;
     final geometry = GeometryScore.fromJson(geometryJson);
+    final pieceIsometryCounts =
+        (geometryJson['pieceIsometryCounts'] as Map<String, dynamic>? ??
+                const {})
+            .map((k, v) => MapEntry(int.parse(k), (v as num).toInt()));
     final isIllustratedMode = geometryJson['isIllustratedMode'] == true;
+    FaultKind? firstPlacementFaultKind;
+    final firstFaultName = geometryJson['firstPlacementFaultKind'] as String?;
+    for (final kind in FaultKind.values) {
+      if (kind.name == firstFaultName) firstPlacementFaultKind = kind;
+    }
     final placedPieces = [
       for (final e in jsonDecode(row.placedPieces) as List)
         PlacedPiece(
@@ -1593,12 +1713,20 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       piecePositionIndices: piecePositionIndices,
       initialOrientations:
           initialOrientations, // rack figé restauré (acuité §4.2)
+      pieceIsometryCounts: pieceIsometryCounts,
       isComplete: false,
       isometryCount: row.isometryCount,
       translationCount: row.translationCount,
       deleteCount: row.deleteCount,
       hintCount: row.hintCount,
       faultCount: row.faultCount, // 🔴 fautes restaurées
+      firstPlacedPieceId:
+          (geometryJson['firstPlacedPieceId'] as num?)?.toInt() ??
+          (placedPieces.isEmpty ? null : placedPieces.first.piece.id),
+      firstPlacementSolvable: geometryJson['firstPlacementSolvable'] as bool?,
+      firstPlacementAssisted:
+          geometryJson['firstPlacementAssisted'] as bool? ?? false,
+      firstPlacementFaultKind: firstPlacementFaultKind,
       showSolution: false, // non restaurable (§2.4)
       currentSolution: null,
       illustratedSolution: illustratedSolution,
@@ -1648,6 +1776,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
     final wasPlacedPiece = state.selectedPlacedPiece != null;
+    final isFirstPlacement =
+        !wasPlacedPiece && state.firstPlacedPieceId == null;
 
     if (!state.canPlacePiece(piece, positionIndex, anchorX, anchorY)) {
       return false;
@@ -1711,6 +1841,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       newPlacedPieces,
       newAvailable,
     );
+    final firstFaultKind =
+        isFirstPlacement && !hasPossibleSolution && !isComplete
+        ? analyzeFault(newPlateau).kind
+        : null;
     // 🔎 Observation : jamais de faute sur la complétion (cf. faultCount ci-dessous).
     final obs = isComplete
         ? (aire: 0, subtile: 0, gravite: 0.0)
@@ -1740,6 +1874,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       faultCount: isComplete
           ? state.faultCount
           : _bumpFault(state.hasPossibleSolution, hasPossibleSolution),
+      firstPlacedPieceId: isFirstPlacement ? piece.id : null,
+      firstPlacementSolvable: isFirstPlacement ? hasPossibleSolution : null,
+      firstPlacementAssisted: isFirstPlacement ? false : null,
+      firstPlacementFaultKind: firstFaultKind,
       faultAireCount: state.faultAireCount + obs.aire,
       faultSubtileCount: state.faultSubtileCount + obs.subtile,
       faultGraviteSum: state.faultGraviteSum + obs.gravite,
@@ -1837,6 +1975,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         ),
         clearPreview: true,
         isometryCount: state.isometryCount + 1,
+        pieceIsometryCounts: _incrementPieceIsometry(piece.id),
       );
 
       // ✨ BUGFIX: Régénérer validPlacements avec le NOUVEAU positionIndex
@@ -2155,6 +2294,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       clearPreview: true,
       validPlacements: validPlacements,
       isometryCount: state.isometryCount + 1,
+      pieceIsometryCounts: _incrementPieceIsometry(piece.id),
       hasPossibleSolution: hasPossibleSolution, // 💡 Mise à jour!
       solutionsCount: solutionsCount, // 🔢
       faultCount: _bumpFault(
@@ -2455,6 +2595,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       clearPreview: true,
       validPlacements: validPlacements,
       isometryCount: state.isometryCount + 1,
+      pieceIsometryCounts: _incrementPieceIsometry(piece.id),
       hasPossibleSolution: hasPossibleSolution,
       solutionsCount: solutionsCount, // 🔢
       faultCount: _bumpFault(
@@ -2486,6 +2627,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         ? TransformationResult.recentered
         : TransformationResult.success;
   }
+
+  Map<int, int> _incrementPieceIsometry(int pieceId) => {
+    ...state.pieceIsometryCounts,
+    pieceId: (state.pieceIsometryCounts[pieceId] ?? 0) + 1,
+  };
 
   /// Calcule la position gridX,gridY pour maintenir la mastercase fixe lors d'une transformation
   Point _calculatePositionForFixedMastercase({
@@ -2930,6 +3076,11 @@ class PentoscopeState implements PieceManipulationState {
   final int deleteCount; // 🗑️ Nombre de suppressions de pièces
   final int
   faultCount; // ⚫ Fautes (entrées en cul-de-sac, jaune→rouge) — maillot à pois
+  final int? firstPlacedPieceId;
+  final bool? firstPlacementSolvable;
+  final bool firstPlacementAssisted;
+  final FaultKind? firstPlacementFaultKind;
+
   /// 🚑 Retraits effectués alors que le plateau était ROUGE (insoluble) = sorties de cul-de-sac.
   /// Compteur d'OBSERVATION (bandeau debug, décision de Paul 2026-09-07) : n'entre PAS dans les
   /// maillots, **non persisté** (remis à 0 à une reprise de partie — sans importance pour le debug).
@@ -2979,6 +3130,7 @@ class PentoscopeState implements PieceManipulationState {
   /// démarrage), figées une fois pour toutes. `piecePositionIndices` mute quand le joueur
   /// tourne les pièces ; l'acuité (maillot jaune, CDC §4.2) se mesure contre ce rack initial.
   final Map<int, int> initialOrientations;
+  final Map<int, int> pieceIsometryCounts;
 
   const PentoscopeState({
     this.geometry,
@@ -3003,6 +3155,10 @@ class PentoscopeState implements PieceManipulationState {
     this.hintCount = 0, // 💡
     this.deleteCount = 0, // 🗑️
     this.faultCount = 0, // ⚫
+    this.firstPlacedPieceId,
+    this.firstPlacementSolvable,
+    this.firstPlacementAssisted = false,
+    this.firstPlacementFaultKind,
     this.redRemovalCount = 0, // 🚑 (observation, non persisté)
     this.faultAireCount = 0, // ⚠️ (observation)
     this.faultSubtileCount = 0, // 🌫️ (observation)
@@ -3019,6 +3175,7 @@ class PentoscopeState implements PieceManipulationState {
     this.isProgression = false,
     this.isRanked = false,
     this.initialOrientations = const {},
+    this.pieceIsometryCounts = const {},
   });
 
   factory PentoscopeState.initial() {
@@ -3088,6 +3245,10 @@ class PentoscopeState implements PieceManipulationState {
     int? hintCount, // 💡
     int? deleteCount, // 🗑️
     int? faultCount, // ⚫
+    int? firstPlacedPieceId,
+    bool? firstPlacementSolvable,
+    bool? firstPlacementAssisted,
+    FaultKind? firstPlacementFaultKind,
     int? redRemovalCount, // 🚑
     int? faultAireCount, // ⚠️
     int? faultSubtileCount, // 🌫️
@@ -3104,6 +3265,7 @@ class PentoscopeState implements PieceManipulationState {
     bool? isProgression,
     bool? isRanked,
     Map<int, int>? initialOrientations,
+    Map<int, int>? pieceIsometryCounts,
   }) {
     return PentoscopeState(
       geometry: geometry ?? this.geometry,
@@ -3140,6 +3302,13 @@ class PentoscopeState implements PieceManipulationState {
       hintCount: hintCount ?? this.hintCount,
       deleteCount: deleteCount ?? this.deleteCount,
       faultCount: faultCount ?? this.faultCount,
+      firstPlacedPieceId: firstPlacedPieceId ?? this.firstPlacedPieceId,
+      firstPlacementSolvable:
+          firstPlacementSolvable ?? this.firstPlacementSolvable,
+      firstPlacementAssisted:
+          firstPlacementAssisted ?? this.firstPlacementAssisted,
+      firstPlacementFaultKind:
+          firstPlacementFaultKind ?? this.firstPlacementFaultKind,
       redRemovalCount: redRemovalCount ?? this.redRemovalCount,
       faultAireCount: faultAireCount ?? this.faultAireCount,
       faultSubtileCount: faultSubtileCount ?? this.faultSubtileCount,
@@ -3158,6 +3327,7 @@ class PentoscopeState implements PieceManipulationState {
       isProgression: isProgression ?? this.isProgression,
       isRanked: isRanked ?? this.isRanked,
       initialOrientations: initialOrientations ?? this.initialOrientations,
+      pieceIsometryCounts: pieceIsometryCounts ?? this.pieceIsometryCounts,
     );
   }
 

@@ -15,6 +15,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loading => 'Chargement de Pentoscope…';
 
   @override
+  String get resetLocalResultsTitle => 'Remettre les résultats locaux à zéro';
+
+  @override
+  String get resetLocalResultsConfirm =>
+      'Effacer la partie en cours, les records, l’historique personnel et les résultats locaux Solo/Duo/Défi ? Cette action est irréversible. Votre identité, vos réglages et les niveaux Solo débloqués sont conservés. Les scores en ligne restent inchangés.';
+
+  @override
+  String get resetLocalResultsDone =>
+      'Les résultats locaux ont été remis à zéro.';
+
+  @override
+  String get chooseSoloLevel => 'Choisir un niveau Solo';
+
+  @override
+  String soloLevelOption(int level, int width, int height) {
+    return 'Niveau $level · $width×$height';
+  }
+
+  @override
   String get cancel => 'Annuler';
 
   @override
@@ -208,7 +227,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get legendFaults => 'Impasses';
 
   @override
-  String get legendTime => 'Temps';
+  String get legendTime => 'Rapidité';
 
   @override
   String get recordsEmpty =>
@@ -331,9 +350,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get restartTooltip => 'Recommencer (même taille)';
-
-  @override
-  String get hintDisabledChallenge => 'Indice désactivé en mode défi';
 
   @override
   String get noSolutionBack => 'Aucune solution — revenir en arrière';
@@ -807,6 +823,60 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String playerProfileLevel(int level, int maxLevel) {
     return 'Niveau $level/$maxLevel';
+  }
+
+  @override
+  String get playerPieceAcuityTitle => 'Acuité isométrique par pièce';
+
+  @override
+  String get playerPieceDetailTitle => 'Détail de l’acuité';
+
+  @override
+  String playerPieceDetailValues(
+    int placements,
+    int theoretical,
+    int actual,
+    int percent,
+  ) {
+    return 'Poses définitives : $placements\nMinimum théorique : $theoretical\nIsométries réalisées : $actual\nAcuité : $percent %';
+  }
+
+  @override
+  String get playerSpeedTitle => 'Rapidité de résolution';
+
+  @override
+  String get playerSpeedInfo =>
+      'Mesurée sur les parties terminées sans lampe jaune. Les impasses et corrections ne modifient pas le temps.';
+
+  @override
+  String playerSpeedFaster(int percent) {
+    return '$percent % plus rapide';
+  }
+
+  @override
+  String playerSpeedSlower(int percent) {
+    return '$percent % plus lent';
+  }
+
+  @override
+  String get playerSpeedStable => 'Vitesse stable';
+
+  @override
+  String get playerAttemptsTitle => 'Analyse des tentatives';
+
+  @override
+  String playerAttemptsCompleted(int completed, int attempts) {
+    return '$completed/$attempts terminées';
+  }
+
+  @override
+  String playerInitialPlacements(int safe, int total, int score) {
+    return 'Premier placement : $safe/$total viables · $score/1000';
+  }
+
+  @override
+  String playerFaultsPerAttempt(String value) {
+    return '$value impasses / tentative';
   }
 
   @override

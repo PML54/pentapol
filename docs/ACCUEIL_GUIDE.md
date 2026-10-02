@@ -1,6 +1,6 @@
 # Accueil et Training 3×5
 
-> _Dernière révision : 2026-09-23 (dernier commit git ; audit index 2026-09-29)._
+> _Dernière révision : 2026-10-02 — choix des niveaux Solo débloqués._
 
 > Révision du 2026-09-23 : l'application ouvre un menu responsive avec une démo automatique 5×5.
 > Le Training ne démarre plus automatiquement ; son bouton ouvre le vrai écran de jeu en mode
@@ -81,10 +81,20 @@ Le parcours alterne deux niveaux. Le **Training 1** retire une pièce d'un plate
 réussite, un tap lance le **Training 2** : deux pièces qui partageaient au moins un côté sont retirées
 et placées dans le tiroir, chacune avec une orientation différente. Leur retrait conserve une solution
 unique. Après la réussite du Training 2, un tap recommence au Training 1. À chaque fin, un
-**double-tap** démarre une vraie partie `Game` au niveau courant et remplace l'écran Training. Il n'y a ni bouton
+**double-tap** propose les niveaux Solo débloqués, puis démarre une vraie partie `Game` au niveau
+choisi et remplace l'écran Training. Annuler conserve le Training. Il n'y a ni bouton
 « Voir un autre » ni relance automatique (la relance auto 1 s a été essayée puis écartée). Le retour
 Accueil ouvre le menu principal ; son bouton Training permet également de repartir sur un nouvel
 exercice. Aucune boucle animée ne joue à la place du joueur.
+
+## Choix du niveau Solo
+
+Depuis l'accueil, toute partie Solo neuve propose les niveaux 1 au niveau courant, avec la taille
+du plateau. Le plateau vide préparé au démarrage passe aussi par ce choix. Une partie de progression
+déjà commencée est reprise directement. Le double-tap du plateau Solo et les actions de nouvelle
+partie du bilan proposent la même liste ; au niveau 1, la partie démarre directement.
+Seul le niveau de progression courant, réussi sans lampe jaune, permet de débloquer le suivant.
+Rejouer un ancien niveau conserve les niveaux débloqués. L'annulation ne remplace pas la partie.
 
 ## Contour et encouragements animés
 

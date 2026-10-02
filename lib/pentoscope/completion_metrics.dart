@@ -1,4 +1,5 @@
-// Modified: 2026-09-12 10:58 — transmettre la Géométrie au bilan sans convertir les anciens scores.
+// Modified: 2026-10-02 07:09 — convertir le score courant en Acuité entière arrondie au inférieur.
+// Historique: 2026-09-12 10:58 — transmettre la Géométrie au bilan sans convertir les anciens scores.
 // Historique: 2026-09-09 05:29 — centralisation des règles de score : acuity/acuityPercent/perfectVision
 //           délèguent à score_rules.dart (formule plafonnée et prédicat uniques, testés) — plus de
 //           formule d'acuité recopiée ici.
@@ -44,6 +45,12 @@ class CompletionMetrics {
 
   /// Acuité en pourcentage entier (0..100), plafonné — règle unique dans `score_rules.acuityPercent`.
   int get acuityPercent => rules.acuityPercent(minIso, isometryCount);
+
+  int get displayAcuityPercent {
+    final score = geometry;
+    if (score == null) return acuityPercent;
+    return (100 * score.value / score.rules.initialScore).floor().clamp(0, 100);
+  }
 
   /// « Vision parfaite » (§4.6) : aucun geste de trop — règle unique dans `score_rules.isPerfectVision`.
   /// La médaille exige en plus une partie **sans aide** (traité à l'appel).

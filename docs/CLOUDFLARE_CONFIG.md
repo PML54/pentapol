@@ -1,6 +1,6 @@
 # Cloudflare — configuration et fonctionnement (Pentapol)
 
-> _Dernière révision : 2026-09-24 (dernier commit git ; audit index 2026-09-29)._
+> _Dernière révision : 2026-10-02 — procédure de remise à zéro des données D1._
 
 > Mémo opérationnel : ce qui tourne sur Cloudflare pour Pentapol, la config exacte, le flux de
 > données, et les commandes courantes. Source de vérité : `server/` (worker + schéma + wrangler).
@@ -127,10 +127,76 @@ cd server
 npm run deploy                 # = npx wrangler deploy → affiche l'URL
 ```
 
-### Réinitialiser les tables — destructif
+### Remettre à zéro les données distantes du Défi
+
+Ces commandes concernent **la base D1 du Défi**, pas le stockage Durable Objects du Duel.
+Elles s'exécutent depuis `server/`. `--remote` cible les données sur Cloudflare ; `--local`
+cible seulement la base de développement sur le Mac.
+
+**1. Inspecter et sauvegarder avant suppression**
+
+```bash
+cd /Users/pml/StudioProjects/pentapol/server
+npx wrangler d1 execute pentapol-defi --remote --command "SELECT 'scores' AS table_name, COUNT(*) AS total FROM scores UNION ALL SELECT 'challenges', COUNT(*) FROM challenges;"
+npx wrangler d1 export pentapol-defi --remote --output=/private/tmp/pentapol-defi-before-reset.sql
+```
+
+L'export contient notamment les identités, pseudos et résultats des joueurs. Conserver cette
+sauvegarde hors du dépôt ; choisir un autre nom si une sauvegarde existe déjà.
+
+**2. Choisir la portée de la remise à zéro**
+
+Pour **vider les classements seulement**, en conservant les définitions officielles :
+
+```bash
+npx wrangler d1 execute pentapol-defi --remote --command "DELETE FROM scores;"
+```
+
+Pour **vider toutes les données du Défi**, en conservant les tables et leurs index :
+
+```bash
+npx wrangler d1 execute pentapol-defi --remote --command "DELETE FROM scores; DELETE FROM challenges;"
+```
+
+Sans définitions officielles, les téléphones dérivent les défis depuis la date UTC (§5).
+Cette purge conserve le Worker, l'URL, le binding D1, l'UUID de la base et `SEED_TOKEN`.
+Il n'y a ni déploiement ni nouvel amorçage obligatoire.
+
+**3. Contrôler le résultat**
+
+```bash
+npx wrangler d1 execute pentapol-defi --remote --command "SELECT 'scores' AS table_name, COUNT(*) AS total FROM scores UNION ALL SELECT 'challenges', COUNT(*) FROM challenges;"
+```
+
+Le total `scores` doit être zéro ; `challenges` doit aussi être zéro si cette table a été vidée.
+Des joueurs peuvent publier de nouveaux scores pendant ou après la purge : la base n'est pas
+bloquée par ces commandes. Rafraîchir le classement dans l'app après l'opération.
+
+**Portée côté téléphone :** la purge Cloudflare n'efface pas les réglages, l'identité joueur,
+la progression Solo, les records ni l'historique conservés dans la base locale de l'app.
+
+### Recréer les tables — développement uniquement, destructif
+
+Le script actuel de `server/package.json` applique `server/schema.sql`, qui commence par
+`DROP TABLE IF EXISTS scores` et `DROP TABLE IF EXISTS challenges` :
+
 ```bash
 npm run db:init:remote         # EFFACE puis recrée challenges et scores
 ```
+
+Pour simplement vider les données, préférer les `DELETE` ci-dessus : ils conservent le schéma
+déployé. La recréation peut changer ce schéma selon le fichier local. Après publication,
+les évolutions de schéma doivent passer par des migrations réelles.
+
+### Remise à zéro du Duel
+
+Les commandes D1 ci-dessus **n'effacent aucune donnée du Duel**. Son code et sa configuration
+Durable Objects sont hors de ce dépôt : il faut consulter ce déploiement pour identifier les
+objets et la procédure de purge. Une remise à zéro globale des deux services ne peut donc pas
+être déduite de `server/`.
+
+Références officielles : [commandes Wrangler D1](https://developers.cloudflare.com/d1/wrangler-commands/)
+et [export D1](https://developers.cloudflare.com/d1/best-practices/import-export-data/).
 
 ### Poser / changer le secret d'amorçage
 ```bash

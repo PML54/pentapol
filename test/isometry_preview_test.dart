@@ -1,4 +1,6 @@
-// Modified: 2026-09-21 11:04 — garantir qu'une isométrie ne réinsère pas la pièce sélectionnée dans le plateau.
+// Modified: 2026-09-30 07:24 — aligner le header du test sans modifier ses assertions.
+// Historique: 2026-09-29 06:10 — vérifier le compteur individuel d'une isométrie sur le plateau.
+// Historique: 2026-09-21 11:04 — garantir qu'une isométrie ne réinsère pas la pièce sélectionnée dans le plateau.
 // Historique: 2026-09-21 09:19 — couvrir le recalcul des destinations après une rotation posée.
 // Historique: 2026-09-10 07:19 — vérifier les aperçus sans mutation et leur équivalence avec les actions aux bords.
 import 'dart:convert';
@@ -167,6 +169,7 @@ void main() {
     );
 
     final transformedState = container.read(pentoscopeProvider);
+    expect(transformedState.pieceIsometryCounts[piece.id], 1);
     final transformed = transformedState.selectedPlacedPiece!;
     final destinationsAfterRotation = transformedState.validPlacements;
     expect(

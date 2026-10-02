@@ -1,4 +1,5 @@
-// Modified: 2026-09-29 05:50 — placer la présentation du développeur avant l'aide des icônes.
+// Modified: 2026-10-02 07:24 — retirer la présentation du développeur déplacée dans Paramètres.
+// Historique: 2026-09-29 05:50 — placer la présentation du développeur avant l'aide des icônes.
 // Historique: 2026-09-25 15:10 — retirer rotation simple, compteur et nouvelle partie de l'aide.
 // Historique: 2026-09-25 15:06 — retirer quatre commandes obsolètes ou dupliquées de l'aide.
 // Historique: 2026-09-25 03:14 — lampe scindée en deux entrées (rouge, jaune) placées en tête
@@ -12,7 +13,6 @@
 import 'package:flutter/material.dart';
 import 'package:pentapol/config/game_icons_config.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
-import 'package:pentapol/screens/about_developer_screen.dart';
 
 /// Écran d'Aide : liste « icône + libellé + description » de toutes les icônes du jeu.
 ///
@@ -36,8 +36,6 @@ class HelpScreen extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           children: [
-            const DeveloperAboutContent(compact: true),
-            const Divider(height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Text(

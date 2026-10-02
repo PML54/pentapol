@@ -1,4 +1,7 @@
-// Modified: 2026-09-23 05:13 — persister le prototype de pièces illustrées 6×10.
+// Modified: 2026-10-02 06:39 — remettre les résultats locaux à zéro en conservant identité et réglages.
+// Historique: 2026-09-30 07:10 — persister vingt tentatives par taille pour le bilan personnel.
+// Historique: 2026-09-29 06:10 — agréger et sauvegarder l'acuité par pentomino.
+// Historique: 2026-09-23 05:13 — persister le prototype de pièces illustrées 6×10.
 // Historique: 2026-09-22 06:06 — persister l'affichage optionnel de la miniature de drag.
 // Historique: 2026-09-12 10:58 — sauvegarde fiable du barème pour les prochaines parties.
 // Historique: 2026-09-12 07:25 — enregistrement du barème pour les prochaines parties solo.
@@ -188,6 +191,35 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
+  Future<void> recordPieceAcuity(
+    Map<int, ({int theoretical, int actual})> results,
+  ) async {
+    final totals = Map<int, PieceAcuityTotals>.from(state.pieceAcuityTotals);
+    for (final entry in results.entries) {
+      final old = totals[entry.key] ?? const PieceAcuityTotals();
+      totals[entry.key] = PieceAcuityTotals(
+        placements: old.placements + 1,
+        theoretical: old.theoretical + entry.value.theoretical,
+        actual: old.actual + entry.value.actual,
+      );
+    }
+    state = state.copyWith(pieceAcuityTotals: totals);
+    await _saveSettings();
+  }
+
+  Future<void> recordPlayerAttempt(PlayerAttemptSummary attempt) async {
+    await ensureLoaded();
+    final history = [...state.attemptHistory, attempt];
+    while (history.where((item) => item.sizeName == attempt.sizeName).length >
+        kAttemptHistoryPerSize) {
+      history.removeAt(
+        history.indexWhere((item) => item.sizeName == attempt.sizeName),
+      );
+    }
+    state = state.copyWith(attemptHistory: history);
+    await _saveSettings();
+  }
+
   /// Enregistrer le résultat d'une partie (isWin: true=victoire, false=défaite, null=égalité)
   Future<void> recordDuelGame({required bool? isWin}) async {
     state = state.copyWith(duel: state.duel.recordGame(isWin: isWin));
@@ -222,6 +254,19 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> resetDuelStats() async {
     state = state.copyWith(duel: state.duel.resetStats());
     await _saveSettings();
+  }
+
+  Future<void> resetLocalResults() async {
+    await ensureLoaded();
+    final next = state.copyWith(
+      pieceAcuityTotals: const {},
+      attemptHistory: const [],
+      duel: state.duel.resetStats(),
+      clearDailyChallengeDay: true,
+      completedDailyChallengeSizes: const [],
+    );
+    await _db.resetLocalResults(jsonEncode(next.toJson()));
+    state = next;
   }
 
   /// Réinitialise tous les paramètres par défaut

@@ -1,4 +1,5 @@
-// Modified: 2026-09-29 05:50 — vérifier la présentation du développeur avant les icônes.
+// Modified: 2026-10-02 07:24 — vérifier que l'Aide ne contient plus la présentation du développeur.
+// Historique: 2026-09-29 05:50 — vérifier la présentation du développeur avant les icônes.
 // Historique: 2026-09-25 15:10 — vérifier les 10 lignes utiles après le second nettoyage.
 // Historique: 2026-09-25 15:06 — vérifier les 13 lignes utiles et l'absence des commandes retirées.
 // Historique: 2026-09-25 03:14 — 17 lignes : lampe rouge et lampe jaune comptées séparément.
@@ -29,7 +30,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Paul Marie Larivière'), findsOneWidget);
+      expect(find.text('Paul Marie Larivière'), findsNothing);
       expect(
         find.text(lang == 'fr' ? 'Icônes du jeu' : 'Game icons'),
         findsOneWidget,

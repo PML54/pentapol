@@ -15,6 +15,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading Pentoscope…';
 
   @override
+  String get resetLocalResultsTitle => 'Reset local results';
+
+  @override
+  String get resetLocalResultsConfirm =>
+      'Erase the current game, records, personal history and local Solo/Duo/Challenge results? This cannot be undone. Your identity, settings and unlocked Solo levels are kept. Online scores are unchanged.';
+
+  @override
+  String get resetLocalResultsDone => 'Local results have been reset.';
+
+  @override
+  String get chooseSoloLevel => 'Choose a Solo level';
+
+  @override
+  String soloLevelOption(int level, int width, int height) {
+    return 'Level $level · $width×$height';
+  }
+
+  @override
   String get cancel => 'Cancel';
 
   @override
@@ -207,7 +225,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legendFaults => 'Dead ends';
 
   @override
-  String get legendTime => 'Time';
+  String get legendTime => 'Speed';
 
   @override
   String get recordsEmpty =>
@@ -328,9 +346,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restartTooltip => 'Restart (same size)';
-
-  @override
-  String get hintDisabledChallenge => 'Hint disabled in challenge mode';
 
   @override
   String get noSolutionBack => 'No solution — step back';
@@ -801,6 +816,60 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String playerProfileLevel(int level, int maxLevel) {
     return 'Level $level/$maxLevel';
+  }
+
+  @override
+  String get playerPieceAcuityTitle => 'Isometric acuity by piece';
+
+  @override
+  String get playerPieceDetailTitle => 'Acuity details';
+
+  @override
+  String playerPieceDetailValues(
+    int placements,
+    int theoretical,
+    int actual,
+    int percent,
+  ) {
+    return 'Final placements: $placements\nTheoretical minimum: $theoretical\nIsometries performed: $actual\nAcuity: $percent%';
+  }
+
+  @override
+  String get playerSpeedTitle => 'Solving speed';
+
+  @override
+  String get playerSpeedInfo =>
+      'Measured on completed games without the yellow lamp. Dead ends and corrections do not change the time.';
+
+  @override
+  String playerSpeedFaster(int percent) {
+    return '$percent% faster';
+  }
+
+  @override
+  String playerSpeedSlower(int percent) {
+    return '$percent% slower';
+  }
+
+  @override
+  String get playerSpeedStable => 'Stable speed';
+
+  @override
+  String get playerAttemptsTitle => 'Attempt analysis';
+
+  @override
+  String playerAttemptsCompleted(int completed, int attempts) {
+    return '$completed/$attempts completed';
+  }
+
+  @override
+  String playerInitialPlacements(int safe, int total, int score) {
+    return 'First placement: $safe/$total viable · $score/1000';
+  }
+
+  @override
+  String playerFaultsPerAttempt(String value) {
+    return '$value dead ends / attempt';
   }
 
   @override

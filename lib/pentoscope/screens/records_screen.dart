@@ -1,4 +1,13 @@
-// Modified: 2026-09-29 06:05 — appliquer au profil le même code couleur que l'icône de niveau.
+// Modified: 2026-09-30 07:39 — limiter le bilan de rapidité à la seule tendance.
+// Historique: 2026-09-30 07:37 — retirer record et volume du bilan de rapidité.
+// Historique: 2026-09-30 07:27 — afficher l'acuité par pièce en pourcentage tronqué.
+// Historique: 2026-09-30 07:10 — afficher rapidité et analyses des tentatives même abandonnées.
+// Historique: 2026-09-29 07:59 — retirer les numéros qui concurrençaient les silhouettes des pièces.
+// Historique: 2026-09-29 07:51 — titrer le classement « Acuité isométrique par pièce ».
+// Historique: 2026-09-29 07:49 — trier l'acuité de la moins bonne à la meilleure et la noter sur 1000.
+// Historique: 2026-09-29 06:19 — identifier les pièces du profil par leurs numéros plutôt que leurs lettres.
+// Historique: 2026-09-29 06:10 — afficher les douze pièces et leur acuité cumulée dans le profil.
+// Historique: 2026-09-29 06:05 — appliquer au profil le même code couleur que l'icône de niveau.
 // Historique: 2026-09-29 05:50 — transformer les records en profil joueur avec niveau en tête.
 // Historique: 2026-09-09 05:29 — centralisation score : acuityPercent, agrégation « meilleure acuité »
 //           et hasPerfectVision délèguent à score_rules (formule plafonnée, comparaison et prédicat
@@ -18,11 +27,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/config/player_level_colors.dart';
+import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
 import 'package:pentapol/database/settings_database.dart';
+import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
+import 'package:pentapol/pentoscope/player_profile_analysis.dart';
 import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// Les trois maillots d'une taille, agrégés. Bests nullables : `null` = aucune partie propre.
@@ -132,6 +146,7 @@ class RecordsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.read(settingsDatabaseProvider);
     final level = ref.watch(settingsProvider.select((s) => s.currentLevel));
+    final settings = ref.watch(settingsProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).playerProfileTitle),
@@ -149,13 +164,16 @@ class RecordsScreen extends ConsumerWidget {
                     color: playerLevelColor(level),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    ).playerProfileLevel(level, kMaxLevel),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: playerLevelColor(level),
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(
+                        context,
+                      ).playerProfileLevel(level, kMaxLevel),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: playerLevelColor(level),
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ),
                 ],
@@ -169,17 +187,51 @@ class RecordsScreen extends ConsumerWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final records = snap.data!;
+                  final analyses = {
+                    for (final size in PentoscopeSize.values)
+                      size: PlayerProfileAnalysis.forSize(
+                        size.name,
+                        settings.attemptHistory,
+                      ),
+                  };
                   final sizes = PentoscopeSize.values
-                      .where(records.containsKey)
+                      .where(
+                        (size) =>
+                            records.containsKey(size) ||
+                            analyses[size]!.attempts > 0,
+                      )
                       .toList();
-                  if (sizes.isEmpty) return const _EmptyState();
+                  final speedSizes = sizes
+                      .where(
+                        (size) => analyses[size]!.speedTrendPercent != null,
+                      )
+                      .toList();
                   return ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      const _Legend(),
-                      const SizedBox(height: 8),
+                      if (speedSizes.isNotEmpty)
+                        _SpeedAnalysisSection(
+                          sizes: speedSizes,
+                          analyses: analyses,
+                        ),
+                      if (speedSizes.isNotEmpty) const SizedBox(height: 20),
+                      _PieceAcuityList(settings: settings),
+                      const SizedBox(height: 20),
+                      if (sizes.isNotEmpty)
+                        Text(
+                          AppLocalizations.of(context).playerAttemptsTitle,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      if (sizes.isNotEmpty) const _Legend(),
+                      if (sizes.isNotEmpty) const SizedBox(height: 8),
                       for (final size in sizes)
-                        _RecordCard(size: size, record: records[size]!),
+                        _RecordCard(
+                          size: size,
+                          record: records[size] ?? const _SizeRecord(count: 0),
+                          analysis: analyses[size]!,
+                        ),
+                      if (sizes.isEmpty) const _EmptyState(),
                     ],
                   );
                 },
@@ -188,6 +240,162 @@ class RecordsScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SpeedAnalysisSection extends StatelessWidget {
+  final List<PentoscopeSize> sizes;
+  final Map<PentoscopeSize, PlayerProfileAnalysis> analyses;
+
+  const _SpeedAnalysisSection({required this.sizes, required this.analyses});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.playerSpeedTitle,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Tooltip(
+              message: l10n.playerSpeedInfo,
+              child: const Icon(Icons.info_outline, size: 22),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (final size in sizes)
+          _SpeedCard(size: size, analysis: analyses[size]!),
+      ],
+    );
+  }
+}
+
+class _SpeedCard extends StatelessWidget {
+  final PentoscopeSize size;
+  final PlayerProfileAnalysis analysis;
+
+  const _SpeedCard({required this.size, required this.analysis});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final trend = analysis.speedTrendPercent;
+    final trendLabel = trend == null
+        ? null
+        : trend > 0
+        ? l10n.playerSpeedFaster(trend)
+        : trend < 0
+        ? l10n.playerSpeedSlower(-trend)
+        : l10n.playerSpeedStable;
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: const Icon(Icons.timer_outlined, color: Color(0xFF2E9E5B)),
+        title: Text(
+          '${size.width}×${size.height}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(trendLabel!),
+      ),
+    );
+  }
+}
+
+class _PieceAcuityList extends StatelessWidget {
+  final AppSettings settings;
+
+  const _PieceAcuityList({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final pieces = [...pentominos]
+      ..sort((a, b) {
+        final aTotals = settings.pieceAcuityTotals[a.id];
+        final bTotals = settings.pieceAcuityTotals[b.id];
+        final aHasScore = aTotals != null && aTotals.placements > 0;
+        final bHasScore = bTotals != null && bTotals.placements > 0;
+        if (!aHasScore && !bHasScore) return a.id.compareTo(b.id);
+        if (!aHasScore) return 1;
+        if (!bHasScore) return -1;
+        final byScore = aTotals.percent.compareTo(bTotals.percent);
+        return byScore != 0 ? byScore : a.id.compareTo(b.id);
+      });
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.playerPieceAcuityTitle,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        for (final piece in pieces) _buildPieceRow(context, piece),
+      ],
+    );
+  }
+
+  Widget _buildPieceRow(BuildContext context, Pento piece) {
+    final l10n = AppLocalizations.of(context);
+    final storedTotals = settings.pieceAcuityTotals[piece.id];
+    final totals = storedTotals != null && storedTotals.placements > 0
+        ? storedTotals
+        : null;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: SizedBox(
+        width: 72,
+        height: 54,
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: PieceRenderer(
+            piece: piece,
+            positionIndex: 0,
+            getPieceColor: settings.ui.getPieceColor,
+            cellSize: 12,
+            showLabel: false,
+          ),
+        ),
+      ),
+      trailing: Text(
+        totals == null ? '—' : '${totals.percent} %',
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      ),
+      onTap: totals == null
+          ? null
+          : () => showDialog<void>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(l10n.playerPieceDetailTitle),
+                content: Text(
+                  l10n.playerPieceDetailValues(
+                    totals.placements,
+                    totals.theoretical,
+                    totals.actual,
+                    totals.percent,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.close),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
@@ -230,8 +438,10 @@ class _Legend extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 6,
         children: [
           _LegendItem(color: const Color(0xFFF2B705), label: l10n.legendAcuity),
           _LegendItem(color: const Color(0xFFD64545), label: l10n.legendFaults),
@@ -273,7 +483,12 @@ class _LegendItem extends StatelessWidget {
 class _RecordCard extends StatelessWidget {
   final PentoscopeSize size;
   final _SizeRecord record;
-  const _RecordCard({required this.size, required this.record});
+  final PlayerProfileAnalysis analysis;
+  const _RecordCard({
+    required this.size,
+    required this.record,
+    required this.analysis,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -312,17 +527,19 @@ class _RecordCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(width: 8),
-                Text(
-                  '· ${AppLocalizations.of(context).piecesCount(size.numPieces)}',
-                  style: TextStyle(color: Theme.of(context).hintColor),
-                ),
                 const Spacer(),
-                Text(
-                  countLabel,
-                  style: TextStyle(color: Theme.of(context).hintColor),
+                Flexible(
+                  child: Text(
+                    countLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Theme.of(context).hintColor),
+                  ),
                 ),
               ],
+            ),
+            Text(
+              AppLocalizations.of(context).piecesCount(size.numPieces),
+              style: TextStyle(color: Theme.of(context).hintColor),
             ),
             const SizedBox(height: 10),
             Row(
@@ -342,17 +559,72 @@ class _RecordCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (analysis.attempts > 0) ...[
+              const Divider(height: 24),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _AttemptValue(
+                    icon: Icons.flag_outlined,
+                    label: AppLocalizations.of(context).playerAttemptsCompleted(
+                      analysis.completed,
+                      analysis.attempts,
+                    ),
+                  ),
+                  if (analysis.firstPlacements > 0)
+                    _AttemptValue(
+                      icon: Icons.grid_view_outlined,
+                      label: AppLocalizations.of(context)
+                          .playerInitialPlacements(
+                            analysis.safeFirstPlacements,
+                            analysis.firstPlacements,
+                            analysis.initialAnticipationScore!,
+                          ),
+                    ),
+                  if (analysis.faultsPerAttempt != null)
+                    _AttemptValue(
+                      icon: Icons.warning_amber_outlined,
+                      label: AppLocalizations.of(context)
+                          .playerFaultsPerAttempt(
+                            NumberFormat(
+                              '0.0',
+                              Localizations.localeOf(context).toLanguageTag(),
+                            ).format(analysis.faultsPerAttempt),
+                          ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+}
 
-  static String _mmss(int seconds) {
-    final mm = (seconds ~/ 60).toString().padLeft(2, '0');
-    final ss = (seconds % 60).toString().padLeft(2, '0');
-    return '$mm:$ss';
-  }
+class _AttemptValue extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _AttemptValue({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).hintColor),
+        const SizedBox(width: 5),
+        Expanded(child: Text(label)),
+      ],
+    ),
+  );
+}
+
+String _mmss(int seconds) {
+  final mm = (seconds ~/ 60).toString().padLeft(2, '0');
+  final ss = (seconds % 60).toString().padLeft(2, '0');
+  return '$mm:$ss';
 }
 
 class _MaillotValue extends StatelessWidget {

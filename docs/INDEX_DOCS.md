@@ -1,7 +1,8 @@
 # Index de la documentation
 
-> Actualisé le 2026-09-29 : ajout d'une colonne **Dernière révision**, référencement de
-> `CLICLOUD.md`, `ENV_CLOUD.md` et `arch-pentapol-claude.md` ; passe d'audit du référencement.
+> Actualisé le 2026-09-30 : ajout d'une colonne **Dernière révision**, référencement de
+> `CLICLOUD.md`, `ENV_CLOUD.md` et `arch-pentapol-claude.md` ; ajout de la spécification du bilan
+> personnel et passe d'audit du référencement.
 > L'état courant et les passations sont dans [JOURNAL.md](JOURNAL.md).
 > Cet index oriente la lecture ; il ne certifie pas un nouvel audit complet de chaque document.
 
@@ -27,7 +28,7 @@
 
 | Document | Dernière révision | Usage / état |
 |---|---|---|
-| [Accueil](ACCUEIL_GUIDE.md) | 2026-09-23 | Menu responsive avec démo 5×5 ; Training explicite en cycle, niveau 1 à une pièce puis niveau 2 à deux pièces voisines |
+| [Accueil](ACCUEIL_GUIDE.md) | 2026-10-02 | Menu responsive, Training en cycle et choix des niveaux Solo débloqués |
 | [Barème Géométrie](BAREME_GEOMETRIE.md) | 2026-09-22 | Réglage, formule, Triche, reprise et préparation de la publication |
 | [Fonctionnement](FONCTIONNEMENT.md) | 2026-09-23 | Synthèse actuelle en tête ; ancienne description détaillée explicitement historique |
 | [Plan d’ergonomie](PLAN_ERGONOMIE_ICONES.md) | 2026-09-25 | Rangée permanente et grisage livrés ; vignettes et axes des miroirs encore ouverts |
@@ -35,21 +36,23 @@
 | [Maillots et défis](MANUEL_DEFIS_ET_MAILLOTS.md) | 2026-09-22 | Règles d’acuité, fautes, temps, records et classement |
 | [Fiche App Store](FICHE_APP_STORE.md) | 2026-09-09 ⚠ | Textes destinés à la fiche de publication |
 | [Indicateurs d’observation](INDICATEURS_OBSERVATION.md) | 2026-09-09 ⚠ | Mesures et observation du jeu |
+| [Bilan personnel](SPEC_BILAN_PERSONNEL.md) | 2026-09-30 | Spécification exploratoire des aptitudes, compositions isométriques, évolutions, données et limites d’interprétation |
 
 ## Références techniques
 
 | Document | Dernière révision | Usage / état |
 |---|---|---|
-| [Base locale](BASE_LOCALE.md) | 2026-09-12 | Réglages, partie en cours et records ; vérifier le schéma dans le code avant intervention |
+| [Base locale](BASE_LOCALE.md) | 2026-10-02 | Réglages, partie en cours, records et remise à zéro locale |
 | [Localisation](I18N.md) | 2026-09-09 ⚠ | Procédure EN/FR, ARB et génération |
 | [Déplacements](MEMO_DEPLACEMENT_PIECES.md) | 2026-09-11 | Correctifs actuels en tête ; ancien algorithme de snapping conservé comme historique |
 | [Encodage des pièces](PIECES_ENCODING.md) | 2026-09-09 ⚠ | Géométrie, bits et orientations |
 | [Isométries](REFERENCE_ISOMETRIES.md) | 2026-09-11 | Coûts, chiralité et contrôles rejouables |
+| [Mémo isométries Terminale](MEMO_ISOMETRIES_TERMINALE.tex) | 2026-09-30 | Version LaTeX typographiée : puissances, exponentielle complexe, conjugaison et groupe D4 ([source Markdown](MEMO_ISOMETRIES_TERMINALE.md)) |
 | [Tirages](REFERENCE_TIRAGES.md) | 2026-09-09 ⚠ | Configurations solubles et comptes de référence |
 | [Stockage des positions](ANALYSE_STOCKAGE_POSITIONS.md) | 2026-09-22 | Fondement combinatoire ; chemins historiques à distinguer du code actuel |
 | [Services](services.md) | 2026-09-22 | Chaîne des tables de solutions ; références à l’ancien solveur à relire contre le code |
 | [Architecture (Claude)](arch-pentapol-claude.md) | 2026-09-22 | Vue « ce qui est » de `lib/` (v1.0.7+7) ; descriptive, à vérifier contre le code |
-| [Cloudflare](CLOUDFLARE_CONFIG.md) | 2026-09-24 | Configuration des services duel et défi |
+| [Cloudflare](CLOUDFLARE_CONFIG.md) | 2026-10-02 | Configuration des services duel et défi, remise à zéro D1 |
 | [Architecture du duel](DUEL_ISOM_ARCH.md) | 2026-09-09 ⚠ | Protocole et fonctionnement multijoueur |
 | [Bilan du duel](BILAN_DUEL_ISOMETRIES.md) | 2026-09-09 ⚠ | Conception et avancement daté |
 
