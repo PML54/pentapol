@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 06:39 — vérifier purge locale, conservation du profil et confirmation à l'accueil.
+// Modified: 2026-10-05 07:43 — vérifier que la purge locale efface les scores de défi en attente.
+// Historique: 2026-10-02 06:39 — vérifier purge locale, conservation du profil et confirmation à l'accueil.
 // test/reset_local_results_test.dart
 import 'dart:convert';
 
@@ -36,6 +37,21 @@ Future<AppSettings> seed(SettingsDatabase db) async {
     ],
     dailyChallengeDay: '2026-10-02',
     completedDailyChallengeSizes: const [0, 1],
+    pendingChallengeScores: const [
+      PendingChallengeScore(
+        version: 2,
+        day: '2026-10-02',
+        size: 0,
+        playerId: '0123456789abcdef0123456789abcdef',
+        pseudo: 'Paul',
+        minIso: 1,
+        isoCount: 2,
+        faults: 0,
+        timeMs: 10000,
+        moves: 4,
+        grid: '1,1,1,1,1',
+      ),
+    ],
   );
   await db.setSetting('app_settings', jsonEncode(settings.toJson()));
   await db.setSetting('other', 'preserved');
@@ -103,6 +119,7 @@ void main() {
               duel: original.duel.resetStats(),
               clearDailyChallengeDay: true,
               completedDailyChallengeSizes: const [],
+              pendingChallengeScores: const [],
             )
             .toJson(),
       );

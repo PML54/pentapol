@@ -408,6 +408,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewRanking => 'View ranking';
 
   @override
+  String get challengeScorePending => 'Result waiting for the network.';
+
+  @override
+  String get challengeScorePendingDetail =>
+      'Pentapol will send it automatically when the connection returns.';
+
+  @override
   String get perfectVision => 'Perfect vision';
 
   @override
@@ -922,7 +929,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpDescRotate => 'Rotates the selected piece (normal mode).';
 
   @override
-  String get helpDescRemove => 'Removes the selected piece from the board.';
+  String get helpDescRemove =>
+      'Select a piece on the board, then tap the trash icon to return it to the tray.';
 
   @override
   String get helpDescUndo => 'Undoes the last piece placement.';
@@ -958,8 +966,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpLampRedLabel => 'Red lamp';
 
   @override
+  String get helpPlayTitle => 'Playing Pentapol';
+
+  @override
+  String get helpPlaySteps =>
+      '1. Browse your pieces\nSwipe the tray to see the available pieces.\n\n2. Select a piece\nTap the piece you want to play.\n\n3. Orient it\nUse the four icons to rotate or flip the piece into the orientation you want.\n\n4. Place it on the board\nPress the piece, keep your finger on it and drag it onto the board. Release your finger at the chosen position.\n\n5. Adjust a placed piece\nTap it to select it. Use the four icons to change its orientation, or drag it to another position. It must stay inside the board without overlapping another piece.';
+
+  @override
+  String get helpPlayGoal =>
+      'The goal: fill the entire board with all your pieces.';
+
+  @override
   String get helpDescLampAmber =>
-      'The board still has at least one solution. Tapping the yellow lamp gives a hint: a correct piece is placed automatically.';
+      'You can continue: at least one solution remains. If you want help, tap the lamp: it places a piece correctly for you. This tap counts as Cheating.';
 
   @override
   String get helpDescLampRed =>

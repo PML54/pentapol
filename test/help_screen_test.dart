@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 07:24 — vérifier que l'Aide ne contient plus la présentation du développeur.
+// Modified: 2026-10-02 09:20 — vérifier le guide de manipulation en français et en anglais.
+// Historique: 2026-10-02 07:24 — vérifier que l'Aide ne contient plus la présentation du développeur.
 // Historique: 2026-09-29 05:50 — vérifier la présentation du développeur avant les icônes.
 // Historique: 2026-09-25 15:10 — vérifier les 10 lignes utiles après le second nettoyage.
 // Historique: 2026-09-25 15:06 — vérifier les 13 lignes utiles et l'absence des commandes retirées.
@@ -31,6 +32,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Paul Marie Larivière'), findsNothing);
+      expect(
+        find.text(lang == 'fr' ? 'Jouer à Pentapol' : 'Playing Pentapol'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(lang == 'fr' ? '5. Ajuste' : '5. Adjust'),
+        findsOneWidget,
+      );
       expect(
         find.text(lang == 'fr' ? 'Icônes du jeu' : 'Game icons'),
         findsOneWidget,

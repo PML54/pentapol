@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 07:17 — afficher toutes les durées en minutes et secondes, avec ou sans aide.
+// Modified: 2026-10-05 07:43 — afficher un score de défi en attente de renvoi réseau.
+// Historique: 2026-10-02 07:17 — afficher toutes les durées en minutes et secondes, avec ou sans aide.
 // Historique: 2026-10-02 07:15 — masquer Acuité avec Triche et afficher le temps en secondes.
 // Historique: 2026-10-02 07:09 — afficher Acuité en pourcentage inférieur, sans Résolu ni étoiles.
 // Historique: 2026-10-02 07:03 — afficher Triche en pourcentage arrondi au supérieur.
@@ -187,6 +188,7 @@ import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
 import 'package:pentapol/pentoscope/score_rules.dart';
+import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/fault_analysis.dart';
 import 'package:pentapol/pentoscope/home/guided_scrolling_message.dart';
@@ -1208,6 +1210,15 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final canNext = canOfferNextSoloLevel(state);
     // Défi : proposer de voir le classement (on vient d'y soumettre son score).
     final challenge = state.isRanked ? notifier.activeChallenge : null;
+    final settings = ref.watch(settingsProvider);
+    final challengeScorePending =
+        challenge != null &&
+        settings.pendingChallengeScores.any(
+          (score) =>
+              score.version == kChallengeVersion &&
+              score.day == challenge.day &&
+              score.size == challenge.size.index,
+        );
     return Center(
       child: Transform.translate(
         offset: _bilanOffset,
@@ -1219,6 +1230,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 .computeCompletionMetrics(), // trois maillots (CDC §4.5)
             hintCount: state.hintCount,
             pieceCount: state.puzzle?.pieceIds.length ?? 0,
+            challengeScorePending: challengeScorePending,
             onLeaderboard: challenge == null
                 ? null
                 : () => openLeaderboardWithConsent(
@@ -1967,6 +1979,7 @@ class _BilanCard extends StatefulWidget {
   /// Aides utilisées : si > 0, la partie n'est pas « propre » (hors record, §4.8).
   final int hintCount;
   final int pieceCount;
+  final bool challengeScorePending;
 
   /// Défi : ouvrir le classement (on vient d'y soumettre son score). null hors défi.
   final VoidCallback? onLeaderboard;
@@ -1981,6 +1994,7 @@ class _BilanCard extends StatefulWidget {
     required this.metrics,
     required this.hintCount,
     required this.pieceCount,
+    required this.challengeScorePending,
     this.onLeaderboard,
     required this.onClose,
     required this.onNewGame,
@@ -2043,6 +2057,14 @@ class _BilanCardState extends State<_BilanCard> {
         ),
         if (assisted) Text(l10n.geometryAssisted),
         if (geometry?.experimental == true) Text(l10n.geometryExperimental),
+        if (widget.challengeScorePending)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '${l10n.challengeScorePending}\n${l10n.challengeScorePendingDetail}',
+              textAlign: TextAlign.center,
+            ),
+          ),
       ]);
     }
 

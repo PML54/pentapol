@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 06:39 — remettre les résultats locaux à zéro en conservant identité et réglages.
+// Modified: 2026-10-05 07:43 — file locale et reprise automatique des scores de défi non envoyés.
+// Historique: 2026-10-02 06:39 — remettre les résultats locaux à zéro en conservant identité et réglages.
 // Historique: 2026-09-30 07:10 — persister vingt tentatives par taille pour le bilan personnel.
 // Historique: 2026-09-29 06:10 — agréger et sauvegarder l'acuité par pentomino.
 // Historique: 2026-09-23 05:13 — persister le prototype de pièces illustrées 6×10.
@@ -37,6 +38,7 @@
 
 import 'package:pentapol/pentoscope/geometry_score.dart';
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -72,6 +74,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
   static const String _storageKey = 'app_settings';
   late SettingsDatabase _db;
   Future<void>? _loadFuture;
+  bool _retryingChallengeScores = false;
 
   @override
   AppSettings build() {
@@ -128,6 +131,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
     if (state.shareScoresOptIn == value) return;
     state = state.copyWith(shareScoresOptIn: value);
     await _saveSettings();
+    if (value) {
+      unawaited(retryPendingChallengeScores());
+    }
   }
 
   /// Marque que l'opt-in a été **proposé** automatiquement à la fin d'un défi (garde la proposition
@@ -174,8 +180,61 @@ class SettingsNotifier extends Notifier<AppSettings> {
     if (id != null && id.length == 32) {
       await ChallengeApi().deleteMyScores(playerId: id);
     }
-    state = state.copyWith(clearPlayerId: true, shareScoresOptIn: false);
+    state = state.copyWith(
+      clearPlayerId: true,
+      shareScoresOptIn: false,
+      pendingChallengeScores: const [],
+    );
     await _saveSettings();
+  }
+
+  Future<void> enqueuePendingChallengeScore(PendingChallengeScore score) async {
+    await ensureLoaded();
+    final scores = [
+      for (final existing in state.pendingChallengeScores)
+        if (existing.key != score.key) existing,
+      score,
+    ];
+    state = state.copyWith(pendingChallengeScores: scores);
+    await _saveSettings();
+  }
+
+  Future<void> retryPendingChallengeScores() async {
+    if (_retryingChallengeScores) return;
+    _retryingChallengeScores = true;
+    try {
+      await ensureLoaded();
+      if (!state.shareScoresOptIn || state.pendingChallengeScores.isEmpty) {
+        return;
+      }
+      var remaining = List<PendingChallengeScore>.from(
+        state.pendingChallengeScores,
+      );
+      for (final score in state.pendingChallengeScores) {
+        final sent = await ChallengeApi().submitScore(
+          version: score.version,
+          day: score.day,
+          size: score.size,
+          playerId: score.playerId,
+          pseudo: score.pseudo,
+          minIso: score.minIso,
+          isoCount: score.isoCount,
+          faults: score.faults,
+          timeMs: score.timeMs,
+          moves: score.moves,
+          grid: score.grid,
+        );
+        if (!sent) break;
+        remaining = [
+          for (final pending in remaining)
+            if (pending.key != score.key) pending,
+        ];
+        state = state.copyWith(pendingChallengeScores: remaining);
+        await _saveSettings();
+      }
+    } finally {
+      _retryingChallengeScores = false;
+    }
   }
 
   /// Langue de l'interface : `null` = suit la locale de l'appareil, `'en'`/`'fr'` = forcé.
@@ -264,6 +323,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
       duel: state.duel.resetStats(),
       clearDailyChallengeDay: true,
       completedDailyChallengeSizes: const [],
+      pendingChallengeScores: const [],
     );
     await _db.resetLocalResults(jsonEncode(next.toJson()));
     state = next;
@@ -450,6 +510,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
       if (jsonString != null) {
         final json = jsonDecode(jsonString) as Map<String, dynamic>;
         state = AppSettings.fromJson(json);
+        if (state.shareScoresOptIn && state.pendingChallengeScores.isNotEmpty) {
+          unawaited(retryPendingChallengeScores());
+        }
       }
     } catch (e) {
       debugPrint('Erreur lors du chargement des paramètres: $e');

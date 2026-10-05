@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 07:22 — exclure les réussites aidées des résultats et de l'historique locaux.
+// Modified: 2026-10-05 07:43 — mettre en file les scores de défi si le réseau refuse l'envoi.
+// Historique: 2026-10-02 07:22 — exclure les réussites aidées des résultats et de l'historique locaux.
 // Historique: 2026-10-02 06:42 — vider la partie en mémoire après la purge locale des résultats.
 // Historique: 2026-09-30 07:10 — historiser les tentatives Solo et qualifier leur premier placement.
 // Historique: 2026-09-29 06:10 — compter, reprendre et agréger les isométries par pentomino.
@@ -1472,7 +1473,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
           .read(settingsProvider.notifier)
           .ensurePlayerId();
       final pseudo = ref.read(settingsProvider).userName ?? 'Joueur';
-      await _challengeApi.submitScore(
+      final score = PendingChallengeScore(
         version: kChallengeVersion,
         day: ch.day,
         size: ch.size.index,
@@ -1485,6 +1486,24 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         moves: ch.size.numPieces + state.translationCount + state.deleteCount,
         grid: _gridString(),
       );
+      final sent = await _challengeApi.submitScore(
+        version: score.version,
+        day: score.day,
+        size: score.size,
+        playerId: score.playerId,
+        pseudo: score.pseudo,
+        minIso: score.minIso,
+        isoCount: score.isoCount,
+        faults: score.faults,
+        timeMs: score.timeMs,
+        moves: score.moves,
+        grid: score.grid,
+      );
+      if (!sent) {
+        await ref
+            .read(settingsProvider.notifier)
+            .enqueuePendingChallengeScore(score);
+      }
     } catch (e) {
       debugPrint('❌ Soumission du score de défi échouée: $e');
     }

@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 07:24 — retirer la présentation du développeur déplacée dans Paramètres.
+// Modified: 2026-10-02 09:20 — ajouter le guide de manipulation accessible depuis l'accueil.
+// Historique: 2026-10-02 07:24 — retirer la présentation du développeur déplacée dans Paramètres.
 // Historique: 2026-09-29 05:50 — placer la présentation du développeur avant l'aide des icônes.
 // Historique: 2026-09-25 15:10 — retirer rotation simple, compteur et nouvelle partie de l'aide.
 // Historique: 2026-09-25 15:06 — retirer quatre commandes obsolètes ou dupliquées de l'aide.
@@ -36,6 +37,32 @@ class HelpScreen extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.helpPlayTitle,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.helpPlaySteps,
+                    style: const TextStyle(fontSize: 16, height: 1.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.helpPlayGoal,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Text(

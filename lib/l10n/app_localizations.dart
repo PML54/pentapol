@@ -794,6 +794,18 @@ abstract class AppLocalizations {
   /// **'View ranking'**
   String get viewRanking;
 
+  /// No description provided for @challengeScorePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Result waiting for the network.'**
+  String get challengeScorePending;
+
+  /// No description provided for @challengeScorePendingDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Pentapol will send it automatically when the connection returns.'**
+  String get challengeScorePendingDetail;
+
   /// No description provided for @perfectVision.
   ///
   /// In en, this message translates to:
@@ -1660,7 +1672,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpDescRemove.
   ///
   /// In en, this message translates to:
-  /// **'Removes the selected piece from the board.'**
+  /// **'Select a piece on the board, then tap the trash icon to return it to the tray.'**
   String get helpDescRemove;
 
   /// No description provided for @helpDescUndo.
@@ -1723,10 +1735,28 @@ abstract class AppLocalizations {
   /// **'Red lamp'**
   String get helpLampRedLabel;
 
+  /// No description provided for @helpPlayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing Pentapol'**
+  String get helpPlayTitle;
+
+  /// No description provided for @helpPlaySteps.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Browse your pieces\nSwipe the tray to see the available pieces.\n\n2. Select a piece\nTap the piece you want to play.\n\n3. Orient it\nUse the four icons to rotate or flip the piece into the orientation you want.\n\n4. Place it on the board\nPress the piece, keep your finger on it and drag it onto the board. Release your finger at the chosen position.\n\n5. Adjust a placed piece\nTap it to select it. Use the four icons to change its orientation, or drag it to another position. It must stay inside the board without overlapping another piece.'**
+  String get helpPlaySteps;
+
+  /// No description provided for @helpPlayGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'The goal: fill the entire board with all your pieces.'**
+  String get helpPlayGoal;
+
   /// No description provided for @helpDescLampAmber.
   ///
   /// In en, this message translates to:
-  /// **'The board still has at least one solution. Tapping the yellow lamp gives a hint: a correct piece is placed automatically.'**
+  /// **'You can continue: at least one solution remains. If you want help, tap the lamp: it places a piece correctly for you. This tap counts as Cheating.'**
   String get helpDescLampAmber;
 
   /// No description provided for @helpDescLampRed.

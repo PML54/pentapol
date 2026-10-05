@@ -1,4 +1,5 @@
-// Modified: 2026-09-09 05:29 — centralisation score : LeaderboardEntry.acuityPercent délègue à
+// Modified: 2026-10-05 07:43 — traiter 409 comme soumission déjà présente pour vider les renvois.
+// Historique: 2026-09-09 05:29 — centralisation score : LeaderboardEntry.acuityPercent délègue à
 //           score_rules.acuityPercent (formule plafonnée unique) au lieu de la recopier.
 // Historique: 2026-09-07 07:17 — conformité défi V1 : deleteMyScores (DELETE /score?playerId=…) — efface
 //           toutes les lignes du joueur pour la suppression RGPD (§7.4). Échec silencieux comme le reste.
@@ -74,8 +75,8 @@ class ChallengeApi {
   ChallengeApi({this.baseUrl = kChallengeBaseUrl, http.Client? client})
     : _client = client ?? http.Client();
 
-  /// Envoie le score d'un défi terminé. `true` si accepté (201). Un `409` (déjà soumis) ou une
-  /// panne renvoient `false` sans lever d'exception. `timeout` court pour ne pas figer le bilan.
+  /// Envoie le score d'un défi terminé. `true` si accepté (201) ou déjà présent (409). Une panne
+  /// renvoie `false` sans lever d'exception. `timeout` court pour ne pas figer le bilan.
   Future<bool> submitScore({
     required int version,
     required String day,
@@ -109,7 +110,7 @@ class ChallengeApi {
             }),
           )
           .timeout(const Duration(seconds: 6));
-      return resp.statusCode == 201;
+      return resp.statusCode == 201 || resp.statusCode == 409;
     } catch (e) {
       debugPrint('❌ submitScore échoué: $e');
       return false;

@@ -412,6 +412,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewRanking => 'Voir le classement';
 
   @override
+  String get challengeScorePending => 'Résultat en attente de réseau.';
+
+  @override
+  String get challengeScorePendingDetail =>
+      'Pentapol le renverra automatiquement quand la connexion reviendra.';
+
+  @override
   String get perfectVision => 'Vision parfaite';
 
   @override
@@ -930,7 +937,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Fait pivoter la pièce sélectionnée (mode normal).';
 
   @override
-  String get helpDescRemove => 'Retire du plateau la pièce sélectionnée.';
+  String get helpDescRemove =>
+      'Sélectionne une pièce sur le plateau, puis touche la poubelle pour la remettre dans le tiroir.';
 
   @override
   String get helpDescUndo => 'Annule le dernier placement de pièce.';
@@ -968,8 +976,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get helpLampRedLabel => 'Lampe rouge';
 
   @override
+  String get helpPlayTitle => 'Jouer à Pentapol';
+
+  @override
+  String get helpPlaySteps =>
+      '1. Parcours tes pièces\nFais glisser le tiroir pour voir les pièces disponibles.\n\n2. Sélectionne une pièce\nTouche la pièce que tu veux jouer.\n\n3. Oriente-la\nUtilise les quatre icônes pour faire pivoter la pièce ou la retourner dans la position souhaitée.\n\n4. Pose-la sur le plateau\nAppuie sur la pièce, garde le doigt dessus et fais-la glisser vers le plateau. Relâche le doigt à l\'endroit choisi.\n\n5. Ajuste une pièce déjà posée\nTouche-la pour la sélectionner. Utilise les quatre icônes pour changer son orientation, ou fais-la glisser vers un autre emplacement. Elle doit rester dans le plateau sans recouvrir une autre pièce.';
+
+  @override
+  String get helpPlayGoal =>
+      'Le but : remplir entièrement le plateau avec toutes tes pièces.';
+
+  @override
   String get helpDescLampAmber =>
-      'Le plateau a encore au moins une solution. Appuyer sur la lampe jaune donne un indice : une pièce correcte est posée automatiquement.';
+      'Tu peux continuer : il reste au moins une solution. Si tu souhaites de l\'aide, touche la lampe : elle pose automatiquement une pièce à la bonne place. Cet appui compte comme de la Triche.';
 
   @override
   String get helpDescLampRed =>

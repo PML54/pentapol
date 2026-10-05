@@ -1,4 +1,5 @@
-// Modified: 2026-09-30 07:27 — exprimer l'acuité par pièce en pourcentage tronqué.
+// Modified: 2026-10-05 07:43 — persister les scores de défi en attente de renvoi réseau.
+// Historique: 2026-09-30 07:27 — exprimer l'acuité par pièce en pourcentage tronqué.
 // Historique: 2026-09-30 07:10 — conserver un historique borné des tentatives du bilan personnel.
 // Historique: 2026-09-29 07:49 — exprimer l'acuité par pentomino en note entière sur 1000.
 // Historique: 2026-09-29 06:10 — persister les cumuls d'acuité par pentomino dans AppSettings.
@@ -701,6 +702,7 @@ class AppSettings {
   /// Progression du defi quotidien. La date UTC rend la remise a zero deterministe.
   final String? dailyChallengeDay;
   final List<int> completedDailyChallengeSizes;
+  final List<PendingChallengeScore> pendingChallengeScores;
 
   const AppSettings({
     this.ui = const UISettings(),
@@ -716,6 +718,7 @@ class AppSettings {
     this.challengeConsentAsked = false,
     this.dailyChallengeDay,
     this.completedDailyChallengeSizes = const [],
+    this.pendingChallengeScores = const [],
   });
 
   AppSettings copyWith({
@@ -736,6 +739,7 @@ class AppSettings {
     String? dailyChallengeDay,
     bool clearDailyChallengeDay = false,
     List<int>? completedDailyChallengeSizes,
+    List<PendingChallengeScore>? pendingChallengeScores,
   }) {
     return AppSettings(
       ui: ui ?? this.ui,
@@ -755,6 +759,8 @@ class AppSettings {
           : (dailyChallengeDay ?? this.dailyChallengeDay),
       completedDailyChallengeSizes:
           completedDailyChallengeSizes ?? this.completedDailyChallengeSizes,
+      pendingChallengeScores:
+          pendingChallengeScores ?? this.pendingChallengeScores,
     );
   }
 
@@ -777,6 +783,9 @@ class AppSettings {
       'challengeConsentAsked': challengeConsentAsked,
       'dailyChallengeDay': dailyChallengeDay,
       'completedDailyChallengeSizes': completedDailyChallengeSizes,
+      'pendingChallengeScores': pendingChallengeScores
+          .map((score) => score.toJson())
+          .toList(),
     };
   }
 
@@ -810,6 +819,71 @@ class AppSettings {
           (json['completedDailyChallengeSizes'] as List? ?? const [])
               .map((value) => (value as num).toInt())
               .toList(),
+      pendingChallengeScores:
+          (json['pendingChallengeScores'] as List? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .map(PendingChallengeScore.fromJson)
+              .toList(),
+    );
+  }
+}
+
+class PendingChallengeScore {
+  final int version;
+  final String day;
+  final int size;
+  final String playerId;
+  final String pseudo;
+  final int minIso;
+  final int isoCount;
+  final int faults;
+  final int timeMs;
+  final int moves;
+  final String grid;
+
+  const PendingChallengeScore({
+    required this.version,
+    required this.day,
+    required this.size,
+    required this.playerId,
+    required this.pseudo,
+    required this.minIso,
+    required this.isoCount,
+    required this.faults,
+    required this.timeMs,
+    required this.moves,
+    required this.grid,
+  });
+
+  String get key => '$version/$day/$size/$playerId';
+
+  Map<String, dynamic> toJson() => {
+    'version': version,
+    'day': day,
+    'size': size,
+    'playerId': playerId,
+    'pseudo': pseudo,
+    'minIso': minIso,
+    'isoCount': isoCount,
+    'faults': faults,
+    'timeMs': timeMs,
+    'moves': moves,
+    'grid': grid,
+  };
+
+  factory PendingChallengeScore.fromJson(Map<String, dynamic> json) {
+    return PendingChallengeScore(
+      version: (json['version'] as num?)?.toInt() ?? 0,
+      day: json['day'] as String? ?? '',
+      size: (json['size'] as num?)?.toInt() ?? 0,
+      playerId: json['playerId'] as String? ?? '',
+      pseudo: json['pseudo'] as String? ?? '',
+      minIso: (json['minIso'] as num?)?.toInt() ?? 0,
+      isoCount: (json['isoCount'] as num?)?.toInt() ?? 0,
+      faults: (json['faults'] as num?)?.toInt() ?? 0,
+      timeMs: (json['timeMs'] as num?)?.toInt() ?? 0,
+      moves: (json['moves'] as num?)?.toInt() ?? 0,
+      grid: json['grid'] as String? ?? '',
     );
   }
 }

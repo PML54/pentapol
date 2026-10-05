@@ -13,7 +13,45 @@
 
 ---
 
+## §ÉTAT — au 2026-10-05
+
+### Tiroir — désélection au défilement (2026-10-05, CLI)
+
+Un défilement utilisateur du tiroir annule la sélection d'une pièce du tiroir.
+La sélection d'une pièce posée sur le plateau est conservée.
+
+Validation globale avant commit : les 255 tests Flutter passent ; `flutter analyze`
+ne relève aucune erreur ni aucun avertissement (114 diagnostics informatifs).
+
+### Point à voir ultérieurement — reprise réseau automatique, sans urgence
+
+Paul accepte le fonctionnement actuel (2026-10-05) : les scores de défi en attente sont
+conservés localement et leur envoi est retenté au chargement des réglages ou à la réactivation
+du partage des scores. Le retour de la connexion pendant que l'app reste ouverte ne déclenche
+pas encore de renvoi. Ajouter ultérieurement ce déclencheur automatique ; amélioration sans
+urgence, aucune modification de code demandée pour ce point maintenant.
+
+### Défi — renvoi des scores après perte réseau (2026-10-05, CLI)
+
+Un score de défi terminé n'est plus perdu si le POST Cloudflare échoue. Avec l'opt-in actif,
+l'app conserve localement une entrée `PendingChallengeScore` dans le JSON `AppSettings`, identifiée
+par `(version, jour, taille, playerId)`, puis tente de la renvoyer au chargement des réglages et
+quand le classement est réactivé. Le serveur reste source d'idempotence : un `201` ou un `409`
+vide l'entrée locale. La remise à zéro locale supprime aussi cette file pour éviter de publier plus
+tard un résultat que le joueur vient d'effacer localement. Sans opt-in, le comportement reste
+inchangé : aucun `playerId` n'est généré et rien n'est envoyé.
+
+Validation : `flutter test test/player_profile_analysis_test.dart test/reset_local_results_test.dart`
+réussit. `flutter analyze` ne signale pas d'erreur de compilation ; il remonte 114 diagnostics
+informatifs existants.
+
 ## §ÉTAT — au 2026-10-02
+
+### Guide de manipulation depuis l'accueil (2026-10-02, CLI)
+
+L'icône Aide (?) du header ouvre désormais un guide FR/EN en cinq étapes : parcourir le tiroir,
+sélectionner, orienter, poser et ajuster une pièce. Les explications des deux lampes et de la
+poubelle suivent dans le même écran. La lampe jaune indique explicitement son effet sur la Triche.
 
 ### Validation avant commit (2026-10-02, CLI)
 
@@ -1604,6 +1642,22 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-05 — CLI : défilement du tiroir et préparation du commit.**
+Le défilement utilisateur désélectionne la pièce du tiroir. Commit et push demandés par Paul,
+avec le guide d'aide et la conservation des scores de défi en attente déjà présents.
+
+**2026-10-05 — CLI : reprise réseau automatique reportée, sans urgence.**
+Paul valide le fonctionnement actuel de la file des scores de défi. Le renvoi automatique
+au retour de la connexion, app ouverte, est inscrit en §ÉTAT comme amélioration ultérieure.
+
+**2026-10-05 (55) — CLI : scores de défi repris après perte réseau.**
+File JSON locale pour les soumissions échouées, renvoi automatique au chargement/opt-in, `409`
+considéré comme déjà enregistré. Tests ciblés verts ; analyse globale sans erreur de compilation
+(114 diagnostics informatifs).
+
+**2026-10-02 (54) — CLI : guide de manipulation accessible par l'icône Aide de l'accueil.**
+Cinq étapes localisées FR/EN, lampes et poubelle dans le même écran.
 
 **2026-10-02 (53) — CLI : validation et livraison des changements en attente.**
 254 tests réussis ; analyse sans erreur ni avertissement. Journal inclus dans le commit demandé.

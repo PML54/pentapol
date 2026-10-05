@@ -1,4 +1,5 @@
-// Modified: 2026-09-30 07:10 — vérifier analyses, persistance et historique borné des tentatives.
+// Modified: 2026-10-05 07:43 — vérifier la persistance JSON des scores de défi en attente.
+// Historique: 2026-09-30 07:10 — vérifier analyses, persistance et historique borné des tentatives.
 // test/player_profile_analysis_test.dart
 
 import 'package:drift/native.dart';
@@ -92,6 +93,27 @@ void main() {
     expect(restored.attemptHistory.single.completed, isFalse);
     expect(restored.attemptHistory.single.faults, 2);
     expect(restored.attemptHistory.single.firstPieceId, 2);
+  });
+
+  test('scores de défi en attente survivent au JSON AppSettings', () {
+    const score = PendingChallengeScore(
+      version: 2,
+      day: '2026-10-05',
+      size: 3,
+      playerId: '0123456789abcdef0123456789abcdef',
+      pseudo: 'Paul',
+      minIso: 4,
+      isoCount: 5,
+      faults: 1,
+      timeMs: 123000,
+      moves: 8,
+      grid: '1,1,1,1,1',
+    );
+    const settings = AppSettings(pendingChallengeScores: [score]);
+    final restored = AppSettings.fromJson(settings.toJson());
+
+    expect(restored.pendingChallengeScores, hasLength(1));
+    expect(restored.pendingChallengeScores.single.toJson(), score.toJson());
   });
 
   test(

@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
+// Modified: 2026-10-05 19:46 — désélectionner la pièce du tiroir quand le tiroir défile.
+// Historique: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
 // Historique: 2026-09-23 05:32 — employer la solution-image propre à la partie.
 // Historique: 2026-09-23 05:13 — afficher les fragments illustrés dans le tiroir 6×10.
 // Historique: 2026-09-22 16:31 — afficher la pièce hors plateau pour supprimer la zone aveugle au-dessus du tiroir.
@@ -77,6 +78,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
 
   /// Fraction de la longueur du rack occupée par chaque fondu.
   static const double _kFadeFraction = 0.08;
+  bool _selectionCanceledForCurrentScroll = false;
 
   void _updateFades() {
     if (!_scrollController.hasClients) return;
@@ -159,7 +161,24 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     // transparent = effacé). Le feedback de drag est rendu dans un Overlay, hors de ce sous-arbre :
     // la pièce glissée n'est pas affectée par le fondu.
     return NotificationListener<ScrollNotification>(
-      onNotification: (_) {
+      onNotification: (notification) {
+        if (notification is ScrollStartNotification &&
+            notification.dragDetails != null) {
+          _selectionCanceledForCurrentScroll = false;
+        }
+        if (notification is ScrollUpdateNotification &&
+            notification.dragDetails != null &&
+            !_selectionCanceledForCurrentScroll) {
+          final selection = ref.read(pentoscopeProvider);
+          if (selection.selectedPiece != null &&
+              selection.selectedPlacedPiece == null) {
+            ref.read(pentoscopeProvider.notifier).cancelSelection();
+          }
+          _selectionCanceledForCurrentScroll = true;
+        }
+        if (notification is ScrollEndNotification) {
+          _selectionCanceledForCurrentScroll = false;
+        }
         _updateFades();
         return false;
       },
