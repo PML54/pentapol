@@ -1,4 +1,5 @@
-// Modified: 2026-10-05 19:46 — désélectionner la pièce du tiroir quand le tiroir défile.
+// Modified: 2026-10-05 20:02 — compter les relâchements refusés comme tentatives de pose.
+// Historique: 2026-10-05 19:46 — désélectionner la pièce du tiroir quand le tiroir défile.
 // Historique: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
 // Historique: 2026-09-23 05:32 — employer la solution-image propre à la partie.
 // Historique: 2026-09-23 05:13 — afficher les fragments illustrés dans le tiroir 6×10.
@@ -365,6 +366,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             },
             onCycle: () {},
             onCancel: () {
+              notifier.recordRejectedDrop();
               if (settings.game.enableHaptics) {
                 HapticFeedback.lightImpact();
               }

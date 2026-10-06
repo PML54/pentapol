@@ -1,4 +1,7 @@
-// Modified: 2026-10-05 07:43 — traiter 409 comme soumission déjà présente pour vider les renvois.
+// Modified: 2026-10-06 04:48 — transmettre la règle du minimum propre à la solution finale.
+// Historique: 2026-10-06 04:16 — partager le client des classements et renvois via Riverpod.
+// Historique: 2026-10-05 20:00 — deux classements Temps et Stratégie et score actions distinct des anciens coups.
+// Historique: 2026-10-05 07:43 — traiter 409 comme soumission déjà présente pour vider les renvois.
 // Historique: 2026-09-09 05:29 — centralisation score : LeaderboardEntry.acuityPercent délègue à
 //           score_rules.acuityPercent (formule plafonnée unique) au lieu de la recopier.
 // Historique: 2026-09-07 07:17 — conformité défi V1 : deleteMyScores (DELETE /score?playerId=…) — efface
@@ -13,6 +16,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
@@ -21,13 +25,16 @@ import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 /// URL du worker de classement (déployé par Paul). Distinct du worker duel (WebSocket).
 const String kChallengeBaseUrl = 'https://pentapol-defi.pentapml.workers.dev';
 
-/// Les trois maillots, tels que l'API les nomme (paramètre `maillot`).
-enum Maillot { temps, acuite, coups }
+final challengeApiProvider = Provider<ChallengeApi>((ref) => ChallengeApi());
+
+/// Les deux maillots, tels que l'API les nomme (paramètre `maillot`).
+enum Maillot { temps, strategie }
 
 enum LeaderboardPeriod { day, week, month }
 
 /// Une ligne de classement renvoyée par `GET /leaderboard`.
 class LeaderboardEntry {
+  final int? theoreticalMoves;
   final String playerId;
   final String pseudo;
   final int minIso;
@@ -35,10 +42,12 @@ class LeaderboardEntry {
   final int faults;
   final int timeMs;
   final int moves;
+  final int? strategyActions;
   final double points;
   final int days;
 
   const LeaderboardEntry({
+    this.theoreticalMoves,
     required this.playerId,
     required this.pseudo,
     required this.minIso,
@@ -46,6 +55,7 @@ class LeaderboardEntry {
     required this.faults,
     required this.timeMs,
     required this.moves,
+    this.strategyActions,
     this.points = 0,
     this.days = 0,
   });
@@ -61,6 +71,8 @@ class LeaderboardEntry {
     faults: (j['faults'] as num?)?.toInt() ?? 0,
     timeMs: (j['time_ms'] as num?)?.toInt() ?? 0,
     moves: (j['moves'] as num?)?.toInt() ?? 0,
+    strategyActions: (j['strategy_actions'] as num?)?.toInt(),
+    theoreticalMoves: (j['theoretical_moves'] as num?)?.toInt(),
     points: (j['points'] as num?)?.toDouble() ?? 0,
     days: (j['days'] as num?)?.toInt() ?? 0,
   );
@@ -88,6 +100,10 @@ class ChallengeApi {
     required int faults,
     required int timeMs,
     required int moves,
+    int? strategyActions,
+    Map<String, int>? actionCounts,
+    int? theoreticalMoves,
+    bool finalSolutionMinimum = false,
     required String grid,
   }) async {
     try {
@@ -106,6 +122,10 @@ class ChallengeApi {
               'faults': faults,
               'timeMs': timeMs,
               'moves': moves,
+              'strategyActions': strategyActions,
+              'actionCounts': actionCounts,
+              'theoreticalMoves': theoreticalMoves,
+              'finalSolutionMinimum': finalSolutionMinimum,
               'grid': grid,
             }),
           )

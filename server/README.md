@@ -4,18 +4,17 @@ Worker Cloudflare + base D1 pour le **classement du défi quotidien**. Asynchron
 **POST d'un score**, **GET d'un tableau**. Rien à voir avec le worker duel (WebSocket + Durable
 Objects) ; ici aucun Durable Object.
 
-> ⚠️ **Écrit par le CLI, à déployer par Paul.** Le CLI n'a pas accès au compte Cloudflare et ne
-> peut ni déployer ni tester ce service. Les étapes ci-dessous sont à exécuter par toi.
+> Base recréée et worker déployé par le CLI le 2026-10-05, à la demande de Paul.
 
 ## Vérification — modèle de confiance (décision Paul, 2026-09-04)
 
-L'app **mesure** les trois valeurs (acuité plafonnée, fautes, temps) localement ; le joueur ne saisit
+L'app **mesure** le temps et les cinq compteurs d'actions localement ; le joueur ne saisit
 rien → il ne peut pas tricher via le jeu. Le seul vecteur résiduel est un **POST forgé** hors de
 l'app (`curl` sur l'endpoint public) ; jugé négligeable pour une app payante à petite population.
-**Le serveur ne recalcule donc pas `minIso`** (on évite le portage en JS de la géométrie + du BFS
-d'isométries). Il **conserve la grille** (`scores.grid`) : si un classement paraît louche, un outil
-Dart pourra recalculer *a posteriori* (« infalsifiable » → « auditable »). Durcir plus tard si la
-triche devient réelle.
+Le serveur vérifie les entiers et la cohérence du total ; SQLite calcule la somme des cinq
+compteurs. Il conserve la grille (`scores.grid`) pour vérifier le pavage hors ligne.
+La grille finale ne permet pas de reconstruire les gestes ni le temps ; ces mesures restent
+fondées sur la confiance dans l'app.
 
 ## Déploiement
 
@@ -47,10 +46,12 @@ Base URL = l'URL du worker déployé.
 - **`POST /score`** — enregistre l'essai (unique par joueur/défi, §7.1). Corps JSON :
   ```json
   { "version": 2, "day": "2026-09-24", "size": 1, "playerId": "<32 hex>", "pseudo": "Paul",
-    "minIso": 4, "isoCount": 5, "moves": 7, "faults": 2, "timeMs": 92000,
+    "timeMs": 92000, "strategyActions": 10, "theoreticalMoves": 6, "finalSolutionMinimum": true,
+    "actionCounts": { "placement": 4, "rotation": 2, "symmetry": 1, "translation": 2, "removal": 1 },
     "grid": "<ids par case>" }
   ```
   `201` si enregistré ; `409` si un essai existe déjà (premier essai seulement) ; `400` si invalide.
+  Avec aide, `strategyActions`, `actionCounts` et `theoreticalMoves` sont null : seul le temps est classé.
 
 - **`DELETE /score?playerId=<32 hex>`** — suppression RGPD (CDC §7.4) : efface **toutes** les lignes
   du joueur (toutes semaines/tailles/versions). `200 { "ok": true, "deleted": <n> }`. Non authentifié :
@@ -59,8 +60,18 @@ Base URL = l'URL du worker déployé.
   classement » des Réglages.
 
 - **`GET /leaderboard?version=&day=&size=&maillot=&limit=`** — tableau trié.
-  `maillot` vaut `temps`, `acuite` ou `coups`.
-  Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, min_iso, iso_count, moves, faults, time_ms }, ... ] }`.
+  `maillot` vaut `temps` (vert) ou `strategie` (jaune).
+  Stratégie trie `strategy_actions / theoretical_moves` croissant, puis le temps. Chaque pose (y compris la première),
+  rotation, symétrie, déplacement sur le plateau et effacement compte pour un coup ; les
+  tentatives refusées comptent aussi. Les scores sans minimum final et les parties aidées
+  ne participent qu'au classement Temps.
+  Réponse : `{ "maillot": "...", "entries": [ { player_id, pseudo, time_ms, strategy_actions, theoretical_moves, placements, rotations, symmetries, translations, removals }, ... ] }`.
+  L'app affiche `strategy_actions/theoretical_moves`, sans pourcentage. Le minimum est calculé
+  pour la solution finale obtenue, depuis les orientations initiales du tiroir : une pose par
+  pièce plus les transformations minimales. `finalSolutionMinimum: true` identifie cette règle ;
+  un minimum global envoyé par une ancienne app n'est pas utilisé pour Stratégie.
+  En semaine/mois, le ratio porte sur les sommes des coups théoriques et joués des jours retenus,
+  en excluant les résultats sans repère théorique comparable.
   Ajouter `period=week` ou `period=month` retourne les points agrégés sur les 5 ou 20 meilleurs
   jours ; `period=day` est la valeur par défaut.
 
@@ -72,6 +83,15 @@ Base URL = l'URL du worker déployé.
   si le secret est défini.
 
 ## Composition à la main & amorçage — note de sécurité
+
+En phase de développement, Paul demande le 2026-10-06 de repartir de tables vides avec
+la règle du minimum propre à la solution finale. Appliquer `schema.sql` de façon destructive,
+sans migration ni reprise historique. Cette procédure est interdite après publication.
+
+Paul autorise le 2026-10-05 la destruction de l'ancien contenu réseau.
+Appliquer `wrangler d1 execute pentapol-defi --remote --file=schema.sql`, puis déployer le worker.
+Le schéma conserve le temps et cinq compteurs de gestes. Le total Stratégie est une colonne
+calculée par SQLite, égale à leur somme. Les parties aidées ont des compteurs null.
 
 CDC §7 Acté 1 veut des défis **composables à la main** (autorité serveur), et Acté 1bis un
 **amorçage paresseux par le premier joueur**. Tension : si `POST /challenge` est **ouvert**, un POST

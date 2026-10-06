@@ -228,6 +228,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legendTime => 'Speed';
 
   @override
+  String get rankingTime => 'Time';
+
+  @override
+  String get refreshChallengeResults => 'Refresh results';
+
+  @override
+  String get rankingStrategy => 'Strategy';
+
+  @override
+  String strategyActionCount(int count) {
+    return '$count moves';
+  }
+
+  @override
+  String theoreticalMoveCount(int count) {
+    return '$count theoretical moves';
+  }
+
+  @override
+  String strategyMoveRatio(int theoretical, int played) {
+    return '$played/$theoretical';
+  }
+
+  @override
+  String get strategyPlacements => 'Placements';
+
+  @override
+  String get strategyRotations => 'Rotations';
+
+  @override
+  String get strategySymmetries => 'Reflections';
+
+  @override
+  String get strategyTranslations => 'Moves on the board';
+
+  @override
+  String get strategyRemovals => 'Removals';
+
+  @override
   String get recordsEmpty =>
       'No records yet.\nFinish a puzzle without help to set one.';
 

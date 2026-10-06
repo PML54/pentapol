@@ -1,4 +1,6 @@
-// Modified: 2026-08-31 16:39 — étape B (REFERENCE_TIRAGES §8 B) : LiveSolutionSource (solveur live)
+// Modified: 2026-10-06 04:48 — retirer le calcul du minimum global, remplacé par celui de la solution finale.
+// Historique: 2026-10-06 04:16 — minimum Stratégie calculé hors UI depuis les solutions précalculées.
+// Historique: 2026-08-31 16:39 — étape B (REFERENCE_TIRAGES §8 B) : LiveSolutionSource (solveur live)
 //           remplacée par CorpusSolutionSource — les petites tailles s'adossent désormais au corpus
 //           précalculé, comme le 6×10, via l'appariement en octets partagé (byte_matching.dart).
 //           countFrom devient non-nullable partout ; le solveur backtracking sort du chemin chaud.
@@ -19,7 +21,8 @@ import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/common/byte_matching.dart';
 import 'package:pentapol/common/plateau.dart';
-import 'package:pentapol/pentoscope/pentoscope_generator.dart' show SolutionTable;
+import 'package:pentapol/pentoscope/pentoscope_generator.dart'
+    show SolutionTable;
 import 'package:pentapol/services/solution_matcher.dart';
 
 /// Origine des réponses « solution » d'un puzzle. Un seul site le lit : `startPuzzle`.
@@ -85,18 +88,18 @@ class CorpusSolutionSource implements SolutionSource {
     required int width,
     required int height,
     Random? random,
-  })  : _width = width,
-        _height = height,
-        _cells = width * height,
-        _random = random ?? Random();
+  }) : _width = width,
+       _height = height,
+       _cells = width * height,
+       _random = random ?? Random();
 
   /// Source vide (aucune solution) — état initial avant le premier tirage.
   CorpusSolutionSource.empty()
-      : _solutions = Uint8List(0),
-        _cells = 0,
-        _width = 0,
-        _height = 0,
-        _random = Random();
+    : _solutions = Uint8List(0),
+      _cells = 0,
+      _width = 0,
+      _height = 0,
+      _random = Random();
 
   @override
   int? countFrom(Plateau plateau) =>
@@ -129,7 +132,7 @@ class TableSolutionSource implements SolutionSource {
   final Random _random;
 
   TableSolutionSource(this._matcher, this.table, {Random? random})
-      : _random = random ?? Random();
+    : _random = random ?? Random();
 
   /// `(piecesBits, maskBits)` du plateau, dans le même ordre de cases que le `.bin`
   /// (cellIndex = y·width + x, bits de poids fort en premier). Chemins froids seulement.

@@ -230,6 +230,45 @@ class AppLocalizationsFr extends AppLocalizations {
   String get legendTime => 'Rapidité';
 
   @override
+  String get rankingTime => 'Temps';
+
+  @override
+  String get refreshChallengeResults => 'Actualiser les résultats';
+
+  @override
+  String get rankingStrategy => 'Stratégie';
+
+  @override
+  String strategyActionCount(int count) {
+    return '$count coups';
+  }
+
+  @override
+  String theoreticalMoveCount(int count) {
+    return '$count coups théoriques';
+  }
+
+  @override
+  String strategyMoveRatio(int theoretical, int played) {
+    return '$played/$theoretical';
+  }
+
+  @override
+  String get strategyPlacements => 'Poses';
+
+  @override
+  String get strategyRotations => 'Rotations';
+
+  @override
+  String get strategySymmetries => 'Symétries';
+
+  @override
+  String get strategyTranslations => 'Déplacements sur le plateau';
+
+  @override
+  String get strategyRemovals => 'Effacements';
+
+  @override
   String get recordsEmpty =>
       'Aucun record pour l\'instant.\nTermine un puzzle sans aide pour en poser un.';
 

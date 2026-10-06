@@ -1,18 +1,19 @@
-// Modified: 2026-09-29 06:02 — version interne 1.0.11 et build horodaté pour les Paramètres.
+// Modified: 2026-10-06 04:23 — version interne 1.0.12 pour Actualiser et les coups théoriques des défis.
+// Historique: 2026-09-29 06:02 — version interne 1.0.11 et build horodaté pour les Paramètres.
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
-// Dernière génération : 29/09/2026 à 06:02
+// Dernière génération : 06/10/2026 à 04:24
 
 /// Informations de build de l'application
 class BuildInfo {
   /// Version de l'application (format semver)
-  static const String version = '1.0.11';
+  static const String version = '1.0.12';
 
   /// Numéro de build (format YYYYMMDDHHMM)
-  static const int buildNumber = 202609290602;
+  static const int buildNumber = 202610060424;
 
   /// Date et heure du build (ISO 8601)
-  static const String buildDate = '2026-09-29T06:02:45';
+  static const String buildDate = '2026-10-06T04:24:15';
 
   /// Date formatée pour affichage
   static String get buildDateFormatted {

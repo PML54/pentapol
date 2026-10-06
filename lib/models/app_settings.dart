@@ -1,4 +1,8 @@
-// Modified: 2026-10-05 07:43 — persister les scores de défi en attente de renvoi réseau.
+// Modified: 2026-10-06 04:52 — remettre à zéro les Défis locaux lors du changement de règle en développement.
+// Historique: 2026-10-06 04:48 — identifier le minimum de la solution finale dans les scores hors ligne.
+// Historique: 2026-10-06 04:16 — conserver les coups théoriques avec les scores hors ligne.
+// Historique: 2026-10-05 20:00 — conserver le score Stratégie dans la file des scores réseau.
+// Historique: 2026-10-05 07:43 — persister les scores de défi en attente de renvoi réseau.
 // Historique: 2026-09-30 07:27 — exprimer l'acuité par pièce en pourcentage tronqué.
 // Historique: 2026-09-30 07:10 — conserver un historique borné des tentatives du bilan personnel.
 // Historique: 2026-09-29 07:49 — exprimer l'acuité par pentomino en note entière sur 1000.
@@ -782,6 +786,7 @@ class AppSettings {
       'shareScoresOptIn': shareScoresOptIn,
       'challengeConsentAsked': challengeConsentAsked,
       'dailyChallengeDay': dailyChallengeDay,
+      'dailyChallengeScoringRevision': 2,
       'completedDailyChallengeSizes': completedDailyChallengeSizes,
       'pendingChallengeScores': pendingChallengeScores
           .map((score) => score.toJson())
@@ -790,6 +795,8 @@ class AppSettings {
   }
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
+    // Development reset: no conversion of scores from the previous scoring rule.
+    final currentChallengeRules = json['dailyChallengeScoringRevision'] == 2;
     return AppSettings(
       ui: UISettings.fromJson(json['ui'] ?? {}),
       game: GameSettings.fromJson(json['game'] ?? {}),
@@ -814,13 +821,19 @@ class AppSettings {
       localeCode: json['localeCode'] as String?,
       shareScoresOptIn: json['shareScoresOptIn'] as bool? ?? false,
       challengeConsentAsked: json['challengeConsentAsked'] as bool? ?? false,
-      dailyChallengeDay: json['dailyChallengeDay'] as String?,
+      dailyChallengeDay: currentChallengeRules
+          ? json['dailyChallengeDay'] as String?
+          : null,
       completedDailyChallengeSizes:
-          (json['completedDailyChallengeSizes'] as List? ?? const [])
+          (currentChallengeRules
+                  ? json['completedDailyChallengeSizes'] as List? ?? const []
+                  : const [])
               .map((value) => (value as num).toInt())
               .toList(),
       pendingChallengeScores:
-          (json['pendingChallengeScores'] as List? ?? const [])
+          (currentChallengeRules
+                  ? json['pendingChallengeScores'] as List? ?? const []
+                  : const [])
               .whereType<Map<String, dynamic>>()
               .map(PendingChallengeScore.fromJson)
               .toList(),
@@ -829,6 +842,10 @@ class AppSettings {
 }
 
 class PendingChallengeScore {
+  final bool finalSolutionMinimum;
+  final int? theoreticalMoves;
+  final int? strategyActions;
+  final Map<String, int>? actionCounts;
   final int version;
   final String day;
   final int size;
@@ -842,6 +859,10 @@ class PendingChallengeScore {
   final String grid;
 
   const PendingChallengeScore({
+    this.finalSolutionMinimum = false,
+    this.theoreticalMoves,
+    this.strategyActions,
+    this.actionCounts,
     required this.version,
     required this.day,
     required this.size,
@@ -868,11 +889,16 @@ class PendingChallengeScore {
     'faults': faults,
     'timeMs': timeMs,
     'moves': moves,
+    'strategyActions': strategyActions,
+    'theoreticalMoves': theoreticalMoves,
+    'finalSolutionMinimum': finalSolutionMinimum,
+    'actionCounts': actionCounts,
     'grid': grid,
   };
 
   factory PendingChallengeScore.fromJson(Map<String, dynamic> json) {
     return PendingChallengeScore(
+      finalSolutionMinimum: json['finalSolutionMinimum'] == true,
       version: (json['version'] as num?)?.toInt() ?? 0,
       day: json['day'] as String? ?? '',
       size: (json['size'] as num?)?.toInt() ?? 0,
@@ -883,6 +909,11 @@ class PendingChallengeScore {
       faults: (json['faults'] as num?)?.toInt() ?? 0,
       timeMs: (json['timeMs'] as num?)?.toInt() ?? 0,
       moves: (json['moves'] as num?)?.toInt() ?? 0,
+      strategyActions: (json['strategyActions'] as num?)?.toInt(),
+      theoreticalMoves: (json['theoreticalMoves'] as num?)?.toInt(),
+      actionCounts: (json['actionCounts'] as Map<String, dynamic>?)?.map(
+        (key, value) => MapEntry(key, (value as num).toInt()),
+      ),
       grid: json['grid'] as String? ?? '',
     );
   }

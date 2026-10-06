@@ -1,4 +1,6 @@
-// Modified: 2026-09-06 04:50 — i18n : titre, semaine, onglets (label de maillot résolu par helper —
+// Modified: 2026-10-06 04:16 — Actualiser renvoie les scores en attente avant de recharger les deux classements.
+// Historique: 2026-10-05 20:00 — afficher uniquement Temps vert et Stratégie jaune en actions.
+// Historique: 2026-09-06 04:50 — i18n : titre, semaine, onglets (label de maillot résolu par helper —
 //           le const _maillots ne peut pas appeler l10n), état vide et « Joueur » par défaut.
 // Historique: 2026-09-05 10:30 — trois maillots (A) : onglets acuité / FAUTES / temps (blanc/Help
 //           supprimé, à pois affiche les fautes). Lit GET /leaderboard, met en avant le joueur
@@ -34,7 +36,7 @@ String leaderboardDisplayName(
   return '$name · $suffix';
 }
 
-/// Les trois maillots, avec leur couleur. Le libellé est résolu par [_maillotLabel] (le const
+/// Les deux maillots, avec leur couleur. Le libellé est résolu par [_maillotLabel] (le const
 /// ne peut pas appeler AppLocalizations).
 class _MaillotSpec {
   final Maillot maillot;
@@ -44,19 +46,16 @@ class _MaillotSpec {
 
 const List<_MaillotSpec> _maillots = [
   _MaillotSpec(Maillot.temps, Color(0xFF2E9E5B)),
-  _MaillotSpec(Maillot.acuite, Color(0xFFF2B705)),
-  _MaillotSpec(Maillot.coups, Color(0xFF3976C4)),
+  _MaillotSpec(Maillot.strategie, Color(0xFFF2B705)),
 ];
 
-/// Libellé localisé d'un maillot (les mêmes trois mots que la légende des records).
+/// Libellé localisé des deux classements du défi.
 String _maillotLabel(AppLocalizations l10n, Maillot m) {
   switch (m) {
     case Maillot.temps:
-      return l10n.legendTime;
-    case Maillot.acuite:
-      return l10n.legendAcuity;
-    case Maillot.coups:
-      return 'Coups';
+      return l10n.rankingTime;
+    case Maillot.strategie:
+      return l10n.rankingStrategy;
   }
 }
 
@@ -71,8 +70,50 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
-  final ChallengeApi _api = ChallengeApi();
   LeaderboardPeriod _period = LeaderboardPeriod.day;
+  late Map<Maillot, Future<List<LeaderboardEntry>>> _rankings;
+  bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRankings();
+  }
+
+  void _loadRankings() {
+    final api = ref.read(challengeApiProvider);
+    _rankings = {
+      for (final spec in _maillots)
+        spec.maillot: api.leaderboard(
+          version: kChallengeVersion,
+          day: widget.day,
+          size: widget.size.index,
+          maillot: spec.maillot,
+          period: _period,
+        ),
+    };
+  }
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    try {
+      await ref.read(settingsProvider.notifier).retryPendingChallengeScores();
+      if (!mounted) return;
+      setState(_loadRankings);
+      await Future.wait(_rankings.values);
+      if (mounted &&
+          ref.read(settingsProvider).pendingChallengeScores.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).challengeScorePending),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
 
   String _valueOf(_MaillotSpec spec, LeaderboardEntry e) {
     if (_period != LeaderboardPeriod.day) {
@@ -82,17 +123,19 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       case Maillot.temps:
         final s = e.timeMs ~/ 1000;
         return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
-      case Maillot.acuite:
-        return '${e.acuityPercent} %';
-      case Maillot.coups:
-        return '${e.moves}';
+      case Maillot.strategie:
+        return AppLocalizations.of(
+          context,
+        ).strategyActionCount(e.strategyActions!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final myId = ref.read(settingsProvider).playerId;
+    final myId = ref.watch(
+      settingsProvider.select((settings) => settings.playerId),
+    );
     return DefaultTabController(
       length: _maillots.length,
       child: Scaffold(
@@ -100,6 +143,19 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           title: Text(
             l10n.leaderboardTitle(widget.size.width, widget.size.height),
           ),
+          actions: [
+            IconButton(
+              tooltip: l10n.refreshChallengeResults,
+              onPressed: _refreshing ? null : _refresh,
+              icon: _refreshing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ],
           bottom: TabBar(
             tabs: [
               for (final m in _maillots)
@@ -147,7 +203,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   ],
                   selected: {_period},
                   onSelectionChanged: (selection) {
-                    setState(() => _period = selection.first);
+                    setState(() {
+                      _period = selection.first;
+                      _loadRankings();
+                    });
                   },
                 ),
               ),
@@ -193,13 +252,7 @@ class _MaillotTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<LeaderboardEntry>>(
-      future: screen._api.leaderboard(
-        version: kChallengeVersion,
-        day: screen.widget.day,
-        size: screen.widget.size.index,
-        maillot: spec.maillot,
-        period: screen._period,
-      ),
+      future: screen._rankings[spec.maillot],
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -247,6 +300,15 @@ class _MaillotTab extends StatelessWidget {
                     fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
+                subtitle:
+                    e.theoreticalMoves == null || e.strategyActions == null
+                    ? null
+                    : Text(
+                        AppLocalizations.of(context).strategyMoveRatio(
+                          e.theoreticalMoves!,
+                          e.strategyActions!,
+                        ),
+                      ),
                 trailing: Text(
                   screen._valueOf(spec, e),
                   style: const TextStyle(

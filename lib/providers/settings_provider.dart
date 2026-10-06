@@ -1,4 +1,7 @@
-// Modified: 2026-10-05 07:43 — file locale et reprise automatique des scores de défi non envoyés.
+// Modified: 2026-10-06 04:48 — préserver la règle du dénominateur lors du renvoi hors ligne.
+// Historique: 2026-10-06 04:16 — attendre un renvoi en cours et préserver les scores ajoutés pendant le renvoi.
+// Historique: 2026-10-05 20:00 — renvoyer aussi le score Stratégie conservé hors ligne.
+// Historique: 2026-10-05 07:43 — file locale et reprise automatique des scores de défi non envoyés.
 // Historique: 2026-10-02 06:39 — remettre les résultats locaux à zéro en conservant identité et réglages.
 // Historique: 2026-09-30 07:10 — persister vingt tentatives par taille pour le bilan personnel.
 // Historique: 2026-09-29 06:10 — agréger et sauvegarder l'acuité par pentomino.
@@ -74,7 +77,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
   static const String _storageKey = 'app_settings';
   late SettingsDatabase _db;
   Future<void>? _loadFuture;
-  bool _retryingChallengeScores = false;
+  Future<void>? _retryChallengeScoresFuture;
 
   @override
   AppSettings build() {
@@ -199,41 +202,47 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
-  Future<void> retryPendingChallengeScores() async {
-    if (_retryingChallengeScores) return;
-    _retryingChallengeScores = true;
-    try {
-      await ensureLoaded();
-      if (!state.shareScoresOptIn || state.pendingChallengeScores.isEmpty) {
-        return;
-      }
-      var remaining = List<PendingChallengeScore>.from(
-        state.pendingChallengeScores,
+  Future<void> retryPendingChallengeScores() =>
+      _retryChallengeScoresFuture ??= _retryPendingChallengeScores()
+          .whenComplete(() => _retryChallengeScoresFuture = null);
+
+  Future<void> _retryPendingChallengeScores() async {
+    await ensureLoaded();
+    if (!state.shareScoresOptIn || state.pendingChallengeScores.isEmpty) {
+      return;
+    }
+    final pendingScores = List<PendingChallengeScore>.from(
+      state.pendingChallengeScores,
+    );
+    for (final score in pendingScores) {
+      if (!state.shareScoresOptIn) break;
+      final sent = await ref
+          .read(challengeApiProvider)
+          .submitScore(
+            version: score.version,
+            day: score.day,
+            size: score.size,
+            playerId: score.playerId,
+            pseudo: score.pseudo,
+            minIso: score.minIso,
+            isoCount: score.isoCount,
+            faults: score.faults,
+            timeMs: score.timeMs,
+            moves: score.moves,
+            strategyActions: score.strategyActions,
+            actionCounts: score.actionCounts,
+            theoreticalMoves: score.theoreticalMoves,
+            finalSolutionMinimum: score.finalSolutionMinimum,
+            grid: score.grid,
+          );
+      if (!sent) break;
+      state = state.copyWith(
+        pendingChallengeScores: [
+          for (final pending in state.pendingChallengeScores)
+            if (!identical(pending, score)) pending,
+        ],
       );
-      for (final score in state.pendingChallengeScores) {
-        final sent = await ChallengeApi().submitScore(
-          version: score.version,
-          day: score.day,
-          size: score.size,
-          playerId: score.playerId,
-          pseudo: score.pseudo,
-          minIso: score.minIso,
-          isoCount: score.isoCount,
-          faults: score.faults,
-          timeMs: score.timeMs,
-          moves: score.moves,
-          grid: score.grid,
-        );
-        if (!sent) break;
-        remaining = [
-          for (final pending in remaining)
-            if (pending.key != score.key) pending,
-        ];
-        state = state.copyWith(pendingChallengeScores: remaining);
-        await _saveSettings();
-      }
-    } finally {
-      _retryingChallengeScores = false;
+      await _saveSettings();
     }
   }
 

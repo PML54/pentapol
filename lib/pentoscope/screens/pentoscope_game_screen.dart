@@ -1,4 +1,6 @@
-// Modified: 2026-10-05 07:43 — afficher un score de défi en attente de renvoi réseau.
+// Modified: 2026-10-06 04:16 — afficher les coups théoriques et le ratio Stratégie du défi.
+// Historique: 2026-10-05 20:01 — présenter Temps et Stratégie avec le détail des gestes du défi.
+// Historique: 2026-10-05 07:43 — afficher un score de défi en attente de renvoi réseau.
 // Historique: 2026-10-02 07:17 — afficher toutes les durées en minutes et secondes, avec ou sans aide.
 // Historique: 2026-10-02 07:15 — masquer Acuité avec Triche et afficher le temps en secondes.
 // Historique: 2026-10-02 07:09 — afficher Acuité en pourcentage inférieur, sans Résolu ni étoiles.
@@ -187,6 +189,7 @@ import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
+import 'package:pentapol/pentoscope/strategy_actions.dart';
 import 'package:pentapol/pentoscope/score_rules.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_consent.dart';
@@ -1231,6 +1234,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             hintCount: state.hintCount,
             pieceCount: state.puzzle?.pieceIds.length ?? 0,
             challengeScorePending: challengeScorePending,
+            isRanked: state.isRanked,
             onLeaderboard: challenge == null
                 ? null
                 : () => openLeaderboardWithConsent(
@@ -1535,11 +1539,16 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final l10n = AppLocalizations.of(context);
     final metrics = notifier.computeCompletionMetrics();
     final parts = <String>[
-      if (metrics != null && state.hintCount == 0)
+      if (state.isRanked &&
+          state.strategyActions.eligible &&
+          state.hintCount == 0)
+        '${l10n.rankingStrategy} ${l10n.strategyActionCount(state.strategyActions.total)}',
+      if (!state.isRanked && metrics != null && state.hintCount == 0)
         '${l10n.legendAcuity} ${metrics.displayAcuityPercent} %',
-      '${l10n.legendFaults} ${metrics?.faults ?? state.faultCount}',
+      if (!state.isRanked)
+        '${l10n.legendFaults} ${metrics?.faults ?? state.faultCount}',
       '${l10n.legendCheating} ${cheatingPercent(state.hintCount, state.puzzle?.pieceIds.length ?? 0)} %',
-      '${l10n.legendTime} ${_formatTime(metrics?.timeSeconds ?? state.elapsedSeconds)}',
+      '${state.isRanked ? l10n.rankingTime : l10n.legendTime} ${_formatTime(metrics?.timeSeconds ?? state.elapsedSeconds)}',
       l10n.gameTapNewGame,
     ];
     final message = parts.join(' · ');
@@ -1608,12 +1617,20 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             spacing: 12,
             runSpacing: 4,
             children: [
-              if (metrics != null && state.hintCount == 0)
+              if (state.isRanked &&
+                  state.strategyActions.eligible &&
+                  state.hintCount == 0)
+                Text(
+                  '${l10n.rankingStrategy} ${l10n.strategyActionCount(state.strategyActions.total)}',
+                  style: base,
+                ),
+              if (!state.isRanked && metrics != null && state.hintCount == 0)
                 Text(
                   '${l10n.legendAcuity} ${metrics.displayAcuityPercent} %',
                   style: base,
                 ),
-              Text('${l10n.legendFaults} ${state.faultCount}', style: base),
+              if (!state.isRanked)
+                Text('${l10n.legendFaults} ${state.faultCount}', style: base),
               Text(
                 '${l10n.legendCheating} ${cheatingPercent(state.hintCount, state.puzzle?.pieceIds.length ?? 0)} %',
                 style: base,
@@ -1980,6 +1997,7 @@ class _BilanCard extends StatefulWidget {
   final int hintCount;
   final int pieceCount;
   final bool challengeScorePending;
+  final bool isRanked;
 
   /// Défi : ouvrir le classement (on vient d'y soumettre son score). null hors défi.
   final VoidCallback? onLeaderboard;
@@ -1995,6 +2013,7 @@ class _BilanCard extends StatefulWidget {
     required this.hintCount,
     required this.pieceCount,
     required this.challengeScorePending,
+    required this.isRanked,
     this.onLeaderboard,
     required this.onClose,
     required this.onNewGame,
@@ -2031,7 +2050,38 @@ class _BilanCardState extends State<_BilanCard> {
     final List<Widget> detail = [];
     if (m != null) {
       final geometry = m.geometry;
-      if (!assisted)
+      if (widget.isRanked && !assisted && m.strategyActions.eligible) {
+        detail.add(
+          _MaillotLine(
+            color: const Color(0xFFF2B705),
+            label: l10n.rankingStrategy,
+            value: l10n.strategyActionCount(m.strategyActions.total),
+          ),
+        );
+        if (m.theoreticalMoves != null) {
+          detail.add(
+            Text(
+              l10n.strategyMoveRatio(
+                m.theoreticalMoves!,
+                m.strategyActions.total,
+              ),
+            ),
+          );
+        }
+        final labels = {
+          StrategyAction.placement: l10n.strategyPlacements,
+          StrategyAction.rotation: l10n.strategyRotations,
+          StrategyAction.symmetry: l10n.strategySymmetries,
+          StrategyAction.translation: l10n.strategyTranslations,
+          StrategyAction.removal: l10n.strategyRemovals,
+        };
+        for (final action in StrategyAction.values) {
+          detail.add(
+            Text('${labels[action]} : ${m.strategyActions.count(action)}'),
+          );
+        }
+      }
+      if (!widget.isRanked && !assisted)
         detail.add(
           _MaillotLine(
             color: const Color(0xFFF2B705),
@@ -2040,11 +2090,12 @@ class _BilanCardState extends State<_BilanCard> {
           ),
         );
       detail.addAll([
-        _MaillotLine(
-          color: const Color(0xFFD64545),
-          label: l10n.legendFaults,
-          value: '${m.faults}',
-        ),
+        if (!widget.isRanked)
+          _MaillotLine(
+            color: const Color(0xFFD64545),
+            label: l10n.legendFaults,
+            value: '${m.faults}',
+          ),
         _MaillotLine(
           color: Colors.orange,
           label: l10n.legendCheating,
@@ -2052,7 +2103,7 @@ class _BilanCardState extends State<_BilanCard> {
         ),
         _MaillotLine(
           color: const Color(0xFF2E9E5B),
-          label: l10n.legendTime,
+          label: widget.isRanked ? l10n.rankingTime : l10n.legendTime,
           value: _formatTime(m.timeSeconds),
         ),
         if (assisted) Text(l10n.geometryAssisted),

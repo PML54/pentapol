@@ -1,4 +1,7 @@
-// Modified: 2026-10-05 07:43 — mettre en file les scores de défi si le réseau refuse l'envoi.
+// Modified: 2026-10-06 04:45 — calculer le minimum de coups propre à la solution finale du défi.
+// Historique: 2026-10-06 04:16 — précalculer le minimum de coups du défi et transmettre le ratio.
+// Historique: 2026-10-05 20:00 — compter et persister les actions du classement Stratégie.
+// Historique: 2026-10-05 07:43 — mettre en file les scores de défi si le réseau refuse l'envoi.
 // Historique: 2026-10-02 07:22 — exclure les réussites aidées des résultats et de l'historique locaux.
 // Historique: 2026-10-02 06:42 — vider la partie en mémoire après la purge locale des résultats.
 // Historique: 2026-09-30 07:10 — historiser les tentatives Solo et qualifier leur premier placement.
@@ -161,6 +164,7 @@ import 'package:pentapol/common/pentomino_symmetry_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/solution_source.dart';
 import 'package:pentapol/pentoscope/completion_metrics.dart';
+import 'package:pentapol/pentoscope/strategy_actions.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/challenge_api.dart';
 import 'package:pentapol/pentoscope/pentoscope_solutions_provider.dart';
@@ -213,6 +217,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// Défi en cours (mode classé). null hors défi. Sa complétion POST le score au serveur.
   ChallengeDefinition? _activeChallenge;
+
   final ChallengeApi _challengeApi = ChallengeApi();
 
   /// Le défi en cours (semaine/taille), pour ouvrir son classement depuis le bilan. null hors défi.
@@ -245,8 +250,27 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return state.canPlacePiece(piece, positionIndex, gridX, gridY);
   }
 
+  void _recordStrategyAction(StrategyAction action) {
+    if (state.isComplete || state.puzzle == null) return;
+    state = state.copyWith(
+      strategyActions: state.strategyActions.record(action),
+    );
+  }
+
+  void recordRejectedDrop() {
+    if (state.selectedPiece == null) return;
+    _recordStrategyAction(
+      state.selectedPlacedPiece == null
+          ? StrategyAction.placement
+          : StrategyAction.translation,
+    );
+  }
+
   /// preview vérifie la légalité et le recentrage sans modifier le jeu.
   TransformationResult applyIsometryRotationCW({bool preview = false}) {
+    if (!preview && state.selectedPiece != null) {
+      _recordStrategyAction(StrategyAction.rotation);
+    }
     if (state.selectedPiece == null && preview)
       return TransformationResult.impossible;
     return _applyIsoUsingLookup(
@@ -256,6 +280,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   TransformationResult applyIsometryRotationTW({bool preview = false}) {
+    if (!preview && state.selectedPiece != null) {
+      _recordStrategyAction(StrategyAction.rotation);
+    }
     if (state.selectedPiece == null && preview)
       return TransformationResult.impossible;
     return _applyIsoUsingLookup(
@@ -265,6 +292,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   TransformationResult applyIsometrySymmetryH({bool preview = false}) {
+    if (!preview && state.selectedPiece != null) {
+      _recordStrategyAction(StrategyAction.symmetry);
+    }
     if (state.selectedPiece == null && preview)
       return TransformationResult.impossible;
     if (state.viewOrientation == ViewOrientation.landscape) {
@@ -289,6 +319,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   TransformationResult applyIsometrySymmetryV({bool preview = false}) {
+    if (!preview && state.selectedPiece != null) {
+      _recordStrategyAction(StrategyAction.symmetry);
+    }
     if (state.selectedPiece == null && preview)
       return TransformationResult.impossible;
     if (state.viewOrientation == ViewOrientation.landscape) {
@@ -585,6 +618,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         faultGraviteSum: 0,
         isometryCount: 0,
         translationCount: 0,
+        strategyActions: const StrategyActions(),
         elapsedSeconds: 0,
         isProgression: false,
         isRanked: false,
@@ -791,6 +825,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   void removePlacedPiece(PlacedPiece placed) {
+    _recordStrategyAction(StrategyAction.removal);
     final newPlateau = _rebuildPlateau(exclude: placed);
 
     final newPlaced = state.placedPieces
@@ -1218,7 +1253,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// pas la partie de progression sauvegardée (re-dérivable depuis la semaine).
   Future<void> startChallenge(ChallengeDefinition challenge) async {
     _isMultiplayer = false;
-    _activeChallenge = challenge; // sa complétion POST le score au serveur
+    _activeChallenge = challenge;
     final size = challenge.size;
     final pieceIds = challenge.pieceIds;
     final puzzle = await _generator.generateFromSeed(
@@ -1265,26 +1300,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     PentoscopeSize size, {
     DateTime? date,
   }) async {
-    final selectedDate = (date ?? DateTime.now()).toUtc();
-    final day = challengeDay(selectedDate);
-    final fetched = await _challengeApi.fetchChallenge(
-      version: kChallengeVersion,
-      day: day,
-      size: size,
-    );
-    if (fetched != null) {
-      await startChallenge(fetched);
-      return;
-    }
-    final masks = await _generator.solubleMasksFor(size);
-    await startChallenge(
-      deriveChallenge(
-        date: selectedDate,
-        size: size,
-        solubleMasks: masks,
-        solutionCountForMask: _generator.countOfMask,
-      ),
-    );
+    await startChallenge(await dailyChallengeDefinition(size, date: date));
   }
 
   Future<ChallengeDefinition> dailyChallengeDefinition(
@@ -1292,6 +1308,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     DateTime? date,
   }) async {
     final selectedDate = (date ?? DateTime.now()).toUtc();
+    final fetched = await ref
+        .read(challengeApiProvider)
+        .fetchChallenge(
+          version: kChallengeVersion,
+          day: challengeDay(selectedDate),
+          size: size,
+        );
+    if (fetched != null) return fetched;
     final masks = await _generator.solubleMasksFor(size);
     return deriveChallenge(
       date: selectedDate,
@@ -1316,6 +1340,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       timeSeconds: state.elapsedSeconds,
       faults: state.faultCount,
       geometry: state.geometry,
+      strategyActions: state.strategyActions,
+      theoreticalMoves:
+          state.isRanked &&
+              state.hintCount == 0 &&
+              state.strategyActions.eligible &&
+              state.placedPieces.length == puzzle.size.numPieces
+          ? minimumSolutionMoves(state.placedPieces, state.initialOrientations)
+          : null,
     );
   }
 
@@ -1485,6 +1517,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         timeMs: metrics.timeSeconds * 1000,
         moves: ch.size.numPieces + state.translationCount + state.deleteCount,
         grid: _gridString(),
+        theoreticalMoves: metrics.theoreticalMoves,
+        finalSolutionMinimum: metrics.theoreticalMoves != null,
+        strategyActions: state.hintCount == 0 && state.strategyActions.eligible
+            ? state.strategyActions.total
+            : null,
+        actionCounts: state.hintCount == 0 && state.strategyActions.eligible
+            ? state.strategyActions.breakdown
+            : null,
       );
       final sent = await _challengeApi.submitScore(
         version: score.version,
@@ -1497,6 +1537,10 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         faults: score.faults,
         timeMs: score.timeMs,
         moves: score.moves,
+        strategyActions: score.strategyActions,
+        actionCounts: score.actionCounts,
+        theoreticalMoves: score.theoreticalMoves,
+        finalSolutionMinimum: score.finalSolutionMinimum,
         grid: score.grid,
       );
       if (!sent) {
@@ -1585,6 +1629,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
               ...?state.geometry?.toJson(),
               'isIllustratedMode': state.isIllustratedMode,
               'pieceIsometryCounts': pieceIsoJson,
+              'strategyActions': state.strategyActions.toJson(),
               'firstPlacedPieceId': state.firstPlacedPieceId,
               'firstPlacementSolvable': state.firstPlacementSolvable,
               'firstPlacementAssisted': state.firstPlacementAssisted,
@@ -1728,6 +1773,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       puzzle: puzzle,
       plateau: plateau,
       availablePieces: availablePieces,
+      strategyActions: StrategyActions.fromJson(
+        geometryJson['strategyActions'] as Map<String, dynamic>?,
+      ),
       placedPieces: placedPieces,
       piecePositionIndices: piecePositionIndices,
       initialOrientations:
@@ -1791,6 +1839,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// exactement ce qui se pose — plus de décalage `−minY` au relâcher.
   bool tryPlaceAtAnchor(int anchorX, int anchorY) {
     if (state.selectedPiece == null) return false;
+
+    _recordStrategyAction(
+      state.selectedPlacedPiece == null
+          ? StrategyAction.placement
+          : StrategyAction.translation,
+    );
 
     final piece = state.selectedPiece!;
     final positionIndex = state.selectedPositionIndex;
@@ -3090,6 +3144,7 @@ class PentoscopeState implements PieceManipulationState {
   final bool isComplete;
   final int isometryCount;
   final int translationCount;
+  final StrategyActions strategyActions;
   final GeometryScore? geometry;
   final int hintCount; // 💡 Nombre de fois où la lampe a été utilisée
   final int deleteCount; // 🗑️ Nombre de suppressions de pièces
@@ -3171,6 +3226,7 @@ class PentoscopeState implements PieceManipulationState {
     this.isComplete = false,
     this.isometryCount = 0,
     this.translationCount = 0,
+    this.strategyActions = const StrategyActions(),
     this.hintCount = 0, // 💡
     this.deleteCount = 0, // 🗑️
     this.faultCount = 0, // ⚫
@@ -3261,6 +3317,7 @@ class PentoscopeState implements PieceManipulationState {
     bool? isComplete,
     int? isometryCount,
     int? translationCount,
+    StrategyActions? strategyActions,
     int? hintCount, // 💡
     int? deleteCount, // 🗑️
     int? faultCount, // ⚫
@@ -3318,6 +3375,7 @@ class PentoscopeState implements PieceManipulationState {
       isComplete: isComplete ?? this.isComplete,
       isometryCount: isometryCount ?? this.isometryCount,
       translationCount: translationCount ?? this.translationCount,
+      strategyActions: strategyActions ?? this.strategyActions,
       hintCount: hintCount ?? this.hintCount,
       deleteCount: deleteCount ?? this.deleteCount,
       faultCount: faultCount ?? this.faultCount,

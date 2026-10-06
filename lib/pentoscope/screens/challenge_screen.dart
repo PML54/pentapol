@@ -1,4 +1,6 @@
-// Modified: 2026-09-25 02:30 — afficher le jour courant et distinguer les défis terminés.
+// Modified: 2026-10-06 04:48 — localiser le nombre de solutions et retirer le minimum global ambigu.
+// Historique: 2026-10-06 04:16 — bouton Actualiser pour renvoyer les scores hors ligne et recharger les défis.
+// Historique: 2026-09-25 02:30 — afficher le jour courant et distinguer les défis terminés.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -19,6 +21,33 @@ class ChallengeScreen extends ConsumerStatefulWidget {
 
 class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   late Future<List<ChallengeDefinition>> _definitions;
+  bool _refreshing = false;
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    try {
+      final settings = ref.read(settingsProvider.notifier);
+      await settings.retryPendingChallengeScores();
+      await settings.dailyChallengeCompletions();
+      if (!mounted) return;
+      final definitions = _loadDefinitions();
+      setState(() {
+        _definitions = definitions;
+      });
+      await definitions;
+      if (mounted &&
+          ref.read(settingsProvider).pendingChallengeScores.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).challengeScorePending),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
 
   @override
   void initState() {
@@ -60,6 +89,17 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
               builder: () =>
                   LeaderboardScreen(day: day, size: kChallengeSizes.first),
             ),
+          ),
+          IconButton(
+            tooltip: l10n.refreshChallengeResults,
+            onPressed: _refreshing ? null : _refresh,
+            icon: _refreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
           ),
         ],
       ),
@@ -164,7 +204,9 @@ class _ChallengeTile extends StatelessWidget {
           '${size.width}×${size.height}',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        subtitle: Text('$piecesLabel · ${definition.solutionCount} solutions'),
+        subtitle: Text(
+          '$piecesLabel · ${AppLocalizations.of(context).drawSolutionsCount(definition.solutionCount)}',
+        ),
         trailing: completed
             ? IconButton(
                 tooltip: rankingLabel,

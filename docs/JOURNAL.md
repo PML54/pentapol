@@ -13,7 +13,72 @@
 
 ---
 
-## §ÉTAT — au 2026-10-05
+## §ÉTAT — au 2026-10-06
+
+### Défis — ratio de la solution finale, base vide et version (2026-10-06, CLI)
+
+Une icône Actualiser à droite des AppBars Défis et Classements attend le renvoi des scores
+en attente, puis recharge les résultats réseau. Les échecs restent dans la file et sont
+signalés ; les appels simultanés partagent le même envoi. Un score ajouté pendant l'envoi
+est conservé. La reprise automatique au retour réseau reste un point ultérieur sans urgence.
+
+Paul précise que le minimum théorique doit porter sur la solution finale obtenue, depuis
+les orientations initiales du tiroir : une pose par pièce plus les transformations minimales.
+Les détours du joueur ne changent pas ce minimum. Le calcul du minimum global du tirage est
+retiré. La liste affiche le nombre de solutions, localisé FR/EN ; classement et bilan affichent
+joué/théorique, par exemple 14/7, sans pourcentage. Stratégie trie le rapport croissant puis le
+temps : 14/7 passe devant 14/6. Les classements semaine/mois conservent leurs points et meilleurs
+jours, désormais fondés sur les places calculées par rapport ; le ratio affiché cumule les
+compteurs des résultats retenus. Temps reste indépendant.
+
+Paul demande de remettre les bases à jour sans gérer l'historique en phase de développement.
+Les tables D1 scores et challenges sont recréées avec schema.sql, sans migration ni reprise
+des anciennes données. Contrôle distant : 0 score, 0 définition ; Stratégie renvoie HTTP 200.
+Worker : `becc92b8-90a9-4100-beda-13c63158c258`. La révision de règle du JSON local remet à zéro
+les défis terminés et scores en attente lors du premier chargement de la nouvelle version,
+sans conversion historique. Les nouveaux scores conservent leur minimum final pour le renvoi.
+Aucun changement de schéma drift ni effacement des réglages, du profil ou des résultats Solo.
+Le retrait de cette remise à zéro JSON avant publication est inscrit à CHECKLIST_APPSTORE, point 3.
+Un minimum global envoyé par un ancien client ne classe pas
+son score en Stratégie. Les fichiers de migration préparés précédemment sont supprimés.
+
+La version interne en fin de Paramètres est 1.0.12, build 202610060424, datée du
+6 octobre 2026 à 04:24. La version de soumission dans pubspec.yaml n'est pas modifiée.
+Validation : suite globale de 264 tests réussie ; 3 tests Worker SQLite, TypeScript et
+déploiement Wrangler réussis. Test des minima sur toutes les solutions des neuf tailles,
+dont les 9356 du 6×10 ; les différentes solutions d'un même défi sont jouées dans le provider
+et reçoivent des minima distincts. Affichage 14/7 vérifié en FR/EN, ordre 14/7 avant 14/6 testé
+sur les trois périodes. Les scénarios de renvoi hors ligne restent verts. La remise à zéro
+des seuls Défis locaux est testée, ainsi que la conservation des résultats sous la nouvelle règle.
+Analyse Flutter : aucune erreur ni avertissement, 114 infos existantes. Aucun commit demandé
+pour ces changements ; ils restent dans le chantier Stratégie en cours.
+
+### Défi — deux classements et nouvelle base réseau (2026-10-05, CLI)
+
+Décision de Paul : Temps (vert), Stratégie (jaune). Stratégie compte un geste par pose
+(première pose comprise), rotation, symétrie, déplacement sur le plateau et effacement.
+Les tentatives refusées comptent ; les previews, sélections et défilements ne comptent pas.
+Une commande de transformation vaut un geste. Depuis la précision du 6 octobre, le rapport
+joué/minimum de la solution finale est croissant, puis temps pour les égalités.
+Les parties aidées ne participent pas à Stratégie ; le classement Temps est conservé.
+Les classements jour/semaine/mois utilisent ces deux critères. Le bilan Défi affiche le
+total et le détail des gestes ; les métriques et records Solo ne changent pas.
+
+Paul autorise explicitement la destruction de l'ancien contenu réseau. D1 `pentapol-defi`
+a été recréée avec `server/schema.sql` : anciens champs min_iso/iso_count/moves/faults retirés,
+cinq compteurs ajoutés, total Stratégie calculé par SQLite. Résultats et définitions de défis
+effacés (comptages distants vérifiés : 0 et 0). La base locale du téléphone n'est pas effacée.
+Worker déployé : `90599ff5-b94a-4172-8b1a-0e0a6c680400`. Les deux endpoints renvoient HTTP 200.
+
+Le détail des actions est conservé dans la file hors ligne ; les anciens scores en attente,
+sans détail comparable, peuvent alimenter Temps uniquement. Le snapshot Solo conserve les
+compteurs dans le JSON existant, sans changement de schéma local. Le Défi reste éphémère
+comme auparavant et ne remplace pas la sauvegarde Solo.
+
+Validation : suite globale Flutter passée (257 tests), puis les 3 tests Stratégie passent
+avec le dernier test ajouté sur le JSON hors ligne et le POST. `flutter analyze` : aucune
+erreur ni avertissement, 114 infos. `tsc --noEmit`, 2 tests Worker avec SQLite réel et
+construction Wrangler réussis. Aucun commit effectué pour ce chantier.
 
 ### Tiroir — désélection au défilement (2026-10-05, CLI)
 
@@ -1642,6 +1707,28 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-07 — CLI : commit du chantier Stratégie après passage à Flutter 3.47.6.**
+Commit demandé par Paul des changements du 5 et du 6 octobre, sans modification de code.
+Revalidé sous Flutter 3.47.6 / Dart 3.13.5 : 264 tests verts, analyse sans erreur ni
+avertissement (114 infos). Dépendances non mises à jour ; prochaine étape sur une branche dédiée.
+
+**2026-10-06 — CLI : minimum de la solution finale, rapport joué/théorique et base vide.**
+Paul valide le dénominateur propre à la solution obtenue puis demande de repartir sans
+historique en développement. Tri par rapport, affichage 14/7, nombre de solutions localisé,
+tables D1 recréées et worker déployé. Les migrations préparées sont retirées ; aucun commit.
+Tests globaux et serveur verts, contrôles distants et règle des périodes en §ÉTAT.
+
+**2026-10-06 — CLI : actualisation manuelle, coups théoriques et version 1.0.12.**
+Renvoi des scores avant rechargement, ratio brut théorique/joué sans pourcentage et libellés
+« coups ». Minimum exhaustif sur corpus existants, migrations réseau préservant les 12 scores,
+worker déployé et contrôlé. Version datée en Paramètres actualisée ; validations en §ÉTAT.
+Changements non commités, reprise réseau automatique toujours reportée sans urgence.
+
+**2026-10-05 — CLI : Temps vert / Stratégie jaune, base réseau recréée et worker déployé.**
+Paul a validé le comptage de toutes les actions, refus et première pose compris, puis demandé
+la destruction de l'ancien contenu. Application, API, schéma D1, tests et documentation adaptés.
+Les vérifications et l'identifiant du déploiement sont en §ÉTAT ; changements non commités.
 
 **2026-10-05 — CLI : défilement du tiroir et préparation du commit.**
 Le défilement utilisateur désélectionne la pièce du tiroir. Commit et push demandés par Paul,

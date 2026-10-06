@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 07:03 — préserver les raccords de l'image en paysage.
+// Modified: 2026-10-05 20:02 — compter un déplacement relâché hors cible comme action refusée.
+// Historique: 2026-09-23 07:03 — préserver les raccords de l'image en paysage.
 // Historique: 2026-09-23 05:32 — découper l'image selon la solution fixée pour la partie.
 // Historique: 2026-09-23 05:13 — rendre les fragments illustrés sur le plateau 6×10.
 // Historique: 2026-09-22 19:09 — transmettre le double-tap du plateau au mode Game.
@@ -607,6 +608,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
         },
         onDragEnd: (details) {
           if (!details.wasAccepted) {
+            notifier.recordRejectedDrop();
             // `onLeave` conserve volontairement la dernière ancre afin que le rack puisse
             // accepter une pose au ras du bord bas. Sans cible finale, elle doit disparaître :
             // sinon la source et l'ancien aperçu sont dessinés ensemble après le geste.

@@ -506,6 +506,72 @@ abstract class AppLocalizations {
   /// **'Speed'**
   String get legendTime;
 
+  /// No description provided for @rankingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get rankingTime;
+
+  /// No description provided for @refreshChallengeResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh results'**
+  String get refreshChallengeResults;
+
+  /// No description provided for @rankingStrategy.
+  ///
+  /// In en, this message translates to:
+  /// **'Strategy'**
+  String get rankingStrategy;
+
+  /// No description provided for @strategyActionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} moves'**
+  String strategyActionCount(int count);
+
+  /// No description provided for @theoreticalMoveCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} theoretical moves'**
+  String theoreticalMoveCount(int count);
+
+  /// No description provided for @strategyMoveRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'{played}/{theoretical}'**
+  String strategyMoveRatio(int theoretical, int played);
+
+  /// No description provided for @strategyPlacements.
+  ///
+  /// In en, this message translates to:
+  /// **'Placements'**
+  String get strategyPlacements;
+
+  /// No description provided for @strategyRotations.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotations'**
+  String get strategyRotations;
+
+  /// No description provided for @strategySymmetries.
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections'**
+  String get strategySymmetries;
+
+  /// No description provided for @strategyTranslations.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves on the board'**
+  String get strategyTranslations;
+
+  /// No description provided for @strategyRemovals.
+  ///
+  /// In en, this message translates to:
+  /// **'Removals'**
+  String get strategyRemovals;
+
   /// No description provided for @recordsEmpty.
   ///
   /// In en, this message translates to:

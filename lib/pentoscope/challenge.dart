@@ -1,3 +1,5 @@
+// Modified: 2026-10-06 04:48 — retirer le minimum global, désormais propre à chaque solution finale.
+// Historique: 2026-10-06 04:16 — conserver le minimum théorique calculé avant le défi.
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/pentapol_rng.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';

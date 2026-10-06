@@ -1,4 +1,6 @@
-// Modified: 2026-10-02 07:09 — convertir le score courant en Acuité entière arrondie au inférieur.
+// Modified: 2026-10-06 04:16 — transmettre les coups théoriques pour le ratio Stratégie du défi.
+// Historique: 2026-10-05 20:00 — transmettre le total et le détail des actions Stratégie au bilan.
+// Historique: 2026-10-02 07:09 — convertir le score courant en Acuité entière arrondie au inférieur.
 // Historique: 2026-09-12 10:58 — transmettre la Géométrie au bilan sans convertir les anciens scores.
 // Historique: 2026-09-09 05:29 — centralisation des règles de score : acuity/acuityPercent/perfectVision
 //           délèguent à score_rules.dart (formule plafonnée et prédicat uniques, testés) — plus de
@@ -11,12 +13,15 @@
 
 import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/pentoscope/geometry_score.dart';
+import 'package:pentapol/pentoscope/strategy_actions.dart';
 import 'package:pentapol/pentoscope/score_rules.dart' as rules;
 
 /// Les mesures d'une partie terminée (CDC §4), en valeurs **brutes**. Trois maillots : acuité
 /// (jaune), fautes (à pois), temps (vert). L'acuité se dérive ; on ne stocke que le brut.
 class CompletionMetrics {
   final GeometryScore? geometry;
+  final StrategyActions strategyActions;
+  final int? theoreticalMoves;
 
   /// Σ des isométries **minimales** rack → placement posé, sur toutes les pièces. Maillot jaune.
   final int minIso;
@@ -34,6 +39,8 @@ class CompletionMetrics {
 
   const CompletionMetrics({
     this.geometry,
+    this.strategyActions = const StrategyActions(),
+    this.theoreticalMoves,
     required this.minIso,
     required this.isometryCount,
     required this.faults,
@@ -69,6 +76,8 @@ CompletionMetrics computeMetrics({
   required int timeSeconds,
   int faults = 0,
   GeometryScore? geometry,
+  StrategyActions strategyActions = const StrategyActions(),
+  int? theoreticalMoves,
 }) {
   var minIso = 0;
   for (final pp in placedPieces) {
@@ -78,6 +87,8 @@ CompletionMetrics computeMetrics({
   }
   return CompletionMetrics(
     geometry: geometry,
+    strategyActions: strategyActions,
+    theoreticalMoves: theoreticalMoves,
     minIso: minIso,
     isometryCount: isometryCount,
     faults: faults,
