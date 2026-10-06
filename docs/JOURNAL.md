@@ -15,6 +15,16 @@
 
 ## §ÉTAT — au 2026-10-07
 
+### Dépendances — flutter_lints 6, cupertino_icons retiré (2026-10-07, CLI)
+
+flutter_lints passe à ^6.0.0 (lints 6.1.0). Une seule info nouvelle, `unnecessary_underscores`
+dans `leaderboard_screen.dart` (`(_, __)` → `(_, _)`), corrigée : l'analyse revient à 114 infos,
+sans erreur ni avertissement. Décision de Paul, hors plan : **cupertino_icons retiré** au lieu
+de passer en 2.0 — aucun `CupertinoIcons` dans le code, toutes les icônes sont Material ; l'import
+`flutter/cupertino.dart` de `pentoscope_provider.dart` relève du SDK, pas de ce paquet.
+Validation : 264 tests verts, builds iOS release sans signature (35,1 Mo, seule
+`MaterialIcons-Regular.otf` embarquée) et APK release réussis après `flutter clean`.
+
 ### Dépendances — share_plus et package_info_plus retirés (2026-10-07, CLI)
 
 Décision de Paul, hors plan : au lieu de passer à share_plus 13 et package_info_plus 10, les
@@ -1738,6 +1748,10 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-07 — CLI : flutter_lints 6, cupertino_icons retiré.**
+Une info lint corrigée dans `leaderboard_screen.dart` ; cupertino_icons, inutilisé, retiré sur
+décision de Paul. Tests, analyse et builds iOS/Android verts. Détail en §ÉTAT.
 
 **2026-10-07 — CLI : share_plus et package_info_plus retirés.**
 Jamais importés dans l'historique du dépôt ; retrait décidé par Paul plutôt qu'une mise à jour

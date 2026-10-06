@@ -1,4 +1,5 @@
-// Modified: 2026-10-06 04:16 — Actualiser renvoie les scores en attente avant de recharger les deux classements.
+// Modified: 2026-10-07 01:33 — flutter_lints 6 : `__` remplacé par `_` (unnecessary_underscores).
+// Historique: 2026-10-06 04:16 — Actualiser renvoie les scores en attente avant de recharger les deux classements.
 // Historique: 2026-10-05 20:00 — afficher uniquement Temps vert et Stratégie jaune en actions.
 // Historique: 2026-09-06 04:50 — i18n : titre, semaine, onglets (label de maillot résolu par helper —
 //           le const _maillots ne peut pas appeler l10n), état vide et « Joueur » par défaut.
@@ -275,7 +276,7 @@ class _MaillotTab extends StatelessWidget {
         }
         return ListView.separated(
           itemCount: entries.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, i) {
             final e = entries[i];
             final isMe = myId != null && e.playerId == myId;
