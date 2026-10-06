@@ -11,8 +11,8 @@
 | Rôle | Choix | Où |
 |---|---|---|
 | État | Riverpod 3 (`flutter_riverpod`), `ProviderScope` à la racine | `main.dart` |
-| Persistance locale | SQLite via l'ORM **drift** 2.29 (`drift_flutter`, `sqlite3_flutter_libs`) | `lib/database/` |
-| Modèles immuables | `freezed` | `lib/models/app_settings.dart` |
+| Persistance locale | SQLite via l'ORM **drift** 2.35, `NativeDatabase` ; SQLite embarqué par `sqlite3` 3 (hooks de build, plus de `sqlite3_flutter_libs`) | `lib/database/` |
+| Modèles immuables | classes écrites à la main (`copyWith`, `toJson`/`fromJson`) ; `freezed` retiré le 2026-10-07, il n'était plus utilisé | `lib/models/app_settings.dart` |
 | Données statiques | 3 assets binaires (`solutions_6x10_normalisees.bin`, `subset_counts.bin`, `solutions_corpus.bin`) | `assets/data/` |
 | Réseau | `http` (REST) + `web_socket_channel` (WebSocket) | `pentoscope/challenge_api.dart`, `pentoscope_multiplayer/` |
 | Backend | Cloudflare Workers + Durable Objects (hors dépôt) | `lib/data/cloudfare_architecture.md`, `docs/CLOUDFLARE_CONFIG.md` |
@@ -31,7 +31,7 @@ tables pré-calculées (JOURNAL §ÉTAT, invariant n° 2 de `CLAUDE.md`).
 | `pentoscope_multiplayer/` | Duel en ligne : `models/` (messages, état), `providers/`, écrans lobby / partie / résultat | `pentoscope/` (réutilise son provider) |
 | `database/` | Schéma drift + code généré | — |
 | `providers/` | `settings_provider.dart` (réglages transverses) | `database/`, `models/` |
-| `models/` | `AppSettings` (freezed, sérialisé JSON) | — |
+| `models/` | `AppSettings` (sérialisé JSON) | — |
 | `screens/` | Réglages, couleurs personnalisées, réglages géométrie | `providers/` |
 | `config/`, `utils/`, `l10n/` | Constantes UI, utilitaires (`piece_utils`, `solution_exporter`), traductions générées | — |
 | `data/` | Documentation backend, pas de Dart | — |

@@ -13,7 +13,27 @@
 
 ---
 
-## §ÉTAT — au 2026-10-06
+## §ÉTAT — au 2026-10-07
+
+### Dépendances — drift 2.35, sqlite3 3, freezed retiré (2026-10-07, CLI)
+
+Branche `chore/deps-upgrade`. drift et drift_dev passent à ^2.35.1, drift_flutter à ^0.3.1 et
+sqlite3 à 3.7.0. `sqlite3_flutter_libs` est retiré des dépendances directes : sqlite3 3 embarque
+SQLite par ses hooks de build, et le paquet n'est plus maintenu (0.6.0+eol, encore tiré en
+transitif par drift_flutter). Aucun changement dans `lib/` : la base s'ouvre par `NativeDatabase`,
+et le code drift régénéré est identique.
+
+Décision de Paul, hors plan : **retrait de `freezed` et `freezed_annotation`**. Aucune annotation
+ni fichier `.freezed.dart` dans le dépôt ; `AppSettings` est écrit à la main. freezed 3 bloquait
+drift_dev 2.35 (conflit sur `analyzer`). `docs/arch-pentapol-claude.md` corrigé en conséquence.
+`drift_flutter` reste déclaré bien qu'aucun fichier ne l'importe ; son retrait reste à décider.
+
+`tools/check_public_functions.dart` : `dispose()` remplacé par `close()` (API sqlite3 3).
+Les deux `Package.resolved` iOS sont supprimés par Xcode : CSQLite était leur seul paquet Swift.
+Validation : 264 tests verts, analyse sans erreur ni avertissement (114 infos), build iOS release
+sans signature et APK release réussis. Après `flutter clean`, l'app iOS ne contient qu'un
+`sqlite3.framework` ; l'APK embarque `libsqlite3.so` pour les trois ABI. Essai sur appareil par
+Paul en attente : ouverture de la base, reprise de partie, records.
 
 ### Défis — ratio de la solution finale, base vide et version (2026-10-06, CLI)
 
@@ -1707,6 +1727,11 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-07 — CLI : drift 2.35 et sqlite3 3, freezed retiré.**
+SQLite désormais embarqué par sqlite3 3 ; freezed, inutilisé, bloquait drift 2.35 et sort sur
+décision de Paul. Aucun changement dans `lib/`. Tests, analyse, builds iOS et Android verts ;
+essai sur appareil en attente. Détail en §ÉTAT.
 
 **2026-10-07 — CLI : `flutter pub upgrade` sur la branche `chore/deps-upgrade`.**
 Mises à jour compatibles seulement, `pubspec.yaml` inchangé : riverpod 3.4.3, drift 2.31,

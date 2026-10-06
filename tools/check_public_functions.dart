@@ -1,3 +1,5 @@
+// Modified: 2026-10-07 01:22 — sqlite3 3 : dispose() déprécié, remplacé par close().
+// tools/check_public_functions.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -99,7 +101,7 @@ void main(List<String> args) {
       }
     }
 
-    insertStmt?.dispose();
+    insertStmt?.close();
     csvSink?.close();
 
     stdout.writeln('Scanned files: $scanned');
@@ -119,7 +121,7 @@ void main(List<String> args) {
       }
     }
   } finally {
-    db.dispose();
+    db.close();
   }
 }
 
