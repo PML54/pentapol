@@ -1708,6 +1708,12 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 ## §PASSATIONS
 
+**2026-10-07 — CLI : `flutter pub upgrade` sur la branche `chore/deps-upgrade`.**
+Mises à jour compatibles seulement, `pubspec.yaml` inchangé : riverpod 3.4.3, drift 2.31,
+freezed 3.2.5, build_runner 2.15.1. 264 tests verts, analyse sans erreur ni avertissement,
+code généré identique après `build_runner`. Essai iPhone de Paul en attente. Les versions
+majeures (drift 2.35 + sqlite3 3, freezed 4, share_plus 13…) restent à faire.
+
 **2026-10-07 — CLI : commit du chantier Stratégie après passage à Flutter 3.47.6.**
 Commit demandé par Paul des changements du 5 et du 6 octobre, sans modification de code.
 Revalidé sous Flutter 3.47.6 / Dart 3.13.5 : 264 tests verts, analyse sans erreur ni
