@@ -15,6 +15,15 @@
 
 ## §ÉTAT — au 2026-10-07
 
+### Dépendances — drift_flutter retiré (2026-10-07, CLI)
+
+Décision de Paul : `drift_flutter` retiré de `pubspec.yaml`. Aucun fichier ne l'importait ; la
+base s'ouvre par `NativeDatabase` (`package:drift/native.dart`). Son départ emporte aussi les
+transitifs `sqlite3_flutter_libs` et `sqlcipher_flutter_libs` (0.x+eol). `sqlite3` 3.7.0 reste,
+tiré par drift. Validation : 264 tests verts, analyse sans erreur ni avertissement (114 infos),
+builds iOS release sans signature et APK release réussis après `flutter clean` ; l'app iOS
+contient `sqlite3.framework`, l'APK `libsqlite3.so` pour les trois ABI.
+
 ### Dépendances — flutter_lints 6, cupertino_icons retiré (2026-10-07, CLI)
 
 flutter_lints passe à ^6.0.0 (lints 6.1.0). Une seule info nouvelle, `unnecessary_underscores`
@@ -47,7 +56,7 @@ et le code drift régénéré est identique.
 Décision de Paul, hors plan : **retrait de `freezed` et `freezed_annotation`**. Aucune annotation
 ni fichier `.freezed.dart` dans le dépôt ; `AppSettings` est écrit à la main. freezed 3 bloquait
 drift_dev 2.35 (conflit sur `analyzer`). `docs/arch-pentapol-claude.md` corrigé en conséquence.
-`drift_flutter` reste déclaré bien qu'aucun fichier ne l'importe ; son retrait reste à décider.
+`drift_flutter` restait déclaré sans être importé ; retiré le même jour, voir plus haut.
 
 `tools/check_public_functions.dart` : `dispose()` remplacé par `close()` (API sqlite3 3).
 Les deux `Package.resolved` iOS sont supprimés par Xcode : CSQLite était leur seul paquet Swift.
@@ -1748,6 +1757,10 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-07 — CLI : drift_flutter retiré.**
+Jamais importé ; SQLite reste embarqué par sqlite3 3 via drift. Tests, analyse et builds
+iOS/Android verts. Détail en §ÉTAT.
 
 **2026-10-07 — CLI : flutter_lints 6, cupertino_icons retiré.**
 Une info lint corrigée dans `leaderboard_screen.dart` ; cupertino_icons, inutilisé, retiré sur
