@@ -15,6 +15,17 @@
 
 ## §ÉTAT — au 2026-10-07
 
+### Dépendances — share_plus et package_info_plus retirés (2026-10-07, CLI)
+
+Décision de Paul, hors plan : au lieu de passer à share_plus 13 et package_info_plus 10, les
+deux paquets sont **retirés**. Aucun fichier Dart ne les importe, et `git log -S` ne trouve
+d'import dans aucune révision : ils n'ont jamais servi. La version affichée en Paramètres vient
+de `lib/config/build_info.dart`. À rajouter le jour où un partage ou une lecture système de la
+version sera réellement codé. Retirés en transitif : cross_file, win32 et les deux
+platform_interface. Validation : 264 tests verts, analyse sans erreur ni avertissement
+(114 infos), builds iOS release sans signature (35,3 Mo) et APK release réussis après
+`flutter clean`.
+
 ### Dépendances — drift 2.35, sqlite3 3, freezed retiré (2026-10-07, CLI)
 
 Branche `chore/deps-upgrade`. drift et drift_dev passent à ^2.35.1, drift_flutter à ^0.3.1 et
@@ -1727,6 +1738,10 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-07 — CLI : share_plus et package_info_plus retirés.**
+Jamais importés dans l'historique du dépôt ; retrait décidé par Paul plutôt qu'une mise à jour
+majeure. Aucun changement de code. Tests, analyse et builds iOS/Android verts. Détail en §ÉTAT.
 
 **2026-10-07 — CLI : drift 2.35 et sqlite3 3, freezed retiré.**
 SQLite désormais embarqué par sqlite3 3 ; freezed, inutilisé, bloquait drift 2.35 et sort sur

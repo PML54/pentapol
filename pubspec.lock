@@ -161,14 +161,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
-  cross_file:
-    dependency: transitive
-    description:
-      name: cross_file
-      sha256: f141ea4f277af142a0356955707f6556f37b03947d39d55585981a06ca437bd6
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.5+5"
   crypto:
     dependency: transitive
     description:
@@ -501,22 +493,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  package_info_plus:
-    dependency: "direct main"
-    description:
-      name: package_info_plus
-      sha256: "468c26b4254ab01979fa5e4a98cb343ea3631b9acee6f21028997419a80e1a20"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.0.1"
-  package_info_plus_platform_interface:
-    dependency: transitive
-    description:
-      name: package_info_plus_platform_interface
-      sha256: "202a487f08836a592a6bd4f901ac69b3a8f146af552bbd14407b6b41e1c3f086"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.1"
   path:
     dependency: "direct main"
     description:
@@ -653,22 +629,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.3"
-  share_plus:
-    dependency: "direct main"
-    description:
-      name: share_plus
-      sha256: "223873d106614442ea6f20db5a038685cc5b32a2fba81cdecaefbbae0523f7fa"
-      url: "https://pub.dev"
-    source: hosted
-    version: "12.0.2"
-  share_plus_platform_interface:
-    dependency: transitive
-    description:
-      name: share_plus_platform_interface
-      sha256: "88023e53a13429bd65d8e85e11a9b484f49d4c190abbd96c7932b74d6927cc9a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.0"
   shelf:
     dependency: transitive
     description:
@@ -914,14 +874,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.0"
-  win32:
-    dependency: transitive
-    description:
-      name: win32
-      sha256: d7cb55e04cd34096cd3a79b3330245f54cb96a370a1c27adb3c84b917de8b08e
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.15.0"
   xdg_directories:
     dependency: transitive
     description:
