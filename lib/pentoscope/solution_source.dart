@@ -1,4 +1,5 @@
-// Modified: 2026-10-06 04:48 — retirer le calcul du minimum global, remplacé par celui de la solution finale.
+// Modified: 2026-10-07 06:53 — préparer les pièces fixes des défis hors du thread UI depuis les corpus.
+// Historique: 2026-10-06 04:48 — retirer le calcul du minimum global, remplacé par celui de la solution finale.
 // Historique: 2026-10-06 04:16 — minimum Stratégie calculé hors UI depuis les solutions précalculées.
 // Historique: 2026-08-31 16:39 — étape B (REFERENCE_TIRAGES §8 B) : LiveSolutionSource (solveur live)
 //           remplacée par CorpusSolutionSource — les petites tailles s'adossent désormais au corpus
@@ -16,6 +17,8 @@
 
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show compute;
+import 'package:pentapol/pentoscope/challenge_clues.dart';
 
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/placed_piece.dart';
@@ -27,6 +30,8 @@ import 'package:pentapol/services/solution_matcher.dart';
 
 /// Origine des réponses « solution » d'un puzzle. Un seul site le lit : `startPuzzle`.
 abstract interface class SolutionSource {
+  Future<List<PlacedPiece>> uniqueChallengeClues(int seed);
+
   /// Une solution reste-t-elle atteignable depuis ce plateau ?
   bool hasSolutionFrom(Plateau plateau, List<Pento> remaining);
 
@@ -102,6 +107,10 @@ class CorpusSolutionSource implements SolutionSource {
       _random = Random();
 
   @override
+  Future<List<PlacedPiece>> uniqueChallengeClues(int seed) =>
+      compute(corpusChallengeClues, (_solutions, _width, _height, seed));
+
+  @override
   int? countFrom(Plateau plateau) =>
       countCompatibleFlat(_solutions, _pieceBytes(plateau), _cells);
 
@@ -133,6 +142,12 @@ class TableSolutionSource implements SolutionSource {
 
   TableSolutionSource(this._matcher, this.table, {Random? random})
     : _random = random ?? Random();
+
+  @override
+  Future<List<PlacedPiece>> uniqueChallengeClues(int seed) => compute(
+    tableChallengeClues,
+    (_matcher.allSolutions, table.width, table.height, seed),
+  );
 
   /// `(piecesBits, maskBits)` du plateau, dans le même ordre de cases que le `.bin`
   /// (cellIndex = y·width + x, bits de poids fort en premier). Chemins froids seulement.

@@ -13,7 +13,278 @@
 
 ---
 
-## §ÉTAT — au 2026-10-07
+## §ÉTAT — au 2026-10-08
+
+### Solo — phrase de réussite et police agrandie (2026-10-08, Codex)
+
+À la demande de Paul, la fin du Solo affiche une phrase : 3x5 réussi en 30 s et
+10 coups avec 3 aides, ou sans aide si hintCount vaut zéro ; pluriels aide/aides
+et coup/coups, traductions EN/FR via ARB. Les dimensions viennent du plateau
+(width x height), pas du label de niveau qui vaut seulement 3 pour le 3x5.
+Police agrandie à 22 sp, gras. Double Tap reste rouge et le résumé vert ; tout
+défile dans une même ligne pour ne pas déborder sur petit écran. Le composant
+GuidedScrollingMessage accepte désormais un TextSpan facultatif ; les autres
+messages conservent leur rendu par défaut. Présentation Défi conservée.
+Validation : 18 tests ciblés réussis (message défilant et fin Solo avec zéro,
+une ou trois aides, EN/FR, portrait/paysage, texte agrandi à 1,3). Analyse sans
+erreur ni avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Tiroir — swipe sur pièce sélectionnée (2026-10-08, Codex)
+
+Paul précise que le déplacement indésirable arrive lors d'un swipe avec une pièce
+sélectionnée. Conflit applicatif reproduit en portrait/paysage : Draggable sans
+affinity capte le geste de la pièce sélectionnée au lieu de laisser le ListView
+défiler. Le tiroir passe désormais une affinity perpendiculaire à son axe :
+verticale en portrait, horizontale en paysage. Elle distingue seulement le
+départ de la prise ; le mouvement reste libre sur les deux axes ensuite. La
+prise par appui long d'une pièce non sélectionnée et son délai restent inchangés.
+Le swipe désélectionne sans enregistrer de tentative de pose, et la flèche reste
+disponible après. Aucun changement des gestes système iOS ; le mouvement de toute
+la fenêtre décrit par Paul reste à vérifier sur appareil après ce correctif.
+Validation : 13 tests ciblés tiroir/drag réussis, dont le swipe sélectionné qui
+échouait avant correction dans les deux orientations ; prise vers le plateau,
+dépôt et déverrouillage conservés. Analyse sans erreur ni avertissement,
+113 infos existantes. Aucun commit demandé.
+
+### Tiroir — flèche bloquée après appui long (2026-10-08, Codex)
+
+Retour de Paul : la flèche ne fonctionne plus. Régression reproduite dans les
+deux orientations : prendre une pièce non sélectionnée par appui long la
+sélectionne, remplace le LongPressDraggable par un Draggable, puis Flutter
+n'appelle plus onDragEnd sur l'ancien widget démonté. Le verrou de navigation
+restait donc actif après relâchement. La notification onDragFinished passe
+désormais par onDragCompleted et onDraggableCanceled, également appelés lorsque
+le widget source a été remplacé. Le tiroir se déverrouille après acceptation
+ou annulation, tout en gardant la flèche désactivée pendant la manipulation.
+Le test reproduisant le blocage échouait avant correction et passe maintenant,
+avec vérification du cran suivant ; un test vérifie aussi le dépôt accepté
+après sélection et retrait de la source. Validation : 12 tests ciblés réussis,
+puis suite complète de 291 tests réussie. Analyse sans erreur ni avertissement,
+113 infos existantes.
+Aucun commit demandé.
+
+### Tiroir — pièces nettes et un cran entier par appui (2026-10-08, Codex)
+
+Retour de Paul : avec trois pièces, seule celle du milieu paraît nette ; la flèche
+doit avancer d'un cran. Le ShaderMask et son fondu de bord sont retirés : les
+pièces visibles gardent leur opacité. Chaque appui prend la pièce la plus proche
+du centre (ou la dernière cible demandée lors d'appuis rapides) et centre la
+suivante. Un swipe arrêté juste avant un centre ne consomme donc plus l'appui
+pour seulement terminer le centrage de la même pièce. Le pas suit les centres
+réels des emplacements de tailles différentes ; boucle dernière-première et
+verrouillage pendant le drag conservés. La flèche reste liée au débordement.
+Validation : six tests ciblés tiroir/drag réussis en portrait/paysage, dont offsets
+avant/après centre, absence du fondu, trois pièces et plusieurs tours rapides.
+Analyse sans erreur ni avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Tiroir — flèche dès que les pièces restantes débordent (2026-10-08, Codex)
+
+Retour de Paul : trois pièces restantes, parfois seulement deux visibles sans
+flèche. Le seuil de quatre pièces est retiré : dès deux pièces, la flèche et la
+boucle sont proposées si leur longueur totale avec les marges dépasse l'espace
+disponible. Quand toutes tiennent, les marges de centrage aux extrémités sont
+remplacées par 16 dp pour afficher réellement toutes les pièces simultanément,
+sans flèche ni défilement. Une pièce seule conserve son centrage.
+Cette correction remplace la règle « moins de quatre pièces, pas de flèche »
+du plan initial. Validation : six tests ciblés tiroir/drag réussis en
+portrait/paysage, dont trois et deux pièces avec/sans débordement, navigation
+circulaire et visibilité complète quand tout tient. Analyse sans erreur ni
+avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Solo — fin compacte Double Tap et compteurs bruts (2026-10-08, Codex)
+
+À la demande de Paul, le récapitulatif de fin du Solo affiche Double Tap en rouge,
+sans phrase explicative, puis le temps total en secondes, le nombre de Help et
+le nombre de coups (strategyActions.total). Exemple : Double Tap · 100 s · 1 Help
+· 5 coups. Le nombre de coups reste affiché avec aide ; le Help est un nombre,
+pas un pourcentage. Double Tap reste fixe, les compteurs défilent si nécessaire.
+Le double-tap existant relance toujours une partie ; présentation Défi conservée.
+Libellés FR/EN ajoutés aux ARB et localisations régénérées avec headers.
+Validation : 10 tests ciblés réussis, dont Solo avec/sans aide en FR/EN, portrait
+320 x 568 et paysage 874 x 402 avec texte agrandi ; couleur rouge, valeurs et
+relance vérifiées. Analyse sans erreur ni avertissement, 113 infos existantes.
+Aucun commit demandé.
+
+### Solo — Temps, Stratégie et Aide ; drag dès 30 ms (2026-10-08, Codex)
+
+À la demande de Paul, la sensibilité du drag descend à 30 ms : borne du setter
+et bouton moins adaptés ; palier 30 puis 50/100/150/200 avec le bouton plus.
+Défaut constructeur et JSON sans valeur à 30 ms ; un délai déjà sauvegardé est
+conservé. Aucun changement de schéma ni de geste de drag immédiat d'une pièce
+déjà sélectionnée.
+
+Le Solo affiche désormais Temps et Stratégie (nombre de coups et détail des
+gestes dans le bilan), au lieu d'Acuité et Impasses, dans les compteurs, le
+récapitulatif de fin et le détail du bilan. Le taux d'aide garde le même calcul,
+mais s'appelle Aide en français, Assistance en anglais ; traduction partagée
+également utilisée en Défi. La règle existante masque toujours la performance
+Stratégie après aide et pour une ancienne partie sans comptage complet. Les
+calculs et historiques de mesures ne sont pas supprimés. ARB régénérés et headers
+des Dart modifiés renseignés. Description de la lampe également passée au vocabulaire
+Aide/Assistance. Validation : 17 tests ciblés et suite complète de 290 tests réussis ;
+analyse sans erreur ni avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Tiroir — continuité visuelle dernière-première (2026-10-08, Codex)
+
+Précision de Paul : la première doit suivre la dernière dans le même sens, sans
+retour animé en arrière. Le tiroir défilant affiche trois copies visuelles de la
+séquence, sans dupliquer les pièces dans l'état de jeu. Chaque pas vise le centre
+suivant ; après la dernière, la première copie arrive naturellement. Au repos,
+l'offset est recalé d'un tour sur une copie identique. Recalage suspendu pendant
+le drag et les animations ; appuis rapides conservant leur cible à travers les tours.
+Le swipe utilise aussi les copies circulaires. Aperçu initial limité à un seul
+parcours, puis retour au milieu ; grande flèche et seuil de visibilité conservés.
+Les changements de contenu continuent d'interrompre les cibles devenues périmées.
+Validation : suite complète de 284 tests réussie, y compris transition vers la
+première dans le même sens pendant l'animation et plus de deux tours rapides,
+portrait/paysage. Analyse sans erreur ni avertissement, 114 infos existantes.
+Ressenti sur iPhone à apprécier par Paul.
+Aucun commit demandé.
+
+### Tiroir — essai d'une flèche unique cyclique (2026-10-08, Codex)
+
+À la demande de Paul, les deux flèches sont remplacées par un grand chevron droit,
+cible 64 x 64 dp, icône 48 dp. À droite du tiroir horizontal ; en bas du tiroir
+vertical en paysage pour préserver la largeur des pièces. Un appui avance d'une
+pièce ; après la dernière, retour animé à la première, sans modifier l'ordre des
+pièces du provider ni lancer de défilement automatique continu. Les appuis rapides
+utilisent toujours la dernière cible demandée, y compris au passage de fin à début.
+La flèche reste active en fin de tiroir et se désactive pendant un drag. Seuil de
+quatre pièces et masquage quand tout tient conservés, ainsi que swipe et aperçu.
+Cette demande remplace les butées et la navigation précédente du plan initial.
+Validation : 12 tests ciblés réussis (boucle simple/rapide, portrait/paysage et
+régressions du drag). Analyse sans erreur ni avertissement, 114 infos existantes.
+Essai sur iPhone à apprécier par Paul. Aucun commit demandé.
+
+### Tiroir — flèches pas à pas (2026-10-08, Codex)
+
+Plan `docs/PLAN_FLECHES_TIROIR.md` approuvé par Paul puis implémenté. Flèches
+gauche/droite en portrait, haut/bas en paysage, zones 48 x 48 dp hors des pièces
+et du fondu. Chaque appui vise le centre voisin avec animateTo (250 ms), même
+avec des tailles d'emplacement différentes ; les appuis rapides partent de la
+dernière cible demandée. Boutons grisés aux butées et pendant le drag. Ils sont
+absents sous quatre pièces ou quand le contenu tient dans la longueur disponible.
+Le layout reste adaptatif, sans imposer exactement trois pièces visibles.
+
+Navigation désélectionnant la pièce du tiroir comme un swipe, sans modifier les
+compteurs ; aperçu initial et centrage au tap conservés. Toucher, modification du
+contenu ou de la géométrie interrompent la navigation ; offset borné après retrait.
+Un callback facultatif de fin de drag dans DraggablePieceWidget déverrouille les
+flèches. Réduction des animations : jumpTo, y compris pour le centrage au tap
+(animateTo exige une durée positive). Tooltips réutilisant previous/next EN/FR,
+sans changement d'ARB. Le widget partagé donne aussi les flèches au duel.
+
+Validation : suite complète de 284 tests réussie ; après les derniers ajustements,
+12 tests ciblés tiroir/drag réussis. Pas, appuis rapides, offsets intermédiaires,
+butées, retrait pendant animation, moins de quatre pièces, drag verrouillé,
+redimensionnement et animations réduites vérifiés en portrait/paysage. Analyse
+sans erreur ni avertissement, 114 infos existantes. Ressenti sur iPhone à apprécier
+par Paul ; plan conservé jusqu'à validation appareil. Aucun commit demandé.
+
+### Tiroir — swipe après aperçu et arrêt au milieu (2026-10-07, CLI)
+
+Retour de Paul : défilement automatique visible, swipe ensuite bloqué et départ souhaité
+au milieu. L'arrêt au toucher ne force plus jumpTo quand aucune animation automatique
+n'est active, pour ne pas perturber le geste manuel. L'aperçu parcourt le tiroir en 2,7 s
+puis centre la pièce d'indice length ~/ 2 en 0,3 s, sans la sélectionner. Toute interruption
+invalide aussi ce retour au milieu. Le centrage d'une sélection reste interruptible.
+Tests portrait/paysage : pièce centrale à la fin, swipes dans les deux sens sur les pièces,
+sélection conservée lors du recentrage, désélection lors d'un vrai swipe ; compteurs inchangés.
+Validation : suite complète de 282 tests réussie ; analyse sans erreur ni avertissement,
+114 infos existantes. Aucun commit demandé.
+
+### Tiroir — aperçu initial et centrage de la sélection (2026-10-07, CLI)
+
+À chaque nouveau puzzle, le tiroir parcourt les pièces de la première à la dernière
+puis revient au milieu en trois secondes au total (correction de 09:42), sans modifier
+la sélection, les compteurs ou le chrono. Un toucher
+ou une manipulation interrompt l'animation ; pas d'aperçu pour une partie déjà jouée
+ou quand la réduction des animations système est activée.
+La sélection par tap recentre doucement la pièce (250 ms), sans désélectionner.
+Des marges aux extrémités permettent aussi de centrer la première et la dernière pièce,
+en portrait et paysage, sans changer la taille des cases. Le défilement manuel conserve
+la règle de désélection ; une prise pour glisser vers le plateau ne recentre pas le tiroir
+sous le doigt. Les reconstructions ordinaires ne relancent pas l'aperçu.
+Validation : suite complète de 282 tests réussie, dont glissés paysage et nouveaux tests
+d'aperçu/centrage/interruption ; analyse sans erreur ni avertissement (114 infos existantes).
+Le confort du geste reste à apprécier par Paul sur l'iPhone. Aucun commit demandé.
+
+### Liste des défis — pièces à poser et minimum de coups (2026-10-07, CLI)
+
+Le nombre de solutions (désormais 1) disparaît de la liste. Affichage FR/EN de type
+« 7 pièces à poser en 12 coups » : minimum de la solution unique depuis les orientations
+initiales, précalculé à la préparation avec la fonction utilisée au bilan. Les pièces fixes
+restent exclues des deux nombres ; leur nombre séparé est retiré à la demande suivante
+de Paul (07:44). Seul « pièces à poser en X coups » reste affiché. Aucun changement
+des règles ou de version du tirage.
+Validation : tests ciblés du départ unique, de la liste et du minimum final réussis ;
+analyse Flutter sans erreur ni avertissement (114 infos existantes). Pluriels FR/EN testés.
+
+### Stratégie — ratio retiré sous les noms (2026-10-07, CLI)
+
+À la demande de Paul, suppression du sous-titre joué/minimum sous les noms dans les
+classements Stratégie jour, semaine et mois. Les coups ou points à droite, les calculs
+et le tri restent inchangés ; les autres affichages du ratio sont conservés.
+Validation : quatre tests de présentation FR/EN, largeurs 375 et 800, réussis ;
+analyse Flutter sans erreur ni avertissement (114 infos existantes).
+
+### Documentation — remise à zéro des scores Cloudflare (2026-10-07, CLI)
+
+Procédure manuelle ajoutée dans `server/README.md` : console D1 de `pentapol-defi`,
+suppression des versions antérieures à 3 ou de tous les scores, puis contrôle par version.
+Suppression définitive, sans recréer le schéma ni toucher à `challenges` ou aux données
+locales ; risque de renvoi des scores en attente des anciens clients précisé.
+Documentation seulement : aucune nouvelle suppression exécutée, purge toujours non confirmée.
+
+### Défis — départ commun à solution exacte unique (2026-10-07, CLI)
+
+Défis version 3 : un minimum de pièces fixes isole une solution exacte du corpus stocké,
+en laissant au moins la moitié des pièces à jouer. Filtrage en isolate et cache, sans
+nouveau solveur. Date UTC, taille, corpus et graine déterminent le même départ hors ligne
+et en ligne ; décision complémentaire : les définitions composées du serveur ne remplacent
+plus les défis quotidiens locaux. La liste annonce les pièces à poser, les pièces fixes
+et une solution. Les cadenas repèrent les pièces verrouillées, hors tiroir, hors coups,
+hors minimum théorique et hors dénominateur de l'aide. Le score réseau compte seulement
+les pièces jouées, y compris dans son ancien champ moves.
+
+Révision JSON locale 3 : anciens défis terminés et scores en attente effacés au chargement,
+sans toucher aux réglages, à l'identité ou au Solo ; aucune migration drift. Les partitions
+réseau version 3 sont distinctes des anciennes, sans changement de schéma ni déploiement.
+Paul autorise ensuite la suppression des anciens scores réseau : tentative de suppression
+des versions antérieures à 3 refusée par Cloudflare (7403, compte non autorisé) ; suppression
+non confirmée, accès à rétablir. Pas de suppression des définitions ni des profils.
+
+Vérification exécutée sur les 996 tirages solubles : unicité, déterminisme et cardinalité
+minimale des indices pour la cible choisie. Maximum observé : 1 à 3 pièces fixes selon
+la taille. Pour le 6×10, les 9356 pavages sont contrôlés sur trois graines : deux indices.
+Suite complète : 279 tests réussis ; analyse : zéro erreur/avertissement, 114 infos.
+Tests des cadenas en portrait/paysage et du score réellement envoyé. Aucun commit demandé.
+
+### Classements — présentation des points et du temps (2026-10-07, CLI)
+
+Les points semaine/mois s'affichent sans décimales, arrondis à l'entier ; le calcul réseau
+et l'ordre des joueurs ne changent pas. Le temps du classement quotidien affiche explicitement
+minutes et secondes (100 secondes : « 1 min 40 s »).
+Les minutes nulles sont omises : « 5 s », « 59 s », puis « 1 min 00 s » ; cas limites
+0 seconde et passage à 60 secondes vérifiés en FR/EN sur les deux largeurs.
+Le classement Temps ne présente plus de coups ni de ratio, quelle que soit la période ;
+ces informations restent dans Stratégie.
+Libellés FR/EN via ARB, localisations régénérées. Validation : 8 tests ciblés passent,
+dont les deux langues à 375 et 800 pixels, les trois périodes et le renvoi hors ligne.
+Analyse globale : aucune erreur ni avertissement, 114 infos existantes. Aucun commit demandé.
+
+### Défis — annonce de l'heure du prochain changement (2026-10-07, CLI)
+
+Branche `feat/defi-prochain-changement`. Constat de Paul à 01:43 : l'écran affichait encore les
+défis du mardi. Comportement voulu : le jour des défis est le jour **UTC** (CDC §« UTC obligatoire »,
+`challengeDay()`), donc à Paris le changement a lieu à 02:00 en heure d'été et à 01:00 en hiver.
+Décision de Paul : garder l'UTC et l'annoncer. `nextChallengeChange()` (`challenge.dart`) renvoie
+le prochain minuit UTC ; l'écran Défis affiche sous la date « Nouveaux défis à HH:MM » en heure
+locale, au format 12/24 h du téléphone (`MaterialLocalizations`). Clé ARB `nextChallengesAt`
+EN/FR. Tests : 5 cas unitaires (minuit pile, fin de mois et d'année, fuseau de l'entrée,
+coïncidence avec `challengeDay`) et présence du texte sur l'écran FR. Contrôle hors test :
+02:00 CEST, 01:00 CET, 20:00 à Montréal. 269 tests verts, analyse sans erreur ni avertissement
+(114 infos). L'heure n'est pas recalculée si l'écran reste ouvert au-delà du changement.
 
 ### Dépendances — drift_flutter retiré (2026-10-07, CLI)
 
@@ -1757,6 +2028,95 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-08 — Codex : phrase de réussite Solo agrandie.**
+Dimensions, secondes, coups et aides ou sans aide ; 22 sp gras, Double Tap rouge
+dans la même ligne défilante. 18 tests ciblés réussis, analyse sans erreur ni
+avertissement. Aucun commit demandé.
+
+**2026-10-08 — Codex : swipe et drag sélectionné distingués dans le tiroir.**
+Affinity de départ perpendiculaire au tiroir ; swipe sélectionné reproduit puis
+corrigé sans tentative de pose. 13 tests ciblés réussis, analyse sans erreur ni
+avertissement. Mouvement de fenêtre iOS à vérifier par Paul. Aucun commit demandé.
+
+**2026-10-08 — Codex : déverrouillage de la flèche après appui long corrigé.**
+Régression reproduite puis corrigée : fin de drag signalée même si la sélection
+remplace le widget source. Contrôles et résultats en §ÉTAT. Aucun commit demandé.
+
+**2026-10-08 — Codex : pièces du tiroir sans fondu et flèche d'un cran entier.**
+Fondu retiré ; navigation vers la voisine de la pièce la plus proche du centre,
+même après swipe intermédiaire. Six tests ciblés réussis, analyse sans erreur ni
+avertissement. Aucun commit demandé.
+
+**2026-10-08 — Codex : tiroir à trois pièces corrigé.**
+Flèche liée au débordement dès deux pièces, plus au seuil de quatre ; si tout
+tient, marges réduites pour rendre toutes les pièces visibles. Résultats en §ÉTAT.
+Aucun commit demandé.
+
+**2026-10-08 — Codex : fin Solo Double Tap rouge et compteurs bruts.**
+Temps en secondes, nombre de Help, nombre de coups même avec aide ; consigne
+réduite à Double Tap en rouge. 10 tests ciblés réussis, analyse sans erreur ni
+avertissement. Aucun commit demandé.
+
+**2026-10-08 — Codex : sensibilité minimale 30 ms et présentation Solo simplifiée.**
+Temps/Stratégie remplacent Acuité/Impasses dans le jeu et le bilan ; Triche devient
+Aide (Assistance EN). Délai minimal et défaut 30 ms, préférences existantes conservées.
+Résultat des contrôles en §ÉTAT ; aucun commit demandé.
+
+**2026-10-08 — Codex : boucle visuellement continue demandée par Paul.**
+La première suit la dernière dans le même sens : trois copies d'affichage et
+recalage d'un tour au repos, état des pièces inchangé. Tests de transition pendant
+l'animation et de plusieurs tours rapides ajoutés ; résultat en §ÉTAT.
+
+**2026-10-08 — Codex : essai de flèche unique cyclique demandé par Paul.**
+Grand chevron droit 64 dp, un pas par appui, retour à la première après la dernière ;
+en paysage placé en bas du tiroir vertical. Remplace les deux boutons à butées.
+12 tests ciblés réussis, analyse sans erreur/avertissement. Aucun commit demandé.
+
+**2026-10-08 — Codex : flèches du tiroir implémentées après accord.**
+Navigation par centres voisins, zones 48 dp, butées et verrouillage pendant le drag ;
+layout adaptatif conservé. 284 tests sur suite complète, puis 12 tests ciblés après
+ajustements ; analyse sans erreur/avertissement. Plan conservé pour validation
+appareil par Paul. Changements préexistants conservés, aucun commit demandé.
+
+**2026-10-07 — CLI : correction swipe et fin d'aperçu au milieu.**
+Suite au retour appareil de Paul, arrêt automatique uniquement quand actif ; parcours
+de 2,7 s puis centrage sans sélection de 0,3 s. Swipes sur les pièces testés dans les
+deux sens, portrait/paysage ; interruption empêche le retour automatique au milieu.
+
+**2026-10-07 — CLI : aperçu du tiroir et pièces sélectionnées centrées.**
+Parcours initial de trois secondes interruptible, recentrage sans perdre la sélection,
+marges de centrage aux deux extrémités ; défilement manuel désélectionne toujours.
+282 tests verts, analyse sans erreur/avertissement ; retour appareil attendu de Paul.
+
+**2026-10-07 — CLI : nombre de pièces fixes retiré de la liste Défis.**
+Précision de Paul : conserver uniquement les pièces à poser et le minimum de coups.
+
+**2026-10-07 — CLI : liste Défis, pièces à poser en X coups.**
+Nombre de solutions retiré ; minimum unique précalculé et libellé FR/EN. Les pièces fixes
+ne comptent pas. Test comparant minimum annoncé et bilan final ; aucun commit demandé.
+
+**2026-10-07 — CLI : ratio sous les noms retiré en Stratégie.**
+Présentation uniquement, sur les trois périodes ; tests FR/EN adaptés. Aucun commit demandé.
+
+**2026-10-07 — CLI : procédure Cloudflare documentée.**
+À la demande de Paul, remise à zéro des anciens scores ou de tous les scores et requête
+de contrôle ajoutées au README serveur. Aucune purge exécutée dans cette intervention.
+
+**2026-10-07 — CLI : défis uniques préremplis, version 3.**
+Départ commun hors/en ligne, pièces fixes exclues des compteurs et du minimum ; corpus
+contrôlé, 279 tests verts. Remise à zéro locale des seuls défis au chargement. Paul autorise
+la purge des anciens scores D1 ; accès Cloudflare refusé (7403), purge non confirmée.
+Décisions et contrôles détaillés en §ÉTAT ; aucun commit demandé.
+
+**2026-10-07 — CLI : points entiers, temps explicites et coups uniquement dans Stratégie.**
+Précision suivante de Paul appliquée : les minutes nulles sont omises, secondes seules sous une minute.
+Présentation des classements adaptée à la demande de Paul, sans modifier le calcul des points.
+Tests ciblés FR/EN et analyse verts ; changements non commités, détails en §ÉTAT.
+
+**2026-10-07 — CLI : Défis, annonce « Nouveaux défis à HH:MM ».**
+Le jour reste UTC ; l'écran annonce l'heure locale du prochain changement. Tests verts ;
+rendu sur appareil à confirmer par Paul. Détail en §ÉTAT.
 
 **2026-10-07 — CLI : drift_flutter retiré.**
 Jamais importé ; SQLite reste embarqué par sqlite3 3 via drift. Tests, analyse et builds

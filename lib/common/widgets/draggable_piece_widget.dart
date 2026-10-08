@@ -1,4 +1,7 @@
-// Modified: 2026-09-22 06:06 — rendre la miniature de drag optionnelle sans modifier le geste.
+// Modified: 2026-10-08 07:20 — distinguer le départ du drag sélectionné de l'axe de swipe du tiroir.
+// Historique: 2026-10-08 07:10 — déverrouiller la navigation même si le widget de drag est remplacé.
+// Historique: 2026-10-08 03:36 — signaler la fin du drag pour verrouiller la navigation du tiroir.
+// Historique: 2026-09-22 06:06 — rendre la miniature de drag optionnelle sans modifier le geste.
 // Historique: 2026-09-03 07:10 — fix drag tiroir : callback onGrab + dragAnchorStrategy captent
 //           l'offset local du toucher au départ du drag, transmis à l'appelant (le slider) pour
 //           ancrer la pièce sur la cellule empoignée. Feedback par défaut inchangé.
@@ -18,22 +21,26 @@ import 'package:pentapol/common/pentominos.dart';
 ///
 /// Gère deux modes :
 /// - Pièce non sélectionnée : LongPressDraggable (long press pour drag)
-/// - Pièce sélectionnée : Draggable normal (drag immédiat)
+/// - Pièce sélectionnée : Draggable, prise immédiate selon dragAffinity si fourni
 ///
 /// Interactions :
 /// - Tap simple : sélectionner la pièce
 /// - Double-tap : faire pivoter (si déjà sélectionnée)
 /// - Long press : commencer le drag (si non sélectionnée)
-/// - Drag immédiat : si déjà sélectionnée
+/// - Drag immédiat : si déjà sélectionnée, départ selon dragAffinity puis mouvement libre
 class DraggablePieceWidget extends StatefulWidget {
   final Pento piece;
   final int positionIndex;
   final bool isSelected;
   final int selectedPositionIndex;
   final Duration longPressDuration;
+
+  /// Direction de prise d'une pièce sélectionnée, sans limiter son déplacement ensuite.
+  final Axis? dragAffinity;
   final VoidCallback onSelect;
   final VoidCallback onCycle;
   final VoidCallback onCancel;
+  final VoidCallback? onDragFinished;
   final Widget Function(bool isDragging) childBuilder;
   final bool showDragFeedback;
 
@@ -60,6 +67,8 @@ class DraggablePieceWidget extends StatefulWidget {
     required this.showDragFeedback,
     this.hitBoxSize,
     this.onGrab,
+    this.onDragFinished,
+    this.dragAffinity,
   });
 
   @override
@@ -185,8 +194,12 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
     if (widget.isSelected) {
       return Draggable<Pento>(
         data: widget.piece,
+        affinity: widget.dragAffinity,
         dragAnchorStrategy: _captureGrab,
         onDragStarted: _handleDragStart,
+        // Ces callbacks restent appelés si la sélection remplace le Draggable actif.
+        onDragCompleted: widget.onDragFinished,
+        onDraggableCanceled: (_, _) => widget.onDragFinished?.call(),
         onDragEnd: (details) {
           if (!details.wasAccepted) {
             widget.onCancel();
@@ -202,6 +215,8 @@ class _DraggablePieceWidgetState extends State<DraggablePieceWidget> {
         delay: widget.longPressDuration,
         dragAnchorStrategy: _captureGrab,
         onDragStarted: _handleDragStart,
+        onDragCompleted: widget.onDragFinished,
+        onDraggableCanceled: (_, _) => widget.onDragFinished?.call(),
         onDragEnd: (details) {
           if (!details.wasAccepted) {
             widget.onCancel();

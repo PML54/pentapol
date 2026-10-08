@@ -180,6 +180,13 @@ Ces points ont coûté du temps une fois. Ils remplacent la §DÉCISIONS du jour
    accueillerait un chevauchement fausserait les deux **en silence**. Le refus se manifeste par
    **grisage préventif** des boutons dont l'opération échouerait (pas de message, choix de Paul).
 
+8. **Les défis version 3 ont une solution exacte unique.** Date UTC, taille et corpus
+   versionné déterminent localement le même départ avec ou sans réseau ; les définitions
+   composées du serveur ne remplacent pas ce départ. Des pièces fixes minimales isolent
+   un pavage stocké en laissant au moins la moitié des pièces à jouer. Elles sont verrouillées,
+   hors tiroir, hors coups et hors minimum théorique. Toute modification du tirage ou du
+   choix des indices incrémente `kChallengeVersion` pour séparer les résultats.
+
 ## Protocole entre agents — OBLIGATOIRE
 
 Deux agents travaillent sur ce dépôt : **Claude Code (CLI)**, qui écrit le code,

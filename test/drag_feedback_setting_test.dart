@@ -1,4 +1,5 @@
-// Modified: 2026-09-23 05:13 — vérifier le réglage et le découpage des pièces illustrées.
+// Modified: 2026-10-08 07:11 — vérifier la fin du drag après sélection et retrait de sa source.
+// Historique: 2026-09-23 05:13 — vérifier le réglage et le découpage des pièces illustrées.
 // Historique: 2026-09-22 16:31 — vérifier le relais visuel hors plateau quand la copie est masquée.
 // Historique: 2026-09-22 06:06 — vérifier le défaut masqué, la persistance et le feedback optionnel.
 // test/drag_feedback_setting_test.dart
@@ -17,6 +18,65 @@ import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
 import 'package:pentapol/pentoscope/widgets/illustrated_piece_cells.dart';
 
 void main() {
+  testWidgets('fin signalée après sélection puis retrait de la source', (
+    tester,
+  ) async {
+    var selected = false;
+    var removed = false;
+    var finishes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, update) => Row(
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: removed
+                      ? const SizedBox.shrink()
+                      : DraggablePieceWidget(
+                          piece: pentominos.first,
+                          positionIndex: 0,
+                          isSelected: selected,
+                          selectedPositionIndex: 0,
+                          longPressDuration: const Duration(milliseconds: 30),
+                          onSelect: () {},
+                          onCycle: () {},
+                          onCancel: () {},
+                          onGrab: (_, _) => update(() => selected = true),
+                          onDragFinished: () => finishes++,
+                          showDragFeedback: false,
+                          childBuilder: (_) => const Text('source'),
+                        ),
+                ),
+                DragTarget<Pento>(
+                  onAcceptWithDetails: (_) => update(() => removed = true),
+                  builder: (_, _, _) => const SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: Text('target'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('source')),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    expect(selected, isTrue);
+    await gesture.moveTo(tester.getCenter(find.byType(DragTarget<Pento>)));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(removed, isTrue);
+    expect(finishes, 1);
+  });
   test('la miniature de drag est masquée par défaut et sérialisée', () {
     expect(const GameSettings().showDragFeedback, isFalse);
 

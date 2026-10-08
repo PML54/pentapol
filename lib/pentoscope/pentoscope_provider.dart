@@ -1,4 +1,6 @@
-// Modified: 2026-10-06 04:45 — calculer le minimum de coups propre à la solution finale du défi.
+// Modified: 2026-10-07 07:40 — précalculer le minimum du défi unique pour son affichage dans la liste.
+// Historique: 2026-10-07 06:53 — défis préremplis à solution unique, pièces fixes exclues des gestes et du minimum.
+// Historique: 2026-10-06 04:45 — calculer le minimum de coups propre à la solution finale du défi.
 // Historique: 2026-10-06 04:16 — précalculer le minimum de coups du défi et transmettre le ratio.
 // Historique: 2026-10-05 20:00 — compter et persister les actions du classement Stratégie.
 // Historique: 2026-10-05 07:43 — mettre en file les scores de défi si le réseau refuse l'envoi.
@@ -217,8 +219,84 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
   /// Défi en cours (mode classé). null hors défi. Sa complétion POST le score au serveur.
   ChallengeDefinition? _activeChallenge;
+  final Map<String, Future<ChallengeDefinition>> _preparedChallenges = {};
 
-  final ChallengeApi _challengeApi = ChallengeApi();
+  Future<ChallengeDefinition> _prepareChallenge(ChallengeDefinition challenge) {
+    final key = jsonEncode([
+      challenge.day,
+      challenge.size.index,
+      challenge.mask,
+      [
+        for (final id in challenge.pieceIds) [id, challenge.orientations[id]],
+      ],
+      for (final piece in challenge.fixedPieces)
+        [piece.piece.id, piece.positionIndex, piece.gridX, piece.gridY],
+    ]);
+    return _preparedChallenges.putIfAbsent(key, () async {
+      final source = await _makeSolutionSource(
+        challenge.size,
+        challenge.pieceIds,
+      );
+      final fixed = challenge.fixedPieces.isEmpty
+          ? await source.uniqueChallengeClues(
+              challengeSeed(
+                    kChallengeVersion,
+                    challenge.dayIndex,
+                    challenge.size.index,
+                  ) ^
+                  challenge.mask,
+            )
+          : challenge.fixedPieces;
+      final board = _challengeBoard(challenge.size, fixed);
+      if (fixed.length > challenge.pieceIds.length ~/ 2 ||
+          source.countFrom(board) != 1) {
+        throw StateError(
+          'Challenge must have one solution and enough playable pieces',
+        );
+      }
+      final fixedIds = fixed.map((piece) => piece.piece.id).toSet();
+      final solution = source.hintFrom(board, const []);
+      if (solution == null) {
+        throw StateError('Missing unique challenge solution');
+      }
+      final minimum = minimumSolutionMoves(
+        solution.where((piece) => !fixedIds.contains(piece.piece.id)).toList(),
+        {
+          for (final id in challenge.pieceIds)
+            if (!fixedIds.contains(id)) id: challenge.orientations[id]!,
+        },
+      );
+      return ChallengeDefinition(
+        theoreticalMoves: minimum,
+        day: challenge.day,
+        dayIndex: challenge.dayIndex,
+        size: challenge.size,
+        mask: challenge.mask,
+        solutionCount: 1,
+        pieceIds: challenge.pieceIds,
+        orientations: challenge.orientations,
+        fixedPieces: List.unmodifiable(fixed),
+      );
+    });
+  }
+
+  Plateau _challengeBoard(PentoscopeSize size, List<PlacedPiece> fixed) {
+    final board = Plateau.allVisible(size.width, size.height);
+    final ids = <int>{};
+    for (final piece in fixed) {
+      if (!ids.add(piece.piece.id)) {
+        throw StateError('Duplicate challenge clue');
+      }
+      for (final cell in piece.absoluteCells) {
+        if (!board.isInBounds(cell.x, cell.y) ||
+            board.getCell(cell.x, cell.y) != 0) {
+          throw StateError('Illegal challenge clue');
+        }
+        board.setCell(cell.x, cell.y, piece.piece.id);
+      }
+    }
+    return board;
+  }
 
   /// Le défi en cours (semaine/taille), pour ouvrir son classement depuis le bilan. null hors défi.
   ChallengeDefinition? get activeChallenge => _activeChallenge;
@@ -825,6 +903,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   }
 
   void removePlacedPiece(PlacedPiece placed) {
+    if (state.fixedPieceIds.contains(placed.piece.id)) return;
     _recordStrategyAction(StrategyAction.removal);
     final newPlateau = _rebuildPlateau(exclude: placed);
 
@@ -979,6 +1058,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// le drag sur le doigt comme le fait le plateau (cf. b86e942). null → cellule par défaut (tap).
   /// [grabLocal] : offset px du toucher dans la boîte de la pièce, pour reconstruire le doigt (onMove).
   void selectPiece(Pento piece, {Point? grabbedCell, Offset? grabLocal}) {
+    if (state.fixedPieceIds.contains(piece.id)) return;
     _dragGrabLocal = grabLocal;
     // ✨ BUGFIX: Si la pièce est déjà sélectionnée, utiliser selectedPositionIndex
     // (qui a été mis à jour par l'isométrie)
@@ -1012,6 +1092,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
 
   void selectPlacedPiece(PlacedPiece placed, int absoluteX, int absoluteY) {
+    if (state.fixedPieceIds.contains(placed.piece.id)) return;
     if (state.isComplete) return; // ← Bloquer si puzzle complet
 
     // Calculer la cellule locale cliquée (mastercase) en coordonnées brutes
@@ -1252,6 +1333,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// sur l'ampoule neutralisé, §4.8), non progression. **Éphémère** : ne persiste pas et n'efface
   /// pas la partie de progression sauvegardée (re-dérivable depuis la semaine).
   Future<void> startChallenge(ChallengeDefinition challenge) async {
+    challenge = await _prepareChallenge(challenge);
     _isMultiplayer = false;
     _activeChallenge = challenge;
     final size = challenge.size;
@@ -1264,9 +1346,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     _solutions = await _makeSolutionSource(size, pieceIds);
 
     final pieces = pieceIds
+        .where(
+          (id) => !challenge.fixedPieces.any((piece) => piece.piece.id == id),
+        )
         .map((id) => pentominos.firstWhere((p) => p.id == id))
         .toList();
-    final plateau = Plateau.allVisible(size.width, size.height);
+    final plateau = _challengeBoard(size, challenge.fixedPieces);
     final piecePositionIndices = Map<int, int>.from(challenge.orientations);
 
     resetTimer();
@@ -1275,11 +1360,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       puzzle: puzzle,
       plateau: plateau,
       availablePieces: pieces,
-      placedPieces: [],
+      placedPieces: challenge.fixedPieces,
+      fixedPieceIds: Set.unmodifiable({
+        for (final piece in challenge.fixedPieces) piece.piece.id,
+      }),
       piecePositionIndices: piecePositionIndices,
-      initialOrientations: Map.from(
-        piecePositionIndices,
-      ), // rack du défi (acuité §4.2)
+      initialOrientations: {
+        for (final piece in pieces) piece.id: piecePositionIndices[piece.id]!,
+      },
       isComplete: false,
       isometryCount: 0,
       translationCount: 0,
@@ -1294,8 +1382,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  /// Demarre le defi quotidien de cette taille. Le serveur peut imposer une definition ; hors
-  /// ligne, la meme definition est derivee localement depuis la date UTC.
+  /// Défi version 3 : dérivation locale commune, indépendante de l'état du réseau.
   Future<void> startDailyChallenge(
     PentoscopeSize size, {
     DateTime? date,
@@ -1308,20 +1395,15 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     DateTime? date,
   }) async {
     final selectedDate = (date ?? DateTime.now()).toUtc();
-    final fetched = await ref
-        .read(challengeApiProvider)
-        .fetchChallenge(
-          version: kChallengeVersion,
-          day: challengeDay(selectedDate),
-          size: size,
-        );
-    if (fetched != null) return fetched;
+    // A server override could give connected players a different puzzle than offline players.
     final masks = await _generator.solubleMasksFor(size);
-    return deriveChallenge(
-      date: selectedDate,
-      size: size,
-      solubleMasks: masks,
-      solutionCountForMask: _generator.countOfMask,
+    return _prepareChallenge(
+      deriveChallenge(
+        date: selectedDate,
+        size: size,
+        solubleMasks: masks,
+        solutionCountForMask: _generator.countOfMask,
+      ),
     );
   }
 
@@ -1346,7 +1428,14 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
               state.hintCount == 0 &&
               state.strategyActions.eligible &&
               state.placedPieces.length == puzzle.size.numPieces
-          ? minimumSolutionMoves(state.placedPieces, state.initialOrientations)
+          ? minimumSolutionMoves(
+              state.placedPieces
+                  .where(
+                    (piece) => !state.fixedPieceIds.contains(piece.piece.id),
+                  )
+                  .toList(),
+              state.initialOrientations,
+            )
           : null,
     );
   }
@@ -1515,7 +1604,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         isoCount: metrics.isometryCount,
         faults: metrics.faults,
         timeMs: metrics.timeSeconds * 1000,
-        moves: ch.size.numPieces + state.translationCount + state.deleteCount,
+        moves:
+            ch.playablePieceCount + state.translationCount + state.deleteCount,
         grid: _gridString(),
         theoreticalMoves: metrics.theoreticalMoves,
         finalSolutionMinimum: metrics.theoreticalMoves != null,
@@ -1526,23 +1616,25 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             ? state.strategyActions.breakdown
             : null,
       );
-      final sent = await _challengeApi.submitScore(
-        version: score.version,
-        day: score.day,
-        size: score.size,
-        playerId: score.playerId,
-        pseudo: score.pseudo,
-        minIso: score.minIso,
-        isoCount: score.isoCount,
-        faults: score.faults,
-        timeMs: score.timeMs,
-        moves: score.moves,
-        strategyActions: score.strategyActions,
-        actionCounts: score.actionCounts,
-        theoreticalMoves: score.theoreticalMoves,
-        finalSolutionMinimum: score.finalSolutionMinimum,
-        grid: score.grid,
-      );
+      final sent = await ref
+          .read(challengeApiProvider)
+          .submitScore(
+            version: score.version,
+            day: score.day,
+            size: score.size,
+            playerId: score.playerId,
+            pseudo: score.pseudo,
+            minIso: score.minIso,
+            isoCount: score.isoCount,
+            faults: score.faults,
+            timeMs: score.timeMs,
+            moves: score.moves,
+            strategyActions: score.strategyActions,
+            actionCounts: score.actionCounts,
+            theoreticalMoves: score.theoreticalMoves,
+            finalSolutionMinimum: score.finalSolutionMinimum,
+            grid: score.grid,
+          );
       if (!sent) {
         await ref
             .read(settingsProvider.notifier)
@@ -3114,6 +3206,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
 
 /// État du jeu Pentoscope
 class PentoscopeState implements PieceManipulationState {
+  final Set<int> fixedPieceIds;
+
   /// Orientation "vue" (repère écran). Ne change pas la logique.
   /// Sert à interpréter des actions (ex: Sym H/V) en paysage.
   final ViewOrientation viewOrientation;
@@ -3207,6 +3301,7 @@ class PentoscopeState implements PieceManipulationState {
   final Map<int, int> pieceIsometryCounts;
 
   const PentoscopeState({
+    this.fixedPieceIds = const {},
     this.geometry,
     this.viewOrientation = ViewOrientation.portrait,
     this.puzzle,
@@ -3293,6 +3388,7 @@ class PentoscopeState implements PieceManipulationState {
   }
 
   PentoscopeState copyWith({
+    Set<int>? fixedPieceIds,
     GeometryScore? geometry,
     ViewOrientation? viewOrientation,
     PentoscopePuzzle? puzzle,
@@ -3344,6 +3440,7 @@ class PentoscopeState implements PieceManipulationState {
     Map<int, int>? pieceIsometryCounts,
   }) {
     return PentoscopeState(
+      fixedPieceIds: fixedPieceIds ?? this.fixedPieceIds,
       geometry: geometry ?? this.geometry,
       viewOrientation: viewOrientation ?? this.viewOrientation,
       puzzle: puzzle ?? this.puzzle,

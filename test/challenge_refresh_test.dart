@@ -1,4 +1,7 @@
-// Modified: 2026-10-06 04:48 — vérifier le nombre de solutions et la nouvelle règle lors du renvoi.
+// Modified: 2026-10-07 07:40 — vérifier pièces à poser et coups à la place du nombre de solutions.
+// Historique: 2026-10-07 02:10 — vérifier que le renvoi actualise Temps sans afficher les coups.
+// Historique: 2026-10-07 01:46 — vérifier l'annonce « Nouveaux défis à … » sur l'écran Défis.
+// Historique: 2026-10-06 04:48 — vérifier le nombre de solutions et la nouvelle règle lors du renvoi.
 // Historique: 2026-10-06 04:16 — vérifier le renvoi avant lecture, la panne persistante et les renvois concurrents.
 import 'dart:async';
 import 'dart:convert';
@@ -34,6 +37,7 @@ class _DefinitionsGame extends PentoscopeNotifier {
       size: size,
       mask: 74,
       solutionCount: 1,
+      theoreticalMoves: 7,
       pieceIds: const [2, 4, 7],
       orientations: const {},
     );
@@ -76,6 +80,14 @@ PendingChallengeScore score(String day) => PendingChallengeScore(
 );
 
 void main() {
+  test('pièces à poser en coups, pluriels FR/EN', () async {
+    final fr = await AppLocalizations.delegate.load(const Locale('fr'));
+    final en = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(fr.challengePiecesInMoves(7, 12), '7 pièces à poser en 12 coups');
+    expect(fr.challengePiecesInMoves(1, 1), '1 pièce à poser en 1 coup');
+    expect(en.challengePiecesInMoves(7, 12), '7 pieces to place in 12 moves');
+    expect(en.challengePiecesInMoves(1, 1), '1 piece to place in 1 move');
+  });
   for (final language in ['fr', 'en']) {
     testWidgets(
       'Actualiser attend le POST et recharge les classements ($language)',
@@ -173,7 +185,12 @@ void main() {
         expect(events.where((event) => event == 'POST').length, 1);
         expect(events.where((event) => event == 'GET').length, readsBefore + 2);
         expect(find.text('Paul'), findsWidgets);
-        expect(find.text('14/7'), findsWidgets);
+        expect(
+          tester
+              .widget<ListTile>(find.byType(ListTile).hitTestable().first)
+              .subtitle,
+          isNull,
+        );
         expect(
           container.read(settingsProvider).pendingChallengeScores.single.day,
           '2026-10-07',
@@ -295,7 +312,9 @@ void main() {
     );
     await settleIO(tester);
     expect(game.loads, kChallengeSizes.length);
-    expect(find.textContaining('1 solution'), findsWidgets);
+    expect(find.textContaining('1 solution'), findsNothing);
+    expect(find.textContaining('3 pièces à poser en 7 coups'), findsWidgets);
+    expect(find.textContaining('Nouveaux défis à '), findsOneWidget);
     expect(find.textContaining('coups théoriques'), findsNothing);
     expect(
       tester.getCenter(find.byIcon(Icons.refresh)).dx,

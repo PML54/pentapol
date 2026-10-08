@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 07:24 — placer l'accès au développeur en fin de Paramètres.
+// Modified: 2026-10-08 06:50 — proposer le palier de sensibilité de drag à 30 ms.
+// Historique: 2026-10-02 07:24 — placer l'accès au développeur en fin de Paramètres.
 // Historique: 2026-09-25 07:48 — retrait de la tuile Aide déplacée dans l'accueil.
 // Historique: 2026-09-25 02:56 — tuile « Aide » (section À propos, avant la version) → HelpScreen.
 // Historique: 2026-09-22 06:06 — interrupteur de visibilité de la miniature pendant le drag.
@@ -230,7 +231,7 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.remove),
-                    onPressed: settings.game.longPressDuration > 50
+                    onPressed: settings.game.longPressDuration > 30
                         ? () => notifier.setLongPressDuration(
                             settings.game.longPressDuration - 50,
                           )
@@ -240,7 +241,9 @@ class SettingsScreen extends ConsumerWidget {
                     icon: const Icon(Icons.add),
                     onPressed: settings.game.longPressDuration < 200
                         ? () => notifier.setLongPressDuration(
-                            settings.game.longPressDuration + 50,
+                            settings.game.longPressDuration < 50
+                                ? 50
+                                : settings.game.longPressDuration + 50,
                           )
                         : null,
                   ),

@@ -1,3 +1,5 @@
+// Modified: 2026-10-08 07:30 — régénérer la réussite Solo avec ou sans aide en français.
+// Historique: 2026-10-08 06:58 — régénérer les secondes, Help et coups du récapitulatif Solo FR.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -135,8 +137,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get showCounters => 'Afficher les compteurs';
 
   @override
-  String get showCountersSub =>
-      'Géométrie, impasses et triche pendant la partie.';
+  String get showCountersSub => 'Temps, stratégie et aide pendant la partie.';
 
   @override
   String get rackSize => 'Taille des pièces du rack';
@@ -231,6 +232,64 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get rankingTime => 'Temps';
+
+  @override
+  String get challengeFixedPiece => 'Pièce fixe';
+
+  @override
+  String challengeFixedPieces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pièces fixes',
+      one: '$count pièce fixe',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengePlayablePieces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pièces à poser',
+      one: '$count pièce à poser',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengePiecesInMoves(int count, int moves) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pièces à poser',
+      one: '$count pièce à poser',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      moves,
+      locale: localeName,
+      other: '$moves coups',
+      one: '$moves coup',
+    );
+    return '$_temp0 en $_temp1';
+  }
+
+  @override
+  String rankingPoints(int count) {
+    return '$count pts';
+  }
+
+  @override
+  String rankingDuration(int minutes, String seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes min $seconds s',
+      zero: '$seconds s',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get refreshChallengeResults => 'Actualiser les résultats';
@@ -329,6 +388,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get challengeModeBadge => 'Mode Défi';
+
+  @override
+  String nextChallengesAt(String time) {
+    return 'Nouveaux défis à $time';
+  }
 
   @override
   String get challengeIntro =>
@@ -798,6 +862,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gameTapNewGame => 'Double tap pour une nouvelle partie.';
 
   @override
+  String get soloDoubleTap => 'Double Tap';
+
+  @override
+  String soloCompletionStats(String size, int seconds, int helps, int moves) {
+    String _temp0 = intl.Intl.pluralLogic(
+      moves,
+      locale: localeName,
+      other: '$moves coups',
+      one: '1 coup',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      helps,
+      locale: localeName,
+      other: 'avec $helps aides',
+      one: 'avec 1 aide',
+      zero: 'sans aide',
+    );
+    return '$size réussi en $seconds s et $_temp0 $_temp1';
+  }
+
+  @override
   String get geometryTitle => 'Réglage du barème';
 
   @override
@@ -849,7 +934,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get legendGeometry => 'Géométrie';
 
   @override
-  String get legendCheating => 'Triche';
+  String get legendCheating => 'Aide';
 
   @override
   String get geometryAssisted => 'Partie aidée';
@@ -1027,7 +1112,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get helpDescLampAmber =>
-      'Tu peux continuer : il reste au moins une solution. Si tu souhaites de l\'aide, touche la lampe : elle pose automatiquement une pièce à la bonne place. Cet appui compte comme de la Triche.';
+      'Tu peux continuer : il reste au moins une solution. Si tu souhaites de l\'aide, touche la lampe : elle pose automatiquement une pièce à la bonne place. Cet appui compte comme une aide.';
 
   @override
   String get helpDescLampRed =>

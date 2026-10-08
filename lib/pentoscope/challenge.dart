@@ -1,11 +1,15 @@
-// Modified: 2026-10-06 04:48 — retirer le minimum global, désormais propre à chaque solution finale.
+// Modified: 2026-10-07 07:40 — conserver le minimum théorique du défi unique pour la liste.
+// Historique: 2026-10-07 06:53 — défis version 3 avec pièces fixes et une solution exacte commune.
+// Historique: 2026-10-07 01:46 — prochain minuit UTC pour annoncer le changement de défis.
+// Historique: 2026-10-06 04:48 — retirer le minimum global, désormais propre à chaque solution finale.
 // Historique: 2026-10-06 04:16 — conserver le minimum théorique calculé avant le défi.
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/pentapol_rng.dart';
+import 'package:pentapol/common/placed_piece.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 
 /// Toute modification de la derivation doit incrementer cette version.
-const int kChallengeVersion = 2;
+const int kChallengeVersion = 3;
 
 final DateTime kChallengeEpoch = DateTime.utc(2026, 1, 1);
 
@@ -17,6 +21,13 @@ String challengeDay([DateTime? now]) {
   return '${utc.year.toString().padLeft(4, '0')}-'
       '${utc.month.toString().padLeft(2, '0')}-'
       '${utc.day.toString().padLeft(2, '0')}';
+}
+
+/// Instant (UTC) où [challengeDay] change : le prochain minuit UTC, strictement
+/// après [now]. À afficher en heure locale (`toLocal()`).
+DateTime nextChallengeChange([DateTime? now]) {
+  final utc = (now ?? DateTime.now()).toUtc();
+  return DateTime.utc(utc.year, utc.month, utc.day + 1);
 }
 
 int daysSinceEpoch(DateTime now) {
@@ -36,6 +47,9 @@ int challengeSeed(int version, int day, int sizeIndex) {
 }
 
 class ChallengeDefinition {
+  final int? theoreticalMoves;
+  final List<PlacedPiece> fixedPieces;
+  int get playablePieceCount => pieceIds.length - fixedPieces.length;
   final String day;
   final int dayIndex;
   final PentoscopeSize size;
@@ -45,6 +59,8 @@ class ChallengeDefinition {
   final Map<int, int> orientations;
 
   const ChallengeDefinition({
+    this.theoreticalMoves,
+    this.fixedPieces = const [],
     required this.day,
     required this.dayIndex,
     required this.size,

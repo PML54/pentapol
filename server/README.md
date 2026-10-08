@@ -39,13 +39,57 @@ npm run deploy
 
 En local : `npm run db:init:local` puis `npm run dev`.
 
+## Remise à zéro des scores depuis Cloudflare
+
+Procédure de développement, ajoutée le 2026-10-07 à la demande de Paul.
+Dans le tableau de bord Cloudflare, ouvrir **Storage & Databases → D1 → pentapol-defi**,
+puis l'onglet **Console**. La suppression est définitive : choisir une seule des deux options.
+
+Pour supprimer uniquement les anciens scores et conserver ceux des défis version 3 :
+
+```sql
+DELETE FROM scores WHERE version < 3;
+```
+
+Pour vider tous les scores, y compris ceux de la version 3 :
+
+```sql
+DELETE FROM scores;
+```
+
+Vérifier ensuite les scores restants par version :
+
+```sql
+SELECT version, COUNT(*) AS nombre
+FROM scores
+GROUP BY version;
+```
+
+Après une suppression complète, cette requête ne doit retourner aucune ligne.
+Ces commandes ne modifient ni la table `challenges`, ni les réglages, l'identité ou
+les résultats locaux des joueurs. Des clients conservant des scores en attente peuvent
+les renvoyer : la nouvelle app réinitialise les anciens défis et leur file locale avec
+la révision 3, mais les anciens clients doivent être mis à jour pour éviter ce renvoi.
+Ne pas utiliser `schema.sql` pour cette opération : il recrée aussi la table `challenges`.
+En cas de refus d'accès CLI Cloudflare (7403), utiliser la console avec un compte ayant
+accès à cette base ; l'erreur ne constitue pas une confirmation de suppression.
+
 ## Protocole
 
 Base URL = l'URL du worker déployé.
 
+Depuis la version de défi **3** (2026-10-07), l'app dérive localement le même puzzle
+prérempli depuis la date UTC, la taille et le corpus versionné, avec ou sans réseau.
+Un ensemble minimal de pièces fixes isole une solution exacte, en laissant au moins
+la moitié des pièces à jouer. Les indices ne comptent ni dans les coups ni dans le
+minimum théorique. Le réseau transporte les résultats, pas une variante du puzzle.
+Les scores version 2 restent séparés par la partition `version` ; aucune migration D1
+ni nouveau schéma n'est nécessaire. Les endpoints de composition restent disponibles
+pour les anciens clients/outils, mais ne remplacent plus les défis quotidiens version 3.
+
 - **`POST /score`** — enregistre l'essai (unique par joueur/défi, §7.1). Corps JSON :
   ```json
-  { "version": 2, "day": "2026-09-24", "size": 1, "playerId": "<32 hex>", "pseudo": "Paul",
+  { "version": 3, "day": "2026-10-07", "size": 1, "playerId": "<32 hex>", "pseudo": "Paul",
     "timeMs": 92000, "strategyActions": 10, "theoreticalMoves": 6, "finalSolutionMinimum": true,
     "actionCounts": { "placement": 4, "rotation": 2, "symmetry": 1, "translation": 2, "removal": 1 },
     "grid": "<ids par case>" }

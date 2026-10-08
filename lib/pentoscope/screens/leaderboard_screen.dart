@@ -1,4 +1,7 @@
-// Modified: 2026-10-07 01:33 — flutter_lints 6 : `__` remplacé par `_` (unnecessary_underscores).
+// Modified: 2026-10-07 07:38 — retirer le ratio de coups sous les noms du classement Stratégie.
+// Historique: 2026-10-07 02:13 — omettre les minutes nulles et le zéro initial des secondes seules.
+// Historique: 2026-10-07 02:10 — points entiers, temps en minutes/secondes et coups réservés à Stratégie.
+// Historique: 2026-10-07 01:33 — flutter_lints 6 : `__` remplacé par `_` (unnecessary_underscores).
 // Historique: 2026-10-06 04:16 — Actualiser renvoie les scores en attente avant de recharger les deux classements.
 // Historique: 2026-10-05 20:00 — afficher uniquement Temps vert et Stratégie jaune en actions.
 // Historique: 2026-09-06 04:50 — i18n : titre, semaine, onglets (label de maillot résolu par helper —
@@ -117,13 +120,17 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   }
 
   String _valueOf(_MaillotSpec spec, LeaderboardEntry e) {
+    final l10n = AppLocalizations.of(context);
     if (_period != LeaderboardPeriod.day) {
-      return '${e.points.toStringAsFixed(1)} pts';
+      return l10n.rankingPoints(e.points.round());
     }
     switch (spec.maillot) {
       case Maillot.temps:
         final s = e.timeMs ~/ 1000;
-        return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
+        return l10n.rankingDuration(
+          s ~/ 60,
+          s < 60 ? s.toString() : (s % 60).toString().padLeft(2, '0'),
+        );
       case Maillot.strategie:
         return AppLocalizations.of(
           context,
@@ -301,15 +308,6 @@ class _MaillotTab extends StatelessWidget {
                     fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
-                subtitle:
-                    e.theoreticalMoves == null || e.strategyActions == null
-                    ? null
-                    : Text(
-                        AppLocalizations.of(context).strategyMoveRatio(
-                          e.theoreticalMoves!,
-                          e.strategyActions!,
-                        ),
-                      ),
                 trailing: Text(
                   screen._valueOf(spec, e),
                   style: const TextStyle(

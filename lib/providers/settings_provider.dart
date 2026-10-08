@@ -1,4 +1,5 @@
-// Modified: 2026-10-06 04:48 — préserver la règle du dénominateur lors du renvoi hors ligne.
+// Modified: 2026-10-08 06:50 — autoriser le délai de prise des pièces dès 30 ms.
+// Historique: 2026-10-06 04:48 — préserver la règle du dénominateur lors du renvoi hors ligne.
 // Historique: 2026-10-06 04:16 — attendre un renvoi en cours et préserver les scores ajoutés pendant le renvoi.
 // Historique: 2026-10-05 20:00 — renvoyer aussi le score Stratégie conservé hors ligne.
 // Historique: 2026-10-05 07:43 — file locale et reprise automatique des scores de défi non envoyés.
@@ -459,10 +460,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
-  /// Change la durée du long press (sensibilité du drag). Bornée à [50, 200] ms (retour de Paul).
+  /// Change la durée du long press (sensibilité du drag). Bornée à [30, 200] ms.
   Future<void> setLongPressDuration(int duration) async {
     state = state.copyWith(
-      game: state.game.copyWith(longPressDuration: duration.clamp(50, 200)),
+      game: state.game.copyWith(longPressDuration: duration.clamp(30, 200)),
     );
     await _saveSettings();
   }

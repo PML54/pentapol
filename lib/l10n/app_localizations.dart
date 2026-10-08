@@ -1,3 +1,5 @@
+// Modified: 2026-10-08 07:30 — régénérer la phrase de réussite Solo avec taille et pluriels des aides.
+// Historique: 2026-10-08 06:58 — régénérer le récapitulatif Solo Double Tap et compteurs bruts.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -335,7 +337,7 @@ abstract class AppLocalizations {
   /// No description provided for @showCountersSub.
   ///
   /// In en, this message translates to:
-  /// **'Geometry, dead ends and cheating during the game.'**
+  /// **'Time, strategy and assistance during the game.'**
   String get showCountersSub;
 
   /// No description provided for @rackSize.
@@ -512,6 +514,42 @@ abstract class AppLocalizations {
   /// **'Time'**
   String get rankingTime;
 
+  /// No description provided for @challengeFixedPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed piece'**
+  String get challengeFixedPiece;
+
+  /// No description provided for @challengeFixedPieces.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} fixed piece} other{{count} fixed pieces}}'**
+  String challengeFixedPieces(int count);
+
+  /// No description provided for @challengePlayablePieces.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} piece to place} other{{count} pieces to place}}'**
+  String challengePlayablePieces(int count);
+
+  /// No description provided for @challengePiecesInMoves.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} piece to place} other{{count} pieces to place}} in {moves, plural, one{{moves} move} other{{moves} moves}}'**
+  String challengePiecesInMoves(int count, int moves);
+
+  /// No description provided for @rankingPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pts'**
+  String rankingPoints(int count);
+
+  /// No description provided for @rankingDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes, plural, =0{{seconds} s} other{{minutes} min {seconds} s}}'**
+  String rankingDuration(int minutes, String seconds);
+
   /// No description provided for @refreshChallengeResults.
   ///
   /// In en, this message translates to:
@@ -679,6 +717,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Challenge Mode'**
   String get challengeModeBadge;
+
+  /// No description provided for @nextChallengesAt.
+  ///
+  /// In en, this message translates to:
+  /// **'New challenges at {time}'**
+  String nextChallengesAt(String time);
 
   /// No description provided for @challengeIntro.
   ///
@@ -1430,6 +1474,18 @@ abstract class AppLocalizations {
   /// **'Double tap for a new game.'**
   String get gameTapNewGame;
 
+  /// No description provided for @soloDoubleTap.
+  ///
+  /// In en, this message translates to:
+  /// **'Double Tap'**
+  String get soloDoubleTap;
+
+  /// No description provided for @soloCompletionStats.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} completed in {seconds} s and {moves, plural, =1{1 move} other{{moves} moves}} {helps, plural, =0{without assistance} =1{with 1 assist} other{with {helps} assists}}'**
+  String soloCompletionStats(String size, int seconds, int helps, int moves);
+
   /// No description provided for @geometryTitle.
   ///
   /// In en, this message translates to:
@@ -1529,7 +1585,7 @@ abstract class AppLocalizations {
   /// No description provided for @legendCheating.
   ///
   /// In en, this message translates to:
-  /// **'Cheating'**
+  /// **'Assistance'**
   String get legendCheating;
 
   /// No description provided for @geometryAssisted.
@@ -1822,7 +1878,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpDescLampAmber.
   ///
   /// In en, this message translates to:
-  /// **'You can continue: at least one solution remains. If you want help, tap the lamp: it places a piece correctly for you. This tap counts as Cheating.'**
+  /// **'You can continue: at least one solution remains. If you want help, tap the lamp: it places a piece correctly for you. This tap counts as assistance.'**
   String get helpDescLampAmber;
 
   /// No description provided for @helpDescLampRed.

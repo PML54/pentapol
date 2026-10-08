@@ -1,8 +1,6 @@
-// Modified: 2026-10-06 04:23 — version interne 1.0.12 pour Actualiser et les coups théoriques des défis.
-// Historique: 2026-09-29 06:02 — version interne 1.0.11 et build horodaté pour les Paramètres.
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
-// Dernière génération : 06/10/2026 à 04:24
+// Dernière génération : 08/10/2026 à 07:34
 
 /// Informations de build de l'application
 class BuildInfo {
@@ -10,19 +8,19 @@ class BuildInfo {
   static const String version = '1.0.12';
 
   /// Numéro de build (format YYYYMMDDHHMM)
-  static const int buildNumber = 202610060424;
+  static const int buildNumber = 202610080734;
 
   /// Date et heure du build (ISO 8601)
-  static const String buildDate = '2026-10-06T04:24:15';
+  static const String buildDate = '2026-10-08T07:34:32';
 
   /// Date formatée pour affichage
   static String get buildDateFormatted {
     final dt = DateTime.parse(buildDate);
     return '${dt.day.toString().padLeft(2, '0')}/'
-        '${dt.month.toString().padLeft(2, '0')}/'
-        '${dt.year} à '
-        '${dt.hour.toString().padLeft(2, '0')}:'
-        '${dt.minute.toString().padLeft(2, '0')}';
+           '${dt.month.toString().padLeft(2, '0')}/'
+           '${dt.year} à '
+           '${dt.hour.toString().padLeft(2, '0')}:'
+           '${dt.minute.toString().padLeft(2, '0')}';
   }
 
   /// Version complète pour affichage

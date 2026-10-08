@@ -1,4 +1,5 @@
-// Modified: 2026-09-12 03:51 — défilement continu sans pause, vitesse doublée à 72 pixels logiques/s.
+// Modified: 2026-10-08 07:29 — permettre un message défilant avec plusieurs couleurs de texte.
+// Historique: 2026-09-12 03:51 — défilement continu sans pause, vitesse doublée à 72 pixels logiques/s.
 // Historique: 2026-09-12 03:40 — consigne défilante puis fixe, avec respect des réglages d’accessibilité.
 // lib/pentoscope/home/guided_scrolling_message.dart
 import 'dart:math' as math;
@@ -9,11 +10,13 @@ class GuidedScrollingMessage extends StatefulWidget {
   final String message;
   final TextStyle style;
   final double width;
+  final TextSpan? textSpan;
   const GuidedScrollingMessage({
     super.key,
     required this.message,
     required this.style,
     required this.width,
+    this.textSpan,
   });
   @override
   State<GuidedScrollingMessage> createState() => _GuidedScrollingMessageState();
@@ -30,7 +33,10 @@ class _GuidedScrollingMessageState extends State<GuidedScrollingMessage>
     final media = MediaQuery.of(context);
     stationary = media.disableAnimations || media.accessibleNavigation;
     final painter = TextPainter(
-      text: TextSpan(text: widget.message, style: widget.style),
+      text: TextSpan(
+        style: widget.style,
+        children: [widget.textSpan ?? TextSpan(text: widget.message)],
+      ),
       textDirection: Directionality.of(context),
       textScaler: media.textScaler,
       maxLines: 1,
@@ -57,7 +63,8 @@ class _GuidedScrollingMessageState extends State<GuidedScrollingMessage>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.message != widget.message ||
         oldWidget.width != widget.width ||
-        oldWidget.style != widget.style) {
+        oldWidget.style != widget.style ||
+        oldWidget.textSpan != widget.textSpan) {
       configure();
     }
   }
@@ -66,6 +73,28 @@ class _GuidedScrollingMessageState extends State<GuidedScrollingMessage>
   void dispose() {
     controller.dispose();
     super.dispose();
+  }
+
+  Widget _text({Key? key, bool stationary = false}) {
+    final span = widget.textSpan;
+    if (span != null) {
+      return Text.rich(
+        span,
+        key: key,
+        style: widget.style,
+        textAlign: stationary ? TextAlign.center : TextAlign.start,
+        maxLines: stationary ? null : 1,
+        softWrap: stationary,
+      );
+    }
+    return Text(
+      widget.message,
+      key: key,
+      style: widget.style,
+      textAlign: stationary ? TextAlign.center : TextAlign.start,
+      maxLines: stationary ? null : 1,
+      softWrap: stationary,
+    );
   }
 
   @override
@@ -82,11 +111,9 @@ class _GuidedScrollingMessageState extends State<GuidedScrollingMessage>
               builder: (context, _) {
                 if (stationary) {
                   return Center(
-                    child: Text(
-                      widget.message,
+                    child: _text(
                       key: const ValueKey('guided-message'),
-                      style: widget.style,
-                      textAlign: TextAlign.center,
+                      stationary: true,
                     ),
                   );
                 }
@@ -104,24 +131,10 @@ class _GuidedScrollingMessageState extends State<GuidedScrollingMessage>
                           width: cycleWidth,
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: Text(
-                              widget.message,
-                              key: const ValueKey('guided-message'),
-                              style: widget.style,
-                              maxLines: 1,
-                              softWrap: false,
-                            ),
+                            child: _text(key: const ValueKey('guided-message')),
                           ),
                         ),
-                        SizedBox(
-                          width: textWidth,
-                          child: Text(
-                            widget.message,
-                            style: widget.style,
-                            maxLines: 1,
-                            softWrap: false,
-                          ),
-                        ),
+                        SizedBox(width: textWidth, child: _text()),
                       ],
                     ),
                   ),

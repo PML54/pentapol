@@ -1,4 +1,8 @@
-// Modified: 2026-10-06 04:48 — localiser le nombre de solutions et retirer le minimum global ambigu.
+// Modified: 2026-10-07 07:44 — retirer le nombre de pièces fixes de la liste des défis.
+// Historique: 2026-10-07 07:40 — afficher pièces à poser et minimum de coups sans nombre de solutions.
+// Historique: 2026-10-07 06:53 — afficher les pièces jouables et fixes et lancer la définition unique affichée.
+// Historique: 2026-10-07 01:46 — annoncer l'heure locale du prochain changement de défis (minuit UTC).
+// Historique: 2026-10-06 04:48 — localiser le nombre de solutions et retirer le minimum global ambigu.
 // Historique: 2026-10-06 04:16 — bouton Actualiser pour renvoyer les scores hors ligne et recharger les défis.
 // Historique: 2026-09-25 02:30 — afficher le jour courant et distinguer les défis terminés.
 import 'package:flutter/material.dart';
@@ -72,6 +76,10 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
     final settings = ref.watch(settingsProvider);
     final day = challengeDay();
     final weekday = _weekdayLabel(l10n, DateTime.now().toUtc().weekday);
+    final nextChange = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(nextChallengeChange().toLocal()),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
     final completed = settings.dailyChallengeDay == day
         ? settings.completedDailyChallengeSizes.toSet()
         : <int>{};
@@ -115,6 +123,10 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
                 Text(day, style: TextStyle(color: Theme.of(context).hintColor)),
+                Text(
+                  l10n.nextChallengesAt(nextChange),
+                  style: TextStyle(color: Theme.of(context).hintColor),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   l10n.challengeIntro,
@@ -126,9 +138,14 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
                     definition: definitions[index],
                     completed: completed.contains(index),
                     unlocked: index == 0 || completed.contains(index - 1),
-                    piecesLabel: l10n.piecesCount(
-                      definitions[index].size.numPieces,
-                    ),
+                    piecesLabel: definitions[index].theoreticalMoves == null
+                        ? l10n.challengePlayablePieces(
+                            definitions[index].playablePieceCount,
+                          )
+                        : l10n.challengePiecesInMoves(
+                            definitions[index].playablePieceCount,
+                            definitions[index].theoreticalMoves!,
+                          ),
                     rankingLabel: l10n.rankingTooltip,
                     onPlay: () => _launch(definitions[index]),
                     onRanking: () => openLeaderboardWithConsent(
@@ -149,9 +166,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   }
 
   Future<void> _launch(ChallengeDefinition definition) async {
-    await ref
-        .read(pentoscopeProvider.notifier)
-        .startDailyChallenge(definition.size);
+    await ref.read(pentoscopeProvider.notifier).startChallenge(definition);
     if (!mounted) return;
     await Navigator.push(
       context,
@@ -204,9 +219,7 @@ class _ChallengeTile extends StatelessWidget {
           '${size.width}×${size.height}',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          '$piecesLabel · ${AppLocalizations.of(context).drawSolutionsCount(definition.solutionCount)}',
-        ),
+        subtitle: Text(piecesLabel),
         trailing: completed
             ? IconButton(
                 tooltip: rankingLabel,

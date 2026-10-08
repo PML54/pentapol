@@ -1,4 +1,6 @@
-// Modified: 2026-10-06 04:52 — remettre à zéro les Défis locaux lors du changement de règle en développement.
+// Modified: 2026-10-08 06:50 — régler le délai de prise par défaut à 30 ms.
+// Historique: 2026-10-07 06:53 — réinitialiser les Défis locaux pour les puzzles préremplis version 3.
+// Historique: 2026-10-06 04:52 — remettre à zéro les Défis locaux lors du changement de règle en développement.
 // Historique: 2026-10-06 04:48 — identifier le minimum de la solution finale dans les scores hors ligne.
 // Historique: 2026-10-06 04:16 — conserver les coups théoriques avec les scores hors ligne.
 // Historique: 2026-10-05 20:00 — conserver le score Stratégie dans la file des scores réseau.
@@ -314,8 +316,7 @@ class GameSettings {
     this.geometryRules = const GeometryRules(),
     this.showSolutionCounter = true,
     this.enableHaptics = true,
-    this.longPressDuration =
-        50, // défaut 100 ms (retour de Paul, 2026-09-09 ; plage 50-200)
+    this.longPressDuration = 30,
     this.showCounters = false,
     this.rackCellRatio =
         0.46, // figé par Paul le 2026-09-10 après calibrage device
@@ -372,7 +373,7 @@ class GameSettings {
       ),
       showSolutionCounter: json['showSolutionCounter'] ?? true,
       enableHaptics: json['enableHaptics'] ?? true,
-      longPressDuration: json['longPressDuration'] ?? 100,
+      longPressDuration: json['longPressDuration'] ?? 30,
       showCounters: json['showCounters'] ?? false,
       rackCellRatio: (json['rackCellRatio'] as num?)?.toDouble() ?? 0.46,
       showPieceNumbers: json['showPieceNumbers'] ?? true,
@@ -786,7 +787,7 @@ class AppSettings {
       'shareScoresOptIn': shareScoresOptIn,
       'challengeConsentAsked': challengeConsentAsked,
       'dailyChallengeDay': dailyChallengeDay,
-      'dailyChallengeScoringRevision': 2,
+      'dailyChallengeScoringRevision': 3,
       'completedDailyChallengeSizes': completedDailyChallengeSizes,
       'pendingChallengeScores': pendingChallengeScores
           .map((score) => score.toJson())
@@ -796,7 +797,7 @@ class AppSettings {
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     // Development reset: no conversion of scores from the previous scoring rule.
-    final currentChallengeRules = json['dailyChallengeScoringRevision'] == 2;
+    final currentChallengeRules = json['dailyChallengeScoringRevision'] == 3;
     return AppSettings(
       ui: UISettings.fromJson(json['ui'] ?? {}),
       game: GameSettings.fromJson(json['game'] ?? {}),

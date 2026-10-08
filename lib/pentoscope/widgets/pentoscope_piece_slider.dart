@@ -1,4 +1,12 @@
-// Modified: 2026-10-05 20:02 — compter les relâchements refusés comme tentatives de pose.
+// Modified: 2026-10-08 07:20 — laisser swiper le tiroir sur une pièce déjà sélectionnée.
+// Historique: 2026-10-08 07:06 — garder les pièces nettes et avancer d'un cran depuis la pièce centrale.
+// Historique: 2026-10-08 07:00 — garder la flèche pour tout tiroir débordant, même à trois pièces.
+// Historique: 2026-10-08 03:53 — enchaîner la dernière pièce et la première sans retour arrière.
+// Historique: 2026-10-08 03:47 — parcourir le tiroir en boucle avec une seule grande flèche.
+// Historique: 2026-10-08 03:36 — naviguer par pièce avec des flèches et protéger le drag.
+// Historique: 2026-10-07 09:42 — terminer l'aperçu au milieu et préserver le swipe après les animations.
+// Historique: 2026-10-07 09:26 — découvrir le tiroir pendant trois secondes et centrer les pièces sélectionnées.
+// Historique: 2026-10-05 20:02 — compter les relâchements refusés comme tentatives de pose.
 // Historique: 2026-10-05 19:46 — désélectionner la pièce du tiroir quand le tiroir défile.
 // Historique: 2026-09-23 06:42 — rendre l'image selon le mode figé de la partie.
 // Historique: 2026-09-23 05:32 — employer la solution-image propre à la partie.
@@ -31,6 +39,7 @@
 //             2512100457 — FIX _getDisplayPositionIndex() rotation paysage stable.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
@@ -38,6 +47,7 @@ import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/common/pentominos.dart';
+import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/common/point.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/common/widgets/draggable_piece_widget.dart';
@@ -71,26 +81,237 @@ class PentoscopePieceSlider extends ConsumerStatefulWidget {
 class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   final ScrollController _scrollController = ScrollController();
 
-  /// Fondu de bord (C6) : `_showLeadingFade` = du contenu défilé avant le bord de tête ;
-  /// `_showTrailingFade` = du contenu reste après le bord de queue. Recalculés au défilement
-  /// et après chaque layout (le débordement dépend du nombre de pièces et de leur taille).
-  bool _showLeadingFade = false;
-  bool _showTrailingFade = false;
-
-  /// Fraction de la longueur du rack occupée par chaque fondu.
-  static const double _kFadeFraction = 0.08;
+  bool _navigationReady = false;
   bool _selectionCanceledForCurrentScroll = false;
+  Object? _previewedPuzzle;
+  int _animationGeneration = 0;
+  double _leadingPadding = 16;
+  bool _automaticScrollActive = false;
+  int? _navigationTargetId;
+  bool _pieceDragging = false;
+  double? _viewport;
+  double _cycleExtent = 0;
+  bool _circular = false;
+  double? _navigationTargetOffset;
 
-  void _updateFades() {
-    if (!_scrollController.hasClients) return;
-    final pos = _scrollController.position;
-    final leading = pos.pixels > 1.0;
-    final trailing = pos.pixels < pos.maxScrollExtent - 1.0;
-    if (leading != _showLeadingFade || trailing != _showTrailingFade) {
-      setState(() {
-        _showLeadingFade = leading;
-        _showTrailingFade = trailing;
-      });
+  void _normalizeCycle() {
+    if (!_circular ||
+        _pieceDragging ||
+        !_scrollController.hasClients ||
+        _automaticScrollActive) {
+      return;
+    }
+    final offset = _scrollController.offset;
+    final normalized = _cycleExtent + (offset % _cycleExtent);
+    if ((normalized - offset).abs() > 1) {
+      _scrollController.jumpTo(normalized);
+    }
+  }
+
+  void _interruptNavigation() {
+    final hadTarget = _navigationTargetId != null;
+    _navigationTargetId = null;
+    _navigationTargetOffset = null;
+    _stopAutomaticScroll();
+    if (hadTarget && mounted) setState(() {});
+  }
+
+  Future<void> _navigate() async {
+    if (_pieceDragging || !_scrollController.hasClients) return;
+    final state = ref.read(pentoscopeProvider);
+    if (state.availablePieces.isEmpty) return;
+    _normalizeCycle();
+    if (_circular && (_navigationTargetOffset ?? 0) >= _cycleExtent * 2) {
+      _stopAutomaticScroll();
+      _scrollController.jumpTo(_scrollController.offset - _cycleExtent);
+      _navigationTargetOffset = _navigationTargetOffset! - _cycleExtent;
+    }
+    final position = _scrollController.position;
+    final origin = _navigationTargetOffset ?? position.pixels;
+    var currentIndex = 0;
+    var currentOffset = origin;
+    var nearestDistance = double.infinity;
+    for (var index = 0; index < state.availablePieces.length; index++) {
+      final offset = _pieceOffset(state.availablePieces[index].id, state);
+      for (final cycle in (_circular ? [-1, 0, 1] : [0])) {
+        final candidate = offset + cycle * _cycleExtent;
+        final distance = (candidate - origin).abs();
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          currentIndex = index;
+          currentOffset = candidate;
+        }
+      }
+    }
+    final current = state.availablePieces[currentIndex];
+    final target = state
+        .availablePieces[(currentIndex + 1) % state.availablePieces.length];
+    final targetOffset =
+        currentOffset +
+        ((_pieceMaxDim(current) + _pieceMaxDim(target)) * widget.pieceCellSize +
+                16) /
+            2;
+    _interruptNavigation();
+    if (state.selectedPiece != null && state.selectedPlacedPiece == null) {
+      ref.read(pentoscopeProvider.notifier).cancelSelection();
+    }
+    final generation = _animationGeneration;
+    _navigationTargetId = target.id;
+    _navigationTargetOffset = targetOffset;
+    _automaticScrollActive = true;
+    setState(() {});
+    try {
+      final offset = targetOffset;
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _scrollController.jumpTo(offset);
+      } else {
+        await _scrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    } finally {
+      if (mounted && generation == _animationGeneration) {
+        _automaticScrollActive = false;
+        setState(() {
+          _navigationTargetId = null;
+          _navigationTargetOffset = null;
+        });
+        _normalizeCycle();
+      }
+    }
+  }
+
+  Widget _navigationButton() {
+    final enabled = _navigationReady && !_pieceDragging;
+    final l10n = AppLocalizations.of(context);
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: IconButton(
+        key: const ValueKey('rack-next'),
+        tooltip: l10n.next,
+        iconSize: 48,
+        onPressed: enabled ? _navigate : null,
+        icon: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+
+  void _stopAutomaticScroll() {
+    _animationGeneration++;
+    final wasActive = _automaticScrollActive;
+    _automaticScrollActive = false;
+    if (wasActive && _scrollController.hasClients) {
+      _scrollController.jumpTo(_scrollController.offset);
+    }
+  }
+
+  void _schedulePreview(PentoscopeState state) {
+    if (state.puzzle == null || identical(state.puzzle, _previewedPuzzle)) {
+      return;
+    }
+    _previewedPuzzle = state.puzzle;
+    final generation = ++_animationGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted ||
+          generation != _animationGeneration ||
+          !_scrollController.hasClients) {
+        return;
+      }
+      _scrollController.jumpTo(_circular ? _cycleExtent : 0);
+      if (state.placedPieces.length > state.fixedPieceIds.length ||
+          state.elapsedSeconds != 0 ||
+          state.strategyActions.total != 0 ||
+          state.selectedPiece != null ||
+          MediaQuery.disableAnimationsOf(context)) {
+        return;
+      }
+      final end = _pieceOffset(state.availablePieces.last.id, state);
+      if (end > _scrollController.offset) {
+        _automaticScrollActive = true;
+        try {
+          await _scrollController.animateTo(
+            end,
+            duration: const Duration(milliseconds: 2700),
+            curve: Curves.linear,
+          );
+          if (!mounted ||
+              generation != _animationGeneration ||
+              !_scrollController.hasClients) {
+            return;
+          }
+          final middle =
+              state.availablePieces[state.availablePieces.length ~/ 2];
+          await _scrollController.animateTo(
+            _pieceOffset(middle.id, state),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+          );
+        } finally {
+          if (generation == _animationGeneration) {
+            _automaticScrollActive = false;
+          }
+        }
+      }
+    });
+  }
+
+  double _pieceOffset(int id, PentoscopeState state) {
+    var center = _leadingPadding + (_circular ? _cycleExtent : 0);
+    final position = _scrollController.position;
+    for (final piece in state.availablePieces) {
+      final extent = _pieceMaxDim(piece) * widget.pieceCellSize + 8;
+      if (piece.id == id) {
+        return (center + extent / 2 - position.viewportDimension / 2).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+      }
+      center += extent;
+    }
+    return position.pixels;
+  }
+
+  void _centerPiece(int id) {
+    _interruptNavigation();
+    _normalizeCycle();
+    final generation = _animationGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted ||
+          generation != _animationGeneration ||
+          !_scrollController.hasClients) {
+        return;
+      }
+      final state = ref.read(pentoscopeProvider);
+      if (state.selectedPiece?.id != id || state.selectedPlacedPiece != null) {
+        return;
+      }
+      _automaticScrollActive = true;
+      try {
+        if (MediaQuery.disableAnimationsOf(context)) {
+          _scrollController.jumpTo(_pieceOffset(id, state));
+        } else {
+          await _scrollController.animateTo(
+            _pieceOffset(id, state),
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      } finally {
+        if (generation == _animationGeneration) {
+          _automaticScrollActive = false;
+        }
+      }
+    });
+  }
+
+  void _refreshNavigation() {
+    if (!mounted) return;
+    final ready = _scrollController.hasClients;
+    if (ready != _navigationReady) {
+      setState(() => _navigationReady = ready);
     }
   }
 
@@ -101,6 +322,16 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     if (pieceIndex >= 0 && pieceIndex < state.availablePieces.length) {
       final piece = state.availablePieces[pieceIndex];
       notifier.selectPiece(piece);
+      _centerPiece(piece.id);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant PentoscopePieceSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isLandscape != widget.isLandscape ||
+        oldWidget.pieceCellSize != widget.pieceCellSize) {
+      _interruptNavigation();
     }
   }
 
@@ -108,6 +339,33 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   Widget build(BuildContext context) {
     final ref = context as WidgetRef;
     final state = ref.watch(pentoscopeProvider);
+    ref.listen(
+      pentoscopeProvider.select(
+        (state) => (
+          state.selectedPiece?.id,
+          state.placedPieces.length,
+          state.strategyActions.total,
+        ),
+      ),
+      (_, _) => _interruptNavigation(),
+    );
+    ref.listen(pentoscopeProvider.select((state) => state.availablePieces), (
+      _,
+      _,
+    ) {
+      _interruptNavigation();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        final position = _scrollController.position;
+        _scrollController.jumpTo(
+          position.pixels.clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+        _refreshNavigation();
+      });
+    });
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
     final illustratedLayout =
@@ -122,90 +380,145 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
         : null;
 
     final pieces = state.availablePieces;
+    _schedulePreview(state);
 
     if (pieces.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final scrollDirection = widget.isLandscape
-        ? Axis.vertical
-        : Axis.horizontal;
-    final padding = widget.isLandscape
-        ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8)
-        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableExtent = widget.isLandscape
+            ? constraints.maxHeight
+            : constraints.maxWidth;
+        final contentExtent = pieces.fold<double>(
+          0,
+          (sum, piece) => sum + _pieceMaxDim(piece) * widget.pieceCellSize + 8,
+        );
+        final showNavigation =
+            pieces.length > 1 && contentExtent + 32 > availableExtent;
+        final wasCircular = _circular;
+        _circular = showNavigation;
+        _cycleExtent = contentExtent;
+        if (_circular && !wasCircular) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _normalizeCycle();
+          });
+        }
 
-    // Recalcul du débordement après ce layout (le nombre de pièces vient de changer, etc.).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFades());
+        final scrollDirection = widget.isLandscape
+            ? Axis.vertical
+            : Axis.horizontal;
 
-    final listView = ListView.builder(
-      controller: _scrollController,
-      scrollDirection: scrollDirection,
-      padding: padding,
-      itemCount: pieces.length,
-      itemBuilder: (context, index) {
-        final piece = pieces[index];
+        // Recalcul du débordement après ce layout (le nombre de pièces vient de changer, etc.).
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _refreshNavigation(),
+        );
 
-        return _buildDraggablePiece(
-          piece,
-          notifier,
-          state,
-          settings,
-          widget.isLandscape,
-          illustratedLayout,
+        final listView = LayoutBuilder(
+          builder: (context, constraints) {
+            final viewport = widget.isLandscape
+                ? constraints.maxHeight
+                : constraints.maxWidth;
+            if (_viewport != viewport) {
+              final hadViewport = _viewport != null;
+              _viewport = viewport;
+              final generation = _animationGeneration;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted &&
+                    hadViewport &&
+                    generation == _animationGeneration) {
+                  _interruptNavigation();
+                  _refreshNavigation();
+                }
+              });
+            }
+            final fitsTogether = !showNavigation && pieces.length > 1;
+            _leadingPadding = fitsTogether
+                ? 16.0
+                : math.max(
+                    16.0,
+                    (viewport -
+                            (_pieceMaxDim(pieces.first) * widget.pieceCellSize +
+                                8)) /
+                        2,
+                  );
+            final trailing = fitsTogether
+                ? 16.0
+                : math.max(
+                    16.0,
+                    (viewport -
+                            (_pieceMaxDim(pieces.last) * widget.pieceCellSize +
+                                8)) /
+                        2,
+                  );
+            final padding = widget.isLandscape
+                ? EdgeInsets.fromLTRB(8, _leadingPadding, 8, trailing)
+                : EdgeInsets.fromLTRB(_leadingPadding, 12, trailing, 12);
+            return ListView(
+              controller: _scrollController,
+              // Trois copies visuelles permettent de reboucler sans déplacer les pièces du jeu.
+              scrollCacheExtent: ScrollCacheExtent.pixels(contentExtent * 3),
+              scrollDirection: scrollDirection,
+              padding: padding,
+              children: [
+                for (final cycle in (_circular ? [0, 1, 2] : [1]))
+                  for (final piece in pieces)
+                    _buildDraggablePiece(
+                      piece,
+                      notifier,
+                      state,
+                      settings,
+                      widget.isLandscape,
+                      illustratedLayout,
+                      cycle: cycle,
+                    ),
+              ],
+            );
+          },
+        );
+
+        final rack = NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollStartNotification &&
+                notification.dragDetails != null) {
+              _selectionCanceledForCurrentScroll = false;
+            }
+            if (notification is ScrollUpdateNotification &&
+                notification.dragDetails != null &&
+                !_selectionCanceledForCurrentScroll) {
+              final selection = ref.read(pentoscopeProvider);
+              if (selection.selectedPiece != null &&
+                  selection.selectedPlacedPiece == null) {
+                ref.read(pentoscopeProvider.notifier).cancelSelection();
+              }
+              _selectionCanceledForCurrentScroll = true;
+            }
+            if (notification is ScrollEndNotification) {
+              _selectionCanceledForCurrentScroll = false;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _normalizeCycle();
+              });
+            }
+            _refreshNavigation();
+            return false;
+          },
+          child: Listener(
+            onPointerDown: (_) => _interruptNavigation(),
+            onPointerSignal: (_) => _interruptNavigation(),
+            child: listView,
+          ),
+        );
+        if (!showNavigation) return rack;
+        return Flex(
+          direction: scrollDirection,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: rack),
+            _navigationButton(),
+          ],
         );
       },
-    );
-
-    // Fondu de bord (C6) : n'apparaît que du côté où il reste du contenu à défiler. Au repos
-    // (offset 0) → pas de fondu de tête, la 1re pièce est nette ; un fondu de queue suggère qu'il
-    // y en a plus. ShaderMask/dstIn : l'alpha du dégradé masque le contenu (blanc = opaque,
-    // transparent = effacé). Le feedback de drag est rendu dans un Overlay, hors de ce sous-arbre :
-    // la pièce glissée n'est pas affectée par le fondu.
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is ScrollStartNotification &&
-            notification.dragDetails != null) {
-          _selectionCanceledForCurrentScroll = false;
-        }
-        if (notification is ScrollUpdateNotification &&
-            notification.dragDetails != null &&
-            !_selectionCanceledForCurrentScroll) {
-          final selection = ref.read(pentoscopeProvider);
-          if (selection.selectedPiece != null &&
-              selection.selectedPlacedPiece == null) {
-            ref.read(pentoscopeProvider.notifier).cancelSelection();
-          }
-          _selectionCanceledForCurrentScroll = true;
-        }
-        if (notification is ScrollEndNotification) {
-          _selectionCanceledForCurrentScroll = false;
-        }
-        _updateFades();
-        return false;
-      },
-      child: ShaderMask(
-        blendMode: BlendMode.dstIn,
-        shaderCallback: (rect) {
-          final begin = widget.isLandscape
-              ? Alignment.topCenter
-              : Alignment.centerLeft;
-          final end = widget.isLandscape
-              ? Alignment.bottomCenter
-              : Alignment.centerRight;
-          return LinearGradient(
-            begin: begin,
-            end: end,
-            colors: [
-              _showLeadingFade ? Colors.transparent : Colors.white,
-              Colors.white,
-              Colors.white,
-              _showTrailingFade ? Colors.transparent : Colors.white,
-            ],
-            stops: const [0.0, _kFadeFraction, 1 - _kFadeFraction, 1.0],
-          ).createShader(rect);
-        },
-        child: listView,
-      ),
     );
   }
 
@@ -288,8 +601,9 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     PentoscopeState state,
     settings,
     bool isLandscape,
-    IllustratedPuzzleLayout? illustratedLayout,
-  ) {
+    IllustratedPuzzleLayout? illustratedLayout, {
+    int cycle = 1,
+  }) {
     // Emplacement serré (C6, retour de Paul sur le 3×5) : au lieu d'une boîte carrée de 5 cases
     // pour tout le monde, la boîte fait la **dimension max de la pièce sur toutes ses orientations**
     // (3 à 5 cases). Carrée → n'importe quelle orientation y tient, donc **aucun reflow à la
@@ -315,12 +629,16 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
     final isSelected = state.selectedPiece?.id == piece.id;
 
     return SizedBox(
+      key: ValueKey(
+        cycle == 1 ? 'rack-piece-${piece.id}' : 'rack-copy-$cycle-${piece.id}',
+      ),
       width: slotW,
       height: slotH,
       child: Center(
         child: Transform.rotate(
           angle: isLandscape ? -math.pi / 2 : 0.0,
           child: DraggablePieceWidget(
+            dragAffinity: isLandscape ? Axis.horizontal : Axis.vertical,
             piece: piece,
             positionIndex: displayPositionIndex,
             isSelected: isSelected,
@@ -341,11 +659,14 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
                 HapticFeedback.selectionClick();
               }
               notifier.selectPiece(piece);
+              _centerPiece(piece.id);
             },
             // Départ de drag : ancrer la pièce sur la cellule réellement empoignée (comme le
             // plateau), pour que le placement colle au doigt (fix : viser une case dispo depuis
             // le tiroir).
             onGrab: (localGrab, box) {
+              _interruptNavigation();
+              setState(() => _pieceDragging = true);
               ref.read(dragOverBoardProvider.notifier).update(false);
               if (settings.game.enableHaptics) {
                 HapticFeedback.selectionClick();
@@ -365,6 +686,10 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
               );
             },
             onCycle: () {},
+            onDragFinished: () {
+              if (mounted) setState(() => _pieceDragging = false);
+              _normalizeCycle();
+            },
             onCancel: () {
               notifier.recordRejectedDrop();
               if (settings.game.enableHaptics) {
@@ -439,6 +764,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
 
   @override
   void dispose() {
+    _animationGeneration++;
     _scrollController.dispose();
     super.dispose();
   }

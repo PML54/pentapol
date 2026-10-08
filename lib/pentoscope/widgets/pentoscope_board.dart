@@ -1,4 +1,5 @@
-// Modified: 2026-10-05 20:02 — compter un déplacement relâché hors cible comme action refusée.
+// Modified: 2026-10-07 06:53 — signaler les pièces fixes du défi par un cadenas et empêcher leur sélection.
+// Historique: 2026-10-05 20:02 — compter un déplacement relâché hors cible comme action refusée.
 // Historique: 2026-09-23 07:03 — préserver les raccords de l'image en paysage.
 // Historique: 2026-09-23 05:32 — découper l'image selon la solution fixée pour la partie.
 // Historique: 2026-09-23 05:13 — rendre les fragments illustrés sur le plateau 6×10.
@@ -486,6 +487,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     final bool isPieceLabelCell = labelCells.contains(
       Point(logicalX, logicalY),
     );
+    final isFixed = state.fixedPieceIds.contains(cellValue);
     String cellText = _getCellText(
       cellValue,
       isSolutionCell,
@@ -557,35 +559,44 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                   : 1,
             ),
           Center(
-            child: Text(
-              cellText,
-              style: TextStyle(
-                color: _getTextColor(
-                  previewInfo.isPreview,
-                  showSelectedPiece,
-                  previewInfo.isPreviewValid,
-                  previewInfo.isSnappedPreview,
-                ),
-                fontWeight: _getTextWeight(
-                  previewInfo.isPreview,
-                  showSelectedPiece,
-                ),
-                // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
-                // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
-                // leur petite taille pour ne pas se chevaucher.
-                fontSize: _getTextSize(
-                  showSelectedPiece,
-                  previewInfo.isPreview,
-                  cellSize,
-                  isSinglePastille:
-                      cellValue > 0 &&
-                      !isSolutionCell &&
-                      !showSelectedPiece &&
-                      !previewInfo.isPreview &&
-                      isPieceLabelCell,
-                ),
-              ),
-            ),
+            child: isFixed && isPieceLabelCell
+                ? Tooltip(
+                    message: AppLocalizations.of(context).challengeFixedPiece,
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: cellSize * 0.45,
+                      color: Colors.black87,
+                    ),
+                  )
+                : Text(
+                    cellText,
+                    style: TextStyle(
+                      color: _getTextColor(
+                        previewInfo.isPreview,
+                        showSelectedPiece,
+                        previewInfo.isPreviewValid,
+                        previewInfo.isSnappedPreview,
+                      ),
+                      fontWeight: _getTextWeight(
+                        previewInfo.isPreview,
+                        showSelectedPiece,
+                      ),
+                      // La pastille unique d'une pièce posée (C8) est seule sur la pièce → nettement plus
+                      // grosse que l'ancien chiffre répété. Les numéros de solution (5 par pièce) gardent
+                      // leur petite taille pour ne pas se chevaucher.
+                      fontSize: _getTextSize(
+                        showSelectedPiece,
+                        previewInfo.isPreview,
+                        cellSize,
+                        isSinglePastille:
+                            cellValue > 0 &&
+                            !isSolutionCell &&
+                            !showSelectedPiece &&
+                            !previewInfo.isPreview &&
+                            isPieceLabelCell,
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -657,7 +668,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                 child: cellWidget,
               ),
       );
-    } else if (isOccupied && !isSelected) {
+    } else if (isOccupied && !isSelected && !isFixed) {
       // Pièce placée non sélectionnée: sélectionnable
       cellWidget = GestureDetector(
         onTap: () {

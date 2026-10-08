@@ -1,3 +1,5 @@
+// Modified: 2026-10-08 07:30 — régénérer la phrase de réussite Solo en anglais.
+// Historique: 2026-10-08 06:58 — régénérer les secondes, Help et coups du récapitulatif Solo EN.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -134,7 +136,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showCountersSub =>
-      'Geometry, dead ends and cheating during the game.';
+      'Time, strategy and assistance during the game.';
 
   @override
   String get rackSize => 'Rack piece size';
@@ -229,6 +231,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rankingTime => 'Time';
+
+  @override
+  String get challengeFixedPiece => 'Fixed piece';
+
+  @override
+  String challengeFixedPieces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fixed pieces',
+      one: '$count fixed piece',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengePlayablePieces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pieces to place',
+      one: '$count piece to place',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengePiecesInMoves(int count, int moves) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pieces to place',
+      one: '$count piece to place',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      moves,
+      locale: localeName,
+      other: '$moves moves',
+      one: '$moves move',
+    );
+    return '$_temp0 in $_temp1';
+  }
+
+  @override
+  String rankingPoints(int count) {
+    return '$count pts';
+  }
+
+  @override
+  String rankingDuration(int minutes, String seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes min $seconds s',
+      zero: '$seconds s',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get refreshChallengeResults => 'Refresh results';
@@ -326,6 +386,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get challengeModeBadge => 'Challenge Mode';
+
+  @override
+  String nextChallengesAt(String time) {
+    return 'New challenges at $time';
+  }
 
   @override
   String get challengeIntro =>
@@ -792,6 +857,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameTapNewGame => 'Double tap for a new game.';
 
   @override
+  String get soloDoubleTap => 'Double Tap';
+
+  @override
+  String soloCompletionStats(String size, int seconds, int helps, int moves) {
+    String _temp0 = intl.Intl.pluralLogic(
+      moves,
+      locale: localeName,
+      other: '$moves moves',
+      one: '1 move',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      helps,
+      locale: localeName,
+      other: 'with $helps assists',
+      one: 'with 1 assist',
+      zero: 'without assistance',
+    );
+    return '$size completed in $seconds s and $_temp0 $_temp1';
+  }
+
+  @override
   String get geometryTitle => 'Score tuning';
 
   @override
@@ -842,7 +928,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legendGeometry => 'Geometry';
 
   @override
-  String get legendCheating => 'Cheating';
+  String get legendCheating => 'Assistance';
 
   @override
   String get geometryAssisted => 'Assisted game';
@@ -1017,7 +1103,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpDescLampAmber =>
-      'You can continue: at least one solution remains. If you want help, tap the lamp: it places a piece correctly for you. This tap counts as Cheating.';
+      'You can continue: at least one solution remains. If you want help, tap the lamp: it places a piece correctly for you. This tap counts as assistance.';
 
   @override
   String get helpDescLampRed =>
