@@ -1,4 +1,5 @@
-// Modified: 2026-10-08 07:28 — agrandir la phrase de réussite Solo avec dimensions, coups et aides.
+// Modified: 2026-10-09 07:33 — progression et bilan du Training isométries séparés du 3x5.
+// Historique: 2026-10-08 07:28 — agrandir la phrase de réussite Solo avec dimensions, coups et aides.
 // Historique: 2026-10-08 06:58 — afficher Double Tap rouge et les compteurs bruts en fin de Solo.
 // Historique: 2026-10-08 06:50 — présenter Temps et Stratégie aussi en Solo avec le taux d'aide.
 // Historique: 2026-10-07 06:53 — exclure les pièces fixes du défi du dénominateur d'aide affiché.
@@ -619,7 +620,16 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   Widget _buildTrainingBarMessage(PentoscopeState state) {
     final l10n = AppLocalizations.of(context);
-    final message = state.isComplete
+    final message = state.isIsometryTraining
+        ? (state.isComplete
+              ? l10n.isometryTrainingResult(
+                  state.isometryCount,
+                  state.trainingMinIso,
+                  state.trainingWrongSelections,
+                  state.trainingRejectedDrops,
+                )
+              : l10n.isometryTrainingTitle)
+        : state.isComplete
         // Puzzle résolu : féliciter ET indiquer les gestes depuis le plateau.
         ? '${l10n.recreationalPlaced} — ${_trainingStage == 1 ? l10n.recreationalTapTraining2 : l10n.recreationalTapAgain}'
         : state.selectedPiece == null
@@ -669,6 +679,13 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
   Future<void> _startNextTraining(PentoscopeNotifier notifier) async {
     HapticFeedback.selectionClick();
+    final training = ref.read(pentoscopeProvider);
+    if (training.isIsometryTraining) {
+      await notifier.startIsometryTraining(
+        missingPieceCount: (training.trainingTargets.length + 1).clamp(2, 5),
+      );
+      return;
+    }
     final nextStage = _trainingStage == 1 ? 2 : 1;
     setState(() => _trainingStage = nextStage);
     await notifier.startRecreationalPuzzle(missingPieceCount: nextStage);

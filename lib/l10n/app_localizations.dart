@@ -1,4 +1,5 @@
-// Modified: 2026-10-08 07:30 — régénérer la phrase de réussite Solo avec taille et pluriels des aides.
+// Modified: 2026-10-09 07:33 — générer les chaînes du Training isométries.
+// Historique: 2026-10-08 07:30 — régénérer la phrase de réussite Solo avec taille et pluriels des aides.
 // Historique: 2026-10-08 06:58 — régénérer le récapitulatif Solo Double Tap et compteurs bruts.
 import 'dart:async';
 
@@ -99,6 +100,23 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('fr'),
   ];
+
+  /// No description provided for @isometryTrainingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Isometries'**
+  String get isometryTrainingTitle;
+
+  /// No description provided for @isometryTrainingResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Isometries: {actual}/{minimum} · wrong choices: {wrong} · rejected drops: {rejected}'**
+  String isometryTrainingResult(
+    int actual,
+    int minimum,
+    int wrong,
+    int rejected,
+  );
 
   /// No description provided for @appTitle.
   ///

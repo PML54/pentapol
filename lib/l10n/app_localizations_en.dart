@@ -1,4 +1,5 @@
-// Modified: 2026-10-08 07:30 — régénérer la phrase de réussite Solo en anglais.
+// Modified: 2026-10-09 07:33 — générer les chaînes anglaises du Training isométries.
+// Historique: 2026-10-08 07:30 — régénérer la phrase de réussite Solo en anglais.
 // Historique: 2026-10-08 06:58 — régénérer les secondes, Help et coups du récapitulatif Solo EN.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
@@ -9,6 +10,19 @@ import 'app_localizations.dart';
 /// The translations for English (`en`).
 class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get isometryTrainingTitle => 'Isometries';
+
+  @override
+  String isometryTrainingResult(
+    int actual,
+    int minimum,
+    int wrong,
+    int rejected,
+  ) {
+    return 'Isometries: $actual/$minimum · wrong choices: $wrong · rejected drops: $rejected';
+  }
 
   @override
   String get appTitle => 'Pentapol';

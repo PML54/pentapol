@@ -1,4 +1,5 @@
-// Modified: 2026-10-07 06:53 — signaler les pièces fixes du défi par un cadenas et empêcher leur sélection.
+// Modified: 2026-10-09 07:33 — fantôme isométries visible avant sélection.
+// Historique: 2026-10-07 06:53 — signaler les pièces fixes du défi par un cadenas et empêcher leur sélection.
 // Historique: 2026-10-05 20:02 — compter un déplacement relâché hors cible comme action refusée.
 // Historique: 2026-09-23 07:03 — préserver les raccords de l'image en paysage.
 // Historique: 2026-09-23 05:32 — découper l'image selon la solution fixée pour la partie.
@@ -293,6 +294,10 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
               if (newState.isComplete) {}
             } else {
               HapticFeedback.heavyImpact();
+              if (state.isIsometryTraining) {
+                notifier.recordRejectedDrop();
+                notifier.cancelSelection();
+              }
             }
 
             notifier.clearPreview();
@@ -424,6 +429,9 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       solutionPieceId,
       settings,
     );
+    if (state.isIsometryTraining && isSolutionCell && cellValue == 0) {
+      cellColor = Colors.grey.shade400;
+    }
 
     // 3️⃣ DÉTECTER LA PIÈCE SÉLECTIONNÉE
     final selectedInfo = _detectSelectedPlacedPiece(
@@ -490,7 +498,7 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     final isFixed = state.fixedPieceIds.contains(cellValue);
     String cellText = _getCellText(
       cellValue,
-      isSolutionCell,
+      isSolutionCell && !state.isIsometryTraining,
       solutionPieceId,
       isPieceLabelCell,
       settings.game.showPieceNumbers,
@@ -531,6 +539,9 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
           );
 
     Widget cellWidget = Container(
+      key: state.isIsometryTraining && isSolutionCell && cellValue == 0
+          ? ValueKey('isometry-target-$logicalX-$logicalY')
+          : null,
       decoration: BoxDecoration(
         color: cellColor,
         border: border,
@@ -996,6 +1007,14 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     int logicalX,
     int logicalY,
   ) {
+    if (state.isIsometryTraining) {
+      return state.trainingTarget?.absoluteCells.contains(
+                Point(logicalX, logicalY),
+              ) ==
+              true
+          ? state.trainingTarget!.piece.id
+          : null;
+    }
     if (state.currentSolution == null) return null;
 
     for (final placement in state.currentSolution!) {

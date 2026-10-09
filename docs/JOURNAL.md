@@ -13,7 +13,28 @@
 
 ---
 
-## §ÉTAT — au 2026-10-08
+## §ÉTAT — au 2026-10-09
+
+### Training isométries 5×5 (2026-10-09, Codex)
+
+Plan : docs/PLAN_TRAINING_ISOMETRIES.md. Entrée Isométries séparée du Training
+3×5 ; niveaux 2, 3, 4 puis 5 pièces, cible grise sans numéro avant sélection,
+pièces préposées et réussies verrouillées. Paul confirme le verrouillage et
+remplace le choix sans aimantation : aimantation uniquement de la bonne pièce
+correctement orientée, à une case maximum par axe. Hors cible : refus et
+orientation conservée ; aucune modification de l'aimantation des autres modes.
+Les tirages excluent X pour garantir une orientation initiale différente même
+à cinq pièces. Bilan : appuis/minimum calculé par pièce, choix erronés, refus.
+isTraining exclut les écritures et effacements SQLite durant l'exercice, y compris
+le Training 3×5. Validation : quatre tests nouveaux des niveaux, fantôme EN/FR
+portrait/paysage, plateau inchangé après refus et snapshot de toutes les tables
+inchangé ; scripts rejoués, 856 pavages/45 tirages et distances maximales 2.
+Suite complète : 302 tests réussis ; contenu Git isolé : 299 tests réussis,
+analyse sans erreur ni avertissement dans les deux contextes. Tap de progression
+vérifié, maintien à cinq pièces.
+Commit limité à ce Training, son plan et tools/verif/ ; les modifications Solo
+et tiroir antérieures restent hors index, préservées. Gestes à valider par Paul
+sur iPhone, aucune appréciation du ressenti par l'agent.
 
 ### Solo — phrase de réussite et police agrandie (2026-10-08, Codex)
 
@@ -2028,6 +2049,12 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-10-09 — Codex : Training isométries 5×5, entrée indépendante.**
+Plan et tools/verif/ avec le code ; cible grise, 2–5 pièces, verrouillage confirmé,
+aimantation demandée par Paul (une case, bonne pièce/orientation), refus hors cible,
+mesures éphémères et aucune écriture en base. 302 tests passent, analyse sans
+erreur ni avertissement. Changements Solo/tiroir préexistants exclus du commit.
 
 **2026-10-08 — Codex : phrase de réussite Solo agrandie.**
 Dimensions, secondes, coups et aides ou sans aide ; 22 sp gras, Double Tap rouge

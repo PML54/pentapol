@@ -1,4 +1,7 @@
 {
+  "isometryTrainingTitle": "Isométries",
+  "isometryTrainingResult": "Isométries : {actual}/{minimum} · erreurs de choix : {wrong} · dépôts refusés : {rejected}",
+  "@isometryTrainingResult": {"placeholders": {"actual": {"type": "int"}, "minimum": {"type": "int"}, "wrong": {"type": "int"}, "rejected": {"type": "int"}}},
   "@@locale": "fr",
   "appTitle": "Pentapol",
   "loading": "Chargement de Pentoscope…",

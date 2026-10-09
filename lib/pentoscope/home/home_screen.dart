@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 06:49 — choisir un niveau débloqué au lancement d'une nouvelle partie Solo.
+// Modified: 2026-10-09 07:33 — entrée isométries indépendante du Training 3x5.
+// Historique: 2026-10-02 06:49 — choisir un niveau débloqué au lancement d'une nouvelle partie Solo.
 // Historique: 2026-10-02 06:39 — ajouter une remise à zéro confirmée des résultats locaux à l'accueil.
 // Historique: 2026-09-29 06:05 — rendre le code couleur du niveau nettement visible dans le header.
 // Historique: 2026-09-29 05:50 — ouvrir le profil joueur par une icône colorée selon le niveau et
@@ -245,6 +246,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             MaterialPageRoute(builder: (_) => const ChallengeScreen()),
           ),
           onTraining: _playRecreational,
+          onIsometries: _playIsometries,
         );
 
         return Center(
@@ -378,6 +380,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (!mounted) return;
     setState(() => _isLaunchingRecreational = false);
   }
+
+  Future<void> _playIsometries() async {
+    if (_isLaunchingRecreational) return;
+    setState(() => _isLaunchingRecreational = true);
+    try {
+      await ref.read(pentoscopeProvider.notifier).startIsometryTraining();
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const PentoscopeGameScreen(mode: PentoscopeMode.training),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).genericError)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLaunchingRecreational = false);
+    }
+  }
 }
 
 class _HomeActions extends StatelessWidget {
@@ -386,6 +412,7 @@ class _HomeActions extends StatelessWidget {
   final VoidCallback onDuo;
   final VoidCallback onChallenge;
   final VoidCallback onTraining;
+  final VoidCallback onIsometries;
 
   const _HomeActions({
     required this.expanded,
@@ -393,6 +420,7 @@ class _HomeActions extends StatelessWidget {
     required this.onDuo,
     required this.onChallenge,
     required this.onTraining,
+    required this.onIsometries,
   });
 
   // Une couleur distincte par module (accès), pour les distinguer d'un coup d'œil.
@@ -457,6 +485,15 @@ class _HomeActions extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        _HomeDestination(
+          key: const ValueKey('home-isometries'),
+          icon: Icons.flip,
+          label: l10n.isometryTrainingTitle,
+          color: _duoColor,
+          expanded: expanded,
+          onTap: onIsometries,
         ),
       ],
     );

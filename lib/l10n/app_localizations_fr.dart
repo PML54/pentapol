@@ -1,4 +1,5 @@
-// Modified: 2026-10-08 07:30 — régénérer la réussite Solo avec ou sans aide en français.
+// Modified: 2026-10-09 07:33 — générer les chaînes françaises du Training isométries.
+// Historique: 2026-10-08 07:30 — régénérer la réussite Solo avec ou sans aide en français.
 // Historique: 2026-10-08 06:58 — régénérer les secondes, Help et coups du récapitulatif Solo FR.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
@@ -9,6 +10,19 @@ import 'app_localizations.dart';
 /// The translations for French (`fr`).
 class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
+
+  @override
+  String get isometryTrainingTitle => 'Isométries';
+
+  @override
+  String isometryTrainingResult(
+    int actual,
+    int minimum,
+    int wrong,
+    int rejected,
+  ) {
+    return 'Isométries : $actual/$minimum · erreurs de choix : $wrong · dépôts refusés : $rejected';
+  }
 
   @override
   String get appTitle => 'Pentapol';

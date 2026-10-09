@@ -1,4 +1,7 @@
 {
+  "isometryTrainingTitle": "Isometries",
+  "isometryTrainingResult": "Isometries: {actual}/{minimum} · wrong choices: {wrong} · rejected drops: {rejected}",
+  "@isometryTrainingResult": {"placeholders": {"actual": {"type": "int"}, "minimum": {"type": "int"}, "wrong": {"type": "int"}, "rejected": {"type": "int"}}},
   "@@locale": "en",
   "appTitle": "Pentapol",
   "loading": "Loading Pentoscope…",
