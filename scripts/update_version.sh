@@ -12,6 +12,7 @@ DEFAULT_VERSION="1.0.0"
 VERSION="${1:-$DEFAULT_VERSION}"
 BUILD_NUMBER=$(date +%Y%m%d%H%M)  # Format: YYYYMMDDHHMM (ex: 202511301530)
 BUILD_DATE=$(date +"%Y-%m-%dT%H:%M:%S")
+MODIFIED_DATE=$(date +"%Y-%m-%d %H:%M")
 BUILD_DATE_FR=$(date +"%d/%m/%Y à %H:%M")
 
 # Créer le dossier si nécessaire
@@ -19,6 +20,8 @@ mkdir -p "$(dirname "$BUILD_INFO_FILE")"
 
 # Générer le fichier
 cat > "$BUILD_INFO_FILE" << EOF
+// Modified: $MODIFIED_DATE — Actualisation de la version affichée dans les Paramètres.
+// lib/config/build_info.dart
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
 // Dernière génération : $BUILD_DATE_FR

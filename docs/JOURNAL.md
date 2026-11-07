@@ -15,6 +15,15 @@
 
 ## §ÉTAT — au 2026-11-07
 
+### Version affichée dans les Paramètres — 2026-11-07 17:42 CET
+
+Correction du repère documentaire précédent : `BuildInfo` passe à **1.0.13**,
+build **202611071742**, daté du **2026-11-07 à 17:42 CET**. Les Paramètres et
+leur dialogue À propos utilisent bien cette source. Le script de génération
+produit désormais le header Dart obligatoire. `pubspec.yaml` reste inchangé.
+Validation : analyse Flutter sans erreur ni avertissement (113 informations),
+et `git diff --check` sans anomalie.
+
 ### Version documentaire 1.0.13 — 2026-11-07 17:36 CET
 
 À la demande de Paul, repère de version **1.0.13**, daté du **2026-11-07 17:36 CET**,
@@ -2529,6 +2538,8 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+**2026-11-07 17:42 CET — Codex :** correction de la livraison 1.0.13 : version et horodatage actualisés dans BuildInfo, utilisé en fin des Paramètres et dans À propos ; script aligné sur la convention de header.
 
 **2026-11-07 17:36 CET — Codex :** version documentaire 1.0.13 inscrite à la demande de Paul ; commit et push des changements accumulés autorisés. Contrôles consignés en §ÉTAT.
 
