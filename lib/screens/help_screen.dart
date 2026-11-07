@@ -1,4 +1,6 @@
-// Modified: 2026-10-02 09:20 — ajouter le guide de manipulation accessible depuis l'accueil.
+// Modified: 2026-10-28 05:01 — ouvrir Découvrir le jeu depuis l’aide.
+// Historique: 2026-10-26 15:02 — raccourcir le premier guide et proposer un essai immédiat.
+// Historique: 2026-10-02 09:20 — ajouter le guide de manipulation accessible depuis l'accueil.
 // Historique: 2026-10-02 07:24 — retirer la présentation du développeur déplacée dans Paramètres.
 // Historique: 2026-09-29 05:50 — placer la présentation du développeur avant l'aide des icônes.
 // Historique: 2026-09-25 15:10 — retirer rotation simple, compteur et nouvelle partie de l'aide.
@@ -25,7 +27,9 @@ import 'package:pentapol/l10n/app_localizations.dart';
 /// Tous les textes passent par [AppLocalizations] (EN/FR). Les libellés/descriptions figés
 /// dans `game_icons_config.dart` restent une source de vérité provisoire, non consommée ici.
 class HelpScreen extends StatelessWidget {
-  const HelpScreen({super.key});
+  final VoidCallback? onStart;
+
+  const HelpScreen({super.key, this.onStart});
 
   @override
   Widget build(BuildContext context) {
@@ -48,17 +52,25 @@ class HelpScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
+                    l10n.helpPlayGoal,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
                     l10n.helpPlaySteps,
                     style: const TextStyle(fontSize: 16, height: 1.5),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    l10n.helpPlayGoal,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  if (onStart != null)
+                    FilledButton.icon(
+                      key: const ValueKey('help-discover'),
+                      onPressed: onStart,
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(l10n.discoveryTitle),
                     ),
-                  ),
                 ],
               ),
             ),

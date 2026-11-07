@@ -13,9 +13,426 @@
 
 ---
 
-## §ÉTAT — au 2026-10-09
+## §ÉTAT — au 2026-11-07
 
-### Training isométries 5×5 (2026-10-09, Codex)
+### Version documentaire 1.0.13 — 2026-11-07 17:36 CET
+
+À la demande de Paul, repère de version **1.0.13**, daté du **2026-11-07 17:36 CET**,
+pour la livraison des changements accumulés : découverte guidée 5×5, accueil avec
+classement Temps actualisé, Jeu Iso et bilan d’isométries, tiroir avec bandes tactiles.
+Ce numéro identifie cet état dans la documentation ; les versions techniques de
+`pubspec.yaml` et `BuildInfo` restent inchangées. Commit et push demandés par Paul.
+Le plan du bouton Nouvelle partie reste un document préparatoire.
+Validation avant commit : 336 tests réussis ; `flutter analyze` : 113 informations,
+aucune erreur ni avertissement ; `git diff --check` sans anomalie.
+
+
+### Tiroir — retrait des doubles flèches (2026-11-05, Codex)
+
+Paul demande le retrait des doubles flèches : icônes retirées de la découverte
+et du tiroir Solo/Défi/Jeu Iso. Bandes tactiles, sélection préservée et consigne du
+premier exercice conservées. Guide adapté. Aucun commit demandé.
+
+### Jeu — double flèche du tiroir (2026-11-05, Codex)
+
+Paul ne voit pas la flèche : l’ajout précédent concernait uniquement DiscoveryScreen.
+La bande est désormais activée dans PentoscopeGameScreen (Solo, Défi, Jeu Iso),
+pour les tiroirs débordants : flèche horizontale au-dessus en portrait, verticale
+sur le bord en paysage. Le balayage défile sans démarrer de drag et conserve la
+pièce sélectionnée. Les 28 dp sont réservés dans le calcul géométrique pour garder
+la taille des pièces ancrée sur celle du plateau. La découverte conserve sa consigne.
+Validation : 37 tests ciblés réussis (tiroir, dispositions, Isométries et accueil),
+dont balayage via bande avec sélection en portrait/paysage ; analyse ciblée sans
+erreur ni avertissement (10 informations existantes). Aucun commit demandé.
+
+### Découverte — bande de balayage (2026-11-05, Codex)
+
+Paul signale le balayage difficile sur une pièce sélectionnée et demande la double
+flèche avec indication au premier exercice. Dans DiscoveryScreen, bande tactile
+entre icônes et tiroir : double flèche, défilement direct, sélection et orientation
+conservées. Consigne FR/EN au premier exercice affiché, retirée dès un défilement
+effectif par la bande ou le tiroir ; elle ne revient pas à l’exercice suivant.
+La flèche reste jusqu’à la réussite. Validation : onze tests de découverte réussis,
+dont deux exercices FR/EN, portrait/paysage, texte 100/130 % et balayage avec pièce
+sélectionnée ; analyse ciblée sans problème. Guide adapté, aucun commit demandé.
+
+### Accueil — boutons Jeu Iso et Défi (2026-11-05, Codex)
+
+Paul demande pour Jeu Iso la même police, taille et forme que Solo/Duo. Jeu Iso
+utilise désormais le même constructeur de bouton plein : orange, texte blanc.
+Défi passe en noir avec texte blanc. Ancien widget secondaire sans client supprimé.
+Aucun commit demandé.
+
+### Accueil — Jeu Iso et classement agrandi (2026-11-05, Codex)
+
+Paul remplace le libellé d’accueil Isométries par « Jeu Iso » (EN : « Iso Game »)
+et retire Training du menu principal. La découverte reste au premier lancement
+et dans l’aide ; son bouton Training interne est conservé. Callback et couleur
+Training devenus inutiles retirés de l’accueil. Classement : seule la taille figure
+en titre (26 sp), puis cinq joueurs en 20 sp et durées totales en secondes, même
+au-delà d’une minute. Hauteur du panneau adaptée au texte agrandi. Actualisation
+au retour et à la reprise conservée. AGENTS, CLAUDE et guide alignés.
+Validation : 26 tests ciblés réussis, dont FR/EN, portrait/paysage, texte à 130 %,
+absence de Training à l’accueil, reprise/retour et affichage de 60 s.
+Aucun commit demandé.
+
+### Accueil — classement actualisé et cinq premiers (2026-11-04, Codex)
+
+Paul signale le classement absent ou périmé au retour au menu principal et demande
+les cinq premiers dans l’espace libre au-dessus. Le classement Temps est rechargé
+à chaque retour sur la route d’accueil et à la reprise de l’application lorsque
+l’accueil est visible. Les requêtes demandent cinq entrées par taille ; chaque page
+affiche ensemble ces cinq joueurs, avec rang, pseudo et durée, puis les pages font
+défiler les tailles. Le menu est aligné en haut sous l’en-tête. Sans scores ou sans
+consentement, aucun panneau vide ; aucune requête sans opt-in.
+Validation : 12 tests du classement réussis (retour depuis un état vide, nouveaux
+scores, reprise, cinq lignes, FR/EN, portrait/paysage et texte à 130 %).
+Modifications antérieures conservées. Aucun commit demandé.
+
+### Isométries — acuité sur 10 et étoiles (2026-10-31, Codex)
+
+Paul approuve le bilan réduit à l’acuité entière tronquée sur 10 et cinq catégories
+de rapidité : seuils stricts 35/60/90/150/180 s. Recherche de trois minutes après
+l’aperçu du tiroir ; réussite fige les étoiles. Sans résolution à 180 s, aucune étoile,
+« Temps écoulé », annulation de sélection et blocage des manipulations ; Nouvelle
+partie et Accueil restent disponibles. Aucun détail de coups/choix/refus affiché.
+Plan Isométries et traductions FR/EN adaptés. Validation : 18 tests ciblés réussis,
+puis les quatre tests Isométries enrichis de l’expiration réelle et du libellé du bilan.
+Analyse complète : 113 informations existantes, aucune erreur ni avertissement.
+Aucun commit demandé.
+
+### Accueil — Défi du jour et classement Temps (2026-10-31, Codex)
+
+Paul retient « Défi du {jour} » (« {day} Challenge » en anglais). Le bandeau
+quotidien de l’accueil charge uniquement les podiums Temps, pour toutes les tailles.
+Les classements Stratégie restent disponibles dans leur écran habituel.
+L’absence de score continue de masquer le bandeau. Aucun commit demandé.
+
+### Accueil — Battle et absence de scores (2026-10-31, Codex)
+
+À la demande de Paul, l’accès quotidien devient « Battle du {jour} » en français,
+« {day} Battle » en anglais, selon le jour UTC des défis. Le bandeau Tops et son
+espacement disparaissent sans score, pendant le chargement, en cas d’erreur ou sans
+consentement ; aucun appel réseau sans opt-in. Navigation conservée. Les 22 tests accueil ciblés réussissent ; flutter analyze
+remonte 113 informations, sans erreur ni avertissement. Aucun commit demandé.
+
+### Training — Positionne avec miniature (2026-10-30, Codex)
+
+Paul remplace « Positionne la pièce » par « Positionne » suivi de la miniature.
+À l'étape orientation, la première ligne montre la cible colorée sans numéro dans
+l'orientation à obtenir ; la seconde garde « avec les icônes. ». Recherche/sélection :
+miniature dans l'orientation initiale du tiroir. La miniature disparaît à l'étape pose.
+Traductions FR/EN et guide adaptés. 31 tests ciblés réussis, dont deux exercices
+FR/EN portrait/paysage et textes 100/130 % ; analyse ciblée sans problème.
+Aucun commit demandé.
+
+### Training — formulation des icônes (2026-10-30, Codex)
+
+À la demande de Paul, la consigne devient « Positionne la pièce / avec les icônes. ».
+Localisation française régénérée, guide et test adaptés. Onze tests de découverte
+réussis. Aucun commit demandé.
+
+### Training — sélectionner la miniature (2026-10-30, Codex)
+
+Paul remplace « Trouve la pièce n°… » par « Sélectionne » suivi de la miniature.
+Première ligne « Balaie le tiroir. » conservée ; miniature colorée sans numéro,
+identique à la cible dans son orientation initiale du tiroir, aux étapes recherche
+et sélection. Après sélection, consignes orientation/pose habituelles sans miniature.
+Rendu partagé PieceRenderer, taille de case dérivée du plateau, miniature ajustée à
+la ligne et au réglage de texte. Description numérotée réservée à l'accessibilité.
+Localisations FR/EN modifiées et régénérées. Validation : 31 tests ciblés réussis,
+dont deux exercices successifs FR/EN, portrait/paysage, textes à 100/130 %, conformité
+de la miniature et disparition après sélection ; analyse ciblée sans problème.
+Guide, AGENTS et CLAUDE alignés. Modifications antérieures conservées, aucun commit.
+
+### Accueil — Tops quotidiens et rangées des modes (2026-10-30, Codex)
+
+Demande de Paul : première ligne défilante des Tops du défi du jour, Défis du Jour
+au-dessus du Solo, Solo/Duo côte à côte et Training/Isométries sur la dernière ligne.
+Couleurs et navigation conservées, même hauteur pour les deux entrées de chaque rangée.
+Nouveau DailyChallengeTops : trois premiers de chaque taille et catégorie Temps/Stratégie,
+requêtes limitées à trois entrées, défilement par page toutes les quatre secondes et
+balayage manuel. Animations réduites : aucun défilement automatique. Changement du jour
+UTC détecté ; minuterie arrêtée à la destruction et défilement suspendu hors accueil.
+Le bandeau respecte shareScoresOptIn : aucun classement chargé avant activation ;
+accès via le dialogue de consentement existant. État vide/serveur indisponible localisé.
+Validation : 39 tests ciblés réussis (accueil, découverte et démarrage), dont huit nouveaux
+sur les rangées FR/EN portrait/paysage, podium, balayage, animations réduites, réseau
+sans opt-in et absence de scores. Analyse des trois fichiers Dart concernés sans problème.
+Modifications antérieures conservées. Aucun commit demandé.
+
+
+### Training — cibles équitablement réparties (2026-10-29, Codex)
+
+Paul constate que la pièce n°2 revient souvent. Fréquence vérifiée dans le corpus :
+624 pavages sur 856 contiennent P ; le choix précédent de la première pièce du pavage
+introduisait ce biais. Nouvelle règle : choisir d'abord la cible, par cycle 2 à 12
+(les onze pièces orientables), puis un pavage compatible. Chaque fenêtre de onze
+exercices propose chacune une fois ; les plateaux changent au retour de la même cible.
+X reste exclue car elle ne peut apprendre la rotation. Le compteur JSON
+`discoveryNextExercise` avance à chaque exercice présenté et survit aux fermetures ;
+sans migration ni changement du marqueur de fin (Play/Passer restent les seules sorties).
+Validation : 31 tests ciblés réussis. 220 fenêtres de onze propositions contrôlées,
+les 856 pavages atteints et vérifiés, cibles accessibles en une rotation, douze pièces
+uniques et cible aux positions 7–12. Tests SQLite avec compteur existant, fermeture
+après réussite et réouverture. Aucun commit demandé.
+
+### Training — silhouette hachurée (2026-10-29, Codex)
+
+Paul précise qu'il voulait une silhouette hachurée, pas un aplat gris. Remplacement
+par des diagonales sur fond blanc, découpées exactement sur les cinq cases de la
+cible. Hachures présentes dès le début, contour bleu superposé à l'étape de pose,
+puis disparition à la réussite. Aucun changement du guidage ou de la validation.
+Dix tests de découverte réussis et analyse du fichier sans problème. Aucun commit demandé.
+
+### Training — Balaie et silhouette grise (2026-10-29, Codex)
+
+Paul demande « Balaie » plutôt que « Balaye » et la pièce manquante en gris plutôt
+qu'en blanc. Consigne française corrigée et localisations régénérées. Les cinq cases
+libres sont grises (#D5DCE4) dès le début, y compris pendant la recherche et la rotation ;
+le contour bleu reste affiché quand la pièce est prête à poser. Dix tests de découverte
+réussis, dont EN/FR, portrait/paysage et texte agrandi. Aucun commit demandé.
+
+### Training — tiroir compact et grandes icônes (2026-10-29, Codex)
+
+Paul demande un tiroir et des pièces un peu moins hauts, avec des icônes agrandies.
+Rapport case tiroir/plateau réduit de 0,65 à 0,55 (−15 % sur les pièces) ; hauteur du
+tiroir dérivée de cette même taille. Icônes : 36→44 dp, zones tactiles 56→64 dp.
+Ancre de drag et feedback passent par le même rapport pour conserver la taille du
+plateau pendant le glissement. Plateau, guidage, tirage et confirmation tactile
+inchangés. Validation : 29 tests ciblés réussis (EN/FR, portrait/paysage, texte
+100/130 %, gestes et pose), analyse sans erreur ni avertissement, 113 infos existantes.
+Aucun commit demandé.
+
+### Training — fond bleu pâle et confirmation tactile (2026-10-29, Codex)
+
+Paul valide un fond bleu très pâle et demande un tressaillement lors d'une pose
+réussie. Fond et AppBar #EAF3FC, tiroir #DDEAF7, cases libres blanches. Une pose
+validée produit un mediumImpact unique ; les accès depuis l'accueil, l'aide et le
+premier lancement transmettent tous le réglage enableHaptics. Aucun impact de
+confirmation pour un dépôt refusé, ni si les vibrations sont désactivées.
+Validation : 29 tests ciblés réussis, dont deux exercices successifs EN/FR,
+portrait/paysage, activation/désactivation tactile et absence d'impact au refus.
+Le ressenti reste à apprécier par Paul sur appareil. Aucun commit demandé.
+
+### Accueil — Training ouvre la découverte 5×5 (2026-10-28, Codex)
+
+Paul remplace le Training de l'accueil par le parcours qui vient d'être créé.
+Le bouton Training et l'aide partagent `_openDiscovery` : 5×5, quatre pièces fixes,
+une cible, douze pièces mélangées, quatre icônes, Bravo et boutons Training/Play.
+L'ancien lancement récréatif et `startRecreationalOnOpen`, sans autre client, sont
+retirés de HomeScreen. Moteur historique conservé, bouton Isométries inchangé.
+Validation : 29 tests ciblés réussis, dont entrée Training, plateau carré et douze
+pièces, état Solo identique avant/après ouverture, retour par Passer et réouverture.
+Analyse sans erreur ni avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Découverte — plateau 5×5 (2026-10-28, Codex)
+
+Paul passe les exercices d'entrée du 3×5 au 5×5 pour davantage de possibilités.
+Quatre pièces fixes, une seule cible à tourner et poser ; tiroir de douze pièces,
+ordre aléatoire et cible en positions 7–12 inchangés. Extraction du corpus existant,
+sans solveur : 856 pavages uniques, 45 tirages contrôlés par exécution, générateur
+rejouable tools/generate_discovery_boards.py et donnée Dart locale. Les cibles
+parcourent les pièces orientables des pavages ; X reste disponible au tiroir mais
+ne devient pas cible. Aucun changement des Training 3×5/Isométries ni du premier Solo.
+Validation : 29 tests ciblés réussis. Les 856 pavages et toutes leurs cibles sont
+exercés : 25 cases couvertes, quatre pièces fixes, aucun chevauchement, formes
+conformes aux orientations runtime et cible atteignable en une rotation. Gestes
+réels EN/FR portrait/paysage, textes 100/130 %, reprise et navigation vérifiés.
+Aucun commit demandé ; modifications antérieures conservées.
+
+### Démarrage — coquille dans le mixin (2026-10-28, Codex)
+
+Paul signale trois erreurs et un avertissement dans main.dart. Le nom était
+`WidgetsqBindingObserver` (q en trop) ; rétabli à `WidgetsBindingObserver`.
+Analyse ciblée : aucun problème. Cinq tests du démarrage complet réussis.
+Aucun autre comportement modifié, aucun commit demandé.
+
+### Découverte — ordre aléatoire du tiroir (2026-10-28, Codex)
+
+Paul refuse la position finale systématique : les onze autres pièces sont mélangées,
+puis la cible est insérée au hasard entre les positions 7 et 12 incluses. Jamais dans
+les six premières. Le mélange est créé une fois par exercice et reste stable pendant
+les gestes, les reconstructions et les rotations d'écran. Nouvel exercice : nouveau
+mélange. Validation : 29 tests ciblés réussis ; 200 graines reproductibles couvrent
+les six positions autorisées, douze identités uniques et plusieurs ordres, puis les
+parcours réels EN/FR portrait/paysage à texte 100/130 %. Analyse sans erreur ni
+avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Découverte — consigne après sélection (2026-10-28, Codex)
+
+Paul remplace la consigne de rotation par « Positionne la pièce » puis
+« à l’aide des icônes. », deux lignes explicites, équivalent anglais localisé.
+Neuf tests de découverte réussis, dont lisibilité sur petit iPhone EN/FR et
+texte agrandi à 130 %. Aucun commit demandé.
+
+### Découverte — douze pièces, Bravo et boutons Training/Play (2026-10-28, Codex)
+
+Paul demande les douze pièces au tiroir, « Bravo ! » seul en tête avec agrandissement,
+et les libellés Training / Play. Les onze autres pièces précèdent la cible, y compris
+les deux formes fixes : aucune de ces copies ne peut être posée. Bravo grandit de
+20 à 34 sp en 700 ms puis reste fixe ; avec réduction des animations, taille finale
+directe. Training est un bouton plein violet et relance une variante ; Play ouvre le
+Solo. Aucun changement de la règle de fin explicite ni des quatre transformations.
+Chaînes localisées dans les deux ARB, dont Play identique en FR/EN selon la demande.
+Validation : 28 tests ciblés réussis, puis les neuf tests enrichis de croissance,
+réduction des animations, labels et lisibilité EN/FR portrait/paysage 100/130 %.
+Analyse sans erreur ni avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Découverte — quatre icônes et consigne inversée (2026-10-28, Codex)
+
+Paul demande les quatre icônes du jeu dans la découverte et « Balaye le tiroir. »
+sur la première ligne, puis « Trouve la pièce n°… ». Icônes, ordre et couleurs repris
+de GameIcons, tooltips localisés. Rotations et deux symétries actives après sélection ;
+la commande qui réduit le minimum de gestes vers la cible est mise en évidence.
+Une transformation erronée rétablit l'étape d'orientation et interdit le dépôt, sans
+modifier le plateau. Encore/Jouer/Passer et la persistance restent inchangés.
+Validation : 28 tests ciblés réussis, dont les quatre opérations puis leur inverse
+sur deux exercices en EN/FR, portrait/paysage et texte 100/130 %. Aucun commit demandé.
+
+### Découverte répétable jusqu’à Jouer ou Passer (2026-10-28, Codex)
+
+Paul valide une répétition sur demande : après réussite, boutons « Encore une pièce »
+et « Jouer », avec Passer toujours visible. Aucune relance automatique. Le bouton
+Encore parcourt les sept pavages existants puis leurs trois cibles (21 variantes),
+chacune avec quatre leurres, deux pièces fixes et une cible à tourner une fois.
+La réussite ne persiste plus `hasCompletedDiscovery` : seuls Jouer ou Passer le font.
+Une fermeture après une pose réussie repropose la découverte au lancement suivant.
+Validation : 28 tests ciblés réussis ; deux exercices successifs par configuration
+EN/FR, portrait/paysage, texte 100/130 %, pause de cinq secondes sans relance ; deux
+tours complets des variantes vérifiés (légalité et distance une rotation) ; vraie
+réouverture de PentapolApp depuis SQLite après réussite puis après Passer. Analyse
+sans erreur ni avertissement, 113 infos existantes. Aucun commit demandé.
+
+### Découverte interactive au démarrage (2026-10-28, Codex)
+
+Demande et périmètre validés par Paul : remplacer la démo et la page d'aide initiale
+par quelques gestes directement à l'ouverture, cinq pièces à explorer mais une seule
+à poser. `DiscoveryScreen` local au pavage PFU 3×5 : P/F fixes, cible U n°7 en dernière
+position après quatre leurres, exactement une rotation horaire puis dépôt aimanté.
+Aucun état Solo ni sauvegarde de partie modifiés avant un choix explicite de Jouer.
+Le tiroir ne bouge que par le joueur ; les consignes restent à 20 sp, deux lignes max,
+EN/FR. Passer permanent ; réussite ou passage mémorisés par `hasCompletedDiscovery`,
+nouveau marqueur distinct de l'ancien affichage d'aide. Jouer démarre le Solo 3×5,
+sans modifier le niveau d'un joueur déjà avancé. Rejeu depuis l'aide. Démo retirée de
+l'accueil normal. Ancien branchement guideRackBrowsing et essai 5×5 supprimés ;
+Training une/deux pièces et Isométries conservés. AGENTS et CLAUDE restent cohérents.
+Validation : suite complète `flutter test` : 318 tests réussis ; `flutter analyze`
+sans erreur ni avertissement (113 infos existantes). Parcours exercé avec de vrais
+gestes en portrait 320×568 et paysage 874×402, EN/FR, textes à 100 % et 130 %,
+police réelle du SDK : deux lignes lisibles sans réduction. Vérification du démarrage
+SQLite neuf/ancien/ancienne aide/découverte terminée, passage, rejeu et Jouer vers
+Solo 3×5 sans modifier le niveau. Rendu du petit écran contrôlé visuellement.
+Nettoyage du chrono d'aperçu dans les doubles des tests de disposition et du bilan,
+sans modification du comportement du chrono livré. Les modifications antérieures du
+dépôt sont conservées ; aucun commit demandé. Validation des sensations par Paul
+sur iPhone attendue.
+
+### Premier accueil invisible après réinstallation — déclenchement (2026-10-26, Codex)
+
+Paul ne voit pas le nouveau parcours après réinstallation. Deux défauts vérifiés :
+ancien JSON sans `hasSeenWelcomeHelp` interprété comme aide déjà vue ; écran de
+chargement cherchant AppLocalizations avec un contexte au-dessus de MaterialApp.
+Le marqueur absent vaut désormais false (parcours proposé une fois aux anciennes
+installations aussi). Le chargement utilise un Builder sous MaterialApp. Tests
+ajoutés depuis PentapolApp avec SQLite mémoire : base neuve, ancien JSON, marqueur
+true ; fermeture de l’aide et persistance du marqueur vérifiées. Les tests antérieurs
+ouvraient HomeScreen directement et ne couvraient pas ces cas. Aucun commit demandé.
+Le parcours à cinq pièces reste derrière le bouton de l’aide ; le Training du menu
+reste à une pièce. Écran effectivement observé par Paul demandé, réponse attendue.
+
+### Aide — cinq pièces et recherche au tiroir (2026-10-26, Codex)
+
+Paul demande cinq pièces au démarrage de l’essai et une invitation à balayer le
+tiroir pour trouver une pièce numérotée. L’essai depuis l’aide passe au 5×5, cinq
+pièces à jouer. La consigne fixe désigne la dernière pièce du tiroir ; une sélection
+différente conserve la demande, sélectionner la cible fait passer au conseil
+orientation/pose. La pièce suivante est désignée après chaque pose. L’aperçu
+automatique du tiroir est désactivé dans ce parcours pour laisser le geste au joueur.
+Relancer conserve les cinq pièces. Training 3×5 et Isométries restent distincts.
+Validation : 28 tests ciblés réussis (accueil, aide, messages et tiroir), dont
+deux sur de vrais tirages 5×5 avec balayage manuel puis résolution, EN/FR et
+portrait/paysage. Analyse sans erreur ni avertissement. Aucun commit demandé.
+
+### Premier lancement — aide puis essai guidé (2026-10-26, Codex)
+
+Demande de Paul : accueillir après installation dans l’aide et garder des messages
+fixes, courts et utiles. L’aide présente le but puis trois gestes et propose
+« Essayer avec une pièce » vers le Training 3×5 existant. Le retour simple reste
+possible. Le marqueur JSON `hasSeenWelcomeHelp` est enregistré à la fermeture de
+l’aide initiale ; les réglages existants sans ce champ sont considérés déjà accueillis.
+Pas de migration. Tous les bandeaux GuidedScrollingMessage deviennent fixes, avec
+retour à la ligne et adaptation à la hauteur disponible. Consignes Training raccourcies
+EN/FR ; changements antérieurs conservés. Validation : 19 tests ciblés réussis
+(aide EN/FR, messages fixes, marqueur JSON, navigation vers le Training et
+parcours existants). flutter analyze : aucune erreur ni avertissement, 113 infos.
+Les doubles de jeu des tests arrêtent le chrono lancé par l’aperçu du tiroir.
+Aucun commit demandé.
+
+
+### Aperçu du tiroir puis chrono (2026-10-09, Codex)
+
+Paul réduit l'aperçu général à une seconde : 800 ms de défilement, puis
+200 ms de retour au milieu. La fin effective lance le chrono local d'une
+partie neuve, ou débloque le compte à rebours du Training isométries.
+Un geste interrompt l'aperçu et libère le chrono immédiatement. Sans
+débordement ou avec animations réduites, démarrage direct sans mouvement
+artificiel. Les parties reprises et le chrono serveur du duel restent inchangés.
+Modifications antérieures conservées, aucun commit demandé.
+
+### Tiroir — recentrage seulement si nécessaire (2026-10-09, Codex)
+
+Paul conserve le Training isométries et demande une règle générale : ne pas
+déplacer une pièce sélectionnée si toutes ses orientations restent visibles.
+Le tiroir contrôle l'emplacement de dimension maximale, stable pour toutes les
+rotations/symétries, y compris ses copies circulaires. Si cet emplacement tient
+entièrement dans la fenêtre, aucun recentrage ; sinon centrage conservé sans
+perdre la sélection. Les marges compactes des petits tiroirs ne changent plus
+à la sélection. Neuf tests tiroir/drag passent, puis sept tests tiroir enrichis
+passent : sélection prolongée et rotation immobiles avec trois pièces, pièce
+décentrée visible immobile dans le tiroir défilant, bords coupés recentrés,
+portrait et paysage. Analyse sans erreur ni avertissement. Aucun commit demandé.
+
+### Training isométries 8×5 (2026-10-09, Codex)
+
+Paul ajoute nouveau jeu et chrono dégressif avec stress final. Bouton permanent
+add_circle_outline (48 dp minimum, tooltip EN/FR) pour relancer huit pièces ;
+relance protégée contre les appuis concurrents. Chrono local à l'écran : 60 s,
+orange à 20 s, rouge et pulsation douce dans les dix dernières secondes ; pas de
+pulsation avec réduction des animations. Réussite : gel ; nouveau puzzle : 60 s.
+À zéro, 0 s rouge sans effacer ni bloquer la grille. Aucun enregistrement SQLite.
+Correction paysage : l'overlay de fin ne couvre plus la barre pour garder le
+bouton accessible. Quinze tests ciblés réussis : chrono, alertes, gel, zéro,
+remise à 60 s, bouton pendant/après réussite, EN/FR, deux orientations et 3×5.
+Suite complète : 302 tests réussis. Quatre tests chrono/exercice enrichis passent
+ensuite avec rotation d'écran : le chrono reste à 58 s en portrait/paysage,
+sans remise à 60 s. Analyse sans erreur ni avertissement. Aucun commit demandé.
+
+Dernière demande de Paul : proposer toutes les pièces, pas deux seulement.
+Le démarrage et chaque relance proposent désormais les huit pièces du tirage
+au tiroir, zéro pièce préposée et la solution entière en pastel. L'ancienne
+progression 2–5 est supprimée de cette entrée ; Training 3×5 inchangé. Treize
+tests ciblés passent (départ huit pièces, ordre libre, solution visible, relance
+complète, base intacte, EN/FR, portrait/paysage et parcours 3×5) ; analyse sans
+erreur ni avertissement. Modifications non commitées, sans mélange Solo/tiroir.
+
+Paul précise : silhouettes dans leurs vraies couleurs pastel uniformes (35 %
+de couleur mélangée au blanc), sans numéro ni cible privilégiée. Le joueur colle
+les pièces du tiroir à leurs silhouettes dans n'importe quel ordre ; le moteur
+valide et aimante vers la cible propre à la pièce sélectionnée, jamais celle
+d'une autre pièce. Les pièces posées gardent leur couleur pleine. Quinze tests
+ciblés passent, dont le remplissage dans l'ordre inverse, toutes les teintes
+avant sélection, EN/FR et portrait/paysage ; analyse sans erreur ni avertissement.
+
+Paul remplace le 5×5 par le format 8×5 existant (size8x5, huit pièces).
+Progression 2 à 5 pièces à jouer conservée ; 8−k pièces préposées verrouillées.
+Fantôme, aimantation et absence de persistance inchangés. Quinze tests ciblés
+réussis (quatre niveaux 8×5 et Training 3×5), analyse sans erreur ni avertissement.
+Les scripts d'unicité 5×5 ne décrivent pas le nouveau format : leurs résultats
+restent historiques dans le plan. Ce changement n'est pas commité ; modifications
+Solo et tiroir antérieures préservées et laissées séparées.
+
+Réalisation initiale du 5×5, avant ce changement de format :
 
 Plan : docs/PLAN_TRAINING_ISOMETRIES.md. Entrée Isométries séparée du Training
 3×5 ; niveaux 2, 3, 4 puis 5 pièces, cible grise sans numéro avant sélection,
@@ -35,6 +452,69 @@ vérifié, maintien à cinq pièces.
 Commit limité à ce Training, son plan et tools/verif/ ; les modifications Solo
 et tiroir antérieures restent hors index, préservées. Gestes à valider par Paul
 sur iPhone, aucune appréciation du ressenti par l'agent.
+
+### Tiroir — image de la barre verticale alignée pendant la prise (2026-10-08, Codex)
+
+Retour de Paul : la pièce 12 verticale se décale à gauche avant d'atteindre le
+plateau. Reproduit par un vrai drag : décalage horizontal de 44 dp avec des cases
+de 22 dp. L'ancre est calculée dans la boîte tactile carrée du tiroir, tandis que
+le feedback utilisait la boîte étroite du rendu. Le feedback est désormais centré
+dans une boîte carrée de même dimension que la zone tactile. Ancrage de pose,
+échelle, sélection et visibilité du feedback inchangés. Test de géométrie rouge
+avant, vert après ; neuf tests ciblés tiroir et dépôt paysage réussis. Analyse
+sans erreur ni avertissement, 113 infos existantes. Confirmation appareil par
+Paul attendue ; aucun commit demandé.
+
+### Tiroir — centrage de la sélection de bord (2026-10-08, Codex)
+
+Retour de Paul : aucun changement sur iPhone après recompilation, testé par
+toucher bref et prolongé. Le premier test sélectionnait directement via le
+provider et ne couvrait pas la prise réelle. Régression supplémentaire reproduite
+en portrait/paysage avec un toucher de 80 ms au bord droit : la sélection reste
+active au relâchement mais la pièce ne revient pas au centre. Le centrage est
+désormais relancé par onDragFinished si la sélection appartient encore au
+tiroir. Le test échoue avant ce complément et passe après ; les six tests du
+tiroir et la suite complète de 297 tests passent, analyse sans erreur ni
+avertissement (113 infos existantes).
+
+Demande de Paul : ramener la pièce sélectionnée au milieu du tiroir et conserver
+la sélection après rotation. Le suivi de sélection et d'orientation relance le
+centrage au lieu de l'interrompre définitivement lors d'une isométrie. Quand les
+pièces tiennent ensemble, des marges de centrage sont activées uniquement pendant
+la sélection d'une pièce du tiroir ; sans sélection, l'affichage compact reste
+inchangé. Aucun recentrage automatique pendant une prise vers le plateau.
+Tests de régression ajoutés aux deux orientations : sélection de chaque bord
+avec trois pièces, rotation pendant l'animation, centre et sélection conservés.
+Les six tests du tiroir et la suite complète de 297 tests passent ; analyse sans erreur ni avertissement,
+113 infos existantes. Aucun commit demandé ; ressenti à valider par Paul sur iPhone.
+
+### Solo — bouton « Nouvelle partie » et double-tap de rotation retiré (2026-10-08, CLI)
+
+Demande de Paul : en fin de partie Solo, un bouton `Icons.add_circle_outline`
+(tooltip « Nouvelle partie » / « New game », clé `newGameTooltip`, zone tactile
+≥ 48 dp car `IconButton`) lance une nouvelle partie. Il est ajouté dans la rangée
+de l'AppBar — à côté de l'accueil — affichée uniquement quand
+`mode == game && isComplete`, donc **uniquement en fin de partie Solo**. Il appelle
+`_handleGameBoardDoubleTap`, exactement l'action du double-tap. La mention
+« Double Tap » (clé `soloDoubleTap`, supprimée des deux ARB) disparaît du bandeau,
+qui ne porte plus que les stats défilantes (plus de `textSpan` rouge).
+
+**Deux décisions de Paul, hors du plan initial (option A) :**
+1. Le **double-tap « nouvelle partie » est conservé**, en cours de partie comme à
+   la fin (câblage `PentoscopeBoard.onDoubleTap` + overlay `game-continue`
+   inchangés) ; le bouton s'ajoute, il ne remplace pas le geste.
+2. Le **double-tap ne fait plus pivoter une pièce posée** : le geste de rotation
+   sur une pièce posée sélectionnée est retiré de `pentoscope_board.dart` ; la
+   rotation reste accessible par les boutons d'isométrie. Vaut dans tous les modes.
+
+Procédure : Paul demandait de noter en §DÉCISIONS, supprimée le 2026-08-31 ; la
+décision est donc consignée ici (§ÉTAT + §PASSATIONS), accord de Paul.
+
+Validation : suite complète `flutter test` = 295 tests OK (dont `geometry_bilan`
+adapté : absence du préfixe « Double Tap », présence du bouton `solo-new-game` ;
+`home_play` : double-tap plateau→nouvelle partie conservé). `flutter analyze` sans
+erreur ni avertissement (infos pré-existantes seulement). Plan de travail :
+`docs/PLAN_BOUTON_NOUVELLE_PARTIE.md`. Aucun commit demandé.
 
 ### Solo — phrase de réussite et police agrandie (2026-10-08, Codex)
 
@@ -2050,21 +2530,169 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 
 ## §PASSATIONS
 
+**2026-11-07 17:36 CET — Codex :** version documentaire 1.0.13 inscrite à la demande de Paul ; commit et push des changements accumulés autorisés. Contrôles consignés en §ÉTAT.
+
+**2026-11-05 — Codex :** doubles flèches retirées ; bandes tactiles et consigne initiale conservées. Aucun commit demandé.
+
+**2026-11-05 — Codex :** double flèche étendue de la découverte au tiroir Solo/Défi/Jeu Iso ; espace réservé et sélection conservée pendant le balayage. 37 tests réussis. Aucun commit demandé.
+
+**2026-11-05 — Codex :** découverte : bande de balayage indépendante de la prise de pièce, double flèche et consigne du premier exercice masquée au premier défilement. Aucun commit demandé.
+
+**2026-11-05 — Codex :** Jeu Iso partage le bouton Solo/Duo en orange ; Défi noir. Ancien widget secondaire retiré. Aucun commit demandé.
+
+**2026-11-05 — Codex :** accueil sans Training, bouton Jeu Iso, classement agrandi avec taille seule et temps en secondes. 26 tests ciblés réussis. Aucun commit demandé.
+
+**2026-11-04 — Codex :** accueil : rechargement des Tops Temps au retour au menu et à la reprise, cinq joueurs ensemble par taille, menu remonté. Douze tests dédiés réussis. Aucun commit demandé.
+
+**2026-10-31 — Codex :** à la demande de Paul, cinq étoiles en Isométries avant 35 s ; quatre étoiles dès 35 s. Test des bornes adapté. Aucun commit demandé.
+
+**2026-10-31 — Codex :** Isométries : acuité tronquée /10, étoiles temporelles, expiration bloquante à 180 s, relance conservée. Ajustement approuvé par Paul, plan adapté. Aucun commit demandé.
+
+**2026-10-31 — Codex :** titre Défi du jour de semaine ; podiums d’accueil limités aux Temps, sans requête Stratégie. Aucun commit demandé.
+
+**2026-10-31 — Codex :** accueil « Battle du {jour} » FR/EN ; bandeau absent sans score. Aucun commit demandé.
+
+**2026-10-30 — Codex :** consigne « Positionne » avec miniature dans l'orientation
+à obtenir, puis « avec les icônes. ». 31 tests ciblés réussis, analyse sans problème.
+Aucun commit demandé.
+
+
+**2026-10-30 — Codex :** « avec les icônes » remplace « à l’aide des icônes »
+dans le Training. Onze tests réussis, aucun commit demandé.
+
+**2026-10-30 — Codex :** Training : « Sélectionne » avec miniature colorée sans numéro
+à la place de la recherche numérotée. Même orientation qu'au tiroir ; suite du guidage
+conservée. FR/EN, 31 tests ciblés réussis, analyse sans problème. Aucun commit demandé.
+
+
+**2026-10-30 — Codex :** accueil réorganisé : Tops défilants, Défis, Solo/Duo,
+puis Training/Isométries. Podiums Temps/Stratégie par taille, consentement existant
+respecté, animations réduites et balayage manuel. 39 tests ciblés réussis, analyse
+ciblée sans problème. Aucun commit demandé.
+
+
+**2026-10-29 — Codex :** cibles équilibrées par séries de onze pièces orientables,
+puis choix d'un pavage compatible. Compteur JSON conservé entre ouvertures. 31 tests
+ciblés réussis. Aucun commit demandé.
+
+
+**2026-10-29 — Codex :** silhouette manquante hachurée sur fond blanc, remplace l'aplat
+gris ; contour bleu conservé. Dix tests réussis, analyse ciblée sans problème. Aucun commit.
+
+
+**2026-10-29 — Codex :** « Balaie le tiroir » et silhouette manquante grise dès le début,
+contour bleu conservé à la pose. Dix tests de découverte réussis. Aucun commit demandé.
+
+
+**2026-10-29 — Codex :** pièces du tiroir réduites (rapport 0,55), tiroir moins haut,
+icônes 44 dp et zones tactiles 64 dp. 29 tests ciblés et analyse validés.
+Aucun commit demandé.
+
+
+**2026-10-29 — Codex :** Training bleu très pâle, tiroir bleu plus soutenu, mediumImpact
+unique à la pose valide sous enableHaptics. 29 tests ciblés réussis. Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** bouton Training de l'accueil remplacé par la découverte 5×5,
+route partagée avec l'aide. Ancien branchement récréatif retiré, Isométries inchangé.
+29 tests ciblés et analyse validés. Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** découverte 5×5, quatre pièces fixes et une cible ; 856 pavages
+extraits du corpus, 45 tirages contrôlés, toutes les cibles et 29 tests ciblés validés.
+Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** corriger WidgetsqBindingObserver dans main.dart ; analyse
+ciblée sans problème, cinq tests de démarrage réussis. Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** tiroir mélangé à chaque exercice, cible aléatoire en position
+7 à 12, ordre stable pendant les gestes. 29 tests ciblés et analyse validés.
+Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** consigne de sélection « Positionne la pièce / à l’aide des
+icônes. », EN/FR, neuf tests de découverte réussis. Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** découverte à douze pièces ; Bravo seul grandit puis se fige,
+Training violet relance et Play ouvre Solo. Tests ciblés et analyse validés.
+Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** quatre icônes actives après sélection dans la découverte,
+commande utile mise en évidence ; Balaye le tiroir avant Trouve la pièce. 28 tests
+ciblés réussis. Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** Encore une pièce relance manuellement une variante simple.
+Seuls Jouer/Passer terminent la découverte, jamais la réussite seule. 28 tests ciblés
+réussis et analyse sans erreur ni avertissement. Aucun commit demandé.
+
+
+**2026-10-28 — Codex :** découverte directe au démarrage, un trou sur 3×5 et cinq
+pièces au tiroir, guidage fixe EN/FR, Passer permanent, persistance et rejeu depuis
+l'aide. Démo de l'accueil et ancien essai 5×5 retirés. Suite complète : 318 tests
+réussis ; analyse sans erreur ni avertissement. Aucun commit demandé.
+
+
+**2026-10-26 — Codex :** corriger le marqueur absent dans les anciens réglages et
+le contexte de traduction du chargement ; couvrir le vrai démarrage PentapolApp.
+Ne pas attribuer avec certitude le symptôme appareil à ces défauts sans retour de Paul.
+Aucun commit demandé.
+
+
+**2026-10-26 — Codex :** l’essai depuis l’aide propose désormais cinq pièces en 5×5,
+avec recherche numérotée par balayage manuel et consignes fixes EN/FR. Aucun commit.
+
+
+**2026-10-26 — Codex :** aide automatique à l’installation, essai guidé à une pièce,
+consignes fixes et raccourcies EN/FR. Marqueur JSON sans migration, anciennes
+installations préservées. Aucun commit demandé ; modifications précédentes conservées.
+
+
+**2026-10-09 — Codex : aperçu une seconde avant chrono.**
+Défilement 800 ms puis retour 200 ms ; fin réelle communiquée par provider,
+chrono Solo neuf et compte à rebours Training déclenchés ensuite. Interruption
+manuelle possible, duel et reprise préservés. Aucun commit demandé.
+
+**2026-10-09 — Codex : sélection du tiroir immobile quand toutes les orientations tiennent.**
+Contrôle de l'emplacement maximal et des copies circulaires avant recentrage ;
+petit tiroir sans changement de marges à la sélection. Bords coupés recentrés,
+sélection conservée. Neuf tests tiroir/drag réussis, puis sept tests tiroir
+enrichis réussis ; analyse sans erreur ni avertissement. Aucun commit demandé.
+
 **2026-10-09 — Codex : Training isométries 5×5, entrée indépendante.**
+Dernier ajout : bouton nouveau jeu permanent et compte à rebours 60 s avec
+alertes orange/rouge et pulsation finale (sans animation si réduction activée).
+Réussite figée, remise à 60 s au nouveau puzzle, zéro non bloquant. Overlay de
+fin paysage ajusté pour laisser la barre accessible ; quinze tests ciblés OK.
+Actualisation : Paul choisit 8×5 avec les huit pièces au tiroir dès l'entrée et
+chaque relance, sans prépose ni progression 2–5. Solution complète dans ses
+vraies couleurs pastel uniformes, visible avant sélection. Remplissage libre
+sur la silhouette propre à chaque pièce, aimantation conservée. Treize tests
+ciblés passent, analyse sans erreur ni avertissement.
+Cette actualisation reste non commitée ; aucun changement Solo/tiroir mêlé.
 Plan et tools/verif/ avec le code ; cible grise, 2–5 pièces, verrouillage confirmé,
 aimantation demandée par Paul (une case, bonne pièce/orientation), refus hors cible,
 mesures éphémères et aucune écriture en base. 302 tests passent, analyse sans
 erreur ni avertissement. Changements Solo/tiroir préexistants exclus du commit.
 
-**2026-10-08 — Codex : phrase de réussite Solo agrandie.**
-Dimensions, secondes, coups et aides ou sans aide ; 22 sp gras, Double Tap rouge
-dans la même ligne défilante. 18 tests ciblés réussis, analyse sans erreur ni
-avertissement. Aucun commit demandé.
+**2026-10-08 — Codex : image de la barre verticale alignée sous le doigt.**
+Décalage de 44 dp reproduit pour la pièce 12 ; feedback centré dans la même boîte
+carrée que la prise, sans changer l'ancrage de dépôt. Neuf tests ciblés passent,
+analyse sans erreur ni avertissement ; ressenti à confirmer par Paul sur iPhone.
+Aucun commit demandé.
 
-**2026-10-08 — Codex : swipe et drag sélectionné distingués dans le tiroir.**
-Affinity de départ perpendiculaire au tiroir ; swipe sélectionné reproduit puis
-corrigé sans tentative de pose. 13 tests ciblés réussis, analyse sans erreur ni
-avertissement. Mouvement de fenêtre iOS à vérifier par Paul. Aucun commit demandé.
+**2026-10-08 — CLI : bouton « Nouvelle partie » en fin de Solo, double-tap de rotation retiré.**
+Bouton `add_circle_outline` (≥ 48 dp) dans l'AppBar à la complétion Solo, appelant
+l'action du double-tap ; mention « Double Tap » retirée du bandeau (clé
+`soloDoubleTap` supprimée, `newGameTooltip` ajoutée). Sur demande de Paul : le
+double-tap « nouvelle partie » reste (en jeu et à la fin) ; le double-tap ne fait
+plus pivoter une pièce posée (rotation via boutons d'isométrie). 295 tests OK,
+analyse propre. Décision consignée en §ÉTAT (§DÉCISIONS supprimée). Aucun commit
+demandé.
 
 **2026-10-08 — Codex : déverrouillage de la flèche après appui long corrigé.**
 Régression reproduite puis corrigée : fin de drag signalée même si la sélection

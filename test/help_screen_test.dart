@@ -1,4 +1,5 @@
-// Modified: 2026-10-02 09:20 — vérifier le guide de manipulation en français et en anglais.
+// Modified: 2026-10-26 15:02 — vérifier le guide raccourci EN/FR.
+// Historique: 2026-10-02 09:20 — vérifier le guide de manipulation en français et en anglais.
 // Historique: 2026-10-02 07:24 — vérifier que l'Aide ne contient plus la présentation du développeur.
 // Historique: 2026-09-29 05:50 — vérifier la présentation du développeur avant les icônes.
 // Historique: 2026-09-25 15:10 — vérifier les 10 lignes utiles après le second nettoyage.
@@ -37,7 +38,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining(lang == 'fr' ? '5. Ajuste' : '5. Adjust'),
+        find.textContaining(lang == 'fr' ? '3. Maintiens' : '3. Hold'),
         findsOneWidget,
       );
       expect(

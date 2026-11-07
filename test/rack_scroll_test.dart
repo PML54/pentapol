@@ -1,4 +1,11 @@
-// Modified: 2026-10-08 07:20 — vérifier le swipe sur une pièce sélectionnée sans départ de drag.
+// Modified: 2026-11-05 10:32 — retirer les doubles flèches et conserver les bandes de balayage.
+// Historique: 2026-10-09 09:22 — vérifier sélection immobile si toutes les orientations tiennent et recentrage sinon.
+// Historique: 2026-11-05 10:27 — vérifier la bande de balayage visible avec une pièce sélectionnée.
+// Historique: 2026-10-09 09:41 — vérifier le défilement initial en une seconde.
+// Historique: 2026-10-08 15:27 — vérifier l'alignement de la barre verticale sous le doigt hors plateau.
+// Historique: 2026-10-08 14:59 — reproduire le toucher prolongé de bord et son centrage au relâchement.
+// Historique: 2026-10-08 14:54 — vérifier le centrage des bords malgré une rotation immédiate.
+// Historique: 2026-10-08 07:20 — vérifier le swipe sur une pièce sélectionnée sans départ de drag.
 // Historique: 2026-10-08 07:10 — vérifier que la flèche se déverrouille après une prise par appui long.
 // Historique: 2026-10-08 07:06 — vérifier les pièces sans fondu et un cran entier après swipe.
 // Historique: 2026-10-08 07:00 — vérifier la navigation à trois pièces et l'affichage complet sans débordement.
@@ -13,6 +20,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pentapol/common/pentominos.dart';
 import 'package:pentapol/common/plateau.dart';
+import 'package:pentapol/common/widgets/piece_renderer.dart';
+import 'package:pentapol/pentoscope/widgets/piece_drag_feedback.dart';
 import 'package:pentapol/database/settings_database.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -42,6 +51,231 @@ class _Settings extends SettingsNotifier {
 
 void main() {
   for (final landscape in [false, true]) {
+    testWidgets(
+      'bande sans flèche : balayage et sélection conservée paysage=$landscape',
+      (tester) async {
+        final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+        final game = _Game();
+        final container = ProviderContainer(
+          overrides: [
+            settingsDatabaseProvider.overrideWithValue(db),
+            settingsProvider.overrideWith(_Settings.new),
+            pentoscopeProvider.overrideWith(() => game),
+          ],
+        );
+        addTearDown(() async {
+          container.dispose();
+          await tester.runAsync(db.close);
+        });
+        container.read(pentoscopeProvider);
+        game.newGame();
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Center(
+                  child: SizedBox(
+                    width: landscape ? 180 : 320,
+                    height: landscape ? 320 : 180,
+                    child: PentoscopePieceSlider(
+                      isLandscape: landscape,
+                      showSwipeStrip: true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final strip = find.byKey(const ValueKey('rack-swipe-strip'));
+        expect(strip, findsOneWidget);
+        expect(
+          find.descendant(
+            of: strip,
+            matching: find.byIcon(
+              landscape ? Icons.swap_vert : Icons.swap_horiz,
+            ),
+          ),
+          findsNothing,
+        );
+        game.selectPiece(pentominos.first);
+        await tester.pumpAndSettle();
+        final scroll = tester
+            .state<ScrollableState>(find.byType(Scrollable))
+            .position;
+        final before = scroll.pixels;
+        final selected = container.read(pentoscopeProvider).selectedPiece;
+        final actions = container
+            .read(pentoscopeProvider)
+            .strategyActions
+            .total;
+        await tester.drag(
+          strip,
+          landscape ? const Offset(0, -90) : const Offset(-90, 0),
+        );
+        await tester.pumpAndSettle();
+        expect(scroll.pixels, isNot(before));
+        expect(
+          container.read(pentoscopeProvider).selectedPiece,
+          same(selected),
+        );
+        expect(
+          container.read(pentoscopeProvider).strategyActions.total,
+          actions,
+        );
+        expect(find.byType(PieceDragFeedback), findsNothing);
+        expect(tester.takeException(), isNull);
+        game.stopTimer();
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+  testWidgets('barre verticale : image alignée avant le plateau', (
+    tester,
+  ) async {
+    final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+    final game = _Game();
+    final container = ProviderContainer(
+      overrides: [
+        settingsDatabaseProvider.overrideWithValue(db),
+        settingsProvider.overrideWith(_Settings.new),
+        pentoscopeProvider.overrideWith(() => game),
+      ],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await tester.runAsync(db.close);
+    });
+    container.read(pentoscopeProvider);
+    game.newGame();
+    final bar = pentominos.firstWhere((piece) => piece.id == 12);
+    game.setPieces([bar]);
+    game.selectPiece(bar);
+    if (bar
+            .orientations[container
+                .read(pentoscopeProvider)
+                .selectedPositionIndex]
+            .map((n) => (n - 1) % 5)
+            .toSet()
+            .length !=
+        1) {
+      game.applyIsometryRotationCW();
+    }
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 350,
+                height: 160,
+                child: PentoscopePieceSlider(isLandscape: false),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final source = tester.getCenter(find.byType(PieceRenderer));
+    final gesture = await tester.startGesture(source);
+    const movement = Offset(0, -35);
+    await gesture.moveBy(movement);
+    await tester.pump();
+    final image = find.descendant(
+      of: find.byType(PieceDragFeedback),
+      matching: find.byType(PieceRenderer),
+    );
+    expect(tester.getCenter(image).dx, closeTo(source.dx, 0.1));
+    expect(tester.getCenter(image).dy, closeTo(source.dy + movement.dy, 0.1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    game.stopTimer();
+  });
+  for (final landscape in [false, true]) {
+    testWidgets('sélection de bord et rotation paysage=$landscape', (
+      tester,
+    ) async {
+      final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+      final game = _Game();
+      final container = ProviderContainer(
+        overrides: [
+          settingsDatabaseProvider.overrideWithValue(db),
+          settingsProvider.overrideWith(_Settings.new),
+          pentoscopeProvider.overrideWith(() => game),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await tester.runAsync(db.close);
+      });
+      container.read(pentoscopeProvider);
+      game.newGame();
+      game.setPieces(pentominos.take(3).toList());
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: landscape ? 140 : 350,
+                  height: landscape ? 350 : 140,
+                  child: PentoscopePieceSlider(isLandscape: landscape),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final edge = pentominos[2];
+      final initialEdgeCenter = tester.getCenter(
+        find.byKey(ValueKey('rack-piece-${edge.id}')),
+      );
+      final heldTouch = await tester.startGesture(
+        tester.getCenter(find.byKey(ValueKey('rack-piece-${edge.id}'))),
+      );
+      await tester.pump(const Duration(milliseconds: 80));
+      await tester.pump();
+      expect(container.read(pentoscopeProvider).selectedPiece?.id, edge.id);
+      await heldTouch.up();
+      await tester.pumpAndSettle();
+      expect(container.read(pentoscopeProvider).selectedPiece?.id, edge.id);
+      final edgeCenter = tester.getCenter(
+        find.byKey(ValueKey('rack-piece-${edge.id}')),
+      );
+      expect(
+        landscape ? edgeCenter.dy : edgeCenter.dx,
+        closeTo(landscape ? initialEdgeCenter.dy : initialEdgeCenter.dx, 1),
+      );
+      for (final piece in [pentominos.first, pentominos[2]]) {
+        final originalCenter = tester.getCenter(
+          find.byKey(ValueKey('rack-piece-${piece.id}')),
+        );
+        game.selectPiece(piece);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        game.applyIsometryRotationCW();
+        await tester.pumpAndSettle();
+        expect(container.read(pentoscopeProvider).selectedPiece?.id, piece.id);
+        final selected = tester.getCenter(
+          find.byKey(ValueKey('rack-piece-${piece.id}')),
+        );
+        expect(
+          landscape ? selected.dy : selected.dx,
+          closeTo(landscape ? originalCenter.dy : originalCenter.dx, 1),
+        );
+      }
+      game.stopTimer();
+    });
     testWidgets('flèche par pièce et boucle paysage=$landscape', (
       tester,
     ) async {
@@ -324,6 +558,7 @@ void main() {
       await tester.pump();
       expectCentered(1);
       expect(tester.takeException(), isNull);
+      game.stopTimer();
       await tester.pumpWidget(const SizedBox.shrink());
     });
     testWidgets('aperçu, centrage et arrêt manuel paysage=$landscape', (
@@ -369,15 +604,18 @@ void main() {
       final start = scroll.position.pixels;
       final end = scroll.position.maxScrollExtent - start;
       expect(end, greaterThan(0));
-      await tester.pump(const Duration(milliseconds: 1500));
+      expect(game.isTimerRunning, isFalse);
+      await tester.pump(const Duration(milliseconds: 400));
       expect(
         scroll.position.pixels,
-        closeTo(start + (end - start) * 1500 / 2700, 2),
+        closeTo(start + (end - start) * 400 / 800, 2),
       );
       expect(container.read(pentoscopeProvider).selectedPiece, isNull);
       expect(container.read(pentoscopeProvider).strategyActions.total, 0);
-      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
+      expect(game.isTimerRunning, isTrue);
       final middleId = pentominos[pentominos.length ~/ 2].id;
       final middle = find.byKey(ValueKey('rack-piece-$middleId'));
       final middleCenter = tester.getCenter(middle);
@@ -403,8 +641,26 @@ void main() {
       expect(scroll.position.pixels, lessThan(afterSwipe));
       expect(container.read(pentoscopeProvider).strategyActions.total, 0);
 
-      // Mettre la première pièce près du bord, puis la sélectionner réellement.
+      // Décentrée mais entièrement visible : sélectionner sans déplacer le tiroir.
       scroll.position.jumpTo(40);
+      await tester.pumpAndSettle();
+      final safeOffset = scroll.position.pixels;
+      await tester.tap(
+        find.byKey(ValueKey('rack-piece-${pentominos.first.id}')),
+      );
+      await tester.pump(const Duration(milliseconds: 310));
+      await tester.pump(const Duration(milliseconds: 310));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(pentoscopeProvider).selectedPiece?.id,
+        pentominos.first.id,
+      );
+      expect(scroll.position.pixels, closeTo(safeOffset, 0.1));
+      game.cancelSelection();
+      await tester.pumpAndSettle();
+
+      // Mettre la première pièce près du bord, puis la sélectionner réellement.
+      scroll.position.jumpTo(80);
       await tester.pumpAndSettle();
       final firstId = pentominos.first.id;
       final piece = find.byKey(ValueKey('rack-piece-$firstId'));
@@ -421,7 +677,7 @@ void main() {
       );
       expect(container.read(pentoscopeProvider).strategyActions.total, 0);
 
-      scroll.position.jumpTo(end - 40);
+      scroll.position.jumpTo(end - 80);
       await tester.pumpAndSettle();
       final lastId = pentominos.last.id;
       final lastPiece = find.byKey(ValueKey('rack-piece-$lastId'));
@@ -456,6 +712,7 @@ void main() {
       await tester.pump(const Duration(seconds: 4));
       expect(scroll.position.pixels, closeTo(stopped, 1));
       await gesture.cancel();
+      game.stopTimer();
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }

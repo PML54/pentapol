@@ -42,10 +42,21 @@ lib/
   utils/                   géométrie, helpers, export
 ```
 
-L'application démarre sur **`HomeScreen`** (`main.dart`) : accueil guidé interactif **3×5**,
-puis accès au jeu, à l'entraînement, au duel, aux défis, aux records et aux réglages.
-Le parcours guidé utilise un état local ; l'entraînement à une pièce **5×7** utilise
-`PentoscopeGameScreen` et le provider de jeu. Voir `docs/ACCUEIL_GUIDE.md`.
+L'application démarre sur **`HomeScreen`** (`main.dart`). Au premier lancement,
+**`DiscoveryScreen`** propose un parcours local **5×5** : quatre pièces fixes, une seule
+à poser, les douze pièces au tiroir (une seule à poser), sélection guidée par une miniature, rotation et dépôt
+assisté. « Passer » reste visible. Après réussite, « Training » ouvre un autre exercice
+sur demande, sans relance automatique. Seuls « Play » ou « Passer » terminent le
+parcours dans le JSON des réglages (`hasCompletedDiscovery`) ; fermer l'app après une
+réussite seule laisse la découverte à reproposer. L'ancienne page d'aide ne valide pas
+ce marqueur.
+Les cibles suivent un cycle équitable des onze pièces orientables, mémorisé par
+`discoveryNextExercise` dans le JSON ; chaque série de onze propositions contient
+une fois chaque pièce. X reste dans le tiroir mais n'est pas cible.
+L'accueil normal donne accès aux modes sans démonstration automatique. L'aide permet
+de rejouer la découverte 5×5. Depuis le 2026-11-05, Training n’apparaît plus sur
+l’accueil ; le bouton de la découverte reste disponible pendant ce parcours.
+L’entrée « Jeu Iso » ouvre Isométries, qui conserve son provider et ses règles propres. Voir `docs/ACCUEIL_GUIDE.md`.
 
 ## Modules actifs
 

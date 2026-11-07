@@ -1,6 +1,3 @@
-// Modified: 2026-10-09 07:33 — générer les chaînes françaises du Training isométries.
-// Historique: 2026-10-08 07:30 — régénérer la réussite Solo avec ou sans aide en français.
-// Historique: 2026-10-08 06:58 — régénérer les secondes, Help et coups du récapitulatif Solo FR.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -12,16 +9,29 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String trainingCountdownSeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String trainingTimeRemaining(int seconds) {
+    return 'Temps restant : $seconds secondes';
+  }
+
+  @override
+  String get trainingTimeExpired => 'Temps écoulé';
+
+  @override
   String get isometryTrainingTitle => 'Isométries';
 
   @override
-  String isometryTrainingResult(
-    int actual,
-    int minimum,
-    int wrong,
-    int rejected,
-  ) {
-    return 'Isométries : $actual/$minimum · erreurs de choix : $wrong · dépôts refusés : $rejected';
+  String isometryTrainingAcuity(int score) {
+    return 'Acuité : $score/10';
+  }
+
+  @override
+  String isometryTrainingStars(int count) {
+    return '$count étoiles';
   }
 
   @override
@@ -80,7 +90,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get homeChallenge => 'Défis du Jour';
+  String get homeIso => 'Jeu Iso';
+
+  @override
+  String homeDailyChallenge(String day) {
+    return 'Défi du $day';
+  }
 
   @override
   String get homeRecords => 'Mes records';
@@ -848,35 +863,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String get guidedPlaced => 'C’est bon !';
 
   @override
-  String get recreationalSelect =>
-      'Appuie sur la pièce du tiroir pour la sélectionner.';
+  String get recreationalSelect => 'Touche la pièce du tiroir.';
 
   @override
   String get recreationalSelectTwo => 'Choisis une des deux pièces du tiroir.';
 
   @override
-  String get recreationalTransform =>
-      'Mets la pièce dans la bonne position avec les icônes.';
+  String get recreationalTransform => 'Tourne ou retourne la pièce.';
 
   @override
-  String get recreationalPlace => 'Déplace-la au bon endroit sur le plateau.';
+  String get recreationalPlace => 'Glisse la pièce sur sa silhouette.';
 
   @override
   String get recreationalPlaced => 'C’est bon !';
 
   @override
-  String get recreationalTapAgain =>
-      'Tap pour recommencer au training 1. Double tap pour jouer.';
+  String get recreationalTapAgain => 'Tap : réessayer. Double tap : jouer.';
 
   @override
   String get recreationalTapTraining2 =>
-      'Tap pour le training 2. Double tap pour jouer.';
+      'Tap : deux pièces. Double tap : jouer.';
 
   @override
   String get gameTapNewGame => 'Double tap pour une nouvelle partie.';
 
   @override
-  String get soloDoubleTap => 'Double Tap';
+  String get newGameTooltip => 'Nouvelle partie';
 
   @override
   String soloCompletionStats(String size, int seconds, int helps, int moves) {
@@ -1118,11 +1130,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get helpPlaySteps =>
-      '1. Parcours tes pièces\nFais glisser le tiroir pour voir les pièces disponibles.\n\n2. Sélectionne une pièce\nTouche la pièce que tu veux jouer.\n\n3. Oriente-la\nUtilise les quatre icônes pour faire pivoter la pièce ou la retourner dans la position souhaitée.\n\n4. Pose-la sur le plateau\nAppuie sur la pièce, garde le doigt dessus et fais-la glisser vers le plateau. Relâche le doigt à l\'endroit choisi.\n\n5. Ajuste une pièce déjà posée\nTouche-la pour la sélectionner. Utilise les quatre icônes pour changer son orientation, ou fais-la glisser vers un autre emplacement. Elle doit rester dans le plateau sans recouvrir une autre pièce.';
+      '1. Touche une pièce du tiroir.\n2. Tourne-la ou retourne-la avec les icônes.\n3. Maintiens-la et glisse-la sur le plateau.\n\nTu peux déplacer les pièces déjà posées. Bloqué ? La lampe peut t’aider.';
 
   @override
-  String get helpPlayGoal =>
-      'Le but : remplir entièrement le plateau avec toutes tes pièces.';
+  String get helpPlayGoal => 'Remplis le plateau, sans trou ni chevauchement.';
 
   @override
   String get helpDescLampAmber =>
@@ -1182,4 +1193,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get aboutDeveloperThanks2 =>
       'Le temps où l\'utilisateur s\'excusait de ne pas savoir utiliser une application est révolu : aujourd\'hui, c\'est au développeur de rendre son application compréhensible. Francine a su me le rappeler chaque fois que cela était nécessaire.';
+
+  @override
+  String get discoveryTitle => 'Découvrir le jeu';
+
+  @override
+  String get discoverySkip => 'Passer';
+
+  @override
+  String get discoverySwipeHere => 'Balaie ici pour voir les pièces';
+
+  @override
+  String get discoveryBrowse => 'Balaie le tiroir.\nSélectionne';
+
+  @override
+  String get discoverySelect => 'Sélectionne';
+
+  @override
+  String get discoveryRotate => 'Positionne';
+
+  @override
+  String get discoveryUsingIcons => 'avec les icônes.';
+
+  @override
+  String get discoveryPlace => 'Glisse la pièce\ndans l’espace libre.';
+
+  @override
+  String get discoveryDone => 'Bravo !';
+
+  @override
+  String get discoveryAgain => 'Training';
+
+  @override
+  String get discoveryPlay => 'Play';
 }

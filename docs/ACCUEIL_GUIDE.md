@@ -1,31 +1,116 @@
-# Accueil et Training 3×5
+# Accueil et Training guidé 5×5
 
-> _Dernière révision : 2026-10-02 — choix des niveaux Solo débloqués._
+> _Dernière révision : 2026-11-05 — Jeu Iso, accueil sans Training, classement agrandi._
 
-> Révision du 2026-09-23 : l'application ouvre un menu responsive avec une démo automatique 5×5.
-> Le Training ne démarre plus automatiquement ; son bouton ouvre le vrai écran de jeu en mode
-> `training`, avec une ou deux pièces manquantes et quatre consignes pilotées par le moteur.
+## Classement du menu principal
+
+L’accueil affiche jusqu’aux cinq meilleurs temps du défi quotidien sur une même
+page, avec uniquement la taille en titre (par exemple 4×5), puis rang, pseudo et
+durée totale en secondes. Titre de 26 sp et lignes de 20 sp ; le défilement automatique et le balayage passent
+d’une taille de plateau à l’autre. Le menu commence sous l’en-tête pour utiliser
+l’espace supérieur. Sur écran court, le menu reste défilable verticalement.
+Le classement est actualisé au retour au menu et à la reprise de l’application
+si l’accueil est visible. Sans score, le panneau et son espacement disparaissent.
+Le consentement au partage des scores reste requis avant toute requête.
 
 ## Parcours visible
 
-L’application démarre sur `HomeScreen`. Le menu présente l'identité **Pentapol**, une mini-partie
-5×5 automatique et cinq destinations. **Jeu Solo** et **Jeu Duo** partagent la première rangée ;
-**Défi**, **Training** et **Réglages** partagent la seconde. Les Records sont accessibles par le
-trophée de l'en-tête. En portrait, la démo précède les actions ; en paysage, elles sont côte à côte.
+`HomeScreen` affiche directement `DiscoveryScreen` tant que le marqueur JSON
+`hasCompletedDiscovery` est absent ou false. L'ancien marqueur de présentation de
+l'aide n'est pas repris : lire une aide ne signifie pas avoir fait cette découverte.
+Aucune migration de base. Seuls Play ou Passer enregistrent le marqueur. Une pose
+réussie ne le change pas : fermer l'app à ce stade repropose la découverte au lancement
+suivant.
 
-La démo choisit huit solutions distinctes dans le corpus et les alterne. Chaque pièce suit quatre
-étapes lisibles : sélection encadrée dans le tiroir, choix mis en évidence parmi les quatre icônes
-d'isométrie, transformation, puis déplacement vers la cible gris pâle. Les icônes mesurent 42 px et
-la boucle complète dure environ 16,5 secondes. Elle ne bloque jamais les boutons.
+La découverte utilise les 856 pavages 5×5 (45 tirages) extraits du corpus livré par
+`tools/generate_discovery_boards.py` dans `discovery_boards_data.dart`. Aucune
+résolution à l'exécution, aucun chargement réseau : les données sont disponibles
+dès l'ouverture. Chaque exercice laisse quatre pièces fixes et une seule à poser.
+La cible est choisie avant le pavage : un cycle propose chacune des onze pièces
+orientables une fois, puis recommence. Le pavage est choisi parmi ceux qui contiennent
+cette cible et varie à chaque retour de la même pièce. Le compteur JSON
+`discoveryNextExercise` est avancé à chaque exercice présenté, y compris au premier
+affichage, et conservé entre les ouvertures. Une fermeture ne ramène donc pas à la
+pièce n°2. Aucune migration. X est exclue des cibles car elle n'a pas d'autre orientation. La cible demande une rotation horaire.
 
-Le parcours visible commence par « Appuie sur la pièce du tiroir pour la sélectionner » dans
-`PentoscopeGameScreen`. Le mode est porté par `PentoscopeMode.training`, distinct de `game`,
-`challenge`, `multiplayer` et `analysis`.
-Ce Training se lance uniquement depuis son bouton. Après un retour à l'accueil, Jeu Solo ouvre
-`PentoscopeMode.game` sans consigne de Training.
-Le joueur la touche pour la sélectionner ; sa silhouette apparaît alors sur le plateau.
-Un maintien permet aussi de sélectionner et glisser directement, comme dans le jeu.
-Aucun compteur ni libellé d’étapes n’est affiché.
+Les douze pentominos sont mélangés dans un tiroir horizontal. La cible est insérée
+aléatoirement en position 7 à 12, jamais parmi les six premières. Le mélange reste
+stable pendant l'exercice et est renouvelé au suivant. Les quatre formes déjà posées
+figurent aussi dans le tiroir. Seule la cible est jouable : aucune copie des pièces
+fixes ne peut être déposée. Aucun chrono, score ni changement
+du Solo sauvegardé ; les leurres ne peuvent jamais être déposés.
+
+Consignes fixes EN/FR, police 20 sp avec agrandissement système, deux lignes maximum :
+
+1. « Balaie le tiroir. » puis « Sélectionne » suivi de la miniature colorée de la cible, sans numéro.
+2. Quand la cible est visible après balayage : « Sélectionne » et la même miniature, dans son orientation initiale au tiroir.
+3. Après sélection : « Positionne » suivi de la miniature dans l’orientation à obtenir, puis « avec les icônes. » sur la deuxième ligne.
+4. Rotation exacte : « Glisse la pièce / dans l’espace libre. »
+5. Dépôt : « Bravo ! » seul, agrandi de 20 à 34 sp en 700 ms puis fixe. Boutons
+« Training » violet (nouvel exercice) et « Play » (Solo). Avec réduction des animations,
+Bravo est directement affiché à sa taille finale.
+
+Le fond du Training est bleu très pâle (#EAF3FC), le tiroir légèrement plus soutenu
+(#DDEAF7) et la silhouette manquante est hachurée en diagonale sur fond blanc dès le début de
+chaque exercice. Les traits continus sont découpés sur les cinq cases de la cible ;
+le contour bleu se superpose sans masquer les hachures à l'étape de pose. Une pose validée produit un unique
+impact tactile moyen (mediumImpact), uniquement si enableHaptics est activé dans les
+réglages. Un dépôt refusé ou une simple prise ne produit pas cette confirmation.
+
+Une bande tactile de balayage est placée entre les icônes
+et le tiroir. Le glissement dans cette bande fait défiler directement le tiroir,
+y compris lorsqu’une pièce est sélectionnée, en conservant son orientation.
+Au premier exercice affiché dans ce parcours, « Balaie ici pour voir les pièces »
+(EN : « Swipe here to see the pieces ») précise la zone. La consigne disparaît au
+premier défilement effectif, depuis la bande ou le tiroir, et ne revient pas aux
+exercices suivants. Les doubles flèches ont été retirées à la demande de Paul.
+
+Dans Solo, Défi et Jeu Iso, le tiroir débordant dispose aussi d’une bande tactile sans flèche :
+au-dessus en portrait, sur le bord en paysage.
+Balayer cette bande conserve la sélection sans attraper la pièce. L’espace de la
+bande est inclus dans le calcul des dimensions plateau/tiroir.
+
+Le résultat reste affiché sans temporisation ni relance automatique. « Encore une
+pièce » réinitialise le plateau, l’orientation, la consigne de recherche et le tiroir
+au début, uniquement sur appui du joueur. La réussite seule ne termine jamais le
+parcours.
+
+Les pièces du tiroir gardent un rapport constant à la case du plateau : 0,55
+(au lieu de 0,65), ce qui réduit aussi la hauteur du tiroir. Le feedback pendant le
+glissement conserve la taille des cases du plateau et la même ancre centrale.
+Les quatre icônes mesurent 44 dp, avec zones tactiles de 64 dp, et sont affichées
+dans l'ordre habituel : rotation antihoraire,
+rotation horaire, miroir haut/bas, miroir gauche/droite. Elles sont grisées avant
+sélection, toutes utilisables ensuite, y compris quand la pièce est prête à poser.
+La transformation conseillée est celle qui rapproche de l'orientation cible. Refaire
+une transformation peut ramener à la consigne d'orientation ; le dépôt n'est possible
+que lorsque la forme correspond de nouveau à la cible. Les pièces fixes ne bougent pas.
+La pièce cible et la commande utile sont mises en évidence aux étapes correspondantes.
+Maintenir puis glisser reprend le délai configuré dans les réglages. La pose vérifie
+l'identité et l'orientation, puis aimante uniquement vers les cinq cases manquantes
+avec une tolérance d'une case autour de la cible. Un relâcher ailleurs ne modifie pas
+le plateau. Aucun geste automatique ni défilement automatique du tiroir.
+
+« Passer » est permanent, y compris après réussite, et ouvre l'accueil normal.
+« Play » lance un Solo 3×5 ; pour un joueur déjà avancé, cet essai ne change pas le
+niveau débloqué. Les accès aux modes, le niveau, le profil et les réglages restent
+masqués pendant la découverte. L'accueil normal conserve ces accès sans démo.
+L'aide propose « Découvrir le jeu » pour rejouer le parcours.
+
+## Accès à la découverte et Jeu Iso
+
+Depuis le 2026-11-05, le bouton Training n’apparaît plus dans le menu principal.
+Le parcours 5×5 reste proposé au premier lancement et accessible depuis l’aide
+via `_openDiscovery` : quatre pièces fixes, une cible, douze pièces mélangées,
+quatre icônes, Bravo, Training pour continuer et Play pour le premier Solo.
+Passer revient à l’accueil. L’ouverture depuis l’aide et le passage ne modifient
+pas la partie Solo chargée.
+
+L’entrée « Jeu Iso » (« Iso Game » en anglais) ouvre le mode Isométries existant,
+avec huit pièces, acuité sur 10, étoiles et compte à rebours de trois minutes.
+L'ancien branchement de l’accueil vers le Training 3×5 à une/deux pièces et son
+paramètre `startRecreationalOnOpen` restent retirés ; le moteur historique et ses
+tests sont conservés.
 
 ## Référence historique : sept petits entraînements
 

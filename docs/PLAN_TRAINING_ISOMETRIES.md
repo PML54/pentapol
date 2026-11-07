@@ -1,10 +1,46 @@
-# Plan — Training « isométries » (5×5, fantôme pièce par pièce)
+# Plan — Training « isométries » (8×5, fantôme pièce par pièce)
 
 > Rédigé par cowork le 2026-10-09, après discussion avec Paul. Aucun code écrit.
 > Ce plan **pilote du code** : il est commité DANS le même commit que ce code (CLAUDE.md §Protocole, règle 5).
 
+## Ajustement approuvé — acuité et étoiles (2026-10-31, Codex)
+
+- Bilan réduit à « Acuité : XX/10 », entier tronqué de `10 × minimum / réalisé`,
+  plafonné à 10 ; aucun détail de coups, choix ou refus dans l’interface Isométries.
+- Délai porté à 180 s, démarrant après l’aperçu du tiroir comme auparavant.
+- Cinq étoiles avant 35 s, quatre avant 60 s, trois avant 90 s, deux avant 150 s,
+  une avant 180 s. Les seuils sont stricts. La réussite fige temps et étoiles.
+- À 180 s sans résolution : zéro étoile, « Temps écoulé », sélection annulée et
+  manipulations bloquées. Accueil et Nouvelle partie restent accessibles.
+- Ces décisions remplacent les mentions historiques des 60 s et du bilan détaillé ci-dessous.
+
 ## Ajustements approuvés et réalisation (2026-10-09, Codex)
 
+- Paul réduit l'aperçu général du tiroir à une seconde (800 ms de parcours,
+  200 ms de retour) puis démarre le chrono. Le compte à rebours attend la fin
+  réelle de cet aperçu ; un geste peut l'interrompre. Animations réduites ou
+  tiroir entièrement visible : démarrage direct sans mouvement inutile.
+
+- Paul ajoute le bouton « Nouveau jeu » dans la barre, disponible pendant et
+  après l'exercice, et un chrono dégressif de 60 s. Chrono vert puis orange à
+  20 s, rouge et pulsation douce à 10 s ; animations réduites respectées. Réussite
+  : chrono figé ; nouveau tirage : remise à 60 s. À zéro : 0 s rouge, grille et
+  manipulation conservées (aucune défaite ni relance forcée demandée). Ces ajouts
+  sont limités au Training isométries, sans changer le Training 3×5.
+  Le chrono conserve son temps lors d'une rotation portrait/paysage. Validation :
+  302 tests de la suite, puis quatre tests enrichis chrono/rotation réussis ;
+  analyse sans erreur ni avertissement.
+- Dernier choix de Paul : proposer l'ensemble des huit pièces dès l'entrée et
+  à chaque relance. Plateau vide de pièces réelles, huit silhouettes pastel,
+  aucune pièce préposée ni progression 2–5. Le Training 3×5 reste inchangé.
+- Paul souhaite coller les pièces du tiroir sur la solution visible : toutes les
+  silhouettes ont leur vraie couleur en pastel uniforme (35 % mélangé au blanc),
+  sans numéro ni cible plus marquée. Remplissage dans n'importe quel ordre ;
+  chaque pièce doit correspondre à sa propre silhouette, avec aimantation.
+- Paul remplace le 5×5 par le format 8×5 existant (size8x5) : huit pièces au
+  total, k=2 à 5 au tiroir et 8−k préposées verrouillées. Les mesures combinatoires
+  du §3 et tools/verif/unicite_5x5.py restent des résultats historiques du 5×5,
+  pas une vérification du 8×5. L'unicité n'est pas requise avec le fantôme.
 - Paul confirme le verrouillage des pièces préposées.
 - Paul demande de garder l'aimantation : contrairement aux §2/§4 ci-dessous,
   le nouveau Training aimante vers la cible à une case de distance maximum sur
@@ -38,16 +74,16 @@ il ne reste que (a) et (b), puis le dépôt, qui fonctionne comme dans le jeu.
 
 ## 2. Décisions de Paul (2026-10-09)
 
-1. Plateau **5×5**, mode `PentoscopeMode.training`, **sans compte à rebours**.
-2. **Une pièce fantôme à la fois** : la cible de la pièce à poser s'affiche en grisé sur le plateau.
+1. Plateau **8×5** (choix révisé de Paul), mode `PentoscopeMode.training`, **compte à rebours 60 s**.
+2. **Solution complète en couleurs pastel** : toutes les pièces manquantes sont
+   visibles, dans leur couleur propre ; ordre de remplissage libre.
 3. Dépôt hors fantôme : **simple refus** (la grille reste légale — invariant n°7).
 4. Le jeu fonctionne **comme le jeu normal** : **pas d'aimantation** (décision du 2026-09-07 maintenue),
    suivi exact du doigt.
-5. Des pièces sont **posées d'avance** ; le joueur place les k autres. Le tiroir ne contient que ces k pièces,
-   en orientations aléatoires (comme le jeu : le tiroir = pièces du tirage non posées).
-   ⚠️ Une version de la discussion parlait de « 12 pièces » : c'est faux sur le 5×5, le tirage a 5 pièces.
+5. **Les huit pièces du tirage sont au tiroir**, en orientations aléatoires,
+   avec leur solution entière visible en pastel. Aucune pièce n'est posée d'avance.
 
-## 3. Faits mesurés (rejouables)
+## 3. Faits historiques du 5×5 (rejouables)
 
 `python3 -I tools/verif/unicite_5x5.py` — retrouve **856 pavages / 45 tirages** (= `REFERENCE_TIRAGES.md`).
 Unicité du complément quand on retire k pièces d'un pavage :
@@ -71,23 +107,23 @@ Limite du calcul : je compte les compléments par les pièces retirées ; non v�
 
 ## 4. Spécification
 
-**Niveaux** : k = 2, 3, 4, 5 pièces à placer (k = 1 : une seule pièce au tiroir, rien à reconnaître → exclu).
-Progression à la complétion, calquée sur `_trainingStage` (tap : niveau suivant ; double tap : ouvrir le Game).
-Au-delà de k = 5, rester à 5.
+**Exercice complet** : huit pièces à placer dès le départ. À la complétion,
+tap : nouveau tirage complet à huit pièces ; double tap : ouvrir le Game.
+L'alternance 1/2 pièces du Training 3×5 reste indépendante.
 
 **Préparation** (à partir de `startRecreationalPuzzle`, qui part déjà d'un plateau complet issu de `applyHint`) :
-- taille `size5x5`, retirer k pièces **sans exiger l'unicité** et sans la contrainte « partagent un côté » ;
-- les pièces restantes sont posées et **verrouillées** (proposition : non déplaçables, comme les pièces fixes
-  des défis — à confirmer par Paul, sinon il peut les retirer et casser l'exercice) ;
+- taille `size8x5`, remettre les huit pièces au tiroir **sans exiger l'unicité** ;
+- aucune pièce préposée ; les pièces réussies sont **verrouillées** ;
 - chaque pièce du tiroir part dans une orientation **différente** de sa cible (`_differentOrientation` existe) ;
 - ne pas casser le Training 3×5 actuel (1 ou 2 pièces) : nouveau paramètre ou nouveau point d'entrée,
   au choix du CLI ; l'entrée « Training » de l'accueil garde son comportement.
 
-**Fantôme** : le grisé de la pièce courante est affiché **avant** toute sélection (aujourd'hui la silhouette
-n'apparaît qu'à la sélection : c'est le comportement à ne pas reprendre ici, sinon la reconnaissance est
-donnée). Ordre : aléatoire parmi les pièces restantes. Après un dépôt valide, le fantôme suivant apparaît.
+**Guide** : toutes les silhouettes manquantes sont affichées en couleurs pastel
+**avant** toute sélection. Chaque pièce peut être posée directement sur sa propre
+silhouette, quel que soit l'ordre. Après un dépôt valide, la pièce posée retrouve
+sa couleur pleine ; les autres silhouettes restent visibles.
 
-**Refus** : le dépôt n'est valide que si les cases de la pièce sont **exactement** celles du fantôme.
+**Refus** : le dépôt n'est valide que si les cases de la pièce sont **exactement** celles de sa propre silhouette.
 Pièce juste mais mal orientée sur le fantôme : refus aussi. Aperçu rouge pendant le glissé hors cible ;
 au relâchement, la pièce retourne au tiroir **en gardant son orientation** (comportement de `cancelSelection`).
 Pas de message (cohérent avec le grisage préventif des isométries, invariant n°7).
@@ -102,7 +138,7 @@ Pas de message (cohérent avec le grisage préventif des isométries, invariant 
 
 ## 5. Hors périmètre
 
-Compte à rebours et chaîne de grilles (idée arcade, mise de côté, non rejetée) · aimantation · 6×10 ·
+Chaîne automatique de grilles (idée arcade, mise de côté, non rejetée) · 6×10 ·
 duel · persistance des résultats de Training · pièces X, I, T, U comme cibles spécifiques (elles restent
 dans les tirages, mais rien ne les sélectionne).
 
@@ -110,7 +146,8 @@ dans les tirages, mais rien ne les sélectionne).
 
 - `flutter analyze` : 0 erreur ; la suite de tests passe (297 au 2026-10-08) ;
 - tests nouveaux : (i) dépôt hors fantôme refusé et plateau inchangé ; (ii) orientation de départ du tiroir
-  toujours ≠ cible ; (iii) aucune écriture en base en Training ; (iv) k pièces au tiroir, 5 − k posées ;
+  toujours ≠ cible ; (iii) aucune écriture en base en Training ; (iv) huit pièces au tiroir, zéro posée,
+  huit silhouettes visibles ; relance proposant de nouveau huit pièces ;
 - header `// Modified:` à jour sur chaque `.dart` touché ;
 - **test sur appareil par Paul** : `flutter run --release -d 00008150-000165D4027B401C`.
   Aucun agent ne juge le ressenti du geste, notamment du dépôt exact sans aimantation à k = 4 et 5.

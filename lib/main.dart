@@ -1,4 +1,8 @@
-// Modified: 2026-09-21 11:04 — corriger une coquille dans le commentaire d'initialisation.
+// Modified: 2026-10-28 08:01 — corriger la coquille dans le mixin WidgetsBindingObserver.
+// Historique: 2026-10-28 05:01 — mémoriser et ouvrir le nouveau parcours de découverte interactif.
+// Historique: 2026-10-26 17:06 — charger les traductions sous MaterialApp avant le premier accueil.
+// Historique: 2026-10-26 15:02 — ouvrir l’aide lors de la première installation.
+// Historique: 2026-09-21 11:04 — corriger une coquille dans le commentaire d'initialisation.
 // Historique: 2026-09-06 04:50 — i18n : MaterialApp câblé (localizationsDelegates, supportedLocales
 //           en/fr), locale résolue depuis AppSettings.localeCode (null = appareil) ; écran de
 //           chargement localisé.
@@ -25,7 +29,6 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/home/home_screen.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -130,11 +133,17 @@ class _PentapolAppState extends ConsumerState<PentapolApp>
       locale: code == null ? null : Locale(code),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: _isInitialized ? const HomeScreen() : _buildLoadingScreen(),
+      home: _isInitialized
+          ? HomeScreen(
+              showDiscoveryOnOpen: !ref
+                  .read(settingsProvider)
+                  .hasCompletedDiscovery,
+            )
+          : Builder(builder: _buildLoadingScreen),
     );
   }
 
-  Widget _buildLoadingScreen() {
+  Widget _buildLoadingScreen(BuildContext context) {
     return Scaffold(
       body: Center(
         child: Column(

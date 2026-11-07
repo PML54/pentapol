@@ -1,4 +1,13 @@
-// Modified: 2026-10-02 06:49 — vérifier le choix explicite des niveaux Solo au double-tap et à l'accueil.
+// Modified: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
+// Historique: 2026-10-28 08:19 — vérifier que Training ouvre la découverte sans toucher au Solo.
+// Historique: 2026-10-29 07:42 — adapter les doubles des réglages au cycle persistant des cibles.
+// Historique: 2026-10-28 08:05 — vérifier la découverte 5×5 et les cibles de son corpus.
+// Historique: 2026-10-28 06:49 — chercher la cible parmi les douze pièces du tiroir de découverte.
+// Historique: 2026-10-28 05:27 — vérifier que la réussite seule ne termine plus la découverte.
+// Historique: 2026-10-28 05:01 — vérifier découverte initiale, passage et rejeu depuis l’aide.
+// Historique: 2026-10-26 17:06 — vérifier l’aide encore à proposer avec un ancien JSON.
+// Historique: 2026-10-26 15:15 — vérifier les cinq pièces initiales et la consigne numérotée.
+// Historique: 2026-10-02 06:49 — vérifier le choix explicite des niveaux Solo au double-tap et à l'accueil.
 // Historique: 2026-09-29 05:50 — vérifier le parcours des seuls niveaux Solo débloqués au double-tap.
 // Historique: 2026-09-29 05:41 — vérifier le niveau et la taille dans le header de l'accueil.
 // Historique: 2026-09-29 05:41 — vérifier le niveau et la taille affichés sur le bouton Jeu Solo.
@@ -19,7 +28,6 @@
 // Historique: 2026-09-12 03:40 — parcours en navigation accessible ; défilement testé séparément.
 // Historique: 2026-09-11 16:12 — vérifier l’accès immédiat au jeu depuis le bouton de l’accueil.
 // test/home_play_test.dart
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -35,7 +43,7 @@ import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/models/app_settings.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/pentoscope/home/home_screen.dart';
-import 'package:pentapol/pentoscope/home/animated_home_board.dart';
+import 'package:pentapol/pentoscope/home/discovery_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
@@ -43,6 +51,12 @@ import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 
 class _Game extends PentoscopeNotifier {
+  @override
+  void finishRackPreview(Object puzzle) {
+    super.finishRackPreview(puzzle);
+    stopTimer();
+  }
+
   void load(PentoscopeState value) => state = value;
 }
 
@@ -100,22 +114,6 @@ class _AutoGame extends _Game {
         piecePositionIndices: {for (final piece in pieces) piece.id: 0},
         solutionsCount: 1,
       ),
-    );
-  }
-}
-
-class _DelayedTrainingGame extends _AutoGame {
-  final ready = Completer<void>();
-
-  @override
-  Future<void> startRecreationalPuzzle({
-    PentoscopeSize size = PentoscopeSize.size3x5,
-    int missingPieceCount = 1,
-  }) async {
-    await ready.future;
-    await super.startRecreationalPuzzle(
-      size: size,
-      missingPieceCount: missingPieceCount,
     );
   }
 }
@@ -183,9 +181,140 @@ class _Settings extends SettingsNotifier {
 
   @override
   AppSettings build() => AppSettings(currentLevel: level);
+
+  @override
+  Future<void> setDiscoveryNextExercise(int next) async {
+    state = state.copyWith(discoveryNextExercise: next);
+  }
+
+  @override
+  Future<void> markDiscoveryCompleted() async {
+    state = state.copyWith(hasCompletedDiscovery: true);
+  }
 }
 
 void main() {
+  test('marqueur premier lancement : neuf, ancien JSON et aller-retour', () {
+    expect(const AppSettings().hasCompletedDiscovery, isFalse);
+    expect(AppSettings.fromJson({}).hasCompletedDiscovery, isFalse);
+    final settings = const AppSettings().copyWith(hasCompletedDiscovery: true);
+    expect(
+      AppSettings.fromJson(settings.toJson()).hasCompletedDiscovery,
+      isTrue,
+    );
+  });
+
+  testWidgets('découverte initiale : passer puis rejouer depuis aide', (
+    tester,
+  ) async {
+    final game = _AutoGame();
+    final container = ProviderContainer(
+      overrides: [
+        pentoscopeProvider.overrideWith(() => game),
+        settingsProvider.overrideWith(_Settings.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(pentoscopeProvider);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          locale: const Locale('fr'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const HomeScreen(showDiscoveryOnOpen: true),
+        ),
+      ),
+    );
+    expect(find.byType(DiscoveryScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-play')), findsNothing);
+    expect(game.recreationalStarts, 0);
+    await tester.tap(find.byKey(const ValueKey('discovery-skip')));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).hasCompletedDiscovery, isTrue);
+    expect(find.byKey(const ValueKey('home-play')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-animated-board')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-help')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('help-discover')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DiscoveryScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('discovery-skip')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-play')), findsOneWidget);
+    expect(game.recreationalStarts, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'réussite découverte puis Jouer démarre seulement le premier Solo',
+    (tester) async {
+      final game = _AutoGame();
+      final container = ProviderContainer(
+        overrides: [
+          pentoscopeProvider.overrideWith(() => game),
+          settingsProvider.overrideWith(() => _Settings(level: 5)),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(pentoscopeProvider);
+      final before = container.read(pentoscopeProvider);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomeScreen(showDiscoveryOnOpen: true),
+          ),
+        ),
+      );
+      final puzzle = DiscoveryPuzzle();
+      final rack = find.byKey(const ValueKey('discovery-rack'));
+      final tile = find.byKey(ValueKey('discovery-piece-${puzzle.piece.id}'));
+      for (var i = 0; i < 32 && tile.hitTestable().evaluate().isEmpty; i++) {
+        await tester.drag(rack, const Offset(-160, 0));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(tile);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('discovery-rotate')));
+      await tester.pump();
+      final board = tester.getRect(
+        find.byKey(const ValueKey('discovery-board')),
+      );
+      final cell = board.width / DiscoveryPuzzle.width;
+      final gesture = await tester.startGesture(tester.getCenter(tile));
+      await tester.pump(const Duration(milliseconds: 150));
+      final xs = puzzle.target.cells.map((c) => c[0]);
+      final ys = puzzle.target.cells.map((c) => c[1]);
+      await gesture.moveTo(
+        board.topLeft +
+            Offset(
+              (xs.reduce(math.min) + xs.reduce(math.max) + 1) * cell / 2,
+              (ys.reduce(math.min) + ys.reduce(math.max) + 1) * cell / 2,
+            ),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(container.read(settingsProvider).hasCompletedDiscovery, isFalse);
+      expect(identical(container.read(pentoscopeProvider), before), isTrue);
+      expect(game.gameStarts, 0);
+      expect(find.byKey(const ValueKey('discovery-play')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discovery-play')));
+      await tester.pumpAndSettle();
+      expect(container.read(settingsProvider).hasCompletedDiscovery, isTrue);
+      expect(game.gameStarts, 1);
+      expect(game.lastGameSize, PentoscopeSize.size3x5);
+      expect(game.lastGameIsProgression, isFalse);
+      expect(container.read(settingsProvider).currentLevel, 5);
+      expect(find.byType(PentoscopeGameScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'Game sans + : double-tap propose les niveaux débloqués et annuler conserve la partie',
     (tester) async {
@@ -303,9 +432,6 @@ void main() {
           overrides: [
             pentoscopeProvider.overrideWith(() => game),
             settingsProvider.overrideWith(() => _Settings(level: 5)),
-            homeDemoSolutionsProvider.overrideWith(
-              (ref) async => throw StateError('Demo unavailable'),
-            ),
           ],
         );
         addTearDown(container.dispose);
@@ -349,10 +475,8 @@ void main() {
     );
   }
 
-  testWidgets('le démarrage affiche le nouvel accueil puis ouvre le Training', (
-    tester,
-  ) async {
-    final game = _DelayedTrainingGame();
+  testWidgets('accueil sans Training et accès Solo préservé', (tester) async {
+    final game = _AutoGame();
     final container = ProviderContainer(
       overrides: [
         pentoscopeProvider.overrideWith(() => game),
@@ -384,27 +508,17 @@ void main() {
     expect(game.recreationalStarts, 0);
     expect(find.byType(PentoscopeGameScreen), findsNothing);
     expect(find.byKey(const ValueKey('home-recreational')), findsNothing);
-    expect(find.byKey(const ValueKey('home-animated-board')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-animated-board')), findsNothing);
     expect(find.byKey(const ValueKey('home-play')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-training')), findsNothing);
     expect(find.byKey(const ValueKey('home-challenge')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-multiplayer')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-records')), findsNothing);
     expect(find.byKey(const ValueKey('home-header-settings')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-settings')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('home-training')));
-    await tester.pump();
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    game.ready.complete();
-    await tester.pumpAndSettle();
-    expect(game.recreationalStarts, 1);
-    expect(find.byType(PentoscopeGameScreen), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.home_outlined));
-    await tester.pumpAndSettle();
-    expect(game.recreationalStarts, 1);
-    expect(find.byType(PentoscopeGameScreen), findsNothing);
+    expect(find.text('Jeu Iso'), findsOneWidget);
+    expect(find.byType(DiscoveryScreen), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('home-play')));
     await tester.pumpAndSettle();
@@ -468,13 +582,13 @@ void main() {
                 locale: Locale(lang),
                 localizationsDelegates: AppLocalizations.localizationsDelegates,
                 supportedLocales: AppLocalizations.supportedLocales,
-                home: const HomeScreen(startRecreationalOnOpen: false),
+                home: const HomeScreen(),
               ),
             ),
           );
           await tester.pumpAndSettle();
           expect(find.byKey(const ValueKey('home-recreational')), findsNothing);
-          expect(find.byKey(const ValueKey('home-training')), findsOneWidget);
+          expect(find.byKey(const ValueKey('home-training')), findsNothing);
           final play = find.byKey(const ValueKey('home-play'));
           expect(tester.widget(play), isA<FilledButton>());
           expect(
@@ -562,10 +676,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(
-      find.text('Appuie sur la pièce du tiroir pour la sélectionner.'),
-      findsWidgets,
-    );
+    expect(find.text('Touche la pièce du tiroir.'), findsWidgets);
     // Couleur de police par état (bloc 5) — en navigation accessible le bandeau est
     // stationnaire : un `Text` de clé 'guided-message' porte le style, couleur comprise.
     Color? guideColor() => tester
@@ -599,10 +710,7 @@ void main() {
       container.read(pentoscopeProvider).copyWith(validPlacements: const []),
     );
     await tester.pump();
-    expect(
-      find.text('Mets la pièce dans la bonne position avec les icônes.'),
-      findsWidgets,
-    );
+    expect(find.text('Tourne ou retourne la pièce.'), findsWidgets);
     // État 2 — sélection sans placement valide.
     expect(guideColor(), TrainingBarColors.noValidPlacement);
 
@@ -611,10 +719,7 @@ void main() {
       container.read(pentoscopeProvider).copyWith(validPlacements: const []),
     );
     await tester.pump();
-    expect(
-      find.text('Mets la pièce dans la bonne position avec les icônes.'),
-      findsWidgets,
-    );
+    expect(find.text('Tourne ou retourne la pièce.'), findsWidgets);
 
     game.load(
       container
@@ -622,10 +727,7 @@ void main() {
           .copyWith(validPlacements: const [Point(0, 0)]),
     );
     await tester.pump();
-    expect(
-      find.text('Déplace-la au bon endroit sur le plateau.'),
-      findsWidgets,
-    );
+    expect(find.text('Glisse la pièce sur sa silhouette.'), findsWidgets);
 
     final state = container.read(pentoscopeProvider);
     game.load(
@@ -646,8 +748,8 @@ void main() {
     await tester.pump();
     // Bandeau de fin : félicitation + consigne des gestes.
     expect(find.textContaining('C’est bon'), findsWidgets);
-    expect(find.textContaining('Tap pour le training 2'), findsWidgets);
-    expect(find.textContaining('Double tap pour jouer'), findsWidgets);
+    expect(find.textContaining('Tap : deux pièces.'), findsWidgets);
+    expect(find.textContaining('Double tap : jouer.'), findsWidgets);
     // État 4 — puzzle complété.
     expect(guideColor(), TrainingBarColors.complete);
     // Ni bouton « Voir un autre » ni relance auto : le plateau résolu attend un geste.

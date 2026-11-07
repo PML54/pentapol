@@ -1,4 +1,8 @@
-// Modified: 2026-10-09 07:33 — fantôme isométries visible avant sélection.
+// Modified: 2026-10-09 09:11 — montrer chaque silhouette isométries dans sa vraie couleur pastel uniforme.
+// Historique: 2026-10-09 09:05 — montrer toute la solution en teintes douces.
+// Historique: 2026-10-09 07:33 — fantôme isométries visible avant sélection.
+// Historique: 2026-10-08 07:45 — retirer la rotation par double-tap sur pièce posée.
+// lib/pentoscope/widgets/pentoscope_board.dart
 // Historique: 2026-10-07 06:53 — signaler les pièces fixes du défi par un cadenas et empêcher leur sélection.
 // Historique: 2026-10-05 20:02 — compter un déplacement relâché hors cible comme action refusée.
 // Historique: 2026-09-23 07:03 — préserver les raccords de l'image en paysage.
@@ -430,7 +434,10 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
       settings,
     );
     if (state.isIsometryTraining && isSolutionCell && cellValue == 0) {
-      cellColor = Colors.grey.shade400;
+      cellColor = Color.alphaBlend(
+        settings.ui.getPieceColor(solutionPieceId!).withValues(alpha: 0.35),
+        Colors.white,
+      );
     }
 
     // 3️⃣ DÉTECTER LA PIÈCE SÉLECTIONNÉE
@@ -670,12 +677,6 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
                     logicalY,
                   );
                 },
-                onDoubleTap: widget.onDoubleTap == null
-                    ? () {
-                        HapticFeedback.selectionClick();
-                        notifier.applyIsometryRotationTW();
-                      }
-                    : null,
                 child: cellWidget,
               ),
       );
@@ -1008,12 +1009,12 @@ class _PentoscopeBoardState extends ConsumerState<PentoscopeBoard> {
     int logicalY,
   ) {
     if (state.isIsometryTraining) {
-      return state.trainingTarget?.absoluteCells.contains(
-                Point(logicalX, logicalY),
-              ) ==
-              true
-          ? state.trainingTarget!.piece.id
-          : null;
+      for (final target in state.trainingTargets) {
+        if (target.absoluteCells.contains(Point(logicalX, logicalY))) {
+          return target.piece.id;
+        }
+      }
+      return null;
     }
     if (state.currentSolution == null) return null;
 

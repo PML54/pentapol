@@ -1,4 +1,11 @@
-// Modified: 2026-10-09 07:33 — training isométries 5x5 : cible, aimantation et mesures éphémères.
+// Modified: 2026-10-31 06:45 — Isométries : acuité sur 10, étoiles et limite de trois minutes.
+// Historique: 2026-10-28 05:01 — réserver le Training existant à ses exercices une ou deux pièces.
+// Historique: 2026-10-26 15:15 — permettre un essai guidé 5×5 avec cinq pièces au tiroir.
+// Historique: 2026-10-09 09:41 — démarrer le chrono local après l'aperçu du tiroir.
+// Historique: 2026-10-09 09:15 — proposer les huit pièces du Training isométries sans pièces préposées.
+// Historique: 2026-10-09 09:11 — permettre le remplissage libre sur la cible propre à chaque pièce.
+// Historique: 2026-10-09 09:00 — utiliser le plateau 8x5 à huit pièces.
+// Historique: 2026-10-09 07:33 — training isométries 5x5 : cible, aimantation et mesures éphémères.
 // Historique: 2026-10-07 07:40 — précalculer le minimum du défi unique pour son affichage dans la liste.
 // Historique: 2026-10-07 06:53 — défis préremplis à solution unique, pièces fixes exclues des gestes et du minimum.
 // Historique: 2026-10-06 04:45 — calculer le minimum de coups propre à la solution finale du défi.
@@ -177,6 +184,16 @@ import 'package:pentapol/pentoscope/corpus_provider.dart';
 // ÉTAT
 // ============================================================================
 
+final rackPreviewCompletedProvider =
+    NotifierProvider<RackPreviewCompletion, Object?>(RackPreviewCompletion.new);
+
+class RackPreviewCompletion extends Notifier<Object?> {
+  @override
+  Object? build() => null;
+
+  void complete(Object puzzle) => state = puzzle;
+}
+
 final pentoscopeProvider =
     NotifierProvider<PentoscopeNotifier, PentoscopeState>(
       PentoscopeNotifier.new,
@@ -217,6 +234,19 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// La persistance (CurrentGame, records) est **solo uniquement** : le multijoueur
   /// partage ce provider mais ne doit ni sauvegarder ni enregistrer de record.
   bool _isMultiplayer = false;
+
+  void finishRackPreview(Object puzzle) {
+    if (!identical(state.puzzle, puzzle)) return;
+    ref.read(rackPreviewCompletedProvider.notifier).complete(puzzle);
+    if (!_isMultiplayer &&
+        !state.isIsometryTraining &&
+        !state.isComplete &&
+        state.elapsedSeconds == 0 &&
+        state.placedPieces.length == state.fixedPieceIds.length &&
+        state.strategyActions.total == 0) {
+      startTimer();
+    }
+  }
 
   /// Défi en cours (mode classé). null hors défi. Sa complétion POST le score au serveur.
   ChallengeDefinition? _activeChallenge;
@@ -716,14 +746,23 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
-  Future<void> startIsometryTraining({int missingPieceCount = 2}) async {
-    if (missingPieceCount < 2 || missingPieceCount > 5) {
-      throw ArgumentError.value(missingPieceCount, 'missingPieceCount');
+  void expireIsometryTraining() {
+    if (!state.isIsometryTraining ||
+        state.isComplete ||
+        state.trainingTimeExpired) {
+      return;
     }
+    cancelSelection();
+    stopTimer();
+    state = state.copyWith(trainingTimeExpired: true);
+  }
+
+  Future<void> startIsometryTraining() async {
     _isRecreationalSetup = true;
     try {
+      const size = PentoscopeSize.size8x5;
       for (var attempt = 0; attempt < 100; attempt++) {
-        await startPuzzle(PentoscopeSize.size5x5);
+        await startPuzzle(size);
         if (state.availablePieces.every((p) => p.numOrientations > 1)) break;
       }
       if (state.availablePieces.any((p) => p.numOrientations == 1)) {
@@ -733,12 +772,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         applyHint();
       }
       final solution = List<PlacedPiece>.of(state.placedPieces);
-      if (solution.length != 5) {
+      if (solution.length != size.numPieces) {
         throw StateError('Incomplete training solution');
       }
       solution.shuffle(Random());
-      final targets = solution.take(missingPieceCount).toList();
-      final fixed = solution.skip(missingPieceCount).toList();
+      final targets = solution;
+      const fixed = <PlacedPiece>[];
       final random = Random();
       final orientations = <int, int>{};
       for (final target in targets) {
@@ -1114,10 +1153,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// le drag sur le doigt comme le fait le plateau (cf. b86e942). null → cellule par défaut (tap).
   /// [grabLocal] : offset px du toucher dans la boîte de la pièce, pour reconstruire le doigt (onMove).
   void selectPiece(Pento piece, {Point? grabbedCell, Offset? grabLocal}) {
+    if (state.trainingTimeExpired) return;
     if (state.fixedPieceIds.contains(piece.id)) return;
     if (state.isIsometryTraining &&
         state.selectedPiece?.id != piece.id &&
-        state.trainingTarget?.piece.id != piece.id) {
+        state.trainingTargetFor(piece.id) == null) {
       state = state.copyWith(
         trainingWrongSelections: state.trainingWrongSelections + 1,
       );
@@ -1155,6 +1195,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   // ==========================================================================
 
   void selectPlacedPiece(PlacedPiece placed, int absoluteX, int absoluteY) {
+    if (state.trainingTimeExpired) return;
     if (state.fixedPieceIds.contains(placed.piece.id)) return;
     if (state.isComplete) return; // ← Bloquer si puzzle complet
 
@@ -1997,6 +2038,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// JOURNAL). Le dépôt appelle ceci avec `previewX/previewY` : ce que l'aperçu montre est
   /// exactement ce qui se pose — plus de décalage `−minY` au relâcher.
   bool tryPlaceAtAnchor(int anchorX, int anchorY) {
+    if (state.trainingTimeExpired) return false;
     if (state.selectedPiece == null) return false;
     if (state.isIsometryTraining &&
         !state.matchesTrainingTarget(
@@ -2165,6 +2207,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// **couleur** (`isPreviewValid`), lue par le fantôme du plateau ET le feedback sous le doigt
   /// (image réelle si valide, transparent sinon).
   void updatePreview(int gridX, int gridY) {
+    if (state.trainingTimeExpired) return;
     if (state.selectedPiece == null) {
       if (state.previewX != null || state.previewY != null) {
         state = state.copyWith(clearPreview: true);
@@ -2173,7 +2216,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
 
     var anchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
-    final target = state.trainingTarget;
+    final target = state.trainingTargetFor(state.selectedPiece!.id);
     if (target != null &&
         state.selectedPiece?.id == target.piece.id &&
         state.selectedPositionIndex == target.positionIndex &&
@@ -2202,6 +2245,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     int Function(Pento p, int idx) f, {
     bool preview = false,
   }) {
+    if (state.trainingTimeExpired) return TransformationResult.impossible;
     final piece = state.selectedPiece;
     if (piece == null) return TransformationResult.success;
 
@@ -3183,7 +3227,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// Retourne une liste de Point (gridX, gridY) où la pièce peut être placée
   List<Point> _generateValidPlacements(Pento piece, int positionIndex) {
     if (state.isIsometryTraining) {
-      final target = state.trainingTarget;
+      final target = state.trainingTargetFor(piece.id);
       return target != null &&
               piece.id == target.piece.id &&
               positionIndex == target.positionIndex
@@ -3305,6 +3349,11 @@ class PentoscopeState implements PieceManipulationState {
   final List<PlacedPiece> trainingTargets;
   final int trainingWrongSelections;
   final int trainingRejectedDrops;
+  final bool trainingTimeExpired;
+
+  int get trainingAcuity => isometryCount == 0
+      ? 10
+      : (10 * trainingMinIso ~/ isometryCount).clamp(0, 10);
   bool get isIsometryTraining => trainingTargets.isNotEmpty;
   PlacedPiece? get trainingTarget {
     for (final target in trainingTargets) {
@@ -3322,8 +3371,16 @@ class PentoscopeState implements PieceManipulationState {
           target.positionIndex,
         ),
   );
+  PlacedPiece? trainingTargetFor(int pieceId) {
+    if (!availablePieces.any((piece) => piece.id == pieceId)) return null;
+    for (final target in trainingTargets) {
+      if (target.piece.id == pieceId) return target;
+    }
+    return null;
+  }
+
   bool matchesTrainingTarget(Pento piece, int orientation, int x, int y) {
-    final target = trainingTarget;
+    final target = trainingTargetFor(piece.id);
     if (target == null || piece.id != target.piece.id) return false;
     final actual = PlacedPiece(
       piece: piece,
@@ -3433,6 +3490,7 @@ class PentoscopeState implements PieceManipulationState {
     this.trainingTargets = const [],
     this.trainingWrongSelections = 0,
     this.trainingRejectedDrops = 0,
+    this.trainingTimeExpired = false,
     this.fixedPieceIds = const {},
     this.geometry,
     this.viewOrientation = ViewOrientation.portrait,
@@ -3524,6 +3582,7 @@ class PentoscopeState implements PieceManipulationState {
     List<PlacedPiece>? trainingTargets,
     int? trainingWrongSelections,
     int? trainingRejectedDrops,
+    bool? trainingTimeExpired,
     Set<int>? fixedPieceIds,
     GeometryScore? geometry,
     ViewOrientation? viewOrientation,
@@ -3578,6 +3637,7 @@ class PentoscopeState implements PieceManipulationState {
     return PentoscopeState(
       isTraining: isTraining ?? this.isTraining,
       trainingTargets: trainingTargets ?? this.trainingTargets,
+      trainingTimeExpired: trainingTimeExpired ?? this.trainingTimeExpired,
       trainingWrongSelections:
           trainingWrongSelections ?? this.trainingWrongSelections,
       trainingRejectedDrops:

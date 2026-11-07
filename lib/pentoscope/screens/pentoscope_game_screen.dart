@@ -1,4 +1,13 @@
-// Modified: 2026-10-09 07:33 — progression et bilan du Training isométries séparés du 3x5.
+// Modified: 2026-11-05 10:27 — afficher une bande de balayage avec double flèche dans le jeu.
+// Historique: 2026-10-28 05:01 — retirer le précédent essai cinq pièces remplacé par la découverte locale.
+// Historique: 2026-10-31 06:45 — Isométries : acuité sur 10, étoiles et limite de trois minutes.
+// Historique: 2026-10-26 15:15 — guider la recherche par numéro dans le tiroir puis la pose.
+// Historique: 2026-10-09 09:41 — synchroniser le chrono Training avec la fin de l'aperçu.
+// Historique: 2026-10-09 09:27 — ajouter nouveau jeu et chrono dégressif au Training isométries.
+// Historique: 2026-10-09 09:15 — relancer un Training complet à huit pièces.
+// Historique: 2026-10-09 07:33 — séparer progression et bilan du Training 3x5.
+// Historique: 2026-10-08 07:45 — bouton nouvelle partie en fin Solo.
+// lib/pentoscope/screens/pentoscope_game_screen.dart
 // Historique: 2026-10-08 07:28 — agrandir la phrase de réussite Solo avec dimensions, coups et aides.
 // Historique: 2026-10-08 06:58 — afficher Double Tap rouge et les compteurs bruts en fin de Solo.
 // Historique: 2026-10-08 06:50 — présenter Temps et Stratégie aussi en Solo avec le taux d'aide.
@@ -183,6 +192,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
+import 'package:pentapol/pentoscope/widgets/isometry_training_countdown.dart';
 import 'package:pentapol/pentoscope/solo_level_dialog.dart';
 import 'package:pentapol/models/player_name.dart';
 import 'package:pentapol/common/placed_piece.dart';
@@ -275,7 +285,7 @@ const double _kLabelSizeMax = 40.0;
 const double _kChronoFactor = 1.4;
 
 /// Marge de la barre de pièces autour de la boîte (épaisseur de barre = `5 × cell + marge`).
-const double _kSliderPad = 20.0;
+const double _kSliderPad = 20.0 + PentoscopePieceSlider.swipeStripExtent;
 
 /// Durée en minutes et secondes, indépendamment de l'aide utilisée.
 String _formatTime(int seconds) {
@@ -312,6 +322,7 @@ class PentoscopeGameScreen extends ConsumerStatefulWidget {
 
 class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   int _trainingStage = 1;
+  bool _trainingRestarting = false;
 
   // 👁️ État du mini-plateau adversaire
   bool _showOpponentOverlay = false;
@@ -553,18 +564,24 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               ),
 
               // 🔄⚫ Récap utilisateur (réglage showCounters) : isométries + fautes, haut-gauche.
-              if (settings.game.showCounters) _statsOverlay(state),
+              if (settings.game.showCounters && !state.isIsometryTraining)
+                _statsOverlay(state),
 
               // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
               // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
               // Masqué si le récap utilisateur est actif (même coin) — les deux s'excluent.
-              if (kShowLiveCounters && !settings.game.showCounters)
+              if (kShowLiveCounters &&
+                  !settings.game.showCounters &&
+                  !state.isIsometryTraining)
                 _debugIndicatorsOverlay(state),
 
               // Fin de training : tap simple pour continuer l'entraînement, double-tap pour passer
               // immédiatement au vrai module Game.
               if (widget.mode == PentoscopeMode.training && state.isComplete)
                 Positioned.fill(
+                  bottom: state.isIsometryTraining && isLandscape
+                      ? math.max(48.0, _uiIconSize(context) + 16)
+                      : 0,
                   child: GestureDetector(
                     key: const ValueKey('training-continue'),
                     behavior: HitTestBehavior.opaque,
@@ -622,12 +639,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final l10n = AppLocalizations.of(context);
     final message = state.isIsometryTraining
         ? (state.isComplete
-              ? l10n.isometryTrainingResult(
-                  state.isometryCount,
-                  state.trainingMinIso,
-                  state.trainingWrongSelections,
-                  state.trainingRejectedDrops,
-                )
+              ? l10n.isometryTrainingAcuity(state.trainingAcuity)
+              : state.trainingTimeExpired
+              ? l10n.trainingTimeExpired
               : l10n.isometryTrainingTitle)
         : state.isComplete
         // Puzzle résolu : féliciter ET indiquer les gestes depuis le plateau.
@@ -641,7 +655,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
         : l10n.recreationalPlace;
     // Couleur de police par état — même cascade que `message` (une teinte par branche).
     // Changement sec à la transition : la couleur ne varie qu'avec le message, et
-    // GuidedScrollingMessage réinitialise déjà son défilement à chaque changement de message.
+    // La consigne reste fixe et change uniquement avec l’état du jeu.
     final messageColor = state.isComplete
         ? TrainingBarColors.complete
         : state.selectedPiece == null
@@ -681,9 +695,19 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     HapticFeedback.selectionClick();
     final training = ref.read(pentoscopeProvider);
     if (training.isIsometryTraining) {
-      await notifier.startIsometryTraining(
-        missingPieceCount: (training.trainingTargets.length + 1).clamp(2, 5),
-      );
+      if (_trainingRestarting) return;
+      setState(() => _trainingRestarting = true);
+      try {
+        await notifier.startIsometryTraining();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context).genericError)),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _trainingRestarting = false);
+      }
       return;
     }
     final nextStage = _trainingStage == 1 ? 2 : 1;
@@ -1455,13 +1479,46 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     );
 
     if (widget.mode == PentoscopeMode.training) {
-      return [homeButton, Expanded(child: _buildTrainingBarMessage(state))];
+      return [
+        homeButton,
+        Expanded(child: _buildTrainingBarMessage(state)),
+        if (state.isIsometryTraining) ...[
+          IsometryTrainingCountdown(
+            key: GlobalObjectKey(state.puzzle!),
+            complete: state.isComplete,
+            onExpired: notifier.expireIsometryTraining,
+            ready: identical(
+              ref.watch(rackPreviewCompletedProvider),
+              state.puzzle,
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('training-new-game'),
+            icon: const Icon(Icons.add_circle_outline),
+            iconSize: iconSize,
+            color: Colors.blueGrey,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            onPressed: _trainingRestarting
+                ? null
+                : () => _startNextTraining(notifier),
+            tooltip: l10n.newGameTooltip,
+          ),
+        ],
+      ];
     }
 
     if (widget.mode == PentoscopeMode.game && state.isComplete) {
       return [
         homeButton,
         Expanded(child: _buildGameCompletionBar(state, notifier)),
+        IconButton(
+          key: const ValueKey('solo-new-game'),
+          icon: const Icon(Icons.add_circle_outline),
+          iconSize: iconSize,
+          color: Colors.blueGrey,
+          onPressed: () => _handleGameBoardDoubleTap(state, notifier),
+          tooltip: l10n.newGameTooltip,
+        ),
       ];
     }
 
@@ -1577,13 +1634,12 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
             state.strategyActions.total,
           )
         : parts.join(' · ');
-    final message = solo ? '${l10n.soloDoubleTap} · $stats' : stats;
     final barHeight = _uiAppBarHeight(context);
     return LayoutBuilder(
       builder: (context, constraints) => Semantics(
         key: const ValueKey('game-completion-summary'),
         liveRegion: true,
-        label: message,
+        label: stats,
         child: SizedBox(
           height: solo
               ? (barHeight - 8).clamp(36.0, 48.0)
@@ -1595,26 +1651,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                 fontSize: solo ? 22 : (barHeight * 0.34).clamp(16.0, 20.0),
                 fontWeight: FontWeight.w700,
               );
-              if (!solo) {
-                return GuidedScrollingMessage(
-                  message: stats,
-                  style: style,
-                  width: innerConstraints.maxWidth,
-                );
-              }
               return GuidedScrollingMessage(
-                message: message,
+                message: stats,
                 style: style,
                 width: innerConstraints.maxWidth,
-                textSpan: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: l10n.soloDoubleTap,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                    TextSpan(text: ' · $stats'),
-                  ],
-                ),
               );
             },
           ),
@@ -1807,6 +1847,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
               // Le bilan n'occupe plus la zone slider (il est en carte flottante) : slider normal,
               // vide à la complétion (toutes les pièces posées).
               sliderChild: PentoscopePieceSlider(
+                showSwipeStrip: true,
                 isLandscape: false,
                 pieceCellSize: m.cell,
               ),
@@ -1881,6 +1922,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
                       ],
                     ),
                     sliderChild: PentoscopePieceSlider(
+                      showSwipeStrip: true,
                       isLandscape: true,
                       pieceCellSize: m.cell,
                     ),

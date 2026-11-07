@@ -1,4 +1,7 @@
-// Modified: 2026-10-08 07:28 — vérifier la phrase Solo agrandie sans aide et avec une ou trois aides.
+// Modified: 2026-10-28 05:01 — arrêter le chrono d’aperçu dans le double des tests du bilan.
+// Historique: 2026-10-08 07:45 — vérifier le bouton « Nouvelle partie » en fin de Solo et l'absence
+//           du préfixe « Double Tap » dans le bandeau.
+// Historique: 2026-10-08 07:28 — vérifier la phrase Solo agrandie sans aide et avec une ou trois aides.
 // Historique: 2026-10-08 06:58 — vérifier Double Tap rouge, secondes et compteurs bruts en fin de Solo.
 // Historique: 2026-10-08 06:50 — vérifier Temps, Stratégie et Aide dans le bilan Solo FR/EN.
 // Historique: 2026-10-02 07:17 — vérifier le temps en minutes:secondes même avec Triche.
@@ -24,6 +27,12 @@ import 'package:pentapol/pentoscope/home/guided_scrolling_message.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 
 class _Game extends PentoscopeNotifier {
+  @override
+  void finishRackPreview(Object puzzle) {
+    super.finishRackPreview(puzzle);
+    stopTimer();
+  }
+
   int starts = 0;
   PentoscopeSize? startedSize;
 
@@ -122,16 +131,18 @@ void main() {
           expect(
             label,
             lang == 'fr'
-                ? 'Double Tap · 3x5 réussi en 100 s et 5 coups ${hints == 0 ? 'sans aide' : 'avec $hints ${hints == 1 ? 'aide' : 'aides'}'}'
-                : 'Double Tap · 3x5 completed in 100 s and 5 moves ${hints == 0 ? 'without assistance' : 'with $hints ${hints == 1 ? 'assist' : 'assists'}'}',
+                ? '3x5 réussi en 100 s et 5 coups ${hints == 0 ? 'sans aide' : 'avec $hints ${hints == 1 ? 'aide' : 'aides'}'}'
+                : '3x5 completed in 100 s and 5 moves ${hints == 0 ? 'without assistance' : 'with $hints ${hints == 1 ? 'assist' : 'assists'}'}',
           );
           final messageWidget = tester.widget<GuidedScrollingMessage>(
             find.byType(GuidedScrollingMessage),
           );
-          final prefix = messageWidget.textSpan!.children!.first as TextSpan;
-          expect(prefix.text, 'Double Tap');
-          expect(prefix.style?.color, Colors.red);
+          // Plus de préfixe « Double Tap » : le bandeau ne porte que les stats.
+          expect(messageWidget.textSpan, isNull);
           expect(messageWidget.style.fontSize, 22);
+          // Bouton « Nouvelle partie » en fin de Solo.
+          expect(find.byKey(const ValueKey('solo-new-game')), findsOneWidget);
+          expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
           expect(find.text('Acuité'), findsNothing);
           expect(find.byKey(const ValueKey('game-continue')), findsOneWidget);
           await tester.tap(find.byKey(const ValueKey('game-continue')));

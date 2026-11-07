@@ -1,4 +1,17 @@
-// Modified: 2026-10-09 07:33 — entrée isométries indépendante du Training 3x5.
+// Modified: 2026-11-05 10:05 — unifier Jeu Iso avec Solo/Duo, fond orange Iso et noir Défi.
+// Historique: 2026-10-29 07:42 — reprendre le cycle des cibles équilibrées depuis tous les accès au Training.
+// Historique: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
+// Historique: 2026-11-04 10:20 — remonter le menu et le classement dans l’espace disponible.
+// Historique: 2026-10-31 06:15 — nommer le défi quotidien selon le jour de semaine.
+// Historique: 2026-10-31 06:11 — nommer la Battle par jour et masquer les podiums sans score.
+// Historique: 2026-10-30 08:52 — réorganiser les accès et afficher les Tops quotidiens.
+// Historique: 2026-10-29 07:26 — respecter le réglage des vibrations dans tous les accès au Training.
+// Historique: 2026-10-28 08:19 — ouvrir le Training guidé 5×5 depuis l’accueil et l’aide.
+// Historique: 2026-10-28 05:27 — terminer la découverte uniquement par Jouer ou Passer.
+// Historique: 2026-10-28 05:01 — remplacer la démo par une découverte initiale, rejouable depuis l’aide.
+// Historique: 2026-10-26 15:15 — démarrer l’essai depuis l’aide avec cinq pièces à parcourir.
+// Historique: 2026-10-26 15:02 — proposer l’aide initiale puis un essai guidé à une pièce.
+// Historique: 2026-10-09 07:33 — entrée isométries indépendante du Training 3x5.
 // Historique: 2026-10-02 06:49 — choisir un niveau débloqué au lancement d'une nouvelle partie Solo.
 // Historique: 2026-10-02 06:39 — ajouter une remise à zéro confirmée des résultats locaux à l'accueil.
 // Historique: 2026-09-29 06:05 — rendre le code couleur du niveau nettement visible dans le header.
@@ -21,9 +34,9 @@
 // lib/pentoscope/home/home_screen.dart
 // Historique: 2026-09-10 14:53 — accueil interactif : respecter le délai de prise réglé pour le jeu.
 // Historique: 2026-09-10 10:24 — accueil : remplacer la démonstration passive par le 3×5 guidé.
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -32,41 +45,123 @@ import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/help_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
 import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
+import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
 import 'package:pentapol/pentoscope/pentoscope_provider.dart';
 import 'package:pentapol/pentoscope/pentoscope_mode.dart';
 import 'package:pentapol/pentoscope/solo_level_dialog.dart';
 import 'package:pentapol/pentoscope/pentoscope_generator.dart'
-    show sizeForLevel;
+    show PentoscopeSize, sizeForLevel;
 import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart'
     show PentoscopeGameScreen;
-import 'package:pentapol/pentoscope/home/animated_home_board.dart';
+import 'package:pentapol/pentoscope/home/discovery_screen.dart';
+import 'package:pentapol/pentoscope/home/daily_challenge_tops.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  final bool startRecreationalOnOpen;
+  final bool showDiscoveryOnOpen;
 
-  const HomeScreen({super.key, this.startRecreationalOnOpen = false});
+  const HomeScreen({super.key, this.showDiscoveryOnOpen = false});
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  late bool _isLaunchingRecreational = widget.startRecreationalOnOpen;
+  bool _isLaunchingGame = false;
+  late bool _showDiscovery = widget.showDiscoveryOnOpen;
+  late final int _initialDiscoveryExercise = ref
+      .read(settingsProvider)
+      .discoveryNextExercise;
+  Future<void>? _discoverySaved;
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.startRecreationalOnOpen) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _playRecreational();
-      });
+  Future<void> _completeDiscovery() => _discoverySaved ??= ref
+      .read(settingsProvider.notifier)
+      .markDiscoveryCompleted();
+
+  Future<void> _leaveInitialDiscovery({bool play = false}) async {
+    await _completeDiscovery();
+    if (!mounted) return;
+    setState(() => _showDiscovery = false);
+    if (play) await _startFirstSolo();
+  }
+
+  Future<void> _openHelp() async {
+    final discover = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HelpScreen(onStart: () => Navigator.pop(context, true)),
+      ),
+    );
+    if (mounted && discover == true) await _openDiscovery();
+  }
+
+  Future<void> _openDiscovery() async {
+    final initialExerciseIndex = ref
+        .read(settingsProvider)
+        .discoveryNextExercise;
+    final play = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) => DiscoveryScreen(
+          initialExerciseIndex: initialExerciseIndex,
+          onExerciseStarted: (next) => ref
+              .read(settingsProvider.notifier)
+              .setDiscoveryNextExercise(next),
+          colorOf: ref.read(settingsProvider).ui.getPieceColor,
+          enableHaptics: ref.read(settingsProvider).game.enableHaptics,
+          longPressDuration: Duration(
+            milliseconds: ref.read(settingsProvider).game.longPressDuration,
+          ),
+          onSkip: () async {
+            await _completeDiscovery();
+            if (routeContext.mounted) Navigator.pop(routeContext, false);
+          },
+          onPlay: () async {
+            await _completeDiscovery();
+            if (routeContext.mounted) Navigator.pop(routeContext, true);
+          },
+        ),
+      ),
+    );
+    if (mounted && play == true) await _startFirstSolo();
+  }
+
+  Future<void> _startFirstSolo() async {
+    setState(() => _isLaunchingGame = true);
+    try {
+      await ref
+          .read(pentoscopeProvider.notifier)
+          .startPuzzle(
+            PentoscopeSize.size3x5,
+            isProgression: ref.read(settingsProvider).currentLevel == 1,
+          );
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PentoscopeGameScreen()),
+      );
+    } finally {
+      if (mounted) setState(() => _isLaunchingGame = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    if (_showDiscovery) {
+      return DiscoveryScreen(
+        initialExerciseIndex: _initialDiscoveryExercise,
+        onExerciseStarted: (next) =>
+            ref.read(settingsProvider.notifier).setDiscoveryNextExercise(next),
+        colorOf: settings.ui.getPieceColor,
+        enableHaptics: settings.game.enableHaptics,
+        longPressDuration: Duration(
+          milliseconds: settings.game.longPressDuration,
+        ),
+        onSkip: _leaveInitialDiscovery,
+        onPlay: () => _leaveInitialDiscovery(play: true),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
@@ -74,7 +169,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             _buildHeader(context, settings.currentLevel),
             Expanded(
-              child: _isLaunchingRecreational
+              child: _isLaunchingGame
                   ? const Center(child: CircularProgressIndicator())
                   : _buildMenu(context, settings.currentLevel),
             ),
@@ -144,10 +239,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           IconButton(
             key: const ValueKey('home-help'),
             tooltip: l10n.helpTile,
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HelpScreen()),
-            ),
+            onPressed: _openHelp,
             icon: const Icon(
               Icons.help_outline,
               color: Color(0xFF52657D),
@@ -170,7 +262,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           IconButton(
             key: const ValueKey('home-reset-results'),
             tooltip: l10n.resetLocalResultsTitle,
-            onPressed: _isLaunchingRecreational ? null : _resetLocalResults,
+            onPressed: _isLaunchingGame ? null : _resetLocalResults,
             icon: const Icon(
               Icons.delete_sweep_outlined,
               color: Color(0xFFB43B43),
@@ -182,60 +274,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildMenu(BuildContext context, int level) {
-    final settings = ref.watch(settingsProvider);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final landscape = constraints.maxWidth > constraints.maxHeight;
-        final tablet = MediaQuery.sizeOf(context).shortestSide >= 600;
-        final demoHeight =
-            (constraints.maxHeight - (landscape ? 12 : (tablet ? 175 : 130)))
-                .clamp(250.0, tablet ? 700.0 : 380.0);
-        final contentWidth = math.min(
-          constraints.maxWidth - 16,
-          landscape ? (tablet ? 1040.0 : 720.0) : (tablet ? 720.0 : 520.0),
-        );
-        final actionsWidth = tablet ? 380.0 : 320.0;
-        final demoWidth = landscape
-            ? contentWidth - 24 - actionsWidth
-            : contentWidth;
-        final widthCellSize = demoWidth / 6.4;
-        final heightCellSize =
-            (demoHeight -
-                AnimatedHomeBoard.chromeHeightForCell(widthCellSize)) /
-            5;
-        final demoCellSize = math.min(heightCellSize, widthCellSize);
-        final resolvedDemoHeight =
-            demoCellSize * 5 +
-            AnimatedHomeBoard.chromeHeightForCell(demoCellSize);
-        final resolvedDemoWidth = demoCellSize * 6.4;
-        final demo = ref.watch(homeDemoSolutionsProvider);
-        final board = demo.when(
-          data: (solutions) => AnimatedHomeBoard(
-            key: const ValueKey('home-animated-board'),
-            solutions: solutions,
-            colorOf: settings.ui.getPieceColor,
-            cellSize: demoCellSize,
-          ),
-          loading: () => SizedBox(
-            key: const ValueKey('home-animated-board-loading'),
-            width: resolvedDemoWidth,
-            height: resolvedDemoHeight,
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-          error: (_, _) => SizedBox(
-            width: resolvedDemoWidth,
-            height: resolvedDemoHeight,
-            child: const Icon(
-              Icons.grid_view_rounded,
-              color: Color(0xFF9AA8B8),
-            ),
-          ),
-        );
-        final actions = _HomeActions(
-          expanded: tablet,
+  Widget _buildMenu(BuildContext context, int level) => Align(
+    alignment: Alignment.topCenter,
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: _HomeActions(
+          expanded: true,
           onSolo: () => _play(context, level),
           onDuo: () => Navigator.push(
             context,
@@ -245,41 +291,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             context,
             MaterialPageRoute(builder: (_) => const ChallengeScreen()),
           ),
-          onTraining: _playRecreational,
           onIsometries: _playIsometries,
-        );
-
-        return Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: landscape ? 6 : 8,
-            ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: landscape
-                    ? (tablet ? 1040 : 720)
-                    : (tablet ? 720 : 520),
-              ),
-              child: landscape
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        board,
-                        const SizedBox(width: 24),
-                        SizedBox(width: actionsWidth, child: actions),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [board, const SizedBox(height: 10), actions],
-                    ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+        ),
+      ),
+    ),
+  );
 
   Future<void> _play(BuildContext context, int level) async {
     final notifier = ref.read(pentoscopeProvider.notifier);
@@ -363,27 +379,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Future<void> _playRecreational() async {
-    if (!_isLaunchingRecreational && mounted) {
-      setState(() => _isLaunchingRecreational = true);
-    }
-    final notifier = ref.read(pentoscopeProvider.notifier);
-    await notifier.startRecreationalPuzzle();
-    if (!mounted) return;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const PentoscopeGameScreen(mode: PentoscopeMode.training),
-      ),
-    );
-    if (!mounted) return;
-    setState(() => _isLaunchingRecreational = false);
-  }
-
   Future<void> _playIsometries() async {
-    if (_isLaunchingRecreational) return;
-    setState(() => _isLaunchingRecreational = true);
+    if (_isLaunchingGame) return;
+    setState(() => _isLaunchingGame = true);
     try {
       await ref.read(pentoscopeProvider.notifier).startIsometryTraining();
       if (!mounted) return;
@@ -401,7 +399,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLaunchingRecreational = false);
+      if (mounted) setState(() => _isLaunchingGame = false);
     }
   }
 }
@@ -411,7 +409,6 @@ class _HomeActions extends StatelessWidget {
   final VoidCallback onSolo;
   final VoidCallback onDuo;
   final VoidCallback onChallenge;
-  final VoidCallback onTraining;
   final VoidCallback onIsometries;
 
   const _HomeActions({
@@ -419,15 +416,14 @@ class _HomeActions extends StatelessWidget {
     required this.onSolo,
     required this.onDuo,
     required this.onChallenge,
-    required this.onTraining,
     required this.onIsometries,
   });
 
   // Une couleur distincte par module (accès), pour les distinguer d'un coup d'œil.
   static const Color _soloColor = Color(0xFF3768C5); // bleu
-  static const Color _challengeColor = Color(0xFFF57C00); // orange
+  static const Color _challengeColor = Colors.black;
+  static const Color _isoColor = Color(0xFFF57C00); // orange
   static const Color _duoColor = Color(0xFF00897B); // turquoise
-  static const Color _trainingColor = Color(0xFF8E24AA); // violet
 
   @override
   Widget build(BuildContext context) {
@@ -436,7 +432,19 @@ class _HomeActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Rangée principale, volontairement plus grande : Solo et Défi.
+        const DailyChallengeTops(),
+        _buildPrimary(
+          key: const ValueKey('home-challenge'),
+          icon: Icons.flag_outlined,
+          label: l10n.homeDailyChallenge(
+            DateFormat.EEEE(
+              l10n.localeName,
+            ).format(DateTime.parse(challengeDay())),
+          ),
+          color: _challengeColor,
+          onPressed: onChallenge,
+        ),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
@@ -451,56 +459,28 @@ class _HomeActions extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _buildPrimary(
-                key: const ValueKey('home-challenge'),
-                icon: Icons.flag_outlined,
-                label: l10n.homeChallenge,
-                color: _challengeColor,
-                onPressed: onChallenge,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _HomeDestination(
                 key: const ValueKey('home-multiplayer'),
                 icon: Icons.people_outline,
                 label: l10n.homeDuo,
                 color: _duoColor,
-                expanded: expanded,
-                onTap: onDuo,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _HomeDestination(
-                key: const ValueKey('home-training'),
-                icon: Icons.school_outlined,
-                label: l10n.guidedAnother,
-                color: _trainingColor,
-                expanded: expanded,
-                onTap: onTraining,
+                onPressed: onDuo,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        _HomeDestination(
+        const SizedBox(height: 10),
+        _buildPrimary(
           key: const ValueKey('home-isometries'),
           icon: Icons.flip,
-          label: l10n.isometryTrainingTitle,
-          color: _duoColor,
-          expanded: expanded,
-          onTap: onIsometries,
+          label: l10n.homeIso,
+          color: _isoColor,
+          onPressed: onIsometries,
         ),
       ],
     );
   }
 
-  /// Grand bouton plein (Solo, Défi) : plus haut et police plus grande que les accès
-  /// secondaires, chacun avec sa couleur de module.
+  /// Bouton plein partagé entre Solo, Duo, Jeu Iso et Défi.
   Widget _buildPrimary({
     required Key key,
     required IconData icon,
@@ -525,61 +505,4 @@ class _HomeActions extends StatelessWidget {
       ),
     );
   }
-}
-
-class _HomeDestination extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  final bool expanded;
-
-  const _HomeDestination({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-    required this.expanded,
-  });
-
-  @override
-  Widget build(BuildContext context) => Material(
-    // Fond teinté clair + bord et icône dans la couleur du module : distingue les accès
-    // sans écraser la lisibilité du libellé (qui reste en encre sombre).
-    color: color.withValues(alpha: 0.10),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: BorderSide(color: color.withValues(alpha: 0.35)),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 4,
-          vertical: expanded ? 10 : 6,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: expanded ? 27 : 20),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: const Color(0xFF27364A),
-                fontSize: expanded ? 14 : 11.5,
-                height: 1.05,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }

@@ -1,6 +1,3 @@
-// Modified: 2026-10-09 07:33 — générer les chaînes anglaises du Training isométries.
-// Historique: 2026-10-08 07:30 — régénérer la phrase de réussite Solo en anglais.
-// Historique: 2026-10-08 06:58 — régénérer les secondes, Help et coups du récapitulatif Solo EN.
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -12,16 +9,29 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String trainingCountdownSeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String trainingTimeRemaining(int seconds) {
+    return 'Time remaining: $seconds seconds';
+  }
+
+  @override
+  String get trainingTimeExpired => 'Time is up';
+
+  @override
   String get isometryTrainingTitle => 'Isometries';
 
   @override
-  String isometryTrainingResult(
-    int actual,
-    int minimum,
-    int wrong,
-    int rejected,
-  ) {
-    return 'Isometries: $actual/$minimum · wrong choices: $wrong · rejected drops: $rejected';
+  String isometryTrainingAcuity(int score) {
+    return 'Acuity: $score/10';
+  }
+
+  @override
+  String isometryTrainingStars(int count) {
+    return '$count stars';
   }
 
   @override
@@ -79,7 +89,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get homeChallenge => 'Daily Challenges';
+  String get homeIso => 'Iso Game';
+
+  @override
+  String homeDailyChallenge(String day) {
+    return '$day Challenge';
+  }
 
   @override
   String get homeRecords => 'My records';
@@ -843,35 +858,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guidedPlaced => 'That’s right!';
 
   @override
-  String get recreationalSelect => 'Tap the piece in the rack to select it.';
+  String get recreationalSelect => 'Tap the piece in the tray.';
 
   @override
   String get recreationalSelectTwo =>
       'Choose one of the two pieces in the rack.';
 
   @override
-  String get recreationalTransform =>
-      'Use the icons to put the piece in the right position.';
+  String get recreationalTransform => 'Rotate or flip the piece.';
 
   @override
-  String get recreationalPlace => 'Move it to the right place on the board.';
+  String get recreationalPlace => 'Drag the piece onto its outline.';
 
   @override
   String get recreationalPlaced => 'That’s right!';
 
   @override
-  String get recreationalTapAgain =>
-      'Tap to restart with Training 1. Double tap to play.';
+  String get recreationalTapAgain => 'Tap: retry. Double tap: play.';
 
   @override
-  String get recreationalTapTraining2 =>
-      'Tap for Training 2. Double tap to play.';
+  String get recreationalTapTraining2 => 'Tap: two pieces. Double tap: play.';
 
   @override
   String get gameTapNewGame => 'Double tap for a new game.';
 
   @override
-  String get soloDoubleTap => 'Double Tap';
+  String get newGameTooltip => 'New game';
 
   @override
   String soloCompletionStats(String size, int seconds, int helps, int moves) {
@@ -1109,11 +1121,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpPlaySteps =>
-      '1. Browse your pieces\nSwipe the tray to see the available pieces.\n\n2. Select a piece\nTap the piece you want to play.\n\n3. Orient it\nUse the four icons to rotate or flip the piece into the orientation you want.\n\n4. Place it on the board\nPress the piece, keep your finger on it and drag it onto the board. Release your finger at the chosen position.\n\n5. Adjust a placed piece\nTap it to select it. Use the four icons to change its orientation, or drag it to another position. It must stay inside the board without overlapping another piece.';
+      '1. Tap a piece in the tray.\n2. Rotate or flip it with the icons.\n3. Hold it and drag it onto the board.\n\nYou can move placed pieces too. Stuck? Try the light bulb.';
 
   @override
-  String get helpPlayGoal =>
-      'The goal: fill the entire board with all your pieces.';
+  String get helpPlayGoal => 'Fill the board, with no gaps or overlaps.';
 
   @override
   String get helpDescLampAmber =>
@@ -1173,4 +1184,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aboutDeveloperThanks2 =>
       'The days when users apologized for not knowing how to use an application are over: today, it is the developer\'s responsibility to make an application understandable. Francine reminded me of that whenever necessary.';
+
+  @override
+  String get discoveryTitle => 'Discover the game';
+
+  @override
+  String get discoverySkip => 'Skip';
+
+  @override
+  String get discoverySwipeHere => 'Swipe here to see the pieces';
+
+  @override
+  String get discoveryBrowse => 'Swipe the tray.\nSelect';
+
+  @override
+  String get discoverySelect => 'Select';
+
+  @override
+  String get discoveryRotate => 'Orient';
+
+  @override
+  String get discoveryUsingIcons => 'using the icons.';
+
+  @override
+  String get discoveryPlace => 'Drag the piece\ninto the gap.';
+
+  @override
+  String get discoveryDone => 'Bravo!';
+
+  @override
+  String get discoveryAgain => 'Training';
+
+  @override
+  String get discoveryPlay => 'Play';
 }

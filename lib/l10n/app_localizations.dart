@@ -1,6 +1,3 @@
-// Modified: 2026-10-09 07:33 — générer les chaînes du Training isométries.
-// Historique: 2026-10-08 07:30 — régénérer la phrase de réussite Solo avec taille et pluriels des aides.
-// Historique: 2026-10-08 06:58 — régénérer le récapitulatif Solo Double Tap et compteurs bruts.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -101,22 +98,41 @@ abstract class AppLocalizations {
     Locale('fr'),
   ];
 
+  /// No description provided for @trainingCountdownSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} s'**
+  String trainingCountdownSeconds(int seconds);
+
+  /// No description provided for @trainingTimeRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Time remaining: {seconds} seconds'**
+  String trainingTimeRemaining(int seconds);
+
+  /// No description provided for @trainingTimeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Time is up'**
+  String get trainingTimeExpired;
+
   /// No description provided for @isometryTrainingTitle.
   ///
   /// In en, this message translates to:
   /// **'Isometries'**
   String get isometryTrainingTitle;
 
-  /// No description provided for @isometryTrainingResult.
+  /// No description provided for @isometryTrainingAcuity.
   ///
   /// In en, this message translates to:
-  /// **'Isometries: {actual}/{minimum} · wrong choices: {wrong} · rejected drops: {rejected}'**
-  String isometryTrainingResult(
-    int actual,
-    int minimum,
-    int wrong,
-    int rejected,
-  );
+  /// **'Acuity: {score}/10'**
+  String isometryTrainingAcuity(int score);
+
+  /// No description provided for @isometryTrainingStars.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} stars'**
+  String isometryTrainingStars(int count);
 
   /// No description provided for @appTitle.
   ///
@@ -220,11 +236,17 @@ abstract class AppLocalizations {
   /// **'English'**
   String get languageEnglish;
 
-  /// No description provided for @homeChallenge.
+  /// No description provided for @homeIso.
   ///
   /// In en, this message translates to:
-  /// **'Daily Challenges'**
-  String get homeChallenge;
+  /// **'Iso Game'**
+  String get homeIso;
+
+  /// No description provided for @homeDailyChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'{day} Challenge'**
+  String homeDailyChallenge(String day);
 
   /// No description provided for @homeRecords.
   ///
@@ -1447,7 +1469,7 @@ abstract class AppLocalizations {
   /// No description provided for @recreationalSelect.
   ///
   /// In en, this message translates to:
-  /// **'Tap the piece in the rack to select it.'**
+  /// **'Tap the piece in the tray.'**
   String get recreationalSelect;
 
   /// No description provided for @recreationalSelectTwo.
@@ -1459,13 +1481,13 @@ abstract class AppLocalizations {
   /// No description provided for @recreationalTransform.
   ///
   /// In en, this message translates to:
-  /// **'Use the icons to put the piece in the right position.'**
+  /// **'Rotate or flip the piece.'**
   String get recreationalTransform;
 
   /// No description provided for @recreationalPlace.
   ///
   /// In en, this message translates to:
-  /// **'Move it to the right place on the board.'**
+  /// **'Drag the piece onto its outline.'**
   String get recreationalPlace;
 
   /// No description provided for @recreationalPlaced.
@@ -1477,13 +1499,13 @@ abstract class AppLocalizations {
   /// No description provided for @recreationalTapAgain.
   ///
   /// In en, this message translates to:
-  /// **'Tap to restart with Training 1. Double tap to play.'**
+  /// **'Tap: retry. Double tap: play.'**
   String get recreationalTapAgain;
 
   /// No description provided for @recreationalTapTraining2.
   ///
   /// In en, this message translates to:
-  /// **'Tap for Training 2. Double tap to play.'**
+  /// **'Tap: two pieces. Double tap: play.'**
   String get recreationalTapTraining2;
 
   /// No description provided for @gameTapNewGame.
@@ -1492,11 +1514,11 @@ abstract class AppLocalizations {
   /// **'Double tap for a new game.'**
   String get gameTapNewGame;
 
-  /// No description provided for @soloDoubleTap.
+  /// No description provided for @newGameTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Double Tap'**
-  String get soloDoubleTap;
+  /// **'New game'**
+  String get newGameTooltip;
 
   /// No description provided for @soloCompletionStats.
   ///
@@ -1884,13 +1906,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpPlaySteps.
   ///
   /// In en, this message translates to:
-  /// **'1. Browse your pieces\nSwipe the tray to see the available pieces.\n\n2. Select a piece\nTap the piece you want to play.\n\n3. Orient it\nUse the four icons to rotate or flip the piece into the orientation you want.\n\n4. Place it on the board\nPress the piece, keep your finger on it and drag it onto the board. Release your finger at the chosen position.\n\n5. Adjust a placed piece\nTap it to select it. Use the four icons to change its orientation, or drag it to another position. It must stay inside the board without overlapping another piece.'**
+  /// **'1. Tap a piece in the tray.\n2. Rotate or flip it with the icons.\n3. Hold it and drag it onto the board.\n\nYou can move placed pieces too. Stuck? Try the light bulb.'**
   String get helpPlaySteps;
 
   /// No description provided for @helpPlayGoal.
   ///
   /// In en, this message translates to:
-  /// **'The goal: fill the entire board with all your pieces.'**
+  /// **'Fill the board, with no gaps or overlaps.'**
   String get helpPlayGoal;
 
   /// No description provided for @helpDescLampAmber.
@@ -1988,6 +2010,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The days when users apologized for not knowing how to use an application are over: today, it is the developer\'s responsibility to make an application understandable. Francine reminded me of that whenever necessary.'**
   String get aboutDeveloperThanks2;
+
+  /// No description provided for @discoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover the game'**
+  String get discoveryTitle;
+
+  /// No description provided for @discoverySkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get discoverySkip;
+
+  /// No description provided for @discoverySwipeHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe here to see the pieces'**
+  String get discoverySwipeHere;
+
+  /// No description provided for @discoveryBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe the tray.\nSelect'**
+  String get discoveryBrowse;
+
+  /// No description provided for @discoverySelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get discoverySelect;
+
+  /// No description provided for @discoveryRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Orient'**
+  String get discoveryRotate;
+
+  /// No description provided for @discoveryUsingIcons.
+  ///
+  /// In en, this message translates to:
+  /// **'using the icons.'**
+  String get discoveryUsingIcons;
+
+  /// No description provided for @discoveryPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the piece\ninto the gap.'**
+  String get discoveryPlace;
+
+  /// No description provided for @discoveryDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Bravo!'**
+  String get discoveryDone;
+
+  /// No description provided for @discoveryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get discoveryAgain;
+
+  /// No description provided for @discoveryPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get discoveryPlay;
 }
 
 class _AppLocalizationsDelegate

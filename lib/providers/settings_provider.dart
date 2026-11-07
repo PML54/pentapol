@@ -1,4 +1,7 @@
-// Modified: 2026-10-08 06:50 — autoriser le délai de prise des pièces dès 30 ms.
+// Modified: 2026-10-29 07:42 — enregistrer la prochaine cible de découverte sans reculer en cas de callbacks tardifs.
+// Historique: 2026-10-28 05:01 — mémoriser et ouvrir le nouveau parcours de découverte interactif.
+// Historique: 2026-10-26 15:02 — enregistrer la présentation initiale de l’aide.
+// Historique: 2026-10-08 06:50 — autoriser le délai de prise des pièces dès 30 ms.
 // Historique: 2026-10-06 04:48 — préserver la règle du dénominateur lors du renvoi hors ligne.
 // Historique: 2026-10-06 04:16 — attendre un renvoi en cours et préserver les scores ajoutés pendant le renvoi.
 // Historique: 2026-10-05 20:00 — renvoyer aussi le score Stratégie conservé hors ligne.
@@ -90,6 +93,19 @@ class SettingsNotifier extends Notifier<AppSettings> {
   /// À attendre avant de lire des réglages persistés au démarrage (ex: currentLevel dans
   /// main.dart) — sinon on lirait les défauts tant que _loadSettings n'a pas fini.
   Future<void> ensureLoaded() => _loadFuture ?? Future.value();
+
+  Future<void> setDiscoveryNextExercise(int next) async {
+    await ensureLoaded();
+    if (next <= state.discoveryNextExercise) return;
+    state = state.copyWith(discoveryNextExercise: next);
+    await _saveSettings();
+  }
+
+  Future<void> markDiscoveryCompleted() async {
+    await ensureLoaded();
+    state = state.copyWith(hasCompletedDiscovery: true);
+    await _saveSettings();
+  }
 
   Future<void> setGeometryRules(GeometryRules rules) async {
     await ensureLoaded();

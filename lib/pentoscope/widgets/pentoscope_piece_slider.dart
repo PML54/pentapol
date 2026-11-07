@@ -1,4 +1,13 @@
-// Modified: 2026-10-08 07:20 — laisser swiper le tiroir sur une pièce déjà sélectionnée.
+// Modified: 2026-11-05 10:32 — retirer les doubles flèches et conserver les bandes de balayage.
+// Historique: 2026-10-26 15:15 — laisser le joueur balayer le tiroir dans l’essai initial.
+// Historique: 2026-11-05 10:27 — afficher une bande de balayage avec double flèche dans le jeu.
+// Historique: 2026-10-28 05:01 — retirer l’option d’aperçu du précédent essai cinq pièces.
+// Historique: 2026-10-09 09:41 — aperçu du tiroir en une seconde avant démarrage du chrono.
+// Historique: 2026-10-09 09:22 — conserver la position des pièces entièrement visibles dans toutes leurs orientations.
+// Historique: 2026-10-08 15:27 — centrer l'image déplacée dans la même boîte tactile que la pièce du tiroir.
+// Historique: 2026-10-08 14:59 — recentrer la sélection du tiroir au relâchement d'une prise.
+// Historique: 2026-10-08 14:54 — centrer la sélection de bord et maintenir le centrage après rotation.
+// Historique: 2026-10-08 07:20 — laisser swiper le tiroir sur une pièce déjà sélectionnée.
 // Historique: 2026-10-08 07:06 — garder les pièces nettes et avancer d'un cran depuis la pièce centrale.
 // Historique: 2026-10-08 07:00 — garder la flèche pour tout tiroir débordant, même à trois pièces.
 // Historique: 2026-10-08 03:53 — enchaîner la dernière pièce et la première sans retour arrière.
@@ -57,6 +66,8 @@ import 'package:pentapol/pentoscope/widgets/illustrated_piece_cells.dart';
 
 class PentoscopePieceSlider extends ConsumerStatefulWidget {
   final bool isLandscape;
+  final bool showSwipeStrip;
+  static const double swipeStripExtent = 28;
 
   /// Taille de case des pièces de la barre, ancrée sur le plateau (PLAN_ERGONOMIE §3).
   /// Défaut 22 : comportement d'avant l'ergonomie tablette pour tout appelant non modifié.
@@ -65,6 +76,7 @@ class PentoscopePieceSlider extends ConsumerStatefulWidget {
   const PentoscopePieceSlider({
     super.key,
     required this.isLandscape,
+    this.showSwipeStrip = false,
     this.pieceCellSize = 22.0,
   });
 
@@ -209,50 +221,61 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
   }
 
   void _schedulePreview(PentoscopeState state) {
-    if (state.puzzle == null || identical(state.puzzle, _previewedPuzzle)) {
+    if (state.puzzle == null ||
+        identical(state.puzzle, _previewedPuzzle) ||
+        identical(ref.read(rackPreviewCompletedProvider), state.puzzle)) {
       return;
     }
     _previewedPuzzle = state.puzzle;
     final generation = ++_animationGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted ||
-          generation != _animationGeneration ||
-          !_scrollController.hasClients) {
-        return;
-      }
-      _scrollController.jumpTo(_circular ? _cycleExtent : 0);
-      if (state.placedPieces.length > state.fixedPieceIds.length ||
-          state.elapsedSeconds != 0 ||
-          state.strategyActions.total != 0 ||
-          state.selectedPiece != null ||
-          MediaQuery.disableAnimationsOf(context)) {
-        return;
-      }
-      final end = _pieceOffset(state.availablePieces.last.id, state);
-      if (end > _scrollController.offset) {
-        _automaticScrollActive = true;
-        try {
-          await _scrollController.animateTo(
-            end,
-            duration: const Duration(milliseconds: 2700),
-            curve: Curves.linear,
-          );
-          if (!mounted ||
-              generation != _animationGeneration ||
-              !_scrollController.hasClients) {
-            return;
+      try {
+        if (!mounted ||
+            generation != _animationGeneration ||
+            !_scrollController.hasClients) {
+          return;
+        }
+        _scrollController.jumpTo(_circular ? _cycleExtent : 0);
+        if (state.availablePieces.isEmpty ||
+            state.placedPieces.length > state.fixedPieceIds.length ||
+            state.elapsedSeconds != 0 ||
+            state.strategyActions.total != 0 ||
+            state.selectedPiece != null ||
+            MediaQuery.disableAnimationsOf(context)) {
+          return;
+        }
+        final end = _pieceOffset(state.availablePieces.last.id, state);
+        if (end > _scrollController.offset) {
+          _automaticScrollActive = true;
+          try {
+            await _scrollController.animateTo(
+              end,
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.linear,
+            );
+            if (!mounted ||
+                generation != _animationGeneration ||
+                !_scrollController.hasClients) {
+              return;
+            }
+            final middle =
+                state.availablePieces[state.availablePieces.length ~/ 2];
+            await _scrollController.animateTo(
+              _pieceOffset(middle.id, state),
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+            );
+          } finally {
+            if (generation == _animationGeneration) {
+              _automaticScrollActive = false;
+            }
           }
-          final middle =
-              state.availablePieces[state.availablePieces.length ~/ 2];
-          await _scrollController.animateTo(
-            _pieceOffset(middle.id, state),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-          );
-        } finally {
-          if (generation == _animationGeneration) {
-            _automaticScrollActive = false;
-          }
+        }
+      } finally {
+        if (mounted) {
+          ref
+              .read(pentoscopeProvider.notifier)
+              .finishRackPreview(state.puzzle!);
         }
       }
     });
@@ -288,6 +311,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       if (state.selectedPiece?.id != id || state.selectedPlacedPiece != null) {
         return;
       }
+      if (_allOrientationsVisible(id, state)) return;
       _automaticScrollActive = true;
       try {
         if (MediaQuery.disableAnimationsOf(context)) {
@@ -305,6 +329,26 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
         }
       }
     });
+  }
+
+  bool _allOrientationsVisible(int id, PentoscopeState state) {
+    final position = _scrollController.position;
+    var start = _leadingPadding + (_circular ? _cycleExtent : 0);
+    for (final piece in state.availablePieces) {
+      final extent = _pieceMaxDim(piece) * widget.pieceCellSize + 8;
+      if (piece.id == id) {
+        for (final cycle in (_circular ? [-1, 0, 1] : [0])) {
+          final leading = start + cycle * _cycleExtent - position.pixels;
+          if (leading >= -0.5 &&
+              leading + extent <= position.viewportDimension + 0.5) {
+            return true;
+          }
+        }
+        return false;
+      }
+      start += extent;
+    }
+    return false;
   }
 
   void _refreshNavigation() {
@@ -343,11 +387,21 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
       pentoscopeProvider.select(
         (state) => (
           state.selectedPiece?.id,
+          state.selectedPositionIndex,
+          state.selectedPlacedPiece,
           state.placedPieces.length,
           state.strategyActions.total,
         ),
       ),
-      (_, _) => _interruptNavigation(),
+      (_, _) {
+        _interruptNavigation();
+        final current = ref.read(pentoscopeProvider);
+        if (!_pieceDragging &&
+            current.selectedPiece != null &&
+            current.selectedPlacedPiece == null) {
+          _centerPiece(current.selectedPiece!.id);
+        }
+      },
     );
     ref.listen(pentoscopeProvider.select((state) => state.availablePieces), (
       _,
@@ -510,7 +564,7 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
           ),
         );
         if (!showNavigation) return rack;
-        return Flex(
+        final navigableRack = Flex(
           direction: scrollDirection,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -518,7 +572,62 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             _navigationButton(),
           ],
         );
+        if (!widget.showSwipeStrip) return navigableRack;
+        return Flex(
+          direction: widget.isLandscape ? Axis.horizontal : Axis.vertical,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Tooltip(
+              message: AppLocalizations.of(context).discoverySwipeHere,
+              child: Semantics(
+                label: AppLocalizations.of(context).discoverySwipeHere,
+                child: GestureDetector(
+                  key: const ValueKey('rack-swipe-strip'),
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragStart: widget.isLandscape
+                      ? null
+                      : (_) => _interruptNavigation(),
+                  onHorizontalDragUpdate: widget.isLandscape
+                      ? null
+                      : (details) => _swipeStrip(details.delta.dx),
+                  onHorizontalDragEnd: widget.isLandscape
+                      ? null
+                      : (_) => _normalizeCycle(),
+                  onVerticalDragStart: widget.isLandscape
+                      ? (_) => _interruptNavigation()
+                      : null,
+                  onVerticalDragUpdate: widget.isLandscape
+                      ? (details) => _swipeStrip(details.delta.dy)
+                      : null,
+                  onVerticalDragEnd: widget.isLandscape
+                      ? (_) => _normalizeCycle()
+                      : null,
+                  child: SizedBox(
+                    width: widget.isLandscape
+                        ? PentoscopePieceSlider.swipeStripExtent
+                        : null,
+                    height: widget.isLandscape
+                        ? null
+                        : PentoscopePieceSlider.swipeStripExtent,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(child: navigableRack),
+          ],
+        );
       },
+    );
+  }
+
+  void _swipeStrip(double delta) {
+    if (_pieceDragging || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    _scrollController.jumpTo(
+      (position.pixels - delta).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ),
     );
   }
 
@@ -687,8 +796,14 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
             },
             onCycle: () {},
             onDragFinished: () {
-              if (mounted) setState(() => _pieceDragging = false);
+              if (!mounted) return;
+              setState(() => _pieceDragging = false);
               _normalizeCycle();
+              final current = ref.read(pentoscopeProvider);
+              if (current.selectedPiece != null &&
+                  current.selectedPlacedPiece == null) {
+                _centerPiece(current.selectedPiece!.id);
+              }
             },
             onCancel: () {
               notifier.recordRejectedDrop();
@@ -719,17 +834,22 @@ class _PentoscopePieceSliderState extends ConsumerState<PentoscopePieceSlider> {
               );
               // Visible dès la prise, rouge hors plateau ou si le placement est interdit.
               if (isDragging) {
-                return PieceDragFeedback(
-                  piece: piece,
-                  positionIndex: displayPositionIndex,
-                  cellSize: widget.pieceCellSize,
-                  getPieceColor: (id) => settings.ui.getPieceColor(id),
-                  showOverBoard: settings.game.showDragFeedback,
-                  illustratedSourceCells: illustratedLayout?.cellsForPiece(
-                    piece.id,
+                return SizedBox.square(
+                  dimension: pieceBox,
+                  child: Center(
+                    child: PieceDragFeedback(
+                      piece: piece,
+                      positionIndex: displayPositionIndex,
+                      cellSize: widget.pieceCellSize,
+                      getPieceColor: (id) => settings.ui.getPieceColor(id),
+                      showOverBoard: settings.game.showDragFeedback,
+                      illustratedSourceCells: illustratedLayout?.cellsForPiece(
+                        piece.id,
+                      ),
+                      illustratedBoardWidth: illustratedLayout?.boardWidth,
+                      illustratedBoardHeight: illustratedLayout?.boardHeight,
+                    ),
                   ),
-                  illustratedBoardWidth: illustratedLayout?.boardWidth,
-                  illustratedBoardHeight: illustratedLayout?.boardHeight,
                 );
               }
               // Halo au repos seulement (pièce sélectionnée, immobile).

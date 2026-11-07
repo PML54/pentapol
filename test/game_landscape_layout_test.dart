@@ -1,4 +1,5 @@
-// Modified: 2026-09-22 07:29 — vérifier que la grille remplit exactement son cadre.
+// Modified: 2026-10-28 05:01 — arrêter le chrono d’aperçu dans le double des tests de disposition.
+// Historique: 2026-09-22 07:29 — vérifier que la grille remplit exactement son cadre.
 // Historique: 2026-09-11 16:00 — vérifier les barres paysage, le plateau fixe et les emplacements de transformation.
 // test/game_landscape_layout_test.dart
 import 'package:flutter/material.dart';
@@ -17,6 +18,12 @@ import 'package:pentapol/pentoscope/screens/pentoscope_game_screen.dart';
 import 'package:pentapol/pentoscope/widgets/pentoscope_board.dart';
 
 class _Game extends PentoscopeNotifier {
+  @override
+  void finishRackPreview(Object puzzle) {
+    super.finishRackPreview(puzzle);
+    stopTimer();
+  }
+
   void load(PentoscopeState value) => state = value;
 }
 

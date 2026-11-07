@@ -1,4 +1,8 @@
-// Modified: 2026-10-08 06:50 — régler le délai de prise par défaut à 30 ms.
+// Modified: 2026-10-29 07:42 — mémoriser la progression des cibles du Training sans migration.
+// Historique: 2026-10-28 05:01 — mémoriser et ouvrir le nouveau parcours de découverte interactif.
+// Historique: 2026-10-26 17:06 — proposer l’aide si les anciens réglages ne portent pas son marqueur.
+// Historique: 2026-10-26 15:02 — mémoriser le premier accueil sans migration de base.
+// Historique: 2026-10-08 06:50 — régler le délai de prise par défaut à 30 ms.
 // Historique: 2026-10-07 06:53 — réinitialiser les Défis locaux pour les puzzles préremplis version 3.
 // Historique: 2026-10-06 04:52 — remettre à zéro les Défis locaux lors du changement de règle en développement.
 // Historique: 2026-10-06 04:48 — identifier le minimum de la solution finale dans les scores hors ligne.
@@ -681,6 +685,12 @@ class AppSettings {
 
   /// Niveau de progression solo courant (1..kMaxLevel, 1 = size3x5, 3 pièces).
   final int currentLevel;
+
+  /// Découverte interactive terminée ou passée volontairement.
+  final bool hasCompletedDiscovery;
+
+  /// Prochain exercice proposé : répartit les cibles même après fermeture.
+  final int discoveryNextExercise;
   final Map<int, PieceAcuityTotals> pieceAcuityTotals;
   final List<PlayerAttemptSummary> attemptHistory;
 
@@ -715,6 +725,8 @@ class AppSettings {
     this.duel = DuelSettings.defaults,
     this.userName,
     this.currentLevel = 1,
+    this.hasCompletedDiscovery = false,
+    this.discoveryNextExercise = 0,
     this.pieceAcuityTotals = const {},
     this.attemptHistory = const [],
     this.playerId,
@@ -733,6 +745,8 @@ class AppSettings {
     String? userName,
     bool clearUserName = false,
     int? currentLevel,
+    bool? hasCompletedDiscovery,
+    int? discoveryNextExercise,
     Map<int, PieceAcuityTotals>? pieceAcuityTotals,
     List<PlayerAttemptSummary>? attemptHistory,
     String? playerId,
@@ -752,6 +766,10 @@ class AppSettings {
       duel: duel ?? this.duel,
       userName: clearUserName ? null : (userName ?? this.userName),
       currentLevel: currentLevel ?? this.currentLevel,
+      hasCompletedDiscovery:
+          hasCompletedDiscovery ?? this.hasCompletedDiscovery,
+      discoveryNextExercise:
+          discoveryNextExercise ?? this.discoveryNextExercise,
       pieceAcuityTotals: pieceAcuityTotals ?? this.pieceAcuityTotals,
       attemptHistory: attemptHistory ?? this.attemptHistory,
       playerId: clearPlayerId ? null : (playerId ?? this.playerId),
@@ -776,6 +794,8 @@ class AppSettings {
       'duel': duel.toJson(),
       'userName': userName,
       'currentLevel': currentLevel,
+      'hasCompletedDiscovery': hasCompletedDiscovery,
+      'discoveryNextExercise': discoveryNextExercise,
       'pieceAcuityTotals': pieceAcuityTotals.map(
         (key, value) => MapEntry(key.toString(), value.toJson()),
       ),
@@ -806,6 +826,12 @@ class AppSettings {
           : DuelSettings.defaults,
       userName: json['userName'] as String?,
       currentLevel: (json['currentLevel'] as int?) ?? 1,
+      // Sans marqueur, le nouveau parcours doit encore être proposé.
+      hasCompletedDiscovery: json['hasCompletedDiscovery'] as bool? ?? false,
+      discoveryNextExercise: (json['discoveryNextExercise'] as int? ?? 0).clamp(
+        0,
+        1 << 53,
+      ),
       pieceAcuityTotals:
           (json['pieceAcuityTotals'] as Map<String, dynamic>? ?? const {}).map(
             (key, value) => MapEntry(
