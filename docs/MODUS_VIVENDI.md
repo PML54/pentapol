@@ -166,6 +166,19 @@ Deux autres réflexes, hérités des pannes de la §7 :
 # les headers sont-ils à jour sur ce qui a changé ?
 grep -rn "^// Modified: $(date +%Y-%m-%d)" lib/
 
+# garde-fou : .dart modifié dans git mais header pas à jour
+for f in $(git status --porcelain lib | awk '{print $NF}' | grep '\.dart$'); do
+  [ -f "$f" ] && { head -1 "$f" | grep -q "^// Modified: $(date +%F)" \
+    || echo "⚠ header non à jour : $f"; }
+done
+
+# fichiers modifiés un jour donné (-l : noms seuls ; -n : avec la raison)
+grep -rn "^// Modified: 2026-08-27" lib --include='*.dart'
+
+# tout ce qui a changé depuis une date (tri lexicographique = tri chronologique)
+grep -rn "^// Modified: [0-9]\{4\}-" lib --include='*.dart' \
+  | awk -F'Modified: ' '$2 >= "2026-01-01"'
+
 # du code mort a-t-il été laissé ? flutter analyze ne voit PAS les méthodes
 # publiques sans appelant — il faut chercher au grep, par nom.
 ```

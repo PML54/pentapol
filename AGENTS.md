@@ -11,52 +11,17 @@
 ## Identité du projet
 
 - **Nom** : Pentapol
-- **Package Flutter** : `pentapol`
-- **Langage** : Dart / Flutter
 - **Plateformes cibles** : iOS (iPhone, App Store) **et Android** (APK/Play Store) — décision de
   Paul, 2026-09-08. Le jeu tourne déjà en APK release. ⚠️ Ne pas supprimer le scaffold `android/` ;
   le scaffold `macos/` a été retiré (cible non visée). Les deux stores sont dans le périmètre de
   `docs/CHECKLIST_APPSTORE.md`.
 - **Backend** : Cloudflare Workers + Durable Objects (mode multijoueur)
-- **State management** : Riverpod
-- **Imports** : absolus uniquement (`package:pentapol/...`), jamais de `../`
 
-## Architecture réelle de `lib/`
+## Repères dans `lib/`
 
-```
-lib/
-  common/                  modèles, widgets et mixins partagés (Pento, PlacedPiece,
-                           Plateau, PieceRenderer, GameTimerMixin…)
-  config/                  constantes UI (tailles, icônes, layout)
-  data/                    documentation backend (pas de code Dart)
-  database/                drift — réglages, partie en cours, solutions et statistiques
-  l10n/                    localisation EN/FR — ARB (app_en/app_fr) + AppLocalizations généré
-                           (câblé depuis 2026-09-06 ; voir docs/I18N.md)
-  models/                  app_settings
-  pentoscope/              LE module de jeu : provider, plateau, barre, écrans,
-                           générateur de tirages, sources de solutions, accueil guidé, entraînement
-  pentoscope_multiplayer/  mode duel — WebSocket, Cloudflare Durable Objects
-  providers/               providers Riverpod transverses (réglages)
-  screens/                 settings_screen, custom_colors_screen
-  services/                matcher de solutions, chargeur .bin
-  utils/                   géométrie, helpers, export
-```
-
-L'application démarre sur **`HomeScreen`** (`main.dart`). Au premier lancement,
-**`DiscoveryScreen`** propose un parcours local **5×5** : quatre pièces fixes, une seule
-à poser, les douze pièces au tiroir (une seule à poser), sélection guidée par une miniature, rotation et dépôt
-assisté. « Passer » reste visible. Après réussite, « Training » ouvre un autre exercice
-sur demande, sans relance automatique. Seuls « Play » ou « Passer » terminent le
-parcours dans le JSON des réglages (`hasCompletedDiscovery`) ; fermer l'app après une
-réussite seule laisse la découverte à reproposer. L'ancienne page d'aide ne valide pas
-ce marqueur.
-Les cibles suivent un cycle équitable des onze pièces orientables, mémorisé par
-`discoveryNextExercise` dans le JSON ; chaque série de onze propositions contient
-une fois chaque pièce. X reste dans le tiroir mais n'est pas cible.
-L'accueil normal donne accès aux modes sans démonstration automatique. L'aide permet
-de rejouer la découverte 5×5. Depuis le 2026-11-05, Training n’apparaît plus sur
-l’accueil ; le bouton de la découverte reste disponible pendant ce parcours.
-L’entrée « Jeu Iso » ouvre Isométries, qui conserve son provider et ses règles propres. Voir `docs/ACCUEIL_GUIDE.md`.
+- `lib/data/` ne contient que de la documentation backend, pas de code Dart.
+- Démarrage sur `HomeScreen` (`main.dart`) ; au premier lancement, parcours de découverte
+  5×5 (`DiscoveryScreen`). Règles de validation et de reproposition : `docs/ACCUEIL_GUIDE.md`.
 
 ## Modules actifs
 
@@ -69,12 +34,7 @@ L’entrée « Jeu Iso » ouvre Isométries, qui conserve son provider et ses r�
 > `lib/screens/pentomino_game/`, l'écran d'accueil et le tutoriel — −3197 lignes.
 > Pentoscope est désormais la référence unique de la manipulation des pièces. Une
 > version antérieure de ce fichier annonçait aussi `lib/duel/` et `lib/tutorial/`, qui
-> n'ont jamais existé.
->
-> Conséquence à connaître avant de toucher à `common/` : `PieceManipulationState`,
-> `GameTimerMixin`, `PieceInteractionMixin` et `PentominoGameMixin` avaient été extraits
-> pour tenir **deux** implémentations alignées. Il n'en reste qu'une. Ils gardent leur
-> valeur de découpage, pas leur valeur de contrainte.
+> n'ont jamais existé. Conséquence pour `common/` : voir l'invariant 5.
 
 ## Convention de header — OBLIGATOIRE
 
@@ -101,32 +61,14 @@ Exemple :
 
 - Date en **ISO** `YYYY-MM-DD`, heure en `HH:MM`, séparées par une espace.
   L'ordre lexicographique est l'ordre chronologique — c'est ce qui rend les
-  recherches ci-dessous possibles.
+  recherches par date possibles.
 - **Vérifier la date avec `date` avant d'écrire.** Ne jamais la déduire du contexte.
 - Une seule ligne `Modified:` par fichier : on **met à jour** l'existante, on n'empile
   pas. L'ancienne valeur passe en `Historique:`.
 - Raison factuelle et spécifique. « mise à jour » ne dit rien. Préciser quand le
   changement ne touche que des commentaires.
 
-**Pourquoi ce format — les recherches qu'il permet :**
-
-```bash
-# fichiers modifiés un jour donné
-grep -rl "^// Modified: 2026-08-27" lib --include='*.dart'
-
-# avec la raison
-grep -rn "^// Modified: 2026-08-27" lib --include='*.dart'
-
-# tout ce qui a changé depuis une date (tri lexicographique = tri chronologique)
-grep -rn "^// Modified: [0-9]\{4\}-" lib --include='*.dart' \
-  | awk -F'Modified: ' '$2 >= "2026-01-01"'
-
-# garde-fou : .dart modifié dans git mais header pas à jour
-for f in $(git status --porcelain lib | awk '{print $NF}' | grep '\.dart$'); do
-  [ -f "$f" ] && { head -1 "$f" | grep -q "^// Modified: $(date +%F)" \
-    || echo "⚠ header non à jour : $f"; }
-done
-```
+Recherches par date et garde-fou « header pas à jour » : `docs/MODUS_VIVENDI.md` §6.
 
 > **Format antérieur, abandonné** : `YYMMDDHHMMM` (avec un `M` de trop) placé après
 > la ligne de chemin. Il n'était pas triable entre formats, et ses gabarits n'étaient
@@ -230,37 +172,16 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 > rapport : demander, ou ne rien affirmer. En `--release`, `debugPrint` est supprimé —
 > ne pas formuler de critère d'acceptation sur la console.
 
-## Stack technique
-
-- Flutter SDK (dernière version stable), lints via `package:flutter_lints`
-- Riverpod (state management)
-- drift (persistance locale des réglages)
-- Cloudflare Workers + Durable Objects + WebSocket (backend duel)
-- BigInt 360 bits (encodage des solutions 6×10)
-- SQLite (analyse de dépendances — voir `tools/`)
-
 ## Documentation de référence
 
-- `docs/ANALYSE_STOCKAGE_POSITIONS.md` — encodage des plateaux et solutions,
-  vérifications exécutées, défauts connus, fondement combinatoire du code `bit6`
-- `docs/PIECES_ENCODING.md` — définition des pièces, `bit6`, isométries
-- `docs/MODUS_VIVENDI.md` — répartition du travail entre le CLI et cowork,
-  passations, règles de commit
-- `docs/JOURNAL.md` — **à lire en premier** : état courant et passations (§DÉCISIONS
-  supprimée le 2026-08-31 ; les règles vivantes sont ci-dessus, l'histoire est dans `git log`)
-- `docs/PLAN_6X10_DANS_PENTOSCOPE.md` — le 6×10 et les tables de solutions
-  pré-calculées ; §5 (tables 5×12 et 4×15) abandonné par Paul le 2026-09-08
-- `docs/CHECKLIST_APPSTORE.md` — **ce qui doit être fait ou défait avant la première
-  soumission**. S'allonge au fil du travail : toute décision qui crée une dette de
-  production s'y inscrit avec sa raison
-- `docs/BASE_LOCALE.md` — persistance : quatre tables drift, partie en cours et records
-- `docs/ACCUEIL_GUIDE.md` — parcours 3×5, dépôt assisté, validation et distinction avec l'entraînement
-- `docs/I18N.md` — bilinguisme EN/FR : mécanisme (ARB, `gen-l10n`, `localeCode`), procédure
-  pour ajouter une chaîne, pièges (`const`/helpers/dialogues) et littéraux gardés
+- `docs/JOURNAL.md` — **à lire en premier** : état courant et passations.
+- `docs/CHECKLIST_APPSTORE.md` — ce qui doit être fait ou défait avant la première
+  soumission ; toute décision qui crée une dette de production s'y inscrit avec sa raison.
+- `docs/INDEX_DOCS.md` — index de toute la documentation (encodage `bit6` et BigInt 360 bits,
+  pièces, persistance, i18n, sessions cloud…).
+- `tools/` — outils d'analyse statique alimentant `tools/db/pentapol.db`.
+
 > Les plans **appliqués et testés sont supprimés**, pas archivés — `git log` les conserve.
-> Cinq l'ont été le 2026-08-31 (démo, unification, suppression classical, bilan, ergonomie).
-- `tools/` — 14 outils d'analyse statique (imports, orphelins, doublons, isolation
-  des modules) alimentant `tools/db/pentapol.db`
 
 ## Développeur
 
