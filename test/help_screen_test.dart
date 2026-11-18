@@ -1,4 +1,8 @@
-// Modified: 2026-10-26 15:02 — vérifier le guide raccourci EN/FR.
+// Modified: 2026-11-18 08:19 — vérifier la version dans l’aide FR et EN.
+// Historique: 2026-11-13 06:16 — vérifier que l’aide ne duplique plus l’atelier ni ses règles.
+// Historique: 2026-11-12 13:20 — vérifier la règle et l’invitation à retrouver les douze formes.
+// Historique: 2026-11-12 07:20 — compter l’entrée carton ajoutée aux dix icônes.
+// Historique: 2026-10-26 15:02 — vérifier le guide raccourci EN/FR.
 // Historique: 2026-10-02 09:20 — vérifier le guide de manipulation en français et en anglais.
 // Historique: 2026-10-02 07:24 — vérifier que l'Aide ne contient plus la présentation du développeur.
 // Historique: 2026-09-29 05:50 — vérifier la présentation du développeur avant les icônes.
@@ -10,10 +14,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/screens/help_screen.dart';
+import 'package:pentapol/config/build_info.dart';
 
 void main() {
   for (final lang in ['fr', 'en']) {
-    testWidgets('HelpScreen liste les 10 lignes d\'icônes ($lang)', (
+    testWidgets('HelpScreen conserve seulement les 10 lignes d\'icônes ($lang)', (
       tester,
     ) async {
       // Viewport assez haut pour que toutes les lignes du ListView soient construites.
@@ -32,6 +37,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final l10n = AppLocalizations.of(tester.element(find.byType(HelpScreen)));
+      expect(
+        find.text('${l10n.version} ${BuildInfo.versionWithDate}'),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.helpShapesTitle), findsNothing);
+      expect(find.text(l10n.helpShapesRule), findsNothing);
+      expect(find.text(l10n.helpShapesCount), findsNothing);
+      expect(find.text(l10n.helpShapesChallenge), findsNothing);
+      expect(find.byIcon(Icons.content_cut), findsNothing);
       expect(find.text('Paul Marie Larivière'), findsNothing);
       expect(
         find.text(lang == 'fr' ? 'Jouer à Pentapol' : 'Playing Pentapol'),

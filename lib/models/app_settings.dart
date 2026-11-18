@@ -1,4 +1,8 @@
-// Modified: 2026-10-29 07:42 — mémoriser la progression des cibles du Training sans migration.
+// Modified: 2026-11-17 09:57 — partager et afficher la ceinture acquise dans les classements.
+// Historique: 2026-11-17 09:44 — icône seule au profil et passages successifs dans le temps imparti.
+// Historique: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-11-11 06:36 — Ajouter le qualificatif facultatif au profil et aux classements.
+// Historique: 2026-10-29 07:42 — mémoriser la progression des cibles du Training sans migration.
 // Historique: 2026-10-28 05:01 — mémoriser et ouvrir le nouveau parcours de découverte interactif.
 // Historique: 2026-10-26 17:06 — proposer l’aide si les anciens réglages ne portent pas son marqueur.
 // Historique: 2026-10-26 15:02 — mémoriser le premier accueil sans migration de base.
@@ -683,8 +687,19 @@ class AppSettings {
   /// Nom du joueur (progression solo), saisi au 1er puzzle réussi ; null tant que non saisi.
   final String? userName;
 
+  /// Ville ou qualificatif public facultatif, distinct de l’identité technique.
+  final String? playerQualifier;
+
   /// Niveau de progression solo courant (1..kMaxLevel, 1 = size3x5, 3 pièces).
   final int currentLevel;
+
+  /// Challenge belt: white (0) through black (6), independent of Solo progression.
+  final int challengeBelt;
+
+  /// Last completed belt attempt survives the daily reset and local statistics reset.
+  final String? beltAttemptDay;
+  final int beltAttemptSize;
+  final bool beltAttemptPassed;
 
   /// Découverte interactive terminée ou passée volontairement.
   final bool hasCompletedDiscovery;
@@ -724,7 +739,12 @@ class AppSettings {
     this.game = const GameSettings(),
     this.duel = DuelSettings.defaults,
     this.userName,
+    this.playerQualifier,
     this.currentLevel = 1,
+    this.challengeBelt = 0,
+    this.beltAttemptDay,
+    this.beltAttemptSize = -1,
+    this.beltAttemptPassed = false,
     this.hasCompletedDiscovery = false,
     this.discoveryNextExercise = 0,
     this.pieceAcuityTotals = const {},
@@ -743,8 +763,14 @@ class AppSettings {
     GameSettings? game,
     DuelSettings? duel,
     String? userName,
+    String? playerQualifier,
+    bool clearPlayerQualifier = false,
     bool clearUserName = false,
     int? currentLevel,
+    int? challengeBelt,
+    String? beltAttemptDay,
+    int? beltAttemptSize,
+    bool? beltAttemptPassed,
     bool? hasCompletedDiscovery,
     int? discoveryNextExercise,
     Map<int, PieceAcuityTotals>? pieceAcuityTotals,
@@ -765,7 +791,14 @@ class AppSettings {
       game: game ?? this.game,
       duel: duel ?? this.duel,
       userName: clearUserName ? null : (userName ?? this.userName),
+      playerQualifier: clearPlayerQualifier
+          ? null
+          : (playerQualifier ?? this.playerQualifier),
       currentLevel: currentLevel ?? this.currentLevel,
+      challengeBelt: challengeBelt ?? this.challengeBelt,
+      beltAttemptDay: beltAttemptDay ?? this.beltAttemptDay,
+      beltAttemptSize: beltAttemptSize ?? this.beltAttemptSize,
+      beltAttemptPassed: beltAttemptPassed ?? this.beltAttemptPassed,
       hasCompletedDiscovery:
           hasCompletedDiscovery ?? this.hasCompletedDiscovery,
       discoveryNextExercise:
@@ -793,7 +826,12 @@ class AppSettings {
       'game': game.toJson(),
       'duel': duel.toJson(),
       'userName': userName,
+      'playerQualifier': playerQualifier,
       'currentLevel': currentLevel,
+      'challengeBelt': challengeBelt,
+      'beltAttemptDay': beltAttemptDay,
+      'beltAttemptSize': beltAttemptSize,
+      'beltAttemptPassed': beltAttemptPassed,
       'hasCompletedDiscovery': hasCompletedDiscovery,
       'discoveryNextExercise': discoveryNextExercise,
       'pieceAcuityTotals': pieceAcuityTotals.map(
@@ -825,7 +863,18 @@ class AppSettings {
           ? DuelSettings.fromJson(json['duel'])
           : DuelSettings.defaults,
       userName: json['userName'] as String?,
+      playerQualifier: json['playerQualifier'] as String?,
       currentLevel: (json['currentLevel'] as int?) ?? 1,
+      challengeBelt: ((json['challengeBelt'] as num?)?.toInt() ?? 0).clamp(
+        0,
+        6,
+      ),
+      beltAttemptDay: json['beltAttemptDay'] as String?,
+      beltAttemptPassed: json['beltAttemptPassed'] as bool? ?? false,
+      beltAttemptSize: ((json['beltAttemptSize'] as num?)?.toInt() ?? -1).clamp(
+        -1,
+        5,
+      ),
       // Sans marqueur, le nouveau parcours doit encore être proposé.
       hasCompletedDiscovery: json['hasCompletedDiscovery'] as bool? ?? false,
       discoveryNextExercise: (json['discoveryNextExercise'] as int? ?? 0).clamp(
@@ -878,6 +927,8 @@ class PendingChallengeScore {
   final int size;
   final String playerId;
   final String pseudo;
+  final String? qualifier;
+  final int? belt;
   final int minIso;
   final int isoCount;
   final int faults;
@@ -895,6 +946,8 @@ class PendingChallengeScore {
     required this.size,
     required this.playerId,
     required this.pseudo,
+    this.qualifier,
+    this.belt,
     required this.minIso,
     required this.isoCount,
     required this.faults,
@@ -911,6 +964,8 @@ class PendingChallengeScore {
     'size': size,
     'playerId': playerId,
     'pseudo': pseudo,
+    'qualifier': qualifier,
+    'belt': belt,
     'minIso': minIso,
     'isoCount': isoCount,
     'faults': faults,
@@ -931,6 +986,10 @@ class PendingChallengeScore {
       size: (json['size'] as num?)?.toInt() ?? 0,
       playerId: json['playerId'] as String? ?? '',
       pseudo: json['pseudo'] as String? ?? '',
+      qualifier: json['qualifier'] as String?,
+      belt: json['belt'] is int && json['belt'] >= 0 && json['belt'] <= 6
+          ? json['belt'] as int
+          : null,
       minIso: (json['minIso'] as num?)?.toInt() ?? 0,
       isoCount: (json['isoCount'] as num?)?.toInt() ?? 0,
       faults: (json['faults'] as num?)?.toInt() ?? 0,

@@ -1,6 +1,7 @@
 # Journal — état et passations
 
-> Fichier de coordination entre Claude Code (CLI) et Claude cowork.
+> Fichier de coordination entre l’agent de développement et l’agent
+> d’analyse/documentation, quel que soit l’outil utilisé.
 > Protocole : `docs/MODUS_VIVENDI.md`.
 >
 > **§ÉTAT est réécrite à chaque passage. §PASSATIONS ne garde que les trois dernières.**
@@ -8,12 +9,341 @@
 > ⚠️ **§DÉCISIONS a été supprimée le 2026-08-31.** Elle comptait 69 entrées et 112 renvois
 > croisés — une comptabilité devenue plus coûteuse que ce qu'elle rapportait, et le point de
 > collision entre agents (trois renumérotations en deux jours). Les décisions qui **engagent
-> encore** sont devenues des règles dans `CLAUDE.md` §Invariants ; les autres sont de
+> encore** sont devenues des règles dans `AGENTS.md` §Invariants ; les autres sont de
 > l'histoire, et l'histoire est dans `git log`.
 
 ---
 
-## §ÉTAT — au 2026-11-07
+## §ÉTAT — au 2026-11-18
+
+### Version affichée 1.0.14 — commit et push autorisés par Paul
+
+BuildInfo actualisé via le script du projet (18 novembre 2026). L’aide affiche
+la même version que les paramètres : 1.0.14. Le numéro de distribution dans
+pubspec reste inchangé, conformément au repère d’affichage utilisé précédemment.
+Livraison regroupant les changements accumulés : défis uniques/reprise,
+ceintures et classement, profil, atelier carton/site et documentation.
+Validation : 369 tests Flutter et 7 tests serveur réussis ; TypeScript OK.
+Flutter analyze : 113 informations, aucune erreur ni avertissement.
+
+### Défi quotidien : départ au niveau 1 pour toutes les ceintures
+
+Correction demandée après test de Paul : le niveau de départ dépend uniquement
+ de la progression du jour UTC, jamais de la ceinture. Accueil et liste des défis
+utilisent la même règle : niveau 1 au nouveau jour, puis niveau suivant seulement
+si le précédent est terminé dans le temps imparti. Ceinture acquise conservée,
+promotion uniquement sur la grille correspondant au prochain grade. Message de
+nouvelle tentative le lendemain adapté à toutes les ceintures.
+Validation : 27 tests Flutter réussis, couvrant les sept ceintures, le nouveau
+jour, le blocage après dépassement et la conservation du grade lors d’un rejeu.
+Paul a confirmé que la baisse de 22 à 1 score provenait de son nettoyage manuel.
+
+
+### Classement défilant — ceinture après le nom (2026-11-17 09:57 CET, Codex)
+
+Chaque nom est suivi de l’icône de la ceinture connue. Le joueur courant utilise
+sa ceinture locale ; les concurrents utilisent la donnée reçue du serveur.
+Pas d’icône inventée pour un résultat ancien sans grade. Grands textes : temps
+sur une seconde ligne, nom et icône restent ensemble. Identification personnelle
+accessible conservée et nom personnel en gras renforcé.
+
+Chaîne complète ajoutée : champ facultatif belt aux scores et renvois hors ligne,
+lecture par LeaderboardEntry, transmission après sauvegarde du passage, descriptions
+du partage et consentement FR/EN actualisées. Aucun envoi sans consentement.
+Worker : validation 0..6, ceinture maximale connue par joueur sur toutes périodes,
+doublon ne modifiant que cette métadonnée sans remplacer le premier résultat.
+Migration D1 additive, sans effacement ; anciens résultats NULL. Les grades des
+concurrents apparaissent avec leurs prochains scores depuis la nouvelle version.
+
+Validation classement : 23 tests Flutter et 7 tests serveur réussis ; TypeScript OK.
+Analyse Flutter : 68 informations, aucune erreur ni avertissement.
+Migration additive exécutée et Worker publié (c9e3e00e-2284-42de-8e35-45dfb1698fe2).
+GET public vérifié : champ belt présent. Attention : le contrôle distant initial
+comptait 22 scores, le contrôle final 1 ; nettoyage manuel confirmé par Paul le 18 novembre. Le fichier de
+migration exécuté contient uniquement ALTER TABLE ADD COLUMN et CREATE INDEX,
+et son rapport indique changes=0. Aucune restauration effectuée.
+Application mobile à recompiler ; pas de vérification physique sur iPhone.
+
+### Défi — icône acquise et félicitations (2026-11-17 09:48 CET, Codex)
+
+Le badge en jeu contient uniquement l’icône de la ceinture actuellement acquise
+par le joueur : texte du grade cible, limite et drapeau retirés de ce badge.
+L’étiquette accessible de l’icône reste disponible. Le temps reste dans le chrono.
+À chaque nouvelle ceinture, dialogue de félicitations avec le grade gagné et son
+icône, avant de lancer le défi suivant après fermeture. Aucun message d’obtention
+pour un temps dépassé ni pour la répétition d’une ceinture déjà acquise.
+Le grade de départ est conservé par l’écran pour comparer avant/après indépendamment
+du moment où Riverpod notifie la sauvegarde. Traductions FR/EN existantes réutilisées.
+Validation : 31 tests réussis, dont vraies grilles à 30/31 secondes en FR/EN,
+absence de texte dans le badge, dialogue de gain et attente avant le défi suivant.
+Analyse sans erreur ni avertissement. Aucun commit ni déploiement.
+
+### Précision ceintures — 2026-11-17 09:44 CET, Codex
+
+Libellé de ceinture retiré sous le pseudo : icône seule à côté du nom, avec
+étiquette accessible conservée. Objectif du prochain passage sous Défi conservé.
+Ordre strict des ceintures confirmé. L’exception de libre accès après ceinture noire
+est retirée : résultat chronométré du dernier défi persisté, accès et enchaînement
+suivants conditionnés au temps réussi, même pour un joueur déjà ceinture noire.
+Validation : 39 tests ciblés réussis, analyse sans erreur ni avertissement.
+Aucun commit.
+
+### Ceintures persistantes en Défi — 2026-11-17 09:07 CET, Codex
+
+Paul adopte sept ceintures unies, de blanche à noire. Six premières grilles de
+Défi uniquement : jaune 3×5 ≤30 s, orange 4×5 ≤60 s, verte 5×5 ≤90 s,
+bleue 5×6 ≤120 s, marron 5×7 ≤150 s, noire 5×8 ≤180 s. Plusieurs promotions
+possibles le même jour ; après réussite hors délai, nouvelle tentative le lendemain.
+
+Implémentation : ceinture et dernière tentative persistées dans le JSON AppSettings,
+indépendamment du niveau Solo et du consentement réseau, sans migration SQLite.
+Départ blanc des profils sans ceinture ; aucune promotion rétroactive. La remise
+à zéro quotidienne et celle des statistiques locales conservent ceinture et garde
+anti-rejeu. Une remise à zéro complète des paramètres reste un nouveau profil.
+Les comparaisons utilisent les secondes enregistrées par le chronomètre existant.
+
+Accueil : petite ceinture nouée et bordée à côté du pseudo, libellé traduit et objectif
+chronométré sous le bouton Défi, qui reste au-dessus des résultats. Défis et
+classements nomment la ceinture visée au lieu de Novice/Expert et des « + ».
+Le lancement reprend la grille de la prochaine ceinture ; après échec au temps,
+la liste explique l’attente. Après succès, sauvegarde attendue puis grille suivante.
+Ceinture noire : possibilité de rejouer les six défis quotidiens, sans perte de grade.
+Les neuf tailles Solo, Duo et Iso, les tirages et les scores publics restent inchangés.
+Le jour reste UTC comme les défis existants ; pas de synchronisation interappareils
+ni d’envoi public du grade ajoutés. Ancien état pré-intervention conservé dans la
+copie de travail pour permettre un retour arrière ciblé.
+
+Validation : suite complète de 360 tests réussie. Tests de seuil inclusif et dépassement pour les six passages, vraie
+partie résolue à 30/31 s, SQLite après recréation du provider, lendemain, doublons,
+remise à zéro locale, indépendance Solo et consentement. Sept icônes contrôlées
+à 320×568 avec texte ×2 en FR/EN. Analyse : aucune erreur ni avertissement,
+68 informations préexistantes. Validation sur iPhone physique à confirmer par Paul.
+Aucun commit ni déploiement.
+
+## §ÉTAT — au 2026-11-13
+
+### Accueil — défi au-dessus des résultats (2026-11-13 17:35 CET, Codex)
+
+Après annulation de la refonte précédente, seul l’ordre des blocs change : bouton
+quotidien puis résultats, puis modes existants. Apparence et navigation conservées.
+12 tests d’accueil réussis (FR/EN, portrait/paysage, texte agrandi, actualisation).
+Diff sans erreur d’espace. Proposition de neuf noms sans « + » demandée, non appliquée.
+Aucun commit.
+
+### Atelier — variante en bois et peinture (2026-11-13 07:02 CET, Codex)
+
+Section « Une variante en bois » ajoutée après les instructions carton et l’aide
+au découpage, avant le bouton de téléchargement conservé. Option complémentaire :
+60 cubes identiques, magasins de loisirs créatifs ou Amazon en simple texte,
+sans marque, vendeur ni lien commercial. Recherche préalable sur papier ; cinq
+cubes par pièce, collés face contre face, à plat sur une seule épaisseur. Colle
+adaptée au bois, respect de ses instructions, aide adulte si nécessaire ; après
+séchage complet, peinture acrylique à l’eau adaptée à l’âge, une couleur par pièce,
+couches fines pour l’ajustement et séchage avant de jouer.
+
+Cinq nouvelles clés ARB FR/EN, localisations régénérées et en-têtes datés.
+Composants Text/Padding et styles existants réutilisés. Accueil flashy, son titre
+unique, slogan, parcours pédagogique, URL Cloudflare et gestion d’erreur conservés.
+Tests existants étendus à l’ordre des paragraphes et au défilement de la variante.
+Suite complète : 352 tests réussis. Six tests ciblés réussis, dont FR/EN à 320 × 568 et texte ×2 sans débordement,
+retour accueil et reprise après erreur d’ouverture. Analyse sans erreur ni
+avertissement (113 informations préexistantes).
+
+Sur iPhone, Paul doit encore confirmer la lisibilité et le défilement avec texte
+agrandi en FR/EN, puis le téléchargement externe et le retour à l’application.
+Modifications préexistantes préservées ; aucun commit ni déploiement.
+
+### Accueil — Fabrique ton Pentapol (2026-11-13 06:37 CET, Codex)
+
+Carte entièrement cliquable avec ciseaux sous les accès Défi, Solo/Duo et Jeu Iso.
+À la demande de Paul, style flashy : fond jaune fluo, bordure rose vif, pastille
+ciseaux cyan inclinée et texte violet très sombre en gras. Un seul texte :
+« Fabrique ton Pentapol en carton » / « Make your own cardboard Pentapol ».
+La description a été retirée et sa clé ARB remplacée par le titre spécifique à
+l’accueil. Titre et contenu de l’activité conservés.
+Contrôle de cette retouche : 20 tests ciblés réussis (accueil/aide/atelier),
+y compris FR/EN à 320 px et texte ×2 ; analyse sans erreur ni avertissement
+(113 informations préexistantes). Appréciation visuelle sur iPhone à confirmer.
+ Les composants Material et les traductions ARB
+existants sont réutilisés. L’aide ne contient plus l’encart des douze formes ni
+l’accès principal à l’atelier : ils sont déplacés, sans duplication.
+
+L’activité affiche le slogan exact puis « Pourquoi douze formes ? », « À toi de
+chercher ! » et « Fabrique ton jeu ». Recherche sur papier quadrillé, vérification
+des cinq carrés et élimination des doublons précèdent matériel, cinq étapes,
+aide d’un adulte et téléchargement. Origine Cloudflare Pages et routes selon la
+langue effective conservées ; aucun changement ni déploiement du site.
+
+Correction complémentaire révélée par les tests : le bandeau de l’accueil adapte
+sa hauteur au texte agrandi, au lieu d’imposer 64 px. Localisations régénérées ;
+l10n.yaml fournit leur en-tête daté pour respecter AGENTS.md sans éditer les
+fichiers générés à la main.
+
+Validation : 352 tests Flutter réussis, dont six tests aide/atelier vérifiant
+l’ordre, l’accès par le bord de la carte, le retour à l’accueil, les URL localisées,
+l’exception d’ouverture, le retour false puis la reprise. Parcours FR/EN à
+320 × 568 et texte ×2 sans débordement. Analyse : zéro erreur, zéro avertissement,
+113 informations préexistantes. Pages publiques et liens PDF FR/EN contrôlés ;
+PDF téléchargés identiques aux fichiers locaux (SHA-256). Diff sans erreur d’espace.
+
+À valider par Paul sur iPhone avec une nouvelle compilation : lisibilité réelle
+avec texte agrandi, ouverture du navigateur dans chaque langue, téléchargement
+Safari/Fichiers et retour à l’application. Les tests automatisés simulent
+l’ouverture externe ; ils ne remplacent pas cette validation sur appareil.
+Modifications antérieures conservées. Aucun commit.
+
+### Atelier carton publié — 2026-11-12 13:15 CET, Codex
+
+Après accord explicite de Paul, création du projet Pages `pentapol-site` puis
+publication de `site/public` sur la branche `main`. Origine publique réelle
+https://pentapol-site.pages.dev ; déploiement `e1bd0dc7`. Adresse enregistrée
+comme valeur par défaut dans `lib/config/pentapol_website.dart` : les prochaines
+compilations ouvrent les pages FR/EN sans paramètre supplémentaire.
+
+Contrôles : les pages, liens et PDF publics répondent ; SHA-256 des deux PDF
+téléchargés identiques aux modèles locaux. Rendu français/anglais inspecté dans
+le navigateur en formats étroit et large, changement de langue vérifié. Quatre
+tests ciblés réussis avec l’origine publique par défaut (ouverture simulée).
+Analyse Flutter sans erreur ni avertissement (113 informations préexistantes).
+La validation sur iPhone physique reste à faire par Paul avec une nouvelle
+compilation. README du site et checklist App Store actualisés. Aucun commit.
+
+### Atelier carton FR/EN — 2026-11-12 07:26 CET, Codex
+
+Activité ajoutée dans Accueil > Aide > Fabrique ton jeu en carton. Présentation,
+matériel et cinq étapes localisés via les ARB. Ouverture externe avec
+`url_launcher`, langue effective, prévention des doubles ouvertures et reprise
+après erreur. `PENTAPOL_WEBSITE_URL` centralise l’origine HTTPS ; elle reste vide
+jusqu’à publication approuvée, avec un message explicite et bouton désactivé.
+
+`site/` contient les pages statiques FR/EN, le sélecteur de langue, l’aperçu des
+pièces, les deux PDF A4 en chemins stables et la configuration Cloudflare Pages.
+Génération depuis les traductions, numéros et couleurs du code ; vérification
+exécutée des douze formes et du défi 8/2/6. Carrés de 2 cm, PDF examinés sur les
+quatre pages. Détails et commandes dans `site/README.md`.
+
+Validation : 350 tests Flutter réussis ; quatre tests ciblés avec origine de test
+et ouverture simulée réussis, dont échec puis reprise FR/EN sur petit écran à
+texte agrandi. Analyse sans erreur ni avertissement, 113 informations existantes.
+Les pages et téléchargements sont vérifiés en HTTP local. Le navigateur intégré
+ne peut pas joindre l’aperçu local : revue visuelle responsive du site à terminer.
+Validation sur iPhone à effectuer par Paul.
+
+Cloudflare Pages accessible en lecture, liste de projets vide. Aucun projet créé
+ni déploiement effectué. Publication publique soumise à l’accord demandé par Paul.
+Après accord : déployer, vérifier les URL réelles et renseigner l’origine dans
+l’app avant distribution (dette inscrite à la checklist App Store).
+Modifications antérieures conservées ; aucun commit demandé.
+
+### Coordination — rôles indépendants des outils (2026-11-12 06:16 CET, Codex)
+
+À la demande de Paul, introduction du journal et protocole `MODUS_VIVENDI.md`
+formulés pour les rôles développement et analyse/documentation, utilisables avec
+Codex, ChatGPT ou Claude. Accès aux fichiers requis explicitement : aucune mémoire,
+conversation ni connexion au dépôt n’est automatiquement partagée entre outils.
+Renvois des consignes corrigés vers `AGENTS.md`, source unique ; historique conservé.
+Contrôle documentaire : `git diff --check`. Aucun code modifié ni commit demandé.
+
+### Consignes agents — source unique (2026-11-12 06:05 CET, Codex)
+
+À la demande de Paul, `AGENTS.md` devient la source unique des consignes communes.
+`CLAUDE.md` est réduit à un import `@AGENTS.md`, avec lecture explicite de secours
+pour les outils qui ne développent pas cet import. Les rôles développement et
+analyse/documentation sont indépendants du produit ; l’interdiction de mémoire
+privée couvre tous les agents. Section d’import vide supprimée ; règles métier,
+base de données et autorisation des commits conservées. Les précisions historiques
+de `MODUS_VIVENDI.md` restent inchangées. Aucun code modifié, aucun commit demandé.
+Contrôles : import relatif vers le fichier racine existant, conservation des sections
+communes et `git diff --check` sur les trois fichiers concernés.
+
+### Documentation — réseau et Cloudflare (2026-11-11 07:07 CET, Codex)
+
+À la demande de Paul, explications regroupées dans
+`docs/RESEAU_CLOUDFLARE_EXPLICATIONS.md`, avec date et heure en tête : fonctionnement
+local/réseau, services Cloudflare (dont D1), trajet des scores, identité et qualificatif,
+tables et commandes de consultation/remise à zéro, historique, proposition d'affichage
+du rang personnel, Duo, estimation de coût pour 1 000 joueurs et rôle de Wrangler.
+Les propositions non implémentées et les hypothèses tarifaires sont distinguées des
+faits actuels. Sources officielles tarifaires liées, document ajouté à l'index.
+Vérification documentaire : `git diff --check`. Aucun code modifié, aucun commit demandé.
+
+### Profil — qualificatif public facultatif (2026-11-11 06:37, Codex)
+
+Paul approuve un qualificatif facultatif (ville, région ou surnom), sans unicité
+imposée. Champ séparé `playerQualifier` dans le JSON AppSettings, éditable dans
+Paramètres > Classement en ligne, effaçable en laissant vide. Limite 20 caractères,
+même alphabet que le pseudo. Le `playerId` reste l’identité, aucun changement du duel.
+Les prochains scores et leurs renvois hors ligne emportent le qualificatif ; les
+anciens restent sans qualificatif. Affichage partagé « Paul · Lyon », ligne personnelle
+marquée « Vous » (FR/EN). Consentement et description des données actualisés.
+Backend : colonne nullable `qualifier`, migration additive dédiée ; ne pas réinitialiser
+les scores par `schema.sql`. Client compatible avec les réponses sans ce champ.
+Pour semaine/mois, pseudo et qualificatif proviennent ensemble du dernier score
+de la période, afin de ne pas mélanger deux profils après une modification.
+Validation : 348 tests Flutter et cinq tests serveur réussis, TypeScript sans erreur ;
+analyse Flutter sans erreur ni avertissement (113 informations existantes),
+`git diff --check` sans anomalie.
+Activation distante réalisée le 2026-11-11 06:43 CET, après connexion Cloudflare par Paul :
+colonne `qualifier` ajoutée par la migration additive dédiée, puis worker déployé
+(version `384b2a33-d42d-42e6-b459-96bbf1dcfef5`). Les 141 scores et neuf joueurs
+présents avant migration sont conservés. Les six requêtes publiques Temps/Stratégie
+sur jour/semaine/mois réussissent et renvoient `qualifier` pour chaque ligne.
+Aucun commit demandé.
+
+### Accueil — titre des résultats sans jour (2026-11-11 06:07, Codex)
+
+À la demande de Paul, le bandeau des résultats affiche « Défi Novice++ »
+(selon le niveau partagé) sans le nom du jour ni les deux-points. Équivalent
+anglais localisé ; bouton quotidien inchangé. Validation : douze tests du bandeau
+réussis ; analyse sans erreur ni avertissement (113 informations existantes).
+Aucun commit demandé.
+
+### Défis — reprise, accès direct et noms partagés (2026-11-11, Codex)
+
+Demandes de Paul : conserver une partie interrompue (temps et pièces posées),
+ouvrir directement le défi disponible depuis le bouton quotidien, et remplacer
+les dimensions par les dénominations de niveaux existantes, réutilisables.
+
+Le défi écrit un JSON séparé dans Settings (`challenge_in_progress`), identifié
+par jour UTC, taille et version des règles ; aucun changement de schéma et aucune
+écriture dans CurrentGame Solo. Sauvegarde après évolution du plateau, des compteurs,
+des orientations ou du temps, et lors de l’interruption. Les écritures sont ordonnées.
+À la reprise, les pièces fixes et jouées, orientations, mesures et temps sont restaurés ;
+le chrono reste figé jusqu’à une isométrie ou un déplacement. Même comportement après
+arrière-plan. Les défis d’un autre jour/version ne sont pas repris. La réussite efface
+la sauvegarde ; la purge locale l’efface aussi.
+
+Le bouton quotidien ouvre la première taille non terminée, reprend sa sauvegarde
+si présente, et ouvre le classement quand les neuf défis sont terminés. La liste
+reste dans le code pour ses accès existants mais l’accueil n’y mène plus.
+Les neuf dénominations existantes sont centralisées dans
+`lib/config/player_level_labels.dart` : liste publique et helpers localisés par
+niveau/taille. Accueil, badge Défi, liste et classements les consomment. Correspondance
+conservée : 4×5 = Novice +, 5×5 = Novice ++ ; Virtuose + à +++ inchangés.
+Nouvelle chaîne de titre Classement dans les deux ARB, localisations régénérées.
+
+Validation : 343 tests de la suite complète réussis, dont reprise après recréation
+du provider avec SQLite, préservation du Solo, arrière-plan, changement de jour,
+accès direct et neuf noms FR/EN. Analyse sans erreur ni avertissement (113 infos
+existantes). Les 22 tests ciblés finaux, après adaptation du badge aux noms longs,
+sont également réussis ; git diff --check sans anomalie.
+Modifications antérieures conservées ; aucun commit demandé ni réalisé.
+
+### Défis — réussite et chrono à la manipulation (2026-11-11, Codex)
+
+Demande de Paul : grille terminée, animation de réussite pendant une seconde puis
+lancement automatique de la taille suivante du même jour UTC ; après la dernière,
+retour à la liste. Une coche blanche grandit sur le plateau teinté en vert, à la
+place du bilan. Les demandes initiales de nom/consentement restent après la seconde
+de réussite et avant l’enchaînement. Le chrono Défi ne démarre plus à la fin de
+l’aperçu : sélection seule et prévalidation d’isométrie gratuites ; première
+isométrie ou déplacement sur le plateau déclenche le chrono. Autres modes conservés.
+Validation : neuf tests ciblés puis les 337 tests de la suite complète réussis,
+dont un nouveau test de départ du chrono ; analyse complète sans erreur ni
+avertissement (113 informations existantes), git diff --check sans anomalie.
+Changements antérieurs de l’accueil et des localisations conservés. Aucun commit
+sans demande explicite de Paul ; journal conservé avec le code en attente.
+
 
 ### Version affichée dans les Paramètres — 2026-11-07 17:42 CET
 
@@ -2538,6 +2868,77 @@ la question du déplacement d'une pièce n'est pas retranchée. Détail dans §�
 ---
 
 ## §PASSATIONS
+
+- 2026-11-18 — Version affichée 1.0.14 ajoutée à l’aide ; 369 tests Flutter et 7 serveur réussis. Commit et push demandés explicitement par Paul.
+
+- 2026-11-18 — Départ quotidien au niveau 1 pour les sept ceintures ; grade persistant, progression du jour séquentielle. 27 tests réussis. Nettoyage des scores confirmé volontaire par Paul.
+
+**2026-11-17 09:57 — Codex : ceintures après les noms du classement défilant.**
+Donnée réelle pour chaque joueur, chaîne app/Worker/D1 et compatibilité anciens
+résultats. Nouvelle donnée partagée selon le consentement existant. Aucun commit.
+
+**2026-11-17 09:48 — Codex : icône seule en Défi, félicitations de passage.**
+Grade acquis dans le badge et dialogue avant le prochain défi, traductions existantes.
+Aucun commit.
+
+**2026-11-17 09:44 — Codex : icône seule et défis successifs.**
+Texte du grade retiré sous le pseudo, prérequis chronométré appliqué aussi aux
+ceintures noires. Résultat du dernier passage persisté. Aucun commit.
+
+**2026-11-17 09:07 — Codex : six passages de ceinture en Défi.**
+Grade local persistant, seuils 30 à 180 s, reprise au prochain grade et attente
+du lendemain après dépassement. Icône près du pseudo, FR/EN, Solo inchangé.
+Aucun commit ni déploiement.
+
+**2026-11-13 17:35 — Codex : bouton Défi avant les résultats.**
+Changement limité à l’ordre des blocs ; dénominations inchangées en attendant le choix de Paul.
+
+**2026-11-13 07:02 — Codex : variante bois et peinture dans l’activité.**
+Ajout FR/EN après le carton : 60 cubes, recherche, collage à plat et peinture.
+Amazon cité sans lien commercial. Traductions régénérées, tests d’ordre et de
+petit écran étendus ; 352 tests réussis (dont six ciblés) et analyse sans erreur ni
+avertissement. Validation visuelle iPhone à confirmer par Paul. Aucun commit ni
+déploiement ; accueil flashy et parcours préservés.
+
+**2026-11-13 06:37 — Codex : carte atelier flashy et texte unique.**
+Jaune fluo, rose et cyan ; « Fabrique ton Pentapol en carton » seul sur la carte,
+version anglaise et traductions régénérées. 20 tests ciblés réussis, analyse sans
+erreur ni avertissement. Aucun commit. L’idée de 60 cubes collés a été discutée
+comme variante possible, sans ajout dans l’activité à ce stade.
+
+**2026-11-13 — Codex : atelier directement depuis l’accueil.**
+Carte ciseaux FR/EN après les jeux ; encart déplacé hors de l’aide, recherche
+personnelle avant fabrication. Bandeau rendu adaptable au texte agrandi après
+un débordement détecté à 320 px / ×2. 352 tests réussis, analyse sans erreur ni
+avertissement, téléchargements publics identiques. Validation iPhone à effectuer
+par Paul. Aucun commit ni déploiement ; travaux préexistants préservés.
+
+- 2026-11-12 — Codex : encart des douze formes ajouté à l’aide FR/EN, règle et défi papier ; tests ciblés et analyse validés.
+
+- 2026-11-12 — Codex → prochaine session : atelier carton publié avec accord de Paul sur https://pentapol-site.pages.dev, application raccordée. Pages/PDF et tests ciblés validés ; essai sur iPhone avec nouvelle compilation à réaliser. Voir `site/README.md`.
+
+**2026-11-12 06:16 CET — Codex :** journal et Modus vivendi rendus indépendants des produits ; accès explicite au dépôt requis pour chaque agent, renvois vers AGENTS.md corrigés. Aucun code modifié ni commit.
+
+**2026-11-12 06:05 CET — Codex :** consignes unifiées dans AGENTS.md ; CLAUDE.md importe ce fichier sans duplication. Rôles et mémoire privée formulés pour tous les agents ; règles métier conservées. Aucun code modifié ni commit.
+
+**2026-11-11 07:07 CET — Codex :** explications réseau/Cloudflare regroupées dans RESEAU_CLOUDFLARE_EXPLICATIONS.md, daté en tête et référencé dans INDEX_DOCS ; aucun code modifié ni commit demandé.
+
+**2026-11-11 06:43 CET — Codex :** qualificatif activé sur Cloudflare après connexion de Paul : migration additive et déploiement réussis, 141 scores / neuf joueurs conservés ; six classements publics vérifiés. Aucun commit.
+
+**2026-11-11 06:37 — Codex :** qualificatif public facultatif ajouté au profil, API, renvois et classements ; identité inchangée, migration serveur additive dédiée. 348 tests Flutter et cinq tests serveur réussis ; activation distante bloquée par l’absence d’authentification Cloudflare.
+
+**2026-11-11 06:07 — Codex :** titres des résultats d’accueil réduits à Défi et niveau, sans jour ; localisations FR/EN adaptées.
+
+**2026-11-11 — Codex : reprise des défis et noms de niveaux partagés.** Sauvegarde
+séparée du Solo, temps figé jusqu’à manipulation, entrée quotidienne directe ;
+noms centralisés dans config/player_level_labels.dart et utilisés dans les défis
+et classements. Contrôles en §ÉTAT. Aucun commit demandé.
+
+**2026-11-11 — Codex : défis enchaînés et chrono différé.** Animation une seconde,
+taille suivante du même jour puis liste à la fin ; chrono à la manipulation, pas à
+la sélection ni à la fin de l’aperçu. Nom/consentement préservés. Contrôles en §ÉTAT.
+Aucun commit demandé.
+
 
 **2026-11-07 17:42 CET — Codex :** correction de la livraison 1.0.13 : version et horodatage actualisés dans BuildInfo, utilisé en fin des Paramètres et dans À propos ; script aligné sur la convention de header.
 

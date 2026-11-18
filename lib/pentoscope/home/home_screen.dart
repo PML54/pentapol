@@ -1,4 +1,13 @@
-// Modified: 2026-11-05 10:05 — unifier Jeu Iso avec Solo/Duo, fond orange Iso et noir Défi.
+// Modified: 2026-11-18 02:34 — départ quotidien au niveau 1 pour toutes les ceintures.
+// Historique: 2026-11-17 09:44 — icône seule au profil et passages successifs dans le temps imparti.
+// Historique: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-11-13 17:35 — placer le défi quotidien avant les résultats.
+// Historique: 2026-11-13 06:37 — donner une carte flashy et un titre unique à l’atelier carton.
+// Historique: 2026-11-13 06:16 — ajouter la carte ciseaux vers Fabrique ton Pentapol après les jeux.
+// Historique: 2026-11-11 06:00 — reprendre le défi disponible et partager les noms de niveaux avec l’accueil.
+// Historique: 2026-11-11 05:57 — ouvrir directement le défi disponible ou reprendre sa sauvegarde.
+// lib/pentoscope/home/home_screen.dart
+// Historique: 2026-11-05 10:05 — unifier Jeu Iso avec Solo/Duo, fond orange Iso et noir Défi.
 // Historique: 2026-10-29 07:42 — reprendre le cycle des cibles équilibrées depuis tous les accès au Training.
 // Historique: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
 // Historique: 2026-11-04 10:20 — remonter le menu et le classement dans l’espace disponible.
@@ -35,6 +44,8 @@
 // Historique: 2026-09-10 14:53 — accueil interactif : respecter le délai de prise réglé pour le jeu.
 // Historique: 2026-09-10 10:24 — accueil : remplacer la démonstration passive par le 3×5 guidé.
 
+import 'package:pentapol/config/challenge_belts.dart';
+import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,8 +54,10 @@ import 'package:pentapol/l10n/app_localizations.dart';
 import 'package:pentapol/config/player_level_colors.dart';
 import 'package:pentapol/providers/settings_provider.dart';
 import 'package:pentapol/screens/help_screen.dart';
+import 'package:pentapol/screens/cardboard_game_screen.dart';
 import 'package:pentapol/screens/settings_screen.dart';
-import 'package:pentapol/pentoscope/screens/challenge_screen.dart';
+import 'package:pentapol/pentoscope/screens/leaderboard_screen.dart';
+import 'package:pentapol/pentoscope/challenge_consent.dart';
 import 'package:pentapol/pentoscope/challenge.dart';
 import 'package:pentapol/pentoscope/screens/records_screen.dart';
 import 'package:pentapol/pentoscope_multiplayer/screens/pentoscope_mp_lobby_screen.dart';
@@ -167,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context, settings.currentLevel),
+            _buildHeader(context, settings.userName, settings.currentLevel),
             Expanded(
               child: _isLaunchingGame
                   ? const Center(child: CircularProgressIndicator())
@@ -179,12 +192,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, int level) {
+  Widget _buildHeader(BuildContext context, String? userName, int level) {
     final l10n = AppLocalizations.of(context);
-    final size = sizeForLevel(level);
+    final normalizedName = userName?.trim();
+    final playerName = normalizedName == null || normalizedName.isEmpty
+        ? l10n.defaultPlayer
+        : normalizedName;
+    final belt = ref.watch(settingsProvider.select((s) => s.challengeBelt));
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       alignment: Alignment.centerLeft,
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -194,31 +211,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.appTitle,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF27364A),
-                    fontSize: 25,
-                    height: 1,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.homeSoloProgress(level, size.width, size.height),
-                  key: const ValueKey('home-solo-progress'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: playerLevelColor(level),
-                    fontSize: 12,
-                    height: 1,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    BeltIcon(key: const ValueKey('home-belt'), belt: belt),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        playerName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF27364A),
+                          fontSize: 20,
+                          height: 1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -287,15 +300,73 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             context,
             MaterialPageRoute(builder: (_) => const PentoscopeMPLobbyScreen()),
           ),
-          onChallenge: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ChallengeScreen()),
-          ),
+          onChallenge: _playChallenge,
           onIsometries: _playIsometries,
         ),
       ),
     ),
   );
+
+  Future<void> _playChallenge() async {
+    if (_isLaunchingGame) return;
+    setState(() => _isLaunchingGame = true);
+    try {
+      final settings = ref.read(settingsProvider.notifier);
+      await settings.ensureLoaded();
+      final day = DateTime.now().toUtc();
+      final completed = await settings.dailyChallengeCompletions(day);
+      final progress = ref.read(settingsProvider);
+      if (progress.beltAttemptDay == challengeDay(day) &&
+          !progress.beltAttemptPassed) {
+        if (!mounted) return;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChallengeScreen()),
+        );
+        return;
+      }
+      final available = kChallengeSizes.where(
+        (size) =>
+            !completed.contains(size.index) &&
+            canEnterBeltChallenge(
+              belt: progress.challengeBelt,
+              sizeIndex: size.index,
+              attemptedToday: progress.beltAttemptDay == challengeDay(day),
+              lastSize: progress.beltAttemptSize,
+              lastPassed: progress.beltAttemptPassed,
+            ),
+      );
+      if (available.isEmpty) {
+        if (!mounted) return;
+        await openLeaderboardWithConsent(
+          context,
+          ref,
+          builder: () => LeaderboardScreen(
+            day: challengeDay(day),
+            size: kChallengeSizes.first,
+          ),
+        );
+        return;
+      }
+      final notifier = ref.read(pentoscopeProvider.notifier);
+      final definition = await notifier.dailyChallengeDefinition(
+        available.first,
+        date: day,
+      );
+      await notifier.startOrResumeChallenge(definition);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const PentoscopeGameScreen(mode: PentoscopeMode.challenge),
+        ),
+      );
+      await notifier.suspendChallenge();
+    } finally {
+      if (mounted) setState(() => _isLaunchingGame = false);
+    }
+  }
 
   Future<void> _play(BuildContext context, int level) async {
     final notifier = ref.read(pentoscopeProvider.notifier);
@@ -404,7 +475,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _HomeActions extends StatelessWidget {
+class _HomeActions extends ConsumerWidget {
   final bool expanded;
   final VoidCallback onSolo;
   final VoidCallback onDuo;
@@ -426,13 +497,13 @@ class _HomeActions extends StatelessWidget {
   static const Color _duoColor = Color(0xFF00897B); // turquoise
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final belt = ref.watch(settingsProvider.select((s) => s.challengeBelt));
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const DailyChallengeTops(),
         _buildPrimary(
           key: const ValueKey('home-challenge'),
           icon: Icons.flag_outlined,
@@ -445,6 +516,15 @@ class _HomeActions extends StatelessWidget {
           onPressed: onChallenge,
         ),
         const SizedBox(height: 10),
+        if (belt < 6)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              l10n.beltGoal(beltTimeLimits[belt], beltLabel(l10n, belt + 1)),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        const DailyChallengeTops(),
         Row(
           children: [
             Expanded(
@@ -475,6 +555,62 @@ class _HomeActions extends StatelessWidget {
           label: l10n.homeIso,
           color: _isoColor,
           onPressed: onIsometries,
+        ),
+        const SizedBox(height: 16),
+        Card(
+          margin: EdgeInsets.zero,
+          color: const Color(0xFFEFFF00),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFFF008A), width: 3),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: const ValueKey('home-cardboard'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CardboardGameScreen()),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Transform.rotate(
+                    angle: -0.15,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E5FF),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFF24113B),
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.content_cut,
+                        size: 30,
+                        color: Color(0xFF24113B),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      l10n.cardboardHomeTitle,
+                      style: const TextStyle(
+                        color: Color(0xFF24113B),
+                        fontSize: 22,
+                        height: 1.15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );

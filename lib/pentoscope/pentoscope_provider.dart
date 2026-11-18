@@ -1,4 +1,11 @@
-// Modified: 2026-10-31 06:45 — Isométries : acuité sur 10, étoiles et limite de trois minutes.
+// Modified: 2026-11-17 09:57 — partager et afficher la ceinture acquise dans les classements.
+// Historique: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-11-11 06:36 — Ajouter le qualificatif facultatif au profil et aux classements.
+// Historique: 2026-11-11 05:57 — sauvegarder et reprendre les défis avec plateau, compteurs et temps figé.
+// lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-11-11 05:46 — défi : démarrer le chrono à la première manipulation, pas après aperçu.
+// lib/pentoscope/pentoscope_provider.dart
+// Historique: 2026-10-31 06:45 — Isométries : acuité sur 10, étoiles et limite de trois minutes.
 // Historique: 2026-10-28 05:01 — réserver le Training existant à ses exercices une ou deux pièces.
 // Historique: 2026-10-26 15:15 — permettre un essai guidé 5×5 avec cinq pièces au tiroir.
 // Historique: 2026-10-09 09:41 — démarrer le chrono local après l'aperçu du tiroir.
@@ -239,6 +246,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (!identical(state.puzzle, puzzle)) return;
     ref.read(rackPreviewCompletedProvider.notifier).complete(puzzle);
     if (!_isMultiplayer &&
+        !state.isRanked &&
         !state.isIsometryTraining &&
         !state.isComplete &&
         state.elapsedSeconds == 0 &&
@@ -359,8 +367,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     return state.canPlacePiece(piece, positionIndex, gridX, gridY);
   }
 
+  void _startChallengeTimerOnInteraction() {
+    if (state.isRanked && !state.isComplete && !isTimerRunning) {
+      restoreTimerOrigin(state.elapsedSeconds);
+      startTimer();
+    }
+  }
+
   void _recordStrategyAction(StrategyAction action) {
     if (state.isComplete || state.puzzle == null) return;
+    _startChallengeTimerOnInteraction();
     state = state.copyWith(
       strategyActions: state.strategyActions.record(action),
     );
@@ -463,6 +479,22 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   PentoscopeState build() {
     ref.onDispose(() {
       stopTimer();
+    });
+    listenSelf((previous, next) {
+      if (!next.isRanked) return;
+      if (previous?.puzzle != next.puzzle ||
+          previous?.isComplete != next.isComplete ||
+          previous?.elapsedSeconds != next.elapsedSeconds ||
+          previous?.placedPieces != next.placedPieces ||
+          previous?.piecePositionIndices != next.piecePositionIndices ||
+          previous?.strategyActions != next.strategyActions ||
+          previous?.isometryCount != next.isometryCount ||
+          previous?.faultCount != next.faultCount ||
+          previous?.geometry != next.geometry ||
+          previous?.translationCount != next.translationCount ||
+          previous?.deleteCount != next.deleteCount) {
+        _saveChallengeSnapshot(next);
+      }
     });
     _generator = PentoscopeGenerator();
     _solutions = CorpusSolutionSource.empty();
@@ -637,7 +669,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
       }
       if (!_isMultiplayer && !state.isRanked)
-        _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
+        _clearCurrentGame(); // la sauvegarde du défi reste séparée du Solo
     } else {
       _saveCurrentGame();
     }
@@ -1432,11 +1464,12 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     );
   }
 
-  /// 🎽 Démarre le **défi de la semaine** (CDC §7, Phase 2) — **mode classé**. Construit le puzzle
+  /// 🎽 Démarre le **défi quotidien** (CDC §7) — **mode classé**. Construit le puzzle
   /// depuis le masque et le rack **dérivés** ([challenge]), sans tirage aléatoire. `isRanked` (appui
-  /// sur l'ampoule neutralisé, §4.8), non progression. **Éphémère** : ne persiste pas et n'efface
-  /// pas la partie de progression sauvegardée (re-dérivable depuis la semaine).
+  /// sur l'ampoule neutralisé, §4.8), non progression. Sa sauvegarde séparée conserve
+  /// le plateau et le temps sans écraser la partie Solo.
   Future<void> startChallenge(ChallengeDefinition challenge) async {
+    _timerPausedElapsed = null;
     challenge = await _prepareChallenge(challenge);
     _isMultiplayer = false;
     _activeChallenge = challenge;
@@ -1484,6 +1517,135 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       isProgression: false,
       isRanked: true,
     );
+  }
+
+  static const _challengeSnapshotKey = 'challenge_in_progress';
+  Future<void> _challengeWrite = Future<void>.value();
+
+  Future<void> _saveChallengeSnapshot(PentoscopeState snapshot) {
+    final challenge = _activeChallenge;
+    final puzzle = snapshot.puzzle;
+    if (!snapshot.isRanked || challenge == null || puzzle == null) {
+      return _challengeWrite;
+    }
+    final row = CurrentGameData(
+      id: 0,
+      sizeName: puzzle.size.name,
+      pieceIds: puzzle.pieceIds.join(','),
+      solutionCount: puzzle.solutionCount,
+      placedPieces: jsonEncode([
+        for (final piece in snapshot.placedPieces)
+          {
+            'id': piece.piece.id,
+            'pos': piece.positionIndex,
+            'x': piece.gridX,
+            'y': piece.gridY,
+          },
+      ]),
+      positionIndices: jsonEncode(
+        {
+          ...snapshot.piecePositionIndices,
+          if (snapshot.selectedPiece != null &&
+              snapshot.selectedPlacedPiece == null)
+            snapshot.selectedPiece!.id: snapshot.selectedPositionIndex,
+        }.map((key, value) => MapEntry(key.toString(), value)),
+      ),
+      initialOrientations: jsonEncode(
+        snapshot.initialOrientations.map(
+          (key, value) => MapEntry(key.toString(), value),
+        ),
+      ),
+      elapsedSeconds: isTimerRunning
+          ? getElapsedSeconds()
+          : snapshot.elapsedSeconds,
+      isometryCount: snapshot.isometryCount,
+      translationCount: snapshot.translationCount,
+      deleteCount: snapshot.deleteCount,
+      hintCount: snapshot.hintCount,
+      faultCount: snapshot.faultCount,
+      isProgression: false,
+      geometryState: jsonEncode({
+        ...?snapshot.geometry?.toJson(),
+        'pieceIsometryCounts': snapshot.pieceIsometryCounts.map(
+          (key, value) => MapEntry(key.toString(), value),
+        ),
+        'strategyActions': snapshot.strategyActions.toJson(),
+        'firstPlacedPieceId': snapshot.firstPlacedPieceId,
+        'firstPlacementSolvable': snapshot.firstPlacementSolvable,
+        'firstPlacementAssisted': snapshot.firstPlacementAssisted,
+        'firstPlacementFaultKind': snapshot.firstPlacementFaultKind?.name,
+      }),
+      savedAt: DateTime.now(),
+    );
+    final payload = jsonEncode({
+      'version': kChallengeVersion,
+      'day': challenge.day,
+      'size': challenge.size.index,
+      'game': row.toJson(),
+    });
+    final complete = snapshot.isComplete;
+    final db = ref.read(settingsDatabaseProvider);
+    _challengeWrite = _challengeWrite
+        .then((_) async {
+          if (complete) {
+            await db.deleteSetting(_challengeSnapshotKey);
+          } else {
+            await db.setSetting(_challengeSnapshotKey, payload);
+          }
+        })
+        .catchError((Object error) {
+          debugPrint('Sauvegarde défi échouée : $error');
+        });
+    return _challengeWrite;
+  }
+
+  /// Fige le temps avant de quitter le défi ; les manipulations reprennent le chrono.
+  Future<void> suspendChallenge() async {
+    if (!state.isRanked || state.isComplete) return;
+    final elapsed = isTimerRunning ? getElapsedSeconds() : state.elapsedSeconds;
+    resetTimer();
+    _timerPausedElapsed = null;
+    state = state.copyWith(elapsedSeconds: elapsed);
+    await _saveChallengeSnapshot(state);
+  }
+
+  /// Reprend uniquement la sauvegarde correspondant à cette définition quotidienne.
+  Future<void> startOrResumeChallenge(ChallengeDefinition definition) async {
+    await saveCurrentGameSnapshot();
+    await _challengeWrite;
+    final raw = await ref
+        .read(settingsDatabaseProvider)
+        .getSetting(_challengeSnapshotKey);
+    CurrentGameData? saved;
+    if (raw != null) {
+      try {
+        final json = jsonDecode(raw) as Map<String, dynamic>;
+        if (json['version'] == kChallengeVersion &&
+            json['day'] == definition.day &&
+            json['size'] == definition.size.index) {
+          saved = CurrentGameData.fromJson(
+            json['game'] as Map<String, dynamic>,
+          );
+        }
+      } on FormatException {
+        // Une sauvegarde illisible ne bloque pas le défi du jour.
+      }
+    }
+    if (saved == null) {
+      await startChallenge(definition);
+      return;
+    }
+    final prepared = await _prepareChallenge(definition);
+    _timerPausedElapsed = null;
+    await restoreGame(saved);
+    _activeChallenge = prepared;
+    state = state.copyWith(
+      isRanked: true,
+      fixedPieceIds: Set.unmodifiable({
+        for (final p in prepared.fixedPieces) p.piece.id,
+      }),
+    );
+    resetTimer();
   }
 
   /// Défi version 3 : dérivation locale commune, indépendante de l'état du réseau.
@@ -1695,6 +1857,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final ch = _activeChallenge;
     final metrics = computeCompletionMetrics();
     if (ch == null || metrics == null) return;
+    await waitForChallengeCompletion();
+    if (!ref.read(settingsProvider).shareScoresOptIn) return;
     try {
       final playerId = await ref
           .read(settingsProvider.notifier)
@@ -1706,6 +1870,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         size: ch.size.index,
         playerId: playerId,
         pseudo: pseudo,
+        qualifier: ref.read(settingsProvider).playerQualifier,
+        belt: ref.read(settingsProvider).challengeBelt,
         minIso: metrics.minIso,
         isoCount: metrics.isometryCount,
         faults: metrics.faults,
@@ -1730,6 +1896,8 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
             size: score.size,
             playerId: score.playerId,
             pseudo: score.pseudo,
+            qualifier: score.qualifier,
+            belt: score.belt,
             minIso: score.minIso,
             isoCount: score.isoCount,
             faults: score.faults,
@@ -1751,12 +1919,19 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     }
   }
 
+  Future<void> _challengeCompletionWrite = Future.value();
+  Future<void> waitForChallengeCompletion() => _challengeCompletionWrite;
+
   void _recordDailyChallengeCompletion() {
     final challenge = _activeChallenge;
     if (challenge == null) return;
-    ref
+    _challengeCompletionWrite = ref
         .read(settingsProvider.notifier)
-        .completeDailyChallengeSize(challenge.day, challenge.size.index);
+        .completeDailyChallengeSize(
+          challenge.day,
+          challenge.size.index,
+          elapsedSeconds: state.elapsedSeconds,
+        );
   }
 
   /// Grille terminée sérialisée (id de pièce par case, ligne par ligne) — conservée côté serveur
@@ -1781,15 +1956,16 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
   /// ni les solutions. No-op si aucune partie, ou si elle est déjà complète (la ligne
   /// est alors effacée, pas réécrite).
   Future<void> _saveCurrentGame() async {
+    if (state.isRanked) {
+      await _saveChallengeSnapshot(state);
+      return;
+    }
     final puzzle = state.puzzle;
-    // isRanked : le défi est éphémère (re-dérivable) et ne doit pas écraser la partie de
-    // progression sauvegardée.
     if (_isRecreationalSetup ||
         state.isTraining ||
         puzzle == null ||
         state.isComplete ||
-        _isMultiplayer ||
-        state.isRanked) {
+        _isMultiplayer) {
       return;
     }
 
@@ -1868,6 +2044,9 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     if (_isMultiplayer || !isTimerRunning) return;
     _timerPausedElapsed = getElapsedSeconds();
     stopTimer();
+    if (state.isRanked) {
+      state = state.copyWith(elapsedSeconds: _timerPausedElapsed);
+    }
   }
 
   /// ⏱️ Reprend le chronomètre au retour au premier plan, en repartant du temps figé par
@@ -1877,6 +2056,11 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
     final paused = _timerPausedElapsed;
     if (paused == null) return;
     _timerPausedElapsed = null;
+    if (state.isRanked) {
+      resetTimer();
+      state = state.copyWith(elapsedSeconds: paused);
+      return;
+    }
     restoreTimerOrigin(paused);
     startTimer();
   }
@@ -2183,7 +2367,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
         _submitChallengeScore(); // 🎽 défi terminé → POST du score au serveur
       }
       if (!_isMultiplayer && !state.isRanked)
-        _clearCurrentGame(); // défi éphémère : ne touche pas la progression sauvée
+        _clearCurrentGame(); // la sauvegarde du défi reste séparée du Solo
     } else {
       _saveCurrentGame();
     }
@@ -2215,6 +2399,7 @@ class PentoscopeNotifier extends Notifier<PentoscopeState>
       return;
     }
 
+    _startChallengeTimerOnInteraction();
     var anchor = _calculateDesiredAnchorFromDrag(gridX, gridY);
     final target = state.trainingTargetFor(state.selectedPiece!.id);
     if (target != null &&
@@ -3474,9 +3659,9 @@ class PentoscopeState implements PieceManipulationState {
   /// lancé au « + » (choix libre de taille) et en multijoueur.
   final bool isProgression;
 
-  /// Mode classé (défi de la semaine, CDC §4.8) : l'**appui** sur l'ampoule est neutralisé (le
-  /// compteur et la couleur restent, le retrait passe par sélection + poubelle). Un défi n'est ni
-  /// une partie de progression ni persisté (éphémère, re-dérivable).
+  /// Mode classé (défi quotidien, CDC §4.8) : l'**appui** sur l'ampoule est neutralisé (le
+  /// compteur et la couleur restent, le retrait passe par sélection + poubelle). Un défi
+  /// garde une sauvegarde distincte et ne fait pas avancer la progression Solo.
   final bool isRanked;
 
   /// Orientations **initiales** du rack (pieceId → index d'orientation tel que distribué au

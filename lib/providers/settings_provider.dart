@@ -1,4 +1,8 @@
-// Modified: 2026-10-29 07:42 — enregistrer la prochaine cible de découverte sans reculer en cas de callbacks tardifs.
+// Modified: 2026-11-17 09:57 — partager et afficher la ceinture acquise dans les classements.
+// Historique: 2026-11-17 09:44 — icône seule au profil et passages successifs dans le temps imparti.
+// Historique: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-11-11 06:36 — Ajouter le qualificatif facultatif au profil et aux classements.
+// Historique: 2026-10-29 07:42 — enregistrer la prochaine cible de découverte sans reculer en cas de callbacks tardifs.
 // Historique: 2026-10-28 05:01 — mémoriser et ouvrir le nouveau parcours de découverte interactif.
 // Historique: 2026-10-26 15:02 — enregistrer la présentation initiale de l’aide.
 // Historique: 2026-10-08 06:50 — autoriser le délai de prise des pièces dès 30 ms.
@@ -47,6 +51,7 @@ import 'package:pentapol/pentoscope/geometry_score.dart';
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:pentapol/config/challenge_belts.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -132,6 +137,19 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _saveSettings();
   }
 
+  Future<void> setPlayerQualifier(String value) async {
+    await ensureLoaded();
+    final qualifier = normalizePlayerName(value);
+    if (validatePlayerQualifier(qualifier) != null) {
+      throw ArgumentError.value(value, 'qualifier');
+    }
+    state = state.copyWith(
+      playerQualifier: qualifier,
+      clearPlayerQualifier: qualifier.isEmpty,
+    );
+    await _saveSettings();
+  }
+
   /// Identité 128 bits du joueur (CDC §7.4). La génère et la persiste si absente, la retourne.
   /// **Paresseux** : appelé à la 1re soumission de défi, pas au lancement — l'identifiant persistant
   /// n'existe donc que quand le classement est utilisé (RGPD, §8). Distinct du pseudo.
@@ -178,16 +196,36 @@ class SettingsNotifier extends Notifier<AppSettings> {
     return state.completedDailyChallengeSizes.toSet();
   }
 
-  Future<void> completeDailyChallengeSize(String day, int sizeIndex) async {
+  Future<void> completeDailyChallengeSize(
+    String day,
+    int sizeIndex, {
+    int? elapsedSeconds,
+  }) async {
     await ensureLoaded();
     final completed = state.dailyChallengeDay == day
         ? state.completedDailyChallengeSizes.toSet()
         : <int>{};
     if (!completed.add(sizeIndex) && state.dailyChallengeDay == day) return;
     final sorted = completed.toList()..sort();
+    final validAttempt =
+        elapsedSeconds != null &&
+        elapsedSeconds >= 0 &&
+        sizeIndex >= 0 &&
+        sizeIndex < beltTimeLimits.length &&
+        (state.beltAttemptDay == null ||
+            day.compareTo(state.beltAttemptDay!) > 0 ||
+            (day == state.beltAttemptDay && sizeIndex > state.beltAttemptSize));
     state = state.copyWith(
       dailyChallengeDay: day,
       completedDailyChallengeSizes: sorted,
+      challengeBelt: validAttempt
+          ? earnedChallengeBelt(state.challengeBelt, sizeIndex, elapsedSeconds)
+          : null,
+      beltAttemptDay: validAttempt ? day : null,
+      beltAttemptSize: validAttempt ? sizeIndex : null,
+      beltAttemptPassed: validAttempt
+          ? elapsedSeconds <= beltTimeLimits[sizeIndex]
+          : null,
     );
     await _saveSettings();
   }
@@ -241,6 +279,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
             size: score.size,
             playerId: score.playerId,
             pseudo: score.pseudo,
+            qualifier: score.qualifier,
+            belt: score.belt,
             minIso: score.minIso,
             isoCount: score.isoCount,
             faults: score.faults,

@@ -1,4 +1,5 @@
-// Modified: 2026-10-08 06:50 — proposer le palier de sensibilité de drag à 30 ms.
+// Modified: 2026-11-11 06:36 — Ajouter le qualificatif facultatif au profil et aux classements.
+// Historique: 2026-10-08 06:50 — proposer le palier de sensibilité de drag à 30 ms.
 // Historique: 2026-10-02 07:24 — placer l'accès au développeur en fin de Paramètres.
 // Historique: 2026-09-25 07:48 — retrait de la tuile Aide déplacée dans l'accueil.
 // Historique: 2026-09-25 02:56 — tuile « Aide » (section À propos, avant la version) → HelpScreen.
@@ -300,6 +301,14 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => _editDisplayName(context, ref),
             ),
 
+            ListTile(
+              leading: const Icon(Icons.place_outlined),
+              title: Text(l10n.playerQualifierLabel),
+              subtitle: Text(settings.playerQualifier ?? l10n.notDefined),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () => _editPlayerQualifier(context, ref),
+            ),
+
             // Opt-in à l'envoi de score (§8 : désactivé par défaut, activé par geste explicite).
             SwitchListTile(
               secondary: const Icon(Icons.leaderboard_outlined),
@@ -411,6 +420,55 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (name == null) return; // annulé
     await notifier.setUserName(name);
+  }
+
+  Future<void> _editPlayerQualifier(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(settingsProvider.notifier);
+    var draft = ref.read(settingsProvider).playerQualifier ?? '';
+    final formKey = GlobalKey<FormState>();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx);
+        void save() {
+          if (formKey.currentState!.validate()) Navigator.pop(ctx, draft);
+        }
+
+        return AlertDialog(
+          title: Text(l10n.playerQualifierLabel),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: TextFormField(
+                initialValue: draft,
+                onChanged: (value) => draft = value,
+                autofocus: true,
+                maxLength: 20,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  hintText: l10n.playerQualifierHint,
+                  helperText: l10n.playerQualifierHelp,
+                  helperMaxLines: 4,
+                ),
+                validator: (value) =>
+                    validatePlayerQualifier(value ?? '') == null
+                    ? null
+                    : l10n.playerQualifierInvalid,
+                onFieldSubmitted: (_) => save(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(onPressed: save, child: Text(l10n.save)),
+          ],
+        );
+      },
+    );
+    if (value != null) await notifier.setPlayerQualifier(value);
   }
 
   /// Confirme puis supprime les données de classement (RGPD §7.4) : scores serveur + identité locale.

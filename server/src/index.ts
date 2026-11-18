@@ -80,38 +80,49 @@ async function getLeaderboard(env: Env, url: URL): Promise<Response> {
     const iso = (date: Date) => date.toISOString().slice(0, 10);
     const rows = await env.DB.prepare(
       `WITH ranked AS (
-         SELECT player_id, pseudo, day, size, theoretical_moves, strategy_actions,
+         SELECT player_id, day, size, theoretical_moves, strategy_actions,
                 RANK() OVER (PARTITION BY day, size ORDER BY ${order}) AS place,
                 COUNT(*) OVER (PARTITION BY day, size) AS participants
            FROM scores
           WHERE version = ? AND day BETWEEN ? AND ?${strategyFilter}
        ), scored AS (
-         SELECT player_id, pseudo, day, theoretical_moves, strategy_actions,
+         SELECT player_id, day, theoretical_moves, strategy_actions,
                 CASE WHEN participants = 1 THEN 100.0
                      ELSE 100.0 - 80.0 * (place - 1) / (participants - 1) END AS points
            FROM ranked
        ), daily AS (
-         SELECT player_id, MAX(pseudo) AS pseudo, day, SUM(points) AS day_points,
+         SELECT player_id, day, SUM(points) AS day_points,
                 SUM(CASE WHEN theoretical_moves IS NOT NULL THEN theoretical_moves END) AS theoretical_moves,
                 SUM(CASE WHEN theoretical_moves IS NOT NULL THEN strategy_actions END) AS strategy_actions
            FROM scored GROUP BY player_id, day
        ), best AS (
          SELECT *, ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY day_points DESC) AS day_rank
            FROM daily
+       ), identities AS (
+         SELECT player_id, pseudo, qualifier,
+                ROW_NUMBER() OVER (
+                  PARTITION BY player_id ORDER BY created_at DESC, day DESC, size DESC
+                ) AS profile_rank
+           FROM scores WHERE version = ? AND day BETWEEN ? AND ?
        )
-       SELECT player_id, MAX(pseudo) AS pseudo, ROUND(SUM(day_points), 1) AS points,
+       SELECT best.player_id, identities.pseudo, identities.qualifier,
+              (SELECT MAX(belt) FROM scores AS belts WHERE belts.player_id = best.player_id) AS belt,
+              ROUND(SUM(day_points), 1) AS points,
               COUNT(*) AS days, SUM(theoretical_moves) AS theoretical_moves,
               SUM(strategy_actions) AS strategy_actions
-         FROM best WHERE day_rank <= ?
-        GROUP BY player_id
+         FROM best JOIN identities ON identities.player_id = best.player_id
+        WHERE day_rank <= ? AND profile_rank = 1
+        GROUP BY best.player_id
         ORDER BY points DESC, days DESC
         LIMIT ?`
-    ).bind(p.version, iso(start), iso(end), bestDays, limit).all();
+    ).bind(p.version, iso(start), iso(end), p.version, iso(start), iso(end), bestDays, limit).all();
     return json({ maillot, period, entries: rows.results ?? [] });
   }
 
   const rows = await env.DB.prepare(
-    `SELECT player_id, pseudo, time_ms, strategy_actions, theoretical_moves,
+    `SELECT player_id, pseudo, qualifier,
+            (SELECT MAX(belt) FROM scores AS belts WHERE belts.player_id = scores.player_id) AS belt,
+            time_ms, strategy_actions, theoretical_moves,
             placements, rotations, symmetries, translations, removals
        FROM scores
       WHERE version = ? AND day = ? AND size = ?${strategyFilter}
@@ -156,6 +167,9 @@ async function postScore(env: Env, request: Request): Promise<Response> {
        body.strategyActions == null || body.theoreticalMoves > body.strategyActions)) {
     return err('coups théoriques invalides', 400);
   }
+  if (body.belt != null && (!Number.isInteger(body.belt) || body.belt < 0 || body.belt > 6)) {
+    return err('ceinture invalide (0 à 6)', 400);
+  }
   const day = String(body.day ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return err('champ day invalide', 400);
   const playerId = String(body.playerId ?? '');
@@ -167,6 +181,11 @@ async function postScore(env: Env, request: Request): Promise<Response> {
       !/[A-Za-zÀ-ÖØ-öø-ÿŒœÆæ]/.test(pseudo)) {
     return err('pseudo invalide (3 à 20 caractères)', 400);
   }
+  const qualifier = String(body.qualifier ?? '').trim().replace(/\s+/g, ' ');
+  if (Array.from(qualifier).length > 20 ||
+      (qualifier && !/^[A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9 '\-’]+$/.test(qualifier))) {
+    return err('qualificatif invalide (20 caractères maximum)', 400);
+  }
   const grid = String(body.grid ?? '');
   if (grid.length === 0 || grid.length > 4096) return err('grid manquante/trop grande', 400);
 
@@ -175,12 +194,12 @@ async function postScore(env: Env, request: Request): Promise<Response> {
   try {
     await env.DB.prepare(
       `INSERT INTO scores
-         (version, day, size, player_id, pseudo, time_ms, grid, created_at,
+         (version, day, size, player_id, pseudo, qualifier, belt, time_ms, grid, created_at,
           placements, rotations, symmetries, translations, removals, theoretical_moves)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
-        body.version, day, body.size, playerId, pseudo,
+        body.version, day, body.size, playerId, pseudo, qualifier || null, body.belt ?? null,
         body.timeMs, grid, Date.now(), ...actions,
         body.finalSolutionMinimum === true ? body.theoreticalMoves ?? null : null
       )
@@ -188,6 +207,12 @@ async function postScore(env: Env, request: Request): Promise<Response> {
   } catch (e) {
     // Violation de clé primaire = déjà soumis (premier essai déjà enregistré).
     if (String(e).includes('UNIQUE constraint failed')) {
+      // Metadata may advance when an offline score is resent; never replace its time.
+      if (body.belt != null) {
+        await env.DB.prepare(`UPDATE scores SET belt = MAX(COALESCE(belt, 0), ?)
+          WHERE version = ? AND day = ? AND size = ? AND player_id = ?`)
+          .bind(body.belt, body.version, day, body.size, playerId).run();
+      }
       return err('score déjà soumis pour ce défi (premier essai seulement)', 409);
     }
     throw e;

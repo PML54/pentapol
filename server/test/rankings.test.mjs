@@ -90,3 +90,82 @@ test('14/7 beats 14/6, ratios break total-move ordering in all periods', async (
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM scores').get().n, 0);
   } finally { db.close(); }
 });
+
+test('optional qualifier survives daily and period rankings; old clients remain valid', async () => {
+  const { db, env } = environment();
+  try {
+    assert.equal((await submit(env, { ...score('a', 1000, actions), qualifier: '  Québec  ' })).status, 201);
+    assert.equal((await submit(env, score('b', 2000, actions))).status, 201);
+    for (const period of ['day', 'week', 'month']) {
+      const entries = await ranking(env, 'temps', period);
+      assert.equal(entries[0].qualifier, 'Québec');
+      assert.equal(entries[1].qualifier, null);
+    }
+    for (const qualifier of ['x'.repeat(21), 'street@', '🏠']) {
+      assert.equal((await submit(env, { ...score('c', 1000), qualifier })).status, 400);
+    }
+    // La migration additive conserve les anciens scores.
+    db.exec('ALTER TABLE scores DROP COLUMN qualifier');
+    db.exec(readFileSync(new URL('../migrations/20261111_player_qualifier.sql', import.meta.url), 'utf8'));
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM scores').get().n, 2);
+    assert.equal((await ranking(env, 'temps'))[0].qualifier, null);
+  } finally { db.close(); }
+});
+
+
+test('period labels use one coherent latest identity when a player changes profile', async () => {
+  const { db, env } = environment();
+  try {
+    assert.equal((await submit(env, { ...score('a', 1000, actions), pseudo: 'Zoe', qualifier: 'Zurich' })).status, 201);
+    assert.equal((await submit(env, { ...score('a', 2000, actions), size: 1, pseudo: 'Alice', qualifier: 'Annecy' })).status, 201);
+    db.prepare('UPDATE scores SET created_at = ? WHERE size = ?').run(1, 0);
+    db.prepare('UPDATE scores SET created_at = ? WHERE size = ?').run(2, 1);
+    for (const period of ['week', 'month']) {
+      const entries = await ranking(env, 'temps', period);
+      assert.equal(entries[0].pseudo, 'Alice');
+      assert.equal(entries[0].qualifier, 'Annecy');
+    }
+  } finally { db.close(); }
+});
+
+test('belts remain unknown for old scores and advance across days and all rankings', async () => {
+  const { db, env } = environment();
+  try {
+    assert.equal((await submit(env, score('a', 1000, actions))).status, 201);
+    assert.equal((await submit(env, { ...score('b', 2000, actions), belt: 1 })).status, 201);
+    assert.equal((await submit(env, { ...score('b', 3000, actions), day: '2026-10-06', belt: 4 })).status, 201);
+    for (const period of ['day', 'week', 'month']) {
+      for (const maillot of ['temps', 'strategie']) {
+        const entries = await ranking(env, maillot, period);
+        assert.equal(entries.find(e => e.player_id === 'a'.repeat(32)).belt, null);
+        assert.equal(entries.find(e => e.player_id === 'b'.repeat(32)).belt, 4);
+      }
+    }
+    assert.equal((await submit(env, { ...score('b', 1, actions), belt: 6 })).status, 409);
+    const stored = db.prepare('SELECT time_ms, belt FROM scores WHERE player_id = ? AND day = ?').get('b'.repeat(32), '2026-10-05');
+    assert.equal(stored.time_ms, 2000);
+    assert.equal(stored.belt, 6);
+    assert.equal((await submit(env, { ...score('b', 1, actions), belt: 2 })).status, 409);
+    assert.equal((await ranking(env, 'temps')).find(e => e.player_id === 'b'.repeat(32)).belt, 6);
+    for (const belt of [-1, 7, 1.5, '3']) {
+      assert.equal((await submit(env, { ...score('c', 1000, actions), belt })).status, 400);
+    }
+  } finally { db.close(); }
+});
+
+test('belt migration preserves existing scores without assigning an invented grade', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    const schema = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8')
+      .replace('  belt       INTEGER CHECK (belt BETWEEN 0 AND 6),\n', '')
+      .replace('CREATE INDEX scores_player_belt ON scores (player_id, belt);', '');
+    db.exec(schema);
+    db.prepare('INSERT INTO scores (version, day, size, player_id, pseudo, time_ms, grid, created_at) VALUES (3, ?, 0, ?, ?, 30000, ?, 0)')
+      .run('2026-11-17', 'a'.repeat(32), 'Paul', '123');
+    db.exec(readFileSync(new URL('../migrations/20261117_player_belt.sql', import.meta.url), 'utf8'));
+    const row = db.prepare('SELECT time_ms, belt FROM scores').get();
+    assert.equal(row.time_ms, 30000);
+    assert.equal(row.belt, null);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM scores').get().n, 1);
+  } finally { db.close(); }
+});

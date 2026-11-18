@@ -1,4 +1,5 @@
-// Modified: 2026-10-07 07:40 — conserver le minimum théorique du défi unique pour la liste.
+// Modified: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-10-07 07:40 — conserver le minimum théorique du défi unique pour la liste.
 // Historique: 2026-10-07 06:53 — défis version 3 avec pièces fixes et une solution exacte commune.
 // Historique: 2026-10-07 01:46 — prochain minuit UTC pour annoncer le changement de défis.
 // Historique: 2026-10-06 04:48 — retirer le minimum global, désormais propre à chaque solution finale.
@@ -13,8 +14,15 @@ const int kChallengeVersion = 3;
 
 final DateTime kChallengeEpoch = DateTime.utc(2026, 1, 1);
 
-/// Progression quotidienne, de la plus petite grille au 6x10.
-const List<PentoscopeSize> kChallengeSizes = PentoscopeSize.values;
+/// Six défis de passage : jaune à noire ; les neuf tailles Solo restent disponibles.
+const List<PentoscopeSize> kChallengeSizes = [
+  PentoscopeSize.size3x5,
+  PentoscopeSize.size4x5,
+  PentoscopeSize.size5x5,
+  PentoscopeSize.size6x5,
+  PentoscopeSize.size7x5,
+  PentoscopeSize.size8x5,
+];
 
 String challengeDay([DateTime? now]) {
   final utc = (now ?? DateTime.now()).toUtc();

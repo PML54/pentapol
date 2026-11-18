@@ -1,3 +1,4 @@
+// Modified: 2026-11-17 09:57 — ceinture partagée avec les résultats FR/EN.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -242,6 +243,42 @@ abstract class AppLocalizations {
   /// **'Iso Game'**
   String get homeIso;
 
+  /// No description provided for @playerQualifierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City or qualifier (optional)'**
+  String get playerQualifierLabel;
+
+  /// No description provided for @playerQualifierHint.
+  ///
+  /// In en, this message translates to:
+  /// **'London, Scotland, Owl…'**
+  String get playerQualifierHint;
+
+  /// No description provided for @playerQualifierHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown beside your nickname in rankings. Choose a city, region or nickname, without a precise address. Leave blank to remove it.'**
+  String get playerQualifierHelp;
+
+  /// No description provided for @playerQualifierInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 20 characters: letters, numbers, spaces, apostrophes and hyphens.'**
+  String get playerQualifierInvalid;
+
+  /// No description provided for @rankingYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get rankingYou;
+
+  /// No description provided for @homeChallengeLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'{level} Challenge'**
+  String homeChallengeLevel(String level);
+
   /// No description provided for @homeDailyChallenge.
   ///
   /// In en, this message translates to:
@@ -265,6 +302,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Solo Game'**
   String get homeSolo;
+
+  /// No description provided for @playerRankNovice.
+  ///
+  /// In en, this message translates to:
+  /// **'Novice'**
+  String get playerRankNovice;
+
+  /// No description provided for @playerRankExpert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get playerRankExpert;
+
+  /// No description provided for @playerRankVirtuoso.
+  ///
+  /// In en, this message translates to:
+  /// **'Virtuoso'**
+  String get playerRankVirtuoso;
 
   /// No description provided for @homeSoloProgress.
   ///
@@ -767,7 +822,7 @@ abstract class AppLocalizations {
   /// No description provided for @challengeIntro.
   ///
   /// In en, this message translates to:
-  /// **'Everyone gets the same setup today. Complete a board to unlock the next one; hints are disabled.'**
+  /// **'Six challenges, from white to black belt. Solve your grading puzzle within the time limit to earn the next belt. Otherwise, try again with the next daily challenge. Earned belts are retained; hints are disabled.'**
   String get challengeIntro;
 
   /// No description provided for @piecesCount.
@@ -1325,7 +1380,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareScoresSub.
   ///
   /// In en, this message translates to:
-  /// **'Sends your nickname and an anonymous identifier to the ranking server. Off by default.'**
+  /// **'Sends your nickname, belt, optional qualifier and an anonymous identifier to the ranking server. Off by default.'**
   String get shareScoresSub;
 
   /// No description provided for @deleteOnlineData.
@@ -1367,7 +1422,7 @@ abstract class AppLocalizations {
   /// No description provided for @consentBody.
   ///
   /// In en, this message translates to:
-  /// **'To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.'**
+  /// **'To show the ranking, Pentapol sends your nickname, belt, optional qualifier and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.'**
   String get consentBody;
 
   /// No description provided for @consentEnable.
@@ -2076,6 +2131,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play'**
   String get discoveryPlay;
+
+  /// No description provided for @leaderboardLevelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{level} leaderboard'**
+  String leaderboardLevelTitle(String level);
+
+  /// No description provided for @cardboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your own Pentapol'**
+  String get cardboardTitle;
+
+  /// No description provided for @cardboardSlogan.
+  ///
+  /// In en, this message translates to:
+  /// **'What if we explored geometry through play?'**
+  String get cardboardSlogan;
+
+  /// No description provided for @cardboardIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your twelve pentominoes, then solve puzzles. Explore rotations and reflections by moving, turning and flipping the pieces.'**
+  String get cardboardIntro;
+
+  /// No description provided for @cardboardMaterialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What you need'**
+  String get cardboardMaterialsTitle;
+
+  /// No description provided for @cardboardMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'Thin cardboard, two A4 sheets, a colour printer, glue and scissors. A ruler to check the 2 cm squares.'**
+  String get cardboardMaterials;
+
+  /// No description provided for @cardboardStepPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print the template at actual size, 100%. Each square measures 2 cm.'**
+  String get cardboardStepPrint;
+
+  /// No description provided for @cardboardStepGlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Glue the sheets onto thin cardboard, such as a cereal box.'**
+  String get cardboardStepGlue;
+
+  /// No description provided for @cardboardStepCut.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut around the outer edges, keeping all five squares of each piece connected.'**
+  String get cardboardStepCut;
+
+  /// No description provided for @cardboardStepPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with the small board and pieces 8, 2 and 6. Fill it without gaps or overlaps.'**
+  String get cardboardStepPlay;
+
+  /// No description provided for @cardboardStepInvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrange a few pieces, trace their outline and make a puzzle for a friend.'**
+  String get cardboardStepInvent;
+
+  /// No description provided for @cardboardAdultHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask an adult to help with cutting if needed.'**
+  String get cardboardAdultHelp;
+
+  /// No description provided for @cardboardDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the template'**
+  String get cardboardDownload;
+
+  /// No description provided for @cardboardOpenError.
+  ///
+  /// In en, this message translates to:
+  /// **'The template page could not be opened. Check your connection and try again.'**
+  String get cardboardOpenError;
+
+  /// No description provided for @cardboardUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The template will be available here once the Pentapol website is live.'**
+  String get cardboardUnavailable;
+
+  /// No description provided for @helpShapesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Why twelve shapes?'**
+  String get helpShapesTitle;
+
+  /// No description provided for @helpShapesRule.
+  ///
+  /// In en, this message translates to:
+  /// **'A pentomino is made of five equal-sized squares joined edge to edge. The squares cannot overlap, and touching at a corner alone does not count.'**
+  String get helpShapesRule;
+
+  /// No description provided for @helpShapesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotating or flipping a shape does not make a new one. Counting these rotations and reflections as the same shape gives exactly twelve different shapes.'**
+  String get helpShapesCount;
+
+  /// No description provided for @helpShapesChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Can you find them all? Take a sheet of squared paper and a pencil. Try drawing all twelve shapes on your own, without looking at the game pieces. Check that each has five squares and remove any duplicates.'**
+  String get helpShapesChallenge;
+
+  /// No description provided for @cardboardHomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your own cardboard Pentapol'**
+  String get cardboardHomeTitle;
+
+  /// No description provided for @cardboardSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn to explore!'**
+  String get cardboardSearchTitle;
+
+  /// No description provided for @cardboardMakeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your game'**
+  String get cardboardMakeTitle;
+
+  /// No description provided for @cardboardWoodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A wooden alternative'**
+  String get cardboardWoodTitle;
+
+  /// No description provided for @cardboardWoodMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'As an alternative to cardboard, you can make your Pentapol with 60 identical small wooden cubes, available from craft shops or online, for example on Amazon.'**
+  String get cardboardWoodMaterials;
+
+  /// No description provided for @cardboardWoodShapes.
+  ///
+  /// In en, this message translates to:
+  /// **'First, find the twelve shapes on paper before looking at the templates. For each piece, arrange five cubes face to face, lying flat in a single layer.'**
+  String get cardboardWoodShapes;
+
+  /// No description provided for @cardboardWoodGlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Glue the cubes together using glue suitable for wood and follow its instructions. Ask an adult for help if needed, then let the glue dry completely.'**
+  String get cardboardWoodGlue;
+
+  /// No description provided for @cardboardWoodPaint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can then paint each piece a different colour with water-based acrylic paint suitable for your age. Apply thin coats so the pieces still fit together easily, and let them dry before playing.'**
+  String get cardboardWoodPaint;
+
+  /// No description provided for @beltWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White belt'**
+  String get beltWhite;
+
+  /// No description provided for @beltYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow belt'**
+  String get beltYellow;
+
+  /// No description provided for @beltOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange belt'**
+  String get beltOrange;
+
+  /// No description provided for @beltGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green belt'**
+  String get beltGreen;
+
+  /// No description provided for @beltBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue belt'**
+  String get beltBlue;
+
+  /// No description provided for @beltBrown.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown belt'**
+  String get beltBrown;
+
+  /// No description provided for @beltBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black belt'**
+  String get beltBlack;
+
+  /// No description provided for @beltRetryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Puzzle solved, belt still to earn'**
+  String get beltRetryTitle;
+
+  /// No description provided for @beltRetryTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'For this belt, finish within {seconds} s. Try again with the next daily challenge.'**
+  String beltRetryTomorrow(int seconds);
+
+  /// No description provided for @beltGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Next goal: {belt}, within {seconds} s.'**
+  String beltGoal(int seconds, String belt);
+
+  /// No description provided for @beltTimeLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Time limit: {seconds} s'**
+  String beltTimeLimit(int seconds);
+
+  /// No description provided for @beltEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'Well done! {belt} earned.'**
+  String beltEarned(String belt);
+
+  /// No description provided for @beltChallengeBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{belt} · ≤ {seconds} s'**
+  String beltChallengeBadge(String belt, int seconds);
 }
 
 class _AppLocalizationsDelegate

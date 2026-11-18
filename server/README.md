@@ -39,6 +39,29 @@ npm run deploy
 
 En local : `npm run db:init:local` puis `npm run dev`.
 
+## Qualificatif public facultatif — 2026-11-11
+
+Migration appliquée et worker déployé le 2026-11-11 06:43 CET ; les 141 scores
+existants sont conservés. Version déployée : `384b2a33-d42d-42e6-b459-96bbf1dcfef5`.
+
+`POST /score` accepte désormais `qualifier` (facultatif, 20 caractères maximum,
+même alphabet que le pseudo). Les classements jour/semaine/mois le renvoient
+séparément. Les anciens clients et anciens scores conservent `null`.
+Le qualificatif est attaché au score lors de l’envoi ; le modifier dans les
+Paramètres concerne les prochains scores, sans modifier les scores déjà soumis.
+
+Sur la base existante, appliquer **une seule fois** la migration additive avant
+de déployer le worker. Vérifier d’abord `PRAGMA table_info(scores)` : si la
+colonne `qualifier` existe déjà, ne pas rejouer cette migration.
+
+```bash
+npx wrangler d1 execute pentapol-defi --remote --file=migrations/20261111_player_qualifier.sql
+npm run deploy
+```
+
+Ne pas utiliser `schema.sql` : il détruirait les scores existants.
+La suppression RGPD des scores supprime aussi leurs qualificatifs.
+
 ## Remise à zéro des scores depuis Cloudflare
 
 Procédure de développement, ajoutée le 2026-10-07 à la demande de Paul.
@@ -179,3 +202,21 @@ Le token est lu depuis `--token` en priorité, sinon depuis la **variable d'envi
 **auto-contrôle** sa dérivation contre le digest gelé du test (refuse de tourner s'il a divergé
 de `lib/challenge.dart`). Pour **composer à la main** une journée, POST ta propre définition avec
 le même en-tête `Authorization: Bearer <SEED_TOKEN>`.
+
+
+## Ceintures dans les classements — 2026-11-17
+
+`POST /score` accepte `belt` facultatif : entier de 0 (blanche) à 6 (noire).
+L'app l'envoie après la sauvegarde du passage, uniquement avec le consentement
+existant. Les renvois hors ligne conservent cette donnée. Les anciens clients
+restent compatibles et les anciens scores gardent NULL : aucun grade inventé.
+`GET /leaderboard` renvoie la plus haute ceinture connue du joueur, tous ses
+scores confondus, sur jour/semaine/mois et Temps/Stratégie. Un doublon peut
+actualiser cette métadonnée sans remplacer le temps ni changer le rang (409).
+Le modèle de confiance client reste identique à celui des mesures de jeu.
+
+Appliquer une seule fois `migrations/20261117_player_belt.sql` à D1 avant de
+déployer le Worker. Cette migration ajoute une colonne nullable et un index,
+sans toucher aux résultats existants. **Ne pas utiliser schema.sql en production**.
+La ceinture des autres joueurs devient connue après un score envoyé avec la
+nouvelle app. La ligne du joueur connecté utilise sa ceinture locale actuelle.

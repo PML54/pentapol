@@ -18,6 +18,8 @@ CREATE TABLE scores (
   size       INTEGER NOT NULL,
   player_id  TEXT    NOT NULL,
   pseudo     TEXT    NOT NULL,
+  qualifier  TEXT,
+  belt       INTEGER CHECK (belt BETWEEN 0 AND 6),
   placements INTEGER,
   rotations INTEGER,
   symmetries INTEGER,
@@ -33,3 +35,5 @@ CREATE TABLE scores (
 );
 
 CREATE INDEX scores_partition ON scores (version, day, size);
+
+CREATE INDEX scores_player_belt ON scores (player_id, belt);

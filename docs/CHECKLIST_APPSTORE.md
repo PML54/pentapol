@@ -113,3 +113,16 @@ de ce qui décide de son sort, et rien dans ce document ne l'évalue.
 Deux défauts visibles ont été trouvés par Paul en deux sessions de jeu occasionnel (le
 chronomètre qui ne s'arrête pas, le bilan qui masque le plateau). Cela donne une idée de la
 densité de ce qui reste : **ça se trouve en jouant, pas en relisant du code.**
+
+### Qualificatif public facultatif — 2026-11-11
+
+- Inclure dans la déclaration des données de profil le qualificatif facultatif
+  (ville, région ou surnom), public avec le pseudo dans les classements.
+  Il suit le consentement et la suppression des scores ; aucune adresse précise demandée.
+
+### Atelier carton — 2026-11-12
+
+- [x] Site publié avec accord de Paul sur https://pentapol-site.pages.dev.
+- [x] Origine HTTPS publique enregistrée par défaut dans `lib/config/pentapol_website.dart`.
+- [x] Pages FR/EN, sélecteur, rendu étroit/large et deux PDF publics vérifiés.
+- [ ] Valider le parcours sur iPhone avec une nouvelle compilation avant soumission.

@@ -1,5 +1,9 @@
-// Modified: 2026-10-07 06:53 — vérifier identité hors ligne/en ligne, verrouillage et rendu des indices.
+// Modified: 2026-11-11 05:46 — vérifier le départ différé du chrono des défis.
+// test/challenge_unique_game_test.dart
+// Historique: 2026-10-07 06:53 — vérifier identité hors ligne/en ligne, verrouillage et rendu des indices.
 import 'dart:io';
+import 'package:drift/native.dart';
+import 'package:pentapol/database/settings_database.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,6 +45,11 @@ void main() {
       var networkRequests = 0;
       ProviderContainer create(bool online) => ProviderContainer(
         overrides: [
+          settingsDatabaseProvider.overrideWith((ref) {
+            final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+            ref.onDispose(db.close);
+            return db;
+          }),
           settingsProvider.overrideWith(_Settings.new),
           challengeApiProvider.overrideWithValue(
             ChallengeApi(
@@ -58,8 +67,18 @@ void main() {
       );
       final online = create(true);
       final offline = create(false);
-      addTearDown(online.dispose);
-      addTearDown(offline.dispose);
+      addTearDown(() async {
+        await online
+            .read(pentoscopeProvider.notifier)
+            .saveCurrentGameSnapshot();
+        online.dispose();
+      });
+      addTearDown(() async {
+        await offline
+            .read(pentoscopeProvider.notifier)
+            .saveCurrentGameSnapshot();
+        offline.dispose();
+      });
       for (final size in kChallengeSizes) {
         final aGame = online.read(pentoscopeProvider.notifier);
         final bGame = offline.read(pentoscopeProvider.notifier);
@@ -102,6 +121,51 @@ void main() {
     },
   );
 
+  test(
+    'chrono défi : aperçu et sélection gratuits, isométrie ou déplacement déclenchent',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          settingsDatabaseProvider.overrideWith((ref) {
+            final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+            ref.onDispose(db.close);
+            return db;
+          }),
+          settingsProvider.overrideWith(_Settings.new),
+        ],
+      );
+      addTearDown(() async {
+        await container
+            .read(pentoscopeProvider.notifier)
+            .saveCurrentGameSnapshot();
+        container.dispose();
+      });
+      final game = container.read(pentoscopeProvider.notifier);
+      final definition = await game.dailyChallengeDefinition(
+        kChallengeSizes.first,
+        date: DateTime.utc(2026, 10, 7),
+      );
+      await game.startChallenge(definition);
+      game.finishRackPreview(container.read(pentoscopeProvider).puzzle!);
+      expect(game.isTimerRunning, isFalse);
+      game.selectPiece(
+        container.read(pentoscopeProvider).availablePieces.first,
+      );
+      expect(game.isTimerRunning, isFalse);
+      game.applyIsometryRotationCW(preview: true);
+      expect(game.isTimerRunning, isFalse);
+      game.applyIsometryRotationCW();
+      expect(game.isTimerRunning, isTrue);
+      await game.startChallenge(definition);
+      expect(game.isTimerRunning, isFalse);
+      game.selectPiece(
+        container.read(pentoscopeProvider).availablePieces.first,
+      );
+      game.updatePreview(0, 0);
+      expect(game.isTimerRunning, isTrue);
+    },
+  );
+
   for (final landscape in [false, true]) {
     testWidgets('cadenas et absence de sélection, paysage=$landscape', (
       tester,
@@ -122,6 +186,11 @@ void main() {
       final game = _Game();
       final container = ProviderContainer(
         overrides: [
+          settingsDatabaseProvider.overrideWith((ref) {
+            final db = SettingsDatabase.forTesting(NativeDatabase.memory());
+            ref.onDispose(db.close);
+            return db;
+          }),
           settingsProvider.overrideWith(_Settings.new),
           pentoscopeProvider.overrideWith(() => game),
         ],

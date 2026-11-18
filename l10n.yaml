@@ -5,3 +5,4 @@ template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
 nullable-getter: false
+header: "// Modified: 2026-11-17 09:57 — ceinture partagée avec les résultats FR/EN."

@@ -29,11 +29,21 @@
   "languageFrench": "Français",
   "languageEnglish": "English",
   "homeIso": "Iso Game",
+  "playerQualifierLabel": "City or qualifier (optional)",
+  "playerQualifierHint": "London, Scotland, Owl…",
+  "playerQualifierHelp": "Shown beside your nickname in rankings. Choose a city, region or nickname, without a precise address. Leave blank to remove it.",
+  "playerQualifierInvalid": "Up to 20 characters: letters, numbers, spaces, apostrophes and hyphens.",
+  "rankingYou": "You",
+  "homeChallengeLevel": "{level} Challenge",
+  "@homeChallengeLevel": {"placeholders": {"level": {"type": "String"}}},
   "homeDailyChallenge": "{day} Challenge",
   "@homeDailyChallenge": {"placeholders": {"day": {"type": "String"}}},
   "homeRecords": "My records",
   "homeSettings": "Settings",
   "homeSolo": "Solo Game",
+  "playerRankNovice": "Novice",
+  "playerRankExpert": "Expert",
+  "playerRankVirtuoso": "Virtuoso",
   "homeSoloProgress": "Level {level}/9 · {width}×{height}",
   "@homeSoloProgress": {
     "placeholders": {
@@ -175,7 +185,7 @@
   "challengeModeBadge": "Challenge Mode",
   "nextChallengesAt": "New challenges at {time}",
   "@nextChallengesAt": {"placeholders": {"time": {"type": "String"}}},
-  "challengeIntro": "Everyone gets the same setup today. Complete a board to unlock the next one; hints are disabled.",
+  "challengeIntro": "Six challenges, from white to black belt. Solve your grading puzzle within the time limit to earn the next belt. Otherwise, try again with the next daily challenge. Earned belts are retained; hints are disabled.",
   "piecesCount": "{count, plural, one{{count} piece} other{{count} pieces}}",
   "@piecesCount": {
     "placeholders": {
@@ -381,14 +391,14 @@
   "sectionRanking": "Online ranking",
   "displayName": "Display name",
   "shareScores": "Take part in the online ranking",
-  "shareScoresSub": "Sends your nickname and an anonymous identifier to the ranking server. Off by default.",
+  "shareScoresSub": "Sends your nickname, belt, optional qualifier and an anonymous identifier to the ranking server. Off by default.",
   "deleteOnlineData": "Delete my ranking data",
   "deleteOnlineDataSub": "Erases your scores from the server and your identifier on this device.",
   "deleteOnlineDataConfirm": "This erases your scores from the online ranking and your identifier on this device. This cannot be undone.",
   "deleteAction": "Delete",
   "deleteOnlineDataDone": "Your ranking data has been deleted.",
   "consentTitle": "Take part in the online ranking?",
-  "consentBody": "To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.",
+  "consentBody": "To show the ranking, Pentapol sends your nickname, belt, optional qualifier and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.",
   "consentEnable": "Take part",
   "consentLater": "Not now",
   "guidedRotate": "Good! Use the icons to turn the piece to match the outline.",
@@ -539,5 +549,87 @@
   "discoveryPlace": "Drag the piece\ninto the gap.",
   "discoveryDone": "Bravo!",
   "discoveryAgain": "Training",
-  "discoveryPlay": "Play"
+  "discoveryPlay": "Play",
+  "leaderboardLevelTitle": "{level} leaderboard",
+  "@leaderboardLevelTitle": {"placeholders": {"level": {"type": "String"}}},
+  "cardboardTitle": "Make your own Pentapol",
+  "cardboardSlogan": "What if we explored geometry through play?",
+  "cardboardIntro": "Make your twelve pentominoes, then solve puzzles. Explore rotations and reflections by moving, turning and flipping the pieces.",
+  "cardboardMaterialsTitle": "What you need",
+  "cardboardMaterials": "Thin cardboard, two A4 sheets, a colour printer, glue and scissors. A ruler to check the 2 cm squares.",
+  "cardboardStepPrint": "Print the template at actual size, 100%. Each square measures 2 cm.",
+  "cardboardStepGlue": "Glue the sheets onto thin cardboard, such as a cereal box.",
+  "cardboardStepCut": "Cut around the outer edges, keeping all five squares of each piece connected.",
+  "cardboardStepPlay": "Start with the small board and pieces 8, 2 and 6. Fill it without gaps or overlaps.",
+  "cardboardStepInvent": "Arrange a few pieces, trace their outline and make a puzzle for a friend.",
+  "cardboardAdultHelp": "Ask an adult to help with cutting if needed.",
+  "cardboardDownload": "Download the template",
+  "cardboardOpenError": "The template page could not be opened. Check your connection and try again.",
+  "cardboardUnavailable": "The template will be available here once the Pentapol website is live.",
+  "helpShapesTitle": "Why twelve shapes?",
+  "helpShapesRule": "A pentomino is made of five equal-sized squares joined edge to edge. The squares cannot overlap, and touching at a corner alone does not count.",
+  "helpShapesCount": "Rotating or flipping a shape does not make a new one. Counting these rotations and reflections as the same shape gives exactly twelve different shapes.",
+  "helpShapesChallenge": "Can you find them all? Take a sheet of squared paper and a pencil. Try drawing all twelve shapes on your own, without looking at the game pieces. Check that each has five squares and remove any duplicates.",
+  "cardboardHomeTitle": "Make your own cardboard Pentapol",
+  "cardboardSearchTitle": "Your turn to explore!",
+  "cardboardMakeTitle": "Make your game",
+  "cardboardWoodTitle": "A wooden alternative",
+  "cardboardWoodMaterials": "As an alternative to cardboard, you can make your Pentapol with 60 identical small wooden cubes, available from craft shops or online, for example on Amazon.",
+  "cardboardWoodShapes": "First, find the twelve shapes on paper before looking at the templates. For each piece, arrange five cubes face to face, lying flat in a single layer.",
+  "cardboardWoodGlue": "Glue the cubes together using glue suitable for wood and follow its instructions. Ask an adult for help if needed, then let the glue dry completely.",
+  "cardboardWoodPaint": "You can then paint each piece a different colour with water-based acrylic paint suitable for your age. Apply thin coats so the pieces still fit together easily, and let them dry before playing.",
+  "beltWhite": "White belt",
+  "beltYellow": "Yellow belt",
+  "beltOrange": "Orange belt",
+  "beltGreen": "Green belt",
+  "beltBlue": "Blue belt",
+  "beltBrown": "Brown belt",
+  "beltBlack": "Black belt",
+  "beltRetryTitle": "Puzzle solved, belt still to earn",
+  "beltRetryTomorrow": "For this belt, finish within {seconds} s. Try again with the next daily challenge.",
+  "beltGoal": "Next goal: {belt}, within {seconds} s.",
+  "beltTimeLimit": "Time limit: {seconds} s",
+  "@beltRetryTomorrow": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@beltGoal": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "belt": {
+        "type": "String"
+      }
+    }
+  },
+  "@beltTimeLimit": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "beltEarned": "Well done! {belt} earned.",
+  "beltChallengeBadge": "{belt} · ≤ {seconds} s",
+  "@beltEarned": {
+    "placeholders": {
+      "belt": {
+        "type": "String"
+      }
+    }
+  },
+  "@beltChallengeBadge": {
+    "placeholders": {
+      "belt": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }

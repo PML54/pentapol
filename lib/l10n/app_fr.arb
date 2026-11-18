@@ -29,10 +29,20 @@
   "languageFrench": "Français",
   "languageEnglish": "English",
   "homeIso": "Jeu Iso",
+  "playerQualifierLabel": "Ville ou qualificatif (facultatif)",
+  "playerQualifierHint": "Lyon, Bretagne, Hibou…",
+  "playerQualifierHelp": "Visible avec ton pseudo dans les classements. Choisis une ville, une région ou un surnom, sans adresse précise. Vide pour le retirer.",
+  "playerQualifierInvalid": "20 caractères maximum : lettres, chiffres, espaces, apostrophes et tirets.",
+  "rankingYou": "Vous",
+  "homeChallengeLevel": "Défi {level}",
+  "@homeChallengeLevel": {"placeholders": {"level": {"type": "String"}}},
   "homeDailyChallenge": "Défi du {day}",
   "homeRecords": "Mes records",
   "homeSettings": "Réglages",
   "homeSolo": "Jeu Solo",
+  "playerRankNovice": "Novice",
+  "playerRankExpert": "Expert",
+  "playerRankVirtuoso": "Virtuose",
   "homeSoloProgress": "Niveau {level}/9 · {width}×{height}",
   "@homeSoloProgress": {
     "placeholders": {
@@ -125,7 +135,7 @@
   "weekdaySunday": "Dimanche",
   "challengeModeBadge": "Mode Défi",
   "nextChallengesAt": "Nouveaux défis à {time}",
-  "challengeIntro": "La configuration est la même pour tous aujourd'hui. Termine un plateau pour ouvrir le suivant ; l'indice est désactivé.",
+  "challengeIntro": "Six défis, de la ceinture blanche à la noire. Réussis la grille du passage dans le temps maximum pour gagner la ceinture suivante. Sinon, retente au prochain défi quotidien. Les ceintures acquises restent conservées ; les aides sont désactivées.",
   "piecesCount": "{count, plural, one{{count} pièce} other{{count} pièces}}",
   "rankingTooltip": "Classement",
   "periodDay": "Jour",
@@ -218,14 +228,14 @@
   "sectionRanking": "Classement en ligne",
   "displayName": "Nom affiché",
   "shareScores": "Participer au classement en ligne",
-  "shareScoresSub": "Envoie ton pseudo et un identifiant anonyme au serveur de classement. Désactivé par défaut.",
+  "shareScoresSub": "Envoie ton pseudo, ta ceinture, ton qualificatif facultatif et un identifiant anonyme au serveur de classement. Désactivé par défaut.",
   "deleteOnlineData": "Supprimer mes données de classement",
   "deleteOnlineDataSub": "Efface tes scores du serveur et ton identifiant sur cet appareil.",
   "deleteOnlineDataConfirm": "Ceci efface tes scores du classement en ligne et ton identifiant sur cet appareil. C'est irréversible.",
   "deleteAction": "Supprimer",
   "deleteOnlineDataDone": "Tes données de classement ont été supprimées.",
   "consentTitle": "Participer au classement en ligne ?",
-  "consentBody": "Pour afficher le classement, Pentapol envoie ton pseudo et un identifiant anonyme à son serveur à la fin d'un défi. Rien n'est envoyé autrement. Tu peux le désactiver et supprimer tes données à tout moment dans les Réglages.",
+  "consentBody": "Pour afficher le classement, Pentapol envoie ton pseudo, ta ceinture, ton qualificatif facultatif et un identifiant anonyme à son serveur à la fin d'un défi. Rien n'est envoyé autrement. Tu peux le désactiver et supprimer tes données à tout moment dans les Réglages.",
   "consentEnable": "Participer",
   "consentLater": "Plus tard",
   "guidedRotate": "Bien ! Utilise les icônes pour tourner la pièce comme la silhouette.",
@@ -354,5 +364,87 @@
   "discoveryPlace": "Glisse la pièce\ndans l’espace libre.",
   "discoveryDone": "Bravo !",
   "discoveryAgain": "Training",
-  "discoveryPlay": "Play"
+  "discoveryPlay": "Play",
+  "leaderboardLevelTitle": "Classement {level}",
+  "@leaderboardLevelTitle": {"placeholders": {"level": {"type": "String"}}},
+  "cardboardTitle": "Fabrique ton Pentapol",
+  "cardboardSlogan": "Et si on faisait de la géométrie en jouant ?",
+  "cardboardIntro": "Construis tes douze pentominos, puis relève des défis. En manipulant les pièces, familiarise-toi avec les rotations et les symétries.",
+  "cardboardMaterialsTitle": "Le matériel",
+  "cardboardMaterials": "Du carton fin, deux feuilles A4, une imprimante couleur, de la colle et des ciseaux. Une règle pour vérifier les carrés de 2 cm.",
+  "cardboardStepPrint": "Imprime le modèle à taille réelle, à 100 %. Chaque carré mesure 2 cm.",
+  "cardboardStepGlue": "Colle les feuilles sur du carton fin, comme une boîte de céréales.",
+  "cardboardStepCut": "Découpe les contours extérieurs en gardant les cinq carrés de chaque pièce attachés.",
+  "cardboardStepPlay": "Commence avec le petit plateau et les pièces 8, 2 et 6. Remplis-le sans trou ni superposition.",
+  "cardboardStepInvent": "Assemble quelques pièces, trace leur contour et invente un puzzle à proposer à un ami.",
+  "cardboardAdultHelp": "Demande l’aide d’un adulte pour le découpage si nécessaire.",
+  "cardboardDownload": "Télécharger le modèle",
+  "cardboardOpenError": "La page du modèle n’a pas pu s’ouvrir. Vérifie ta connexion et réessaie.",
+  "cardboardUnavailable": "Le modèle sera accessible ici après la mise en ligne du site Pentapol.",
+  "helpShapesTitle": "Pourquoi douze formes ?",
+  "helpShapesRule": "Un pentomino est un assemblage de cinq carrés de même taille, reliés côté contre côté. Les carrés ne se chevauchent pas et un simple contact par un coin ne suffit pas.",
+  "helpShapesCount": "Une forme tournée ou retournée reste la même. En regroupant ces rotations et symétries, on obtient exactement douze formes différentes.",
+  "helpShapesChallenge": "À toi de les retrouver ! Prends une feuille de papier quadrillé et un crayon. Essaie de dessiner seul les douze formes, sans regarder les pièces du jeu. Vérifie que chacune contient cinq carrés et élimine les doublons.",
+  "cardboardHomeTitle": "Fabrique ton Pentapol en carton",
+  "cardboardSearchTitle": "À toi de chercher !",
+  "cardboardMakeTitle": "Fabrique ton jeu",
+  "cardboardWoodTitle": "Une variante en bois",
+  "cardboardWoodMaterials": "En complément du carton, tu peux fabriquer ton Pentapol avec 60 petits cubes en bois identiques, disponibles dans les magasins de loisirs créatifs ou en ligne, par exemple sur Amazon.",
+  "cardboardWoodShapes": "Cherche d’abord les douze formes sur papier, avant de consulter les modèles. Pour chaque pièce, assemble cinq cubes face contre face, à plat sur une seule épaisseur.",
+  "cardboardWoodGlue": "Colle les cubes avec une colle adaptée au bois et suis ses instructions. Demande l’aide d’un adulte si nécessaire, puis laisse sécher complètement la colle.",
+  "cardboardWoodPaint": "Tu peux ensuite peindre chaque pièce d’une couleur différente avec une peinture acrylique à l’eau adaptée à ton âge. Applique des couches fines pour préserver l’ajustement des pièces et laisse sécher avant de jouer.",
+  "beltWhite": "Ceinture blanche",
+  "beltYellow": "Ceinture jaune",
+  "beltOrange": "Ceinture orange",
+  "beltGreen": "Ceinture verte",
+  "beltBlue": "Ceinture bleue",
+  "beltBrown": "Ceinture marron",
+  "beltBlack": "Ceinture noire",
+  "beltRetryTitle": "Grille réussie, ceinture à retenter",
+  "beltRetryTomorrow": "Pour cette ceinture, termine en {seconds} s maximum. Nouvelle tentative au prochain défi quotidien.",
+  "beltGoal": "Prochain objectif : {belt}, en {seconds} s maximum.",
+  "beltTimeLimit": "Temps maximum : {seconds} s",
+  "@beltRetryTomorrow": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@beltGoal": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "belt": {
+        "type": "String"
+      }
+    }
+  },
+  "@beltTimeLimit": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "beltEarned": "Bravo ! {belt} acquise.",
+  "beltChallengeBadge": "{belt} · ≤ {seconds} s",
+  "@beltEarned": {
+    "placeholders": {
+      "belt": {
+        "type": "String"
+      }
+    }
+  },
+  "@beltChallengeBadge": {
+    "placeholders": {
+      "belt": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }

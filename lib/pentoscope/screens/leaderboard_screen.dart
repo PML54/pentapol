@@ -1,4 +1,7 @@
-// Modified: 2026-10-07 07:38 — retirer le ratio de coups sous les noms du classement Stratégie.
+// Modified: 2026-11-11 06:36 — Ajouter le qualificatif facultatif au profil et aux classements.
+// Historique: 2026-11-11 06:00 — nommer le niveau du classement avec la dénomination partagée.
+// lib/pentoscope/screens/leaderboard_screen.dart
+// Historique: 2026-10-07 07:38 — retirer le ratio de coups sous les noms du classement Stratégie.
 // Historique: 2026-10-07 02:13 — omettre les minutes nulles et le zéro initial des secondes seules.
 // Historique: 2026-10-07 02:10 — points entiers, temps en minutes/secondes et coups réservés à Stratégie.
 // Historique: 2026-10-07 01:33 — flutter_lints 6 : `__` remplacé par `_` (unnecessary_underscores).
@@ -12,6 +15,7 @@
 // lib/pentoscope/screens/leaderboard_screen.dart
 // Historique: 2026-09-05 00:20 — création : écran des quatre classements du défi (CDC §7, Phase 5).
 
+import 'package:pentapol/config/player_level_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -25,12 +29,18 @@ String leaderboardDisplayName(
   List<LeaderboardEntry> entries,
   String fallback,
 ) {
-  final name = entry.pseudo.trim().isEmpty ? fallback : entry.pseudo.trim();
+  String publicName(LeaderboardEntry player) {
+    final pseudo = player.pseudo.trim().isEmpty
+        ? fallback
+        : player.pseudo.trim();
+    final qualifier = player.qualifier?.trim() ?? '';
+    return qualifier.isEmpty ? pseudo : '$pseudo · $qualifier';
+  }
+
+  final name = publicName(entry);
   final normalized = name.toLowerCase();
   final duplicateCount = entries.where((candidate) {
-    final candidateName = candidate.pseudo.trim().isEmpty
-        ? fallback
-        : candidate.pseudo.trim();
+    final candidateName = publicName(candidate);
     return candidateName.toLowerCase() == normalized;
   }).length;
   if (duplicateCount < 2 || entry.playerId.length < 4) return name;
@@ -149,7 +159,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            l10n.leaderboardTitle(widget.size.width, widget.size.height),
+            l10n.leaderboardLevelTitle(playerSizeLabel(l10n, widget.size)),
           ),
           actions: [
             IconButton(
@@ -308,6 +318,9 @@ class _MaillotTab extends StatelessWidget {
                     fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
+                subtitle: isMe
+                    ? Text(AppLocalizations.of(context).rankingYou)
+                    : null,
                 trailing: Text(
                   screen._valueOf(spec, e),
                   style: const TextStyle(

@@ -1,3 +1,5 @@
+// Modified: 2026-11-17 09:57 — ceinture partagée avec les résultats FR/EN.
+
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -92,6 +94,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeIso => 'Iso Game';
 
   @override
+  String get playerQualifierLabel => 'City or qualifier (optional)';
+
+  @override
+  String get playerQualifierHint => 'London, Scotland, Owl…';
+
+  @override
+  String get playerQualifierHelp =>
+      'Shown beside your nickname in rankings. Choose a city, region or nickname, without a precise address. Leave blank to remove it.';
+
+  @override
+  String get playerQualifierInvalid =>
+      'Up to 20 characters: letters, numbers, spaces, apostrophes and hyphens.';
+
+  @override
+  String get rankingYou => 'You';
+
+  @override
+  String homeChallengeLevel(String level) {
+    return '$level Challenge';
+  }
+
+  @override
   String homeDailyChallenge(String day) {
     return '$day Challenge';
   }
@@ -104,6 +128,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeSolo => 'Solo Game';
+
+  @override
+  String get playerRankNovice => 'Novice';
+
+  @override
+  String get playerRankExpert => 'Expert';
+
+  @override
+  String get playerRankVirtuoso => 'Virtuoso';
 
   @override
   String homeSoloProgress(int level, int width, int height) {
@@ -423,7 +456,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get challengeIntro =>
-      'Everyone gets the same setup today. Complete a board to unlock the next one; hints are disabled.';
+      'Six challenges, from white to black belt. Solve your grading puzzle within the time limit to earn the next belt. Otherwise, try again with the next daily challenge. Earned belts are retained; hints are disabled.';
 
   @override
   String piecesCount(int count) {
@@ -771,7 +804,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareScoresSub =>
-      'Sends your nickname and an anonymous identifier to the ranking server. Off by default.';
+      'Sends your nickname, belt, optional qualifier and an anonymous identifier to the ranking server. Off by default.';
 
   @override
   String get deleteOnlineData => 'Delete my ranking data';
@@ -795,7 +828,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get consentBody =>
-      'To show the ranking, Pentapol sends your nickname and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.';
+      'To show the ranking, Pentapol sends your nickname, belt, optional qualifier and an anonymous identifier to its server when you finish a challenge. Nothing is sent otherwise. You can turn this off and delete your data anytime in Settings.';
 
   @override
   String get consentEnable => 'Take part';
@@ -1217,4 +1250,153 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get discoveryPlay => 'Play';
+
+  @override
+  String leaderboardLevelTitle(String level) {
+    return '$level leaderboard';
+  }
+
+  @override
+  String get cardboardTitle => 'Make your own Pentapol';
+
+  @override
+  String get cardboardSlogan => 'What if we explored geometry through play?';
+
+  @override
+  String get cardboardIntro =>
+      'Make your twelve pentominoes, then solve puzzles. Explore rotations and reflections by moving, turning and flipping the pieces.';
+
+  @override
+  String get cardboardMaterialsTitle => 'What you need';
+
+  @override
+  String get cardboardMaterials =>
+      'Thin cardboard, two A4 sheets, a colour printer, glue and scissors. A ruler to check the 2 cm squares.';
+
+  @override
+  String get cardboardStepPrint =>
+      'Print the template at actual size, 100%. Each square measures 2 cm.';
+
+  @override
+  String get cardboardStepGlue =>
+      'Glue the sheets onto thin cardboard, such as a cereal box.';
+
+  @override
+  String get cardboardStepCut =>
+      'Cut around the outer edges, keeping all five squares of each piece connected.';
+
+  @override
+  String get cardboardStepPlay =>
+      'Start with the small board and pieces 8, 2 and 6. Fill it without gaps or overlaps.';
+
+  @override
+  String get cardboardStepInvent =>
+      'Arrange a few pieces, trace their outline and make a puzzle for a friend.';
+
+  @override
+  String get cardboardAdultHelp =>
+      'Ask an adult to help with cutting if needed.';
+
+  @override
+  String get cardboardDownload => 'Download the template';
+
+  @override
+  String get cardboardOpenError =>
+      'The template page could not be opened. Check your connection and try again.';
+
+  @override
+  String get cardboardUnavailable =>
+      'The template will be available here once the Pentapol website is live.';
+
+  @override
+  String get helpShapesTitle => 'Why twelve shapes?';
+
+  @override
+  String get helpShapesRule =>
+      'A pentomino is made of five equal-sized squares joined edge to edge. The squares cannot overlap, and touching at a corner alone does not count.';
+
+  @override
+  String get helpShapesCount =>
+      'Rotating or flipping a shape does not make a new one. Counting these rotations and reflections as the same shape gives exactly twelve different shapes.';
+
+  @override
+  String get helpShapesChallenge =>
+      'Can you find them all? Take a sheet of squared paper and a pencil. Try drawing all twelve shapes on your own, without looking at the game pieces. Check that each has five squares and remove any duplicates.';
+
+  @override
+  String get cardboardHomeTitle => 'Make your own cardboard Pentapol';
+
+  @override
+  String get cardboardSearchTitle => 'Your turn to explore!';
+
+  @override
+  String get cardboardMakeTitle => 'Make your game';
+
+  @override
+  String get cardboardWoodTitle => 'A wooden alternative';
+
+  @override
+  String get cardboardWoodMaterials =>
+      'As an alternative to cardboard, you can make your Pentapol with 60 identical small wooden cubes, available from craft shops or online, for example on Amazon.';
+
+  @override
+  String get cardboardWoodShapes =>
+      'First, find the twelve shapes on paper before looking at the templates. For each piece, arrange five cubes face to face, lying flat in a single layer.';
+
+  @override
+  String get cardboardWoodGlue =>
+      'Glue the cubes together using glue suitable for wood and follow its instructions. Ask an adult for help if needed, then let the glue dry completely.';
+
+  @override
+  String get cardboardWoodPaint =>
+      'You can then paint each piece a different colour with water-based acrylic paint suitable for your age. Apply thin coats so the pieces still fit together easily, and let them dry before playing.';
+
+  @override
+  String get beltWhite => 'White belt';
+
+  @override
+  String get beltYellow => 'Yellow belt';
+
+  @override
+  String get beltOrange => 'Orange belt';
+
+  @override
+  String get beltGreen => 'Green belt';
+
+  @override
+  String get beltBlue => 'Blue belt';
+
+  @override
+  String get beltBrown => 'Brown belt';
+
+  @override
+  String get beltBlack => 'Black belt';
+
+  @override
+  String get beltRetryTitle => 'Puzzle solved, belt still to earn';
+
+  @override
+  String beltRetryTomorrow(int seconds) {
+    return 'For this belt, finish within $seconds s. Try again with the next daily challenge.';
+  }
+
+  @override
+  String beltGoal(int seconds, String belt) {
+    return 'Next goal: $belt, within $seconds s.';
+  }
+
+  @override
+  String beltTimeLimit(int seconds) {
+    return 'Time limit: $seconds s';
+  }
+
+  @override
+  String beltEarned(String belt) {
+    return 'Well done! $belt earned.';
+  }
+
+  @override
+  String beltChallengeBadge(String belt, int seconds) {
+    return '$belt · ≤ $seconds s';
+  }
 }

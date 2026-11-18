@@ -1,12 +1,11 @@
 # AGENTS.md — Pentapol
 
-> Ce fichier doit rester **à la racine du dépôt**. Il donne à Codex les consignes du
-> projet avant son travail : architecture, conventions, contrôles et passations.
-> Un `AGENTS.md` imbriqué peut préciser les règles du sous-répertoire concerné ;
-> déplacer celui-ci dans `.Codex/` ne conserve pas sa portée sur tout le dépôt.
+> Ce fichier doit rester **à la racine du dépôt**. Il est la **source unique des
+> consignes communes** à tous les agents : architecture, conventions, contrôles et
+> passations. Modifier ces consignes ici uniquement ; `CLAUDE.md` les importe via
+> `@AGENTS.md` et ne doit pas en contenir de copie.
+> Un `AGENTS.md` imbriqué peut préciser les règles du sous-répertoire concerné.
 > Ce fichier n'est pas exécuté par Flutter. L'état courant appartient à `docs/JOURNAL.md`.
-> Les faits et règles communs à `AGENTS.md` et `CLAUDE.md` doivent rester cohérents.
-> Référence : [guide officiel Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 ## Identité du projet
 
@@ -143,11 +142,20 @@ Ces points ont coûté du temps une fois. Ils remplacent la §DÉCISIONS du jour
    hors tiroir, hors coups et hors minimum théorique. Toute modification du tirage ou du
    choix des indices incrémente `kChallengeVersion` pour séparer les résultats.
 
+9. **Ceintures indépendantes du Solo.** Blanche au départ, puis six défis de 3×5 à
+   5×8, seuils inclusifs 30/60/90/120/150/180 secondes enregistrées. Seule la grille
+   correspondant au prochain grade permet sa promotion. Chaque nouveau jour UTC,
+   tous les joueurs repartent au premier défi, quelle que soit leur ceinture ; le
+   suivant exige la réussite du précédent dans son temps limite. Ceinture acquise persistante,
+   plusieurs promotions le même jour UTC, nouvelle tentative le lendemain après un
+   dépassement. Le consentement réseau n’influence pas le grade local. La remise à
+   zéro des statistiques ne doit ni retirer une ceinture ni autoriser un rejeu du passage.
+
 ## Protocole entre agents — OBLIGATOIRE
 
-Deux agents travaillent sur ce dépôt : **Codex (CLI)**, qui écrit le code,
-compile, teste et fait tout le git ; et **Codex cowork**, qui analyse, documente et
-écrit les plans. Ils ne partagent **aucune mémoire**. Le dépôt est le seul canal.
+Deux rôles interviennent sur ce dépôt, quel que soit l’outil (Codex ou Claude) :
+**l’agent de développement (CLI)** écrit le code, compile, teste et fait tout le git ;
+**l’agent d’analyse/documentation (cowork)** analyse, documente et écrit les plans. Ils ne partagent **aucune mémoire**. Le dépôt est le seul canal.
 Mémo complet : `docs/MODUS_VIVENDI.md`.
 
 1. **Au démarrage** : lire `docs/JOURNAL.md` §ÉTAT, puis le plan qu'il cite.
@@ -155,9 +163,9 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
    se signale en §PASSATIONS **avant** le commit qui l'applique. Les règles durables
    rejoignent les invariants du projet. Ne pas recréer §DÉCISIONS, supprimée le 2026-08-31.
 3. **En fin de travail** : réécrire §ÉTAT, ajouter une ligne en §PASSATIONS.
-4. **Ne jamais ranger un fait de projet dans la mémoire `~/.Codex/`** — elle est
-   locale à cette machine et invisible pour cowork. Ce qui doit survivre va dans
-   `docs/`.
+4. **Ne jamais ranger un fait de projet dans la mémoire privée d’un agent**
+   (notamment `~/.codex/`, `~/.claude/` ou une mémoire de compte) : elle n’est pas
+   partagée entre agents. Ce qui doit survivre va dans `docs/`.
 5. **`docs/` appartient au CLI côté git.** Un doc qui pilote un travail de code est
    commité DANS le même commit que ce code. Un doc sans code derrière est commité
    seul, en début de session suivante, avant toute modification de `lib/`.
@@ -191,5 +199,3 @@ Mémo complet : `docs/MODUS_VIVENDI.md`.
 - Style : approche systémique, architecture propre, comprendre avant d'appliquer.
   Attend qu'on sépare les faits, les hypothèses et les opinions, et qu'on présente
   les objections sérieuses avant de conclure.
-
-## Imported Claude Cowork project instructions

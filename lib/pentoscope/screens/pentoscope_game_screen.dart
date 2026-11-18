@@ -1,4 +1,12 @@
-// Modified: 2026-11-05 10:27 — afficher une bande de balayage avec double flèche dans le jeu.
+// Modified: 2026-11-17 09:48 — icône du grade acquis en défi et félicitations avant le passage suivant.
+// Historique: 2026-11-17 09:44 — icône seule au profil et passages successifs dans le temps imparti.
+// Historique: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-11-11 06:00 — sauvegarder à la sortie du défi et afficher sa dénomination de niveau.
+// Historique: 2026-11-11 05:57 — figer et sauvegarder le défi à la sortie vers l’accueil ou par retour.
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-11-11 05:46 — défi : animer la réussite une seconde puis enchaîner la taille suivante.
+// lib/pentoscope/screens/pentoscope_game_screen.dart
+// Historique: 2026-11-05 10:27 — afficher une bande de balayage avec double flèche dans le jeu.
 // Historique: 2026-10-28 05:01 — retirer le précédent essai cinq pièces remplacé par la découverte locale.
 // Historique: 2026-10-31 06:45 — Isométries : acuité sur 10, étoiles et limite de trois minutes.
 // Historique: 2026-10-26 15:15 — guider la recherche par numéro dans le tiroir puis la pose.
@@ -187,6 +195,7 @@
 
 import 'dart:math' as math;
 
+import 'package:pentapol/config/challenge_belts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -361,8 +370,11 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
   /// Appelé une fois quand le puzzle vient d'être complété (transition via ref.listen).
   /// Progression : avance le niveau si c'était le puzzle courant et qu'aucune aide jaune n'a été
   /// utilisée. 1ᵉʳ succès : demande le nom du joueur s'il n'est pas encore saisi.
+  int? _challengeStartingBelt;
+
   void _onPuzzleCompleted(BuildContext context, PentoscopeState st) {
     final settings = ref.read(settingsProvider);
+    final previousBelt = _challengeStartingBelt ?? settings.challengeBelt;
     if (canAdvanceSoloLevel(st, settings.currentLevel)) {
       ref.read(settingsProvider.notifier).advanceLevel();
     }
@@ -373,12 +385,75 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     if (needName || rankedCompletion) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
+        if (rankedCompletion) {
+          await Future<void>.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+        }
         // this.context (State.context) gardé par State.mounted : motif sûr entre await successifs.
         if (needName) await _promptUserName(this.context);
         if (rankedCompletion && mounted) {
           await maybeProposeConsentOnChallengeCompletion(this.context, ref);
-          await Future<void>.delayed(const Duration(milliseconds: 650));
-          if (mounted) Navigator.of(this.context).pop();
+          if (!mounted) return;
+          final notifier = ref.read(pentoscopeProvider.notifier);
+          final challenge = notifier.activeChallenge;
+          if (challenge == null) return;
+          await notifier.waitForChallengeCompletion();
+          if (!mounted) return;
+          final index = kChallengeSizes.indexOf(challenge.size);
+          final belt = ref.read(settingsProvider).challengeBelt;
+          if (index >= 0 &&
+              index < 6 &&
+              (belt <= index || st.elapsedSeconds > beltTimeLimits[index])) {
+            final l10n = AppLocalizations.of(this.context);
+            await showDialog<void>(
+              context: this.context,
+              builder: (context) => AlertDialog(
+                title: Text(l10n.beltRetryTitle),
+                content: Text(l10n.beltRetryTomorrow(beltTimeLimits[index])),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.close),
+                  ),
+                ],
+              ),
+            );
+            if (mounted) Navigator.of(this.context).pop();
+            return;
+          }
+          if (belt > previousBelt) {
+            final l10n = AppLocalizations.of(this.context);
+            await showDialog<void>(
+              context: this.context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                key: const ValueKey('belt-earned-dialog'),
+                title: Text(l10n.beltEarned(beltLabel(l10n, belt))),
+                content: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [BeltIcon(belt: belt)],
+                ),
+                actions: [
+                  TextButton(
+                    key: const ValueKey('belt-earned-close'),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.close),
+                  ),
+                ],
+              ),
+            );
+            if (!mounted) return;
+          }
+          if (index >= 0 &&
+              index + 1 < kChallengeSizes.length &&
+              challenge.day == challengeDay()) {
+            await notifier.startDailyChallenge(
+              kChallengeSizes[index + 1],
+              date: DateTime.parse('${challenge.day}T00:00:00Z'),
+            );
+          } else {
+            Navigator.of(this.context).pop();
+          }
         }
       });
     }
@@ -465,6 +540,9 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final state = ref.watch(pentoscopeProvider);
     final notifier = ref.read(pentoscopeProvider.notifier);
     final settings = ref.watch(settingsProvider);
+    if (state.isRanked && !state.isComplete) {
+      _challengeStartingBelt = settings.challengeBelt;
+    }
     final l10n = AppLocalizations.of(context);
 
     // Progression / nom : réagir à la transition « puzzle complété ».
@@ -497,138 +575,168 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     final isLandscape =
         MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: isLandscape
-          ? null
-          : PreferredSize(
-              preferredSize: Size.fromHeight(_uiAppBarHeight(context)),
-              child: AppBar(
-                toolbarHeight: _uiAppBarHeight(context),
-                backgroundColor: Colors.white,
-                automaticallyImplyLeading: false,
-                titleSpacing: 0,
-                centerTitle: false,
-                // §9 : une seule barre d'actions, répartie. `actions:` tasserait les boutons à droite
-                // et ne couvre pas le paysage — la barre vit dans le `title`, via _buildBarItems, qui
-                // sert aussi le paysage. Bloc 5 (§4) : l'AppBar est désormais **permanente** — la barre
-                // d'isométrie ne la remplace plus (elle a sa rangée réservée au-dessus du rack), donc
-                // maison/chrono/ampoule/compteur restent visibles pendant la manipulation (C1/C2).
-                title: Row(
-                  key: const ValueKey('portrait-actions'),
-                  mainAxisAlignment: widget.mode == PentoscopeMode.training
-                      ? MainAxisAlignment.start
-                      : MainAxisAlignment.spaceEvenly,
-                  children: _buildBarItems(context, state, notifier),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) notifier.suspendChallenge();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: isLandscape
+            ? null
+            : PreferredSize(
+                preferredSize: Size.fromHeight(_uiAppBarHeight(context)),
+                child: AppBar(
+                  toolbarHeight: _uiAppBarHeight(context),
+                  backgroundColor: Colors.white,
+                  automaticallyImplyLeading: false,
+                  titleSpacing: 0,
+                  centerTitle: false,
+                  // §9 : une seule barre d'actions, répartie. `actions:` tasserait les boutons à droite
+                  // et ne couvre pas le paysage — la barre vit dans le `title`, via _buildBarItems, qui
+                  // sert aussi le paysage. Bloc 5 (§4) : l'AppBar est désormais **permanente** — la barre
+                  // d'isométrie ne la remplace plus (elle a sa rangée réservée au-dessus du rack), donc
+                  // maison/chrono/ampoule/compteur restent visibles pendant la manipulation (C1/C2).
+                  title: Row(
+                    key: const ValueKey('portrait-actions'),
+                    mainAxisAlignment: widget.mode == PentoscopeMode.training
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.spaceEvenly,
+                    children: _buildBarItems(context, state, notifier),
+                  ),
                 ),
               ),
+        // §iOS : sans SafeArea le corps passe sous l'îlot dynamique (paysage, appBar null) et sous
+        // l'indicateur d'accueil (portrait). SafeArea par défaut couvre TOUS les bords — donc les
+        // deux sens de rotation, sans padding directionnel en dur. Le LayoutBuilder interne voit
+        // alors les contraintes réduites, et le plateau se recalcule sur la place restante.
+        body: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerUp: _handlePointerEnd,
+          onPointerCancel: _handlePointerEnd,
+          child: SafeArea(
+            child: Stack(
+              key: const ValueKey('game-body-stack'),
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isLandscape =
+                        constraints.maxWidth > constraints.maxHeight;
+
+                    if (isLandscape) {
+                      return _buildLandscapeLayout(
+                        context,
+                        ref,
+                        state,
+                        notifier,
+                        settings,
+                        isSliderPieceSelected,
+                        isPlacedPieceSelected,
+                      );
+                    } else {
+                      return _buildPortraitLayout(
+                        context,
+                        ref,
+                        state,
+                        notifier,
+                        isSliderPieceSelected,
+                        isPlacedPieceSelected,
+                      );
+                    }
+                  },
+                ),
+
+                // 🔄⚫ Récap utilisateur (réglage showCounters) : isométries + fautes, haut-gauche.
+                if (settings.game.showCounters && !state.isIsometryTraining)
+                  _statsOverlay(state),
+
+                // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
+                // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
+                // Masqué si le récap utilisateur est actif (même coin) — les deux s'excluent.
+                if (kShowLiveCounters &&
+                    !settings.game.showCounters &&
+                    !state.isIsometryTraining)
+                  _debugIndicatorsOverlay(state),
+
+                // Fin de training : tap simple pour continuer l'entraînement, double-tap pour passer
+                // immédiatement au vrai module Game.
+                if (widget.mode == PentoscopeMode.training && state.isComplete)
+                  Positioned.fill(
+                    bottom: state.isIsometryTraining && isLandscape
+                        ? math.max(48.0, _uiIconSize(context) + 16)
+                        : 0,
+                    child: GestureDetector(
+                      key: const ValueKey('training-continue'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _startNextTraining(notifier),
+                      onDoubleTap: () => _openGameFromTraining(notifier),
+                    ),
+                  ),
+
+                // Fin du Game : comme dans le Training, le plateau résolu reste visible et un tap
+                // plein cadre enchaîne directement sur un nouveau tirage dans le même parcours.
+                if (widget.mode == PentoscopeMode.game && state.isComplete)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      key: const ValueKey('game-continue'),
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: () =>
+                          _handleGameBoardDoubleTap(state, notifier),
+                    ),
+                  ),
+
+                // 👁️ Mini-plateau adversaire (overlay)
+                if (_showOpponentOverlay)
+                  _buildOpponentOverlay(context, state, settings),
+
+                if (state.isRanked && state.isComplete)
+                  Positioned.fill(
+                    child: AbsorbPointer(
+                      child: ColoredBox(
+                        color: const Color(0x662E9E5B),
+                        child: Center(
+                          child: TweenAnimationBuilder<double>(
+                            key: const ValueKey('challenge-success'),
+                            tween: Tween(begin: 0.6, end: 1.0),
+                            duration: const Duration(milliseconds: 700),
+                            builder: (context, scale, child) =>
+                                Transform.scale(scale: scale, child: child),
+                            child: const Icon(
+                              Icons.check_circle,
+                              color: Colors.white,
+                              size: 120,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // 🏁 Bilan fermé : un tap sur le plateau résolu **rouvre** la carte (choix de Paul).
+                // Capteur plein cadre actif uniquement dans cet état (rien d'autre à faire sur le
+                // plateau une fois résolu). N'affecte pas la barre du haut (hors de ce Stack).
+                if (!state.isRanked &&
+                    widget.mode != PentoscopeMode.training &&
+                    widget.mode != PentoscopeMode.game &&
+                    state.isComplete &&
+                    _bilanFerme)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() => _bilanFerme = false),
+                    ),
+                  ),
+
+                // 🏁 Bilan de fin — carte flottante non-modale, posée au centre par-dessus le plateau
+                // résolu (visible derrière). Fermable ; ne bloque pas (les zones hors carte laissent
+                // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
+                if (!state.isRanked &&
+                    widget.mode != PentoscopeMode.training &&
+                    widget.mode != PentoscopeMode.game &&
+                    state.isComplete &&
+                    !_bilanFerme)
+                  _buildBilanCard(context, state, notifier),
+              ],
             ),
-      // §iOS : sans SafeArea le corps passe sous l'îlot dynamique (paysage, appBar null) et sous
-      // l'indicateur d'accueil (portrait). SafeArea par défaut couvre TOUS les bords — donc les
-      // deux sens de rotation, sans padding directionnel en dur. Le LayoutBuilder interne voit
-      // alors les contraintes réduites, et le plateau se recalcule sur la place restante.
-      body: Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerUp: _handlePointerEnd,
-        onPointerCancel: _handlePointerEnd,
-        child: SafeArea(
-          child: Stack(
-            key: const ValueKey('game-body-stack'),
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isLandscape =
-                      constraints.maxWidth > constraints.maxHeight;
-
-                  if (isLandscape) {
-                    return _buildLandscapeLayout(
-                      context,
-                      ref,
-                      state,
-                      notifier,
-                      settings,
-                      isSliderPieceSelected,
-                      isPlacedPieceSelected,
-                    );
-                  } else {
-                    return _buildPortraitLayout(
-                      context,
-                      ref,
-                      state,
-                      notifier,
-                      isSliderPieceSelected,
-                      isPlacedPieceSelected,
-                    );
-                  }
-                },
-              ),
-
-              // 🔄⚫ Récap utilisateur (réglage showCounters) : isométries + fautes, haut-gauche.
-              if (settings.game.showCounters && !state.isIsometryTraining)
-                _statsOverlay(state),
-
-              // 🐞 DEBUG (test) : bandeau d'observation coin haut-gauche. Défini/documenté/formaté dans
-              // fault_analysis (FaultIndicators + diagnosticCourant) ; ici on ne fait que l'afficher.
-              // Masqué si le récap utilisateur est actif (même coin) — les deux s'excluent.
-              if (kShowLiveCounters &&
-                  !settings.game.showCounters &&
-                  !state.isIsometryTraining)
-                _debugIndicatorsOverlay(state),
-
-              // Fin de training : tap simple pour continuer l'entraînement, double-tap pour passer
-              // immédiatement au vrai module Game.
-              if (widget.mode == PentoscopeMode.training && state.isComplete)
-                Positioned.fill(
-                  bottom: state.isIsometryTraining && isLandscape
-                      ? math.max(48.0, _uiIconSize(context) + 16)
-                      : 0,
-                  child: GestureDetector(
-                    key: const ValueKey('training-continue'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _startNextTraining(notifier),
-                    onDoubleTap: () => _openGameFromTraining(notifier),
-                  ),
-                ),
-
-              // Fin du Game : comme dans le Training, le plateau résolu reste visible et un tap
-              // plein cadre enchaîne directement sur un nouveau tirage dans le même parcours.
-              if (widget.mode == PentoscopeMode.game && state.isComplete)
-                Positioned.fill(
-                  child: GestureDetector(
-                    key: const ValueKey('game-continue'),
-                    behavior: HitTestBehavior.opaque,
-                    onDoubleTap: () =>
-                        _handleGameBoardDoubleTap(state, notifier),
-                  ),
-                ),
-
-              // 👁️ Mini-plateau adversaire (overlay)
-              if (_showOpponentOverlay)
-                _buildOpponentOverlay(context, state, settings),
-
-              // 🏁 Bilan fermé : un tap sur le plateau résolu **rouvre** la carte (choix de Paul).
-              // Capteur plein cadre actif uniquement dans cet état (rien d'autre à faire sur le
-              // plateau une fois résolu). N'affecte pas la barre du haut (hors de ce Stack).
-              if (widget.mode != PentoscopeMode.training &&
-                  widget.mode != PentoscopeMode.game &&
-                  state.isComplete &&
-                  _bilanFerme)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => setState(() => _bilanFerme = false),
-                  ),
-                ),
-
-              // 🏁 Bilan de fin — carte flottante non-modale, posée au centre par-dessus le plateau
-              // résolu (visible derrière). Fermable ; ne bloque pas (les zones hors carte laissent
-              // passer les taps). Regroupe tout le bilan (les compteurs éparpillés sont retirés).
-              if (widget.mode != PentoscopeMode.training &&
-                  widget.mode != PentoscopeMode.game &&
-                  state.isComplete &&
-                  !_bilanFerme)
-                _buildBilanCard(context, state, notifier),
-            ],
           ),
         ),
       ),
@@ -1471,8 +1579,10 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
       icon: const Icon(Icons.home_outlined),
       iconSize: iconSize,
       color: Colors.blueGrey,
-      onPressed: () {
+      onPressed: () async {
         HapticFeedback.selectionClick();
+        await notifier.suspendChallenge();
+        if (!context.mounted) return;
         Navigator.popUntil(context, (r) => r.isFirst);
       },
       tooltip: l10n.homeTooltip,
@@ -1530,7 +1640,7 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
 
     final items = <Widget>[
       homeButton,
-      if (state.isRanked) _buildChallengeModeBadge(context),
+      if (state.isRanked) Flexible(child: _buildChallengeModeBadge(context)),
       if (widget.mode != PentoscopeMode.game && !state.isRanked)
         IconButton(
           icon: const Icon(Icons.add_circle_outline),
@@ -1584,33 +1694,16 @@ class _PentoscopeGameScreenState extends ConsumerState<PentoscopeGameScreen> {
     return items;
   }
 
-  Widget _buildChallengeModeBadge(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      key: const ValueKey('challenge-mode-badge'),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF7EF),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF2E9E5B)),
+  Widget _buildChallengeModeBadge(BuildContext context) => Padding(
+    key: const ValueKey('challenge-mode-badge'),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    child: BeltIcon(
+      key: const ValueKey('challenge-player-belt'),
+      belt: ref.watch(
+        settingsProvider.select((settings) => settings.challengeBelt),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.flag_outlined, size: 18, color: Color(0xFF237A46)),
-          const SizedBox(width: 4),
-          Text(
-            l10n.challengeModeBadge,
-            style: const TextStyle(
-              color: Color(0xFF1F6A3D),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    ),
+  );
 
   Widget _buildGameCompletionBar(
     PentoscopeState state,

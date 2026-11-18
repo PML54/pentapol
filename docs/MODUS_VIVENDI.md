@@ -1,6 +1,6 @@
-# Modus vivendi — travailler avec Claude Code (CLI) et Claude cowork
+# Modus vivendi — coordination entre développement et analyse/documentation
 
-> _Dernière révision : 2026-09-11 (dernier commit git ; audit index 2026-09-29)._
+> _Dernière révision : 2026-11-12 06:16 CET — rôles indépendants des outils et accès au dépôt explicité._
 
 > Établi le 2026-08-28 19:33, après une journée de travail à deux agents qui a produit
 > six commits corrects et quatre pannes de coordination. Les règles ci-dessous ne sont
@@ -17,13 +17,20 @@ de l'un à l'autre s'écrit dans un fichier du dépôt.**
 
 ## 2. Qui fait quoi
 
-| | Claude Code (CLI) | Claude cowork |
+Les rôles sont indépendants des produits utilisés (Codex, ChatGPT, Claude ou autre).
+Dans ce document, **CLI** désigne l’agent de développement et **cowork** l’agent
+d’analyse/documentation ; ces termes décrivent des rôles, pas des applications.
+Les exemples historiques conservent les noms utilisés à l’époque.
+Les consignes communes ont une seule source : `AGENTS.md` à la racine ;
+`CLAUDE.md` importe ce fichier.
+
+| | Développement (CLI) | Analyse/documentation (cowork) |
 |---|---|---|
 | Code `lib/` | **oui** | non |
 | Compilation, `flutter analyze`, tests | **oui** | non |
 | Git — `add`, `commit`, `push` | **oui, exclusivement** | non |
 | Analyse, vérification par calcul | secondaire | **oui** |
-| Documentation `docs/`, `CLAUDE.md` | non | **oui** |
+| Documentation de référence et plans | mise à jour liée au travail réalisé | **oui** |
 | Plans et modes opératoires | non | **oui** |
 | Recherche web | non | **oui** |
 
@@ -67,15 +74,19 @@ ou une liste de sites, exiger la commande qui l'a produit.
 
 ## 3. Le canal, et ce qui n'en est pas un
 
-Le canal est le **dépôt**. Les deux agents lisent le même arbre de travail : le CLI
-nativement, cowork par le pont vers la machine.
+Le canal est le **dépôt**. Chaque agent doit disposer d’un accès explicite aux
+fichiers pertinents et lire leur version courante avant de travailler. L’accès au
+dépôt d’un outil n’est pas transmis automatiquement à un autre : ChatGPT sans accès
+aux fichiers ne peut pas lire spontanément `docs/JOURNAL.md`. Paul doit alors lui
+fournir les fichiers nécessaires ou un accès adapté. Sans accès en écriture, l’agent
+fournit une proposition que l’agent de développement reporte dans le dépôt.
 
 **Les mémoires ne sont pas un canal, dans les deux sens :**
 
 | agent | sa mémoire | visible par l'autre |
 |---|---|---|
-| CLI | `~/.claude/projects/…/memory/` | **non** — locale à ce Mac |
-| cowork | mémoire persistante du compte (suit claude.ai et cowork) | **non** |
+| Développement | mémoire locale de l’outil, notamment `~/.codex/` ou `~/.claude/` | **non** |
+| Analyse/documentation | mémoire et conversations du compte utilisé | **non** |
 
 **Un message de commit n'est pas un canal non plus.** Cowork ne lit pas
 `git log` spontanément. Une décision qui n'existe que dans un message de commit est
@@ -209,9 +220,11 @@ un fait de projet ailleurs que dans le dépôt.
 
 ## 8. Ce que ce protocole ne couvre pas
 
-**Il n'est pas contraignant.** `CLAUDE.md` est chargé automatiquement par le CLI, pas
-obéi. La mémoire de cowork joue le même rôle de son côté. Au-delà, il n'y a que ta
-vigilance et les deux commandes de la §6.
+**Le chargement des consignes ne garantit pas leur application.** `AGENTS.md` est
+la référence commune ; `CLAUDE.md` sert uniquement à l’importer. Un agent dont l’outil
+ne charge pas ces fichiers doit les lire explicitement. Chaque agent lit ensuite
+`docs/JOURNAL.md` §ÉTAT et le plan concerné, conformément à `AGENTS.md`.
+La vérification du travail reste nécessaire.
 
 **Il suppose que vous ne travaillez jamais en parallèle.** Deux agents écrivant
 `docs/JOURNAL.md` en même temps, c'est le conflit assuré. Un seul actif à la fois.
@@ -233,6 +246,6 @@ mesurables sont tenus.
 
 ## Voir aussi
 
-- `CLAUDE.md`, §« Protocole entre agents » — la version courte, chargée automatiquement
-  par le CLI à chaque session
+- `AGENTS.md`, §« Protocole entre agents » — les consignes communes ;
+  `CLAUDE.md` les importe sans les dupliquer
 - `docs/JOURNAL.md` — l'état courant, les décisions, les passations

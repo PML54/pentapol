@@ -1,4 +1,8 @@
-// Modified: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
+// Modified: 2026-11-17 09:57 — partager et afficher la ceinture acquise dans les classements.
+// Historique: 2026-11-11 06:37 — identifier le joueur courant dans les résultats publics.
+// Historique: 2026-11-11 06:07 — titrer les résultats par Défi et niveau sans le jour.
+// Historique: 2026-11-11 06:00 — afficher les noms partagés des niveaux dans les classements quotidiens.
+// Historique: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
 // lib/pentoscope/home/daily_challenge_tops.dart
 // Historique: 2026-11-04 10:20 — actualiser au retour à l’accueil et afficher les cinq meilleurs temps par taille.
 // Historique: 2026-10-31 06:15 — limiter les podiums de l’accueil au classement en temps.
@@ -6,7 +10,9 @@
 // Historique: 2026-10-30 08:52 — faire défiler les podiums Temps et Stratégie des défis du jour.
 
 import 'dart:async';
+import 'package:pentapol/config/challenge_belts.dart';
 
+import 'package:pentapol/config/player_level_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -138,9 +144,17 @@ class _DailyChallengeTopsState extends ConsumerState<DailyChallengeTops>
     return l10n.rankingDuration(0, '$seconds');
   }
 
+  String _challengeTitle(AppLocalizations l10n, PentoscopeSize size) {
+    return l10n.homeChallengeLevel(
+      playerSizeLabel(l10n, size).replaceFirst(' +', '+'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final myId = ref.watch(settingsProvider.select((s) => s.playerId));
+    final myBelt = ref.watch(settingsProvider.select((s) => s.challengeBelt));
     final optedIn = ref.watch(
       settingsProvider.select((s) => s.shareScoresOptIn),
     );
@@ -173,58 +187,51 @@ class _DailyChallengeTopsState extends ConsumerState<DailyChallengeTops>
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${top.size.width}×${top.size.height}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 26,
-                          height: 1.2,
-                          fontWeight: FontWeight.w800,
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.flag_outlined,
+                              size: 21,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _challengeTitle(l10n, top.size),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
                       for (var rank = 0; rank < top.podium.length; rank++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(
-                            children: [
-                              Text(
-                                '${rank + 1}. ',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20,
-                                  height: 1.2,
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  leaderboardDisplayName(
-                                    top.podium[rank],
-                                    top.podium,
-                                    l10n.defaultPlayer,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 20,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _duration(top.podium[rank], l10n),
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  height: 1.2,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
+                        _rankingRow(
+                          top.podium[rank],
+                          rank,
+                          top.podium,
+                          myId,
+                          myBelt,
+                          l10n,
                         ),
                     ],
                   ),
@@ -240,12 +247,90 @@ class _DailyChallengeTopsState extends ConsumerState<DailyChallengeTops>
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
         key: const ValueKey('home-daily-tops'),
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFF2F3F5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Color(0xFF20242A), width: 1.5),
+        ),
         clipBehavior: Clip.antiAlias,
         child: SizedBox(
-          height: 48 + 190 * MediaQuery.textScalerOf(context).scale(1),
+          height:
+              (MediaQuery.textScalerOf(context).scale(1) > 1.2 ? 300 : 230) *
+              MediaQuery.textScalerOf(context).scale(1),
           child: content,
+        ),
+      ),
+    );
+  }
+
+  Widget _rankingRow(
+    LeaderboardEntry entry,
+    int rank,
+    List<LeaderboardEntry> entries,
+    String? myId,
+    int myBelt,
+    AppLocalizations l10n,
+  ) {
+    final mine = myId != null && entry.playerId == myId;
+    final belt = mine ? myBelt : entry.belt;
+    final time = Text(
+      _duration(entry, l10n),
+      style: const TextStyle(
+        color: Color(0xFF5B6472),
+        fontSize: 15,
+        height: 1.15,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.2;
+    return Semantics(
+      label: mine ? l10n.rankingYou : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '${rank + 1}.',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Text(
+                    leaderboardDisplayName(entry, entries, l10n.defaultPlayer),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.15,
+                      fontWeight: mine ? FontWeight.w900 : FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (belt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 5),
+                    child: BeltIcon(
+                      key: ValueKey('ranking-belt-${entry.playerId}'),
+                      belt: belt,
+                    ),
+                  ),
+                if (!largeText) ...[const SizedBox(width: 7), time],
+              ],
+            ),
+            if (largeText)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Align(alignment: Alignment.centerRight, child: time),
+              ),
+          ],
         ),
       ),
     );

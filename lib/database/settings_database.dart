@@ -1,4 +1,6 @@
-// Modified: 2026-10-02 06:39 — effacer les résultats locaux et le profil dans une transaction.
+// Modified: 2026-11-11 05:57 — purger aussi la sauvegarde séparée du défi avec les résultats locaux.
+// lib/database/settings_database.dart
+// Historique: 2026-10-02 06:39 — effacer les résultats locaux et le profil dans une transaction.
 // Historique: 2026-09-12 10:58 — schéma 11 destructif : snapshot Géométrie dans CurrentGame, remise à zéro autorisée par Paul.
 // Historique: 2026-09-09 05:29 — centralisation score : _isBetterAcuity retiré, les deux sites appellent
 //           isBetterAcuity de score_rules (comparaison unique, même produit croisé). Aucun changement
@@ -174,6 +176,7 @@ class SettingsDatabase extends _$SettingsDatabase {
 
   Future<void> resetLocalResults(String settingsJson) => transaction(() async {
     await delete(currentGame).go();
+    await deleteSetting('challenge_in_progress');
     await delete(solvedSolutions).go();
     await delete(puzzleStats).go();
     await setSetting('app_settings', settingsJson);

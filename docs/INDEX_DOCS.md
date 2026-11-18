@@ -53,6 +53,7 @@
 | [Services](services.md) | 2026-09-22 | Chaîne des tables de solutions ; références à l’ancien solveur à relire contre le code |
 | [Architecture (Claude)](arch-pentapol-claude.md) | 2026-09-22 | Vue « ce qui est » de `lib/` (v1.0.7+7) ; descriptive, à vérifier contre le code |
 | [Cloudflare](CLOUDFLARE_CONFIG.md) | 2026-10-02 | Configuration des services duel et défi, remise à zéro D1 |
+| [Comprendre le réseau et Cloudflare](RESEAU_CLOUDFLARE_EXPLICATIONS.md) | Créé le 2026-11-11 (non commité) | Téléphone, Workers, D1, Duo, résultats, historique et hypothèses de coût pour 1 000 joueurs |
 | [Architecture du duel](DUEL_ISOM_ARCH.md) | 2026-09-09 ⚠ | Protocole et fonctionnement multijoueur |
 | [Bilan du duel](BILAN_DUEL_ISOMETRIES.md) | 2026-09-09 ⚠ | Conception et avancement daté |
 
@@ -83,3 +84,6 @@
 L’audit documentaire daté du 2026-09-07 reste dans l’historique Git. Ses alertes sur l’absence
 de consentement au classement, de sauvegarde, de records ou de compteur 5×n ne sont plus un
 état courant. Les validations sur appareil restent consignées comportement par comportement.
+
+- [Atelier carton bilingue et déploiement Pages](../site/README.md) — modèles A4,
+  génération, vérifications et raccordement de l’application.

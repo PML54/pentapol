@@ -1,4 +1,6 @@
-// Modified: 2026-10-06 04:48 — transmettre la règle du minimum propre à la solution finale.
+// Modified: 2026-11-17 09:57 — partager et afficher la ceinture acquise dans les classements.
+// Historique: 2026-11-11 06:36 — Ajouter le qualificatif facultatif au profil et aux classements.
+// Historique: 2026-10-06 04:48 — transmettre la règle du minimum propre à la solution finale.
 // Historique: 2026-10-06 04:16 — partager le client des classements et renvois via Riverpod.
 // Historique: 2026-10-05 20:00 — deux classements Temps et Stratégie et score actions distinct des anciens coups.
 // Historique: 2026-10-05 07:43 — traiter 409 comme soumission déjà présente pour vider les renvois.
@@ -37,6 +39,8 @@ class LeaderboardEntry {
   final int? theoreticalMoves;
   final String playerId;
   final String pseudo;
+  final String? qualifier;
+  final int? belt;
   final int minIso;
   final int isoCount;
   final int faults;
@@ -50,6 +54,8 @@ class LeaderboardEntry {
     this.theoreticalMoves,
     required this.playerId,
     required this.pseudo,
+    this.qualifier,
+    this.belt,
     required this.minIso,
     required this.isoCount,
     required this.faults,
@@ -66,6 +72,10 @@ class LeaderboardEntry {
   factory LeaderboardEntry.fromJson(Map<String, dynamic> j) => LeaderboardEntry(
     playerId: j['player_id'] as String? ?? '',
     pseudo: j['pseudo'] as String? ?? '',
+    qualifier: j['qualifier'] as String?,
+    belt: j['belt'] is int && j['belt'] >= 0 && j['belt'] <= 6
+        ? j['belt'] as int
+        : null,
     minIso: (j['min_iso'] as num?)?.toInt() ?? 0,
     isoCount: (j['iso_count'] as num?)?.toInt() ?? 0,
     faults: (j['faults'] as num?)?.toInt() ?? 0,
@@ -95,6 +105,8 @@ class ChallengeApi {
     required int size,
     required String playerId,
     required String pseudo,
+    String? qualifier,
+    int? belt,
     required int minIso,
     required int isoCount,
     required int faults,
@@ -117,6 +129,8 @@ class ChallengeApi {
               'size': size,
               'playerId': playerId,
               'pseudo': pseudo,
+              'qualifier': qualifier,
+              'belt': belt,
               'minIso': minIso,
               'isoCount': isoCount,
               'faults': faults,

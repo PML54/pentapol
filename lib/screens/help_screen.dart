@@ -1,4 +1,8 @@
-// Modified: 2026-10-28 05:01 — ouvrir Découvrir le jeu depuis l’aide.
+// Modified: 2026-11-18 08:19 — afficher la version de l’application dans l’aide.
+// Historique: 2026-11-13 06:16 — déplacer le parcours des douze formes vers l’accueil.
+// Historique: 2026-11-12 13:20 — expliquer les douze pentominos et proposer leur recherche sur papier.
+// Historique: 2026-11-12 07:20 — ajouter l’atelier carton bilingue à l’aide.
+// Historique: 2026-10-28 05:01 — ouvrir Découvrir le jeu depuis l’aide.
 // Historique: 2026-10-26 15:02 — raccourcir le premier guide et proposer un essai immédiat.
 // Historique: 2026-10-02 09:20 — ajouter le guide de manipulation accessible depuis l'accueil.
 // Historique: 2026-10-02 07:24 — retirer la présentation du développeur déplacée dans Paramètres.
@@ -15,6 +19,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pentapol/config/game_icons_config.dart';
+import 'package:pentapol/config/build_info.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
 
 /// Écran d'Aide : liste « icône + libellé + description » de toutes les icônes du jeu.
@@ -88,6 +93,14 @@ class HelpScreen extends StatelessWidget {
               _buildRow(entries[index]),
               if (index != entries.length - 1) const Divider(height: 1),
             ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                '${l10n.version} ${BuildInfo.versionWithDate}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
             const SizedBox(height: 24),
           ],
         ),

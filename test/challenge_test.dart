@@ -1,3 +1,4 @@
+// Modified: 2026-11-17 09:07 — vérifier les six grilles de passage des ceintures.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -59,10 +60,10 @@ void main() {
     expect(a.solutionCount, greaterThan(0));
   });
 
-  test('les neuf tailles sont proposees dans l ordre', () {
-    expect(kChallengeSizes, PentoscopeSize.values);
+  test('les six premières tailles sont proposées dans l’ordre', () {
+    expect(kChallengeSizes, PentoscopeSize.values.take(6).toList());
     expect(kChallengeSizes.first, PentoscopeSize.size3x5);
-    expect(kChallengeSizes.last, PentoscopeSize.size6x10);
+    expect(kChallengeSizes.last, PentoscopeSize.size8x5);
   });
 
   test('masques et orientations restent valides', () {

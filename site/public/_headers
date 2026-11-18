@@ -1,0 +1,6 @@
+/downloads/*
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/pdf
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

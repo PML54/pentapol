@@ -1,3 +1,5 @@
+// Modified: 2026-11-17 09:57 — ceinture partagée avec les résultats FR/EN.
+
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -93,6 +95,28 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeIso => 'Jeu Iso';
 
   @override
+  String get playerQualifierLabel => 'Ville ou qualificatif (facultatif)';
+
+  @override
+  String get playerQualifierHint => 'Lyon, Bretagne, Hibou…';
+
+  @override
+  String get playerQualifierHelp =>
+      'Visible avec ton pseudo dans les classements. Choisis une ville, une région ou un surnom, sans adresse précise. Vide pour le retirer.';
+
+  @override
+  String get playerQualifierInvalid =>
+      '20 caractères maximum : lettres, chiffres, espaces, apostrophes et tirets.';
+
+  @override
+  String get rankingYou => 'Vous';
+
+  @override
+  String homeChallengeLevel(String level) {
+    return 'Défi $level';
+  }
+
+  @override
   String homeDailyChallenge(String day) {
     return 'Défi du $day';
   }
@@ -105,6 +129,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get homeSolo => 'Jeu Solo';
+
+  @override
+  String get playerRankNovice => 'Novice';
+
+  @override
+  String get playerRankExpert => 'Expert';
+
+  @override
+  String get playerRankVirtuoso => 'Virtuose';
 
   @override
   String homeSoloProgress(int level, int width, int height) {
@@ -425,7 +458,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get challengeIntro =>
-      'La configuration est la même pour tous aujourd\'hui. Termine un plateau pour ouvrir le suivant ; l\'indice est désactivé.';
+      'Six défis, de la ceinture blanche à la noire. Réussis la grille du passage dans le temps maximum pour gagner la ceinture suivante. Sinon, retente au prochain défi quotidien. Les ceintures acquises restent conservées ; les aides sont désactivées.';
 
   @override
   String piecesCount(int count) {
@@ -774,7 +807,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shareScoresSub =>
-      'Envoie ton pseudo et un identifiant anonyme au serveur de classement. Désactivé par défaut.';
+      'Envoie ton pseudo, ta ceinture, ton qualificatif facultatif et un identifiant anonyme au serveur de classement. Désactivé par défaut.';
 
   @override
   String get deleteOnlineData => 'Supprimer mes données de classement';
@@ -799,7 +832,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get consentBody =>
-      'Pour afficher le classement, Pentapol envoie ton pseudo et un identifiant anonyme à son serveur à la fin d\'un défi. Rien n\'est envoyé autrement. Tu peux le désactiver et supprimer tes données à tout moment dans les Réglages.';
+      'Pour afficher le classement, Pentapol envoie ton pseudo, ta ceinture, ton qualificatif facultatif et un identifiant anonyme à son serveur à la fin d\'un défi. Rien n\'est envoyé autrement. Tu peux le désactiver et supprimer tes données à tout moment dans les Réglages.';
 
   @override
   String get consentEnable => 'Participer';
@@ -1226,4 +1259,153 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get discoveryPlay => 'Play';
+
+  @override
+  String leaderboardLevelTitle(String level) {
+    return 'Classement $level';
+  }
+
+  @override
+  String get cardboardTitle => 'Fabrique ton Pentapol';
+
+  @override
+  String get cardboardSlogan => 'Et si on faisait de la géométrie en jouant ?';
+
+  @override
+  String get cardboardIntro =>
+      'Construis tes douze pentominos, puis relève des défis. En manipulant les pièces, familiarise-toi avec les rotations et les symétries.';
+
+  @override
+  String get cardboardMaterialsTitle => 'Le matériel';
+
+  @override
+  String get cardboardMaterials =>
+      'Du carton fin, deux feuilles A4, une imprimante couleur, de la colle et des ciseaux. Une règle pour vérifier les carrés de 2 cm.';
+
+  @override
+  String get cardboardStepPrint =>
+      'Imprime le modèle à taille réelle, à 100 %. Chaque carré mesure 2 cm.';
+
+  @override
+  String get cardboardStepGlue =>
+      'Colle les feuilles sur du carton fin, comme une boîte de céréales.';
+
+  @override
+  String get cardboardStepCut =>
+      'Découpe les contours extérieurs en gardant les cinq carrés de chaque pièce attachés.';
+
+  @override
+  String get cardboardStepPlay =>
+      'Commence avec le petit plateau et les pièces 8, 2 et 6. Remplis-le sans trou ni superposition.';
+
+  @override
+  String get cardboardStepInvent =>
+      'Assemble quelques pièces, trace leur contour et invente un puzzle à proposer à un ami.';
+
+  @override
+  String get cardboardAdultHelp =>
+      'Demande l’aide d’un adulte pour le découpage si nécessaire.';
+
+  @override
+  String get cardboardDownload => 'Télécharger le modèle';
+
+  @override
+  String get cardboardOpenError =>
+      'La page du modèle n’a pas pu s’ouvrir. Vérifie ta connexion et réessaie.';
+
+  @override
+  String get cardboardUnavailable =>
+      'Le modèle sera accessible ici après la mise en ligne du site Pentapol.';
+
+  @override
+  String get helpShapesTitle => 'Pourquoi douze formes ?';
+
+  @override
+  String get helpShapesRule =>
+      'Un pentomino est un assemblage de cinq carrés de même taille, reliés côté contre côté. Les carrés ne se chevauchent pas et un simple contact par un coin ne suffit pas.';
+
+  @override
+  String get helpShapesCount =>
+      'Une forme tournée ou retournée reste la même. En regroupant ces rotations et symétries, on obtient exactement douze formes différentes.';
+
+  @override
+  String get helpShapesChallenge =>
+      'À toi de les retrouver ! Prends une feuille de papier quadrillé et un crayon. Essaie de dessiner seul les douze formes, sans regarder les pièces du jeu. Vérifie que chacune contient cinq carrés et élimine les doublons.';
+
+  @override
+  String get cardboardHomeTitle => 'Fabrique ton Pentapol en carton';
+
+  @override
+  String get cardboardSearchTitle => 'À toi de chercher !';
+
+  @override
+  String get cardboardMakeTitle => 'Fabrique ton jeu';
+
+  @override
+  String get cardboardWoodTitle => 'Une variante en bois';
+
+  @override
+  String get cardboardWoodMaterials =>
+      'En complément du carton, tu peux fabriquer ton Pentapol avec 60 petits cubes en bois identiques, disponibles dans les magasins de loisirs créatifs ou en ligne, par exemple sur Amazon.';
+
+  @override
+  String get cardboardWoodShapes =>
+      'Cherche d’abord les douze formes sur papier, avant de consulter les modèles. Pour chaque pièce, assemble cinq cubes face contre face, à plat sur une seule épaisseur.';
+
+  @override
+  String get cardboardWoodGlue =>
+      'Colle les cubes avec une colle adaptée au bois et suis ses instructions. Demande l’aide d’un adulte si nécessaire, puis laisse sécher complètement la colle.';
+
+  @override
+  String get cardboardWoodPaint =>
+      'Tu peux ensuite peindre chaque pièce d’une couleur différente avec une peinture acrylique à l’eau adaptée à ton âge. Applique des couches fines pour préserver l’ajustement des pièces et laisse sécher avant de jouer.';
+
+  @override
+  String get beltWhite => 'Ceinture blanche';
+
+  @override
+  String get beltYellow => 'Ceinture jaune';
+
+  @override
+  String get beltOrange => 'Ceinture orange';
+
+  @override
+  String get beltGreen => 'Ceinture verte';
+
+  @override
+  String get beltBlue => 'Ceinture bleue';
+
+  @override
+  String get beltBrown => 'Ceinture marron';
+
+  @override
+  String get beltBlack => 'Ceinture noire';
+
+  @override
+  String get beltRetryTitle => 'Grille réussie, ceinture à retenter';
+
+  @override
+  String beltRetryTomorrow(int seconds) {
+    return 'Pour cette ceinture, termine en $seconds s maximum. Nouvelle tentative au prochain défi quotidien.';
+  }
+
+  @override
+  String beltGoal(int seconds, String belt) {
+    return 'Prochain objectif : $belt, en $seconds s maximum.';
+  }
+
+  @override
+  String beltTimeLimit(int seconds) {
+    return 'Temps maximum : $seconds s';
+  }
+
+  @override
+  String beltEarned(String belt) {
+    return 'Bravo ! $belt acquise.';
+  }
+
+  @override
+  String beltChallengeBadge(String belt, int seconds) {
+    return '$belt · ≤ $seconds s';
+  }
 }

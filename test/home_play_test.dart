@@ -1,4 +1,6 @@
-// Modified: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
+// Modified: 2026-11-17 09:44 — icône seule au profil et passages successifs dans le temps imparti.
+// Historique: 2026-11-17 09:07 — adapter les vérifications aux ceintures et au passage suivant.
+// Historique: 2026-11-05 09:58 — accueil : Jeu Iso, retrait de Training et classement agrandi en secondes.
 // Historique: 2026-10-28 08:19 — vérifier que Training ouvre la découverte sans toucher au Solo.
 // Historique: 2026-10-29 07:42 — adapter les doubles des réglages au cycle persistant des cibles.
 // Historique: 2026-10-28 08:05 — vérifier la découverte 5×5 et les cibles de son corpus.
@@ -176,11 +178,12 @@ class _GestureGame extends _Game {
 
 class _Settings extends SettingsNotifier {
   final int level;
+  final String? userName;
 
-  _Settings({this.level = 1});
+  _Settings({this.level = 1, this.userName});
 
   @override
-  AppSettings build() => AppSettings(currentLevel: level);
+  AppSettings build() => AppSettings(currentLevel: level, userName: userName);
 
   @override
   Future<void> setDiscoveryNextExercise(int next) async {
@@ -546,7 +549,9 @@ void main() {
           final container = ProviderContainer(
             overrides: [
               pentoscopeProvider.overrideWith(() => game),
-              settingsProvider.overrideWith(_Settings.new),
+              settingsProvider.overrideWith(
+                () => _Settings(userName: 'Francine'),
+              ),
             ],
           );
           addTearDown(container.dispose);
@@ -592,9 +597,15 @@ void main() {
           final play = find.byKey(const ValueKey('home-play'));
           expect(tester.widget(play), isA<FilledButton>());
           expect(
-            find.text(lang == 'fr' ? 'Niveau 1/9 · 3×5' : 'Level 1/9 · 3×5'),
-            findsOneWidget,
+            find.text(lang == 'fr' ? 'Ceinture blanche' : 'White belt'),
+            findsNothing,
           );
+          expect(find.byKey(const ValueKey('home-belt')), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('home-solo-progress')),
+            findsNothing,
+          );
+          expect(find.text('Francine'), findsOneWidget);
           expect(find.byIcon(Icons.person), findsNothing);
           for (final key in [
             'home-challenge',

@@ -1,19 +1,19 @@
-// Modified: 2026-11-07 17:42 — Actualisation de la version affichée dans les Paramètres.
+// Modified: 2026-11-18 08:19 — Actualisation de la version affichée dans les Paramètres.
 // lib/config/build_info.dart
 // GÉNÉRÉ AUTOMATIQUEMENT par scripts/update_version.sh
 // NE PAS MODIFIER MANUELLEMENT
-// Dernière génération : 07/11/2026 à 17:42
+// Dernière génération : 18/11/2026 à 08:19
 
 /// Informations de build de l'application
 class BuildInfo {
   /// Version de l'application (format semver)
-  static const String version = '1.0.13';
+  static const String version = '1.0.14';
 
   /// Numéro de build (format YYYYMMDDHHMM)
-  static const int buildNumber = 202611071742;
+  static const int buildNumber = 202611180819;
 
   /// Date et heure du build (ISO 8601)
-  static const String buildDate = '2026-11-07T17:42:09';
+  static const String buildDate = '2026-11-18T08:19:29';
 
   /// Date formatée pour affichage
   static String get buildDateFormatted {

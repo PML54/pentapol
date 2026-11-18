@@ -1,10 +1,17 @@
-// Modified: 2026-10-07 07:44 — retirer le nombre de pièces fixes de la liste des défis.
+// Modified: 2026-11-18 02:34 — départ quotidien au niveau 1 pour toutes les ceintures.
+// Historique: 2026-11-17 09:44 — icône seule au profil et passages successifs dans le temps imparti.
+// Historique: 2026-11-17 09:07 — progression persistante des ceintures par défis chronométrés.
+// Historique: 2026-11-11 06:00 — utiliser les noms de niveaux partagés et reprendre un défi sauvegardé.
+// lib/pentoscope/screens/challenge_screen.dart
+// Historique: 2026-10-07 07:44 — retirer le nombre de pièces fixes de la liste des défis.
 // Historique: 2026-10-07 07:40 — afficher pièces à poser et minimum de coups sans nombre de solutions.
 // Historique: 2026-10-07 06:53 — afficher les pièces jouables et fixes et lancer la définition unique affichée.
 // Historique: 2026-10-07 01:46 — annoncer l'heure locale du prochain changement de défis (minuit UTC).
 // Historique: 2026-10-06 04:48 — localiser le nombre de solutions et retirer le minimum global ambigu.
 // Historique: 2026-10-06 04:16 — bouton Actualiser pour renvoyer les scores hors ligne et recharger les défis.
 // Historique: 2026-09-25 02:30 — afficher le jour courant et distinguer les défis terminés.
+import 'package:pentapol/config/player_level_labels.dart';
+import 'package:pentapol/config/challenge_belts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentapol/l10n/app_localizations.dart';
@@ -129,6 +136,24 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
+                  beltLabel(l10n, settings.challengeBelt),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                if (settings.challengeBelt < 6)
+                  Text(
+                    l10n.beltGoal(
+                      beltTimeLimits[settings.challengeBelt],
+                      beltLabel(l10n, settings.challengeBelt + 1),
+                    ),
+                  ),
+                if (settings.beltAttemptDay == day &&
+                    !settings.beltAttemptPassed)
+                  Text(
+                    l10n.beltRetryTomorrow(
+                      beltTimeLimits[settings.beltAttemptSize.clamp(0, 5)],
+                    ),
+                  ),
+                Text(
                   l10n.challengeIntro,
                   style: TextStyle(color: Theme.of(context).hintColor),
                 ),
@@ -136,8 +161,17 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
                 for (int index = 0; index < definitions.length; index++)
                   _ChallengeTile(
                     definition: definitions[index],
-                    completed: completed.contains(index),
-                    unlocked: index == 0 || completed.contains(index - 1),
+                    completed:
+                        completed.contains(index) ||
+                        (settings.beltAttemptDay == day &&
+                            settings.beltAttemptSize == index),
+                    unlocked: canEnterBeltChallenge(
+                      belt: settings.challengeBelt,
+                      sizeIndex: index,
+                      attemptedToday: settings.beltAttemptDay == day,
+                      lastSize: settings.beltAttemptSize,
+                      lastPassed: settings.beltAttemptPassed,
+                    ),
                     piecesLabel: definitions[index].theoreticalMoves == null
                         ? l10n.challengePlayablePieces(
                             definitions[index].playablePieceCount,
@@ -166,7 +200,9 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   }
 
   Future<void> _launch(ChallengeDefinition definition) async {
-    await ref.read(pentoscopeProvider.notifier).startChallenge(definition);
+    await ref
+        .read(pentoscopeProvider.notifier)
+        .startOrResumeChallenge(definition);
     if (!mounted) return;
     await Navigator.push(
       context,
@@ -216,10 +252,12 @@ class _ChallengeTile extends StatelessWidget {
           color: completed ? const Color(0xFF2E9E5B) : null,
         ),
         title: Text(
-          '${size.width}×${size.height}',
+          playerSizeLabel(AppLocalizations.of(context), size),
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(piecesLabel),
+        subtitle: Text(
+          '${AppLocalizations.of(context).beltTimeLimit(beltTimeLimits[size.index])}\n$piecesLabel',
+        ),
         trailing: completed
             ? IconButton(
                 tooltip: rankingLabel,
